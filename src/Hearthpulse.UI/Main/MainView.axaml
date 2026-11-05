@@ -291,7 +291,8 @@
                                 <TextBlock Text="{Binding AccountLinkShort}" FontSize="{StaticResource FontSizeLabel}" Margin="8,0,0,0" />
                             </StackPanel>
                         </Border>
-                    </Button>                    <Border Classes="pill" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                    </Button>
+                    <Border Classes="pill" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
                             CornerRadius="999" Padding="12,5" ToolTip.Tip="{i:Loc Main.Status.Tip}">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />

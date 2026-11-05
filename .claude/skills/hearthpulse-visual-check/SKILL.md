@@ -49,7 +49,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   `dotnet run` directly (the same goes for `HEARTHPULSE_RENDER_ONLY` below).
   Scene filter: `HEARTHPULSE_RENDER_ONLY=<group>[,<group>]` renders only those groups: `brawl` (`main-brawl`, Avalonia
   also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
-  replay), `historylist` (`main-history` alone), `account` (`main-settings-account`, the account center), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
+  replay), `historylist` (`main-history` alone), `account` (`main-settings-account-<state>`, the account center and the connection light signed in as an in-memory sample; `HEARTHPULSE_RENDER_ACCOUNT=connected|offline|ended`, default connected), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
   replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
   `overlay-constructed` with its previews, `overlay-layout`). New groups go into `RenderOnlyAsync`
   (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group, `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main

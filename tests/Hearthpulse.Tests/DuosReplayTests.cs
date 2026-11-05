@@ -105,6 +105,33 @@ public sealed class DuosReplayTests
     }
 
     [Fact]
+    public void The_next_tavern_keeps_our_hero_even_if_the_partners_is_still_our_hero_entity()
+    {
+        // Review M3: the partner's hit, then a tavern starts while our hero entity still points at their hero (Bob's
+        // controller): our leaderboard row stays hero 50, the partner's is never L.
+        var events = Run([.. HdtSetup(),
+            .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", "HEALTH=30", "BACON_DUO_TEAM_ID=1", "PLAYER_LEADERBOARD_PLACE=3"),
+            .. CombatSetup(),
+            Player("HERO_ENTITY", 121),
+            .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=1"),
+            Start("TRIGGER", 46), Start("ATTACK", 110), Tag(121, "DAMAGE", 5), End, End,
+            Tag(111, "ZONE", "REMOVEDFROMGAME"), Tag(112, "ZONE", "REMOVEDFROMGAME"), Tag(110, "ZONE", "REMOVEDFROMGAME"),
+            Game("BOARD_VISUAL_STATE", 1),
+            Tag(30, "ZONE", "PLAY"),
+            Game("TURN", 3),
+            Game("STEP", "MAIN_READY"),
+            Game("BACON_IN_COMBAT_PHASE", 0),
+            Tag(10, "DAMAGE", 1),
+            Player("HERO_ENTITY", 10),
+            ]).Events;
+        var tavern = events.SkipWhile(e => !e.StartsWith("T 2 ", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(tavern);
+        Assert.DoesNotContain(events, e => e.StartsWith("L ", StringComparison.Ordinal) && e.Split(' ') is [_, _, "L", "TB_BaconShop_HERO_08", ..]);
+        Assert.All(events.Where(e => e.StartsWith("L ", StringComparison.Ordinal) && e.Split(' ') is [_, _, "L", ..]),
+            e => Assert.Equal("TB_BaconShop_HERO_50", e.Split(' ')[3]));
+    }
+
+    [Fact]
     public void A_partner_minion_stays_theirs_after_our_hero_entity_turns_back()
     {
         // Review m5: our hero entity is ours again before the fight ends; their minion moves: still P, never on our board.

@@ -155,12 +155,14 @@ public sealed partial class MainViewModel
         Raise(nameof(UploadOffConfirming));
     }
 
-    // Codes of the journal in words of the pause line.
-    private static string ReasonKey(string? code) => code switch
+    // Codes of the journal in words of the pause line. No token to send with is "not signed in", unless the account
+    // itself cannot reach the site (a refresh that failed offline leaves the uploader without a token too).
+    private string ReasonKey(string? code) => code switch
     {
         "RATE_LIMITED" => "Account.Center.Reason.RateLimited",
         "SERVER_ERROR" or "TEMPORARILY_UNAVAILABLE" or "BAD_RESPONSE" => "Account.Center.Reason.Server",
-        _ when code?.StartsWith("HTTP 5", StringComparison.Ordinal) == true => "Account.Center.Reason.Server",
+        "NO_TOKEN" => AccountConnection.Link == AccountLink.Offline ? "Account.Center.Reason.Offline" : "Account.Center.Reason.SignedOut",
+        _ when code?.StartsWith("HTTP_5", StringComparison.Ordinal) == true => "Account.Center.Reason.Server",
         _ when AccountConnection.IsUnreachable(code) => "Account.Center.Reason.Offline",
         _ => "Account.Center.Reason.Other",
     };
@@ -196,7 +198,7 @@ public sealed partial class MainViewModel
     // ---- subscription and limits -----------------------------------------------------------------
 
     /// <summary>
-    /// Today's use of the pool's stats: "Сегодня использовано 2 из 3 …, сбросится в 03:00", the subscription that lifts
+    /// Today's use of the community stats: "Сегодня использовано 2 из 3 …, сбросится в 03:00", the subscription that lifts
     /// it, or that there are no limits; empty before the site said anything about limits.
     /// </summary>
     public string AccountLimitsText
@@ -272,6 +274,12 @@ public sealed partial class MainViewModel
             var all = uploads.All();
             return (all.Count, all.Count == 0 ? (DateTime?)null : all.Values.Max(u => u.UploadedAt), CrashReporter.PendingIn(crashFolder));
         }).ConfigureAwait(true);
+        if (_accountRenderReplays is { } sample)
+        {
+            // --render-ui's sample account (MainViewModel.AccountRender.cs): its replays, not the data copy's.
+            (count, last) = (sample.Count, sample.Last);
+        }
+
         (_siteReplays, _siteReplayLast, _crashWaiting) = (count, last, crashes);
         Raise(nameof(AccountReplaysText));
         Raise(nameof(AccountCrashWaiting));

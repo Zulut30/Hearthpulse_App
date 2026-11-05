@@ -164,7 +164,8 @@ public sealed partial class BattlegroundsReplayRecorder
     /// <summary>Outside combat only: our player's hero and Duos team now (the tavern is always ours).</summary>
     private void NoteOwnHero(GameState game)
     {
-        if (_combat || game.LocalHero is not { } hero)
+        // Only a hero of our own controller: our player's hero entity may still point at the partner's at the tavern's start.
+        if (_combat || game.LocalHero is not { } hero || hero.Controller != game.LocalPlayerId)
         {
             return;
         }

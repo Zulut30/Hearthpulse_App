@@ -10,6 +10,7 @@ using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Main;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
 
@@ -18,12 +19,16 @@ namespace Hearthpulse.Tests;
 /// state (<see cref="AccountConnection"/>), the restore error that is kept, the center's texts and the
 /// confirmation before sending is turned off, with a fake hearthpulse.net.
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class AccountCenterTests : IDisposable
 {
     private const string Base = "https://site.test/api/v1/";
     private readonly string _dir = TestDataFolder.Scratch("account-center");
     private readonly FakeSite _site = new();
     private readonly List<Uri> _opened = [];
+
+    // The retry while offline and the journal's delayed write run on this clock: nothing fires unless a test moves it.
+    private readonly FakeTimeProvider _time = new(DateTimeOffset.UtcNow);
 
     public AccountCenterTests()
     {
@@ -47,7 +52,10 @@ public sealed class AccountCenterTests : IDisposable
     private AccountClient Client() => new(new HttpClient(_site), Base);
 
     private AccountService Service(AccountActivity? activity = null) =>
-        new(Client(), new TokenStore(Path.Combine(_dir, "account.dat")), url => { _opened.Add(url); return true; }, activity ?? new AccountActivity(JournalPath));
+        new(Client(), new TokenStore(Path.Combine(_dir, "account.dat")), url => { _opened.Add(url); return true; }, activity ?? Journal()) { Time = _time };
+
+    /// <summary>A journal in memory (no path) or in the test's file, on the test's clock.</summary>
+    private AccountActivity Journal(string? path = "") => new(path == "" ? JournalPath : path) { Time = _time };
 
     /// <summary>A sign-in saved by an earlier start, restored now.</summary>
     private async Task<AccountService> RestoredAsync(DateTime? expires = null, AccountActivity? activity = null)
@@ -70,6 +78,7 @@ public sealed class AccountCenterTests : IDisposable
         journal.CountGames(accepted: 3, refused: 1, withoutStatistics: 2);
         journal.SetUsage(new UsageToday("2026-11-05", true, "battlegrounds", 2, 3, DateTime.UnixEpoch));
         Assert.Equal(4, changes);
+        journal.Flush();
 
         var again = new AccountActivity(JournalPath);
         Assert.NotNull(again[SiteService.Account].LastSuccess);
@@ -87,6 +96,7 @@ public sealed class AccountCenterTests : IDisposable
         Assert.Equal(0, broken.GamesSent);
         Assert.False(broken[SiteService.Games].Failing);
         broken.CountGames(1, 0, 0);
+        broken.Flush();
         Assert.Equal(1, new AccountActivity(JournalPath).GamesSent);
 
         // A folder in the file's place cannot be written: the journal keeps working in memory.
@@ -94,6 +104,7 @@ public sealed class AccountCenterTests : IDisposable
         Directory.CreateDirectory(blocked);
         var memory = new AccountActivity(blocked);
         memory.CountGames(2, 0, 0);
+        memory.Flush();
         Assert.Equal(2, memory.GamesSent);
     }
 
@@ -120,13 +131,16 @@ public sealed class AccountCenterTests : IDisposable
         var offline = await RestoredAsync(activity: new AccountActivity(null));
         Assert.True(offline.SignedIn);
         Assert.Equal("OFFLINE", offline.LastCheckError?.Code);
-        Assert.Equal(new AccountConnection(AccountLink.Offline, null), AccountConnection.Of(offline, DateTime.UtcNow));
-        Assert.Equal("Can't reach the site", AccountConnection.Of(offline, DateTime.UtcNow).Text(DateTime.UtcNow));
+        // The account asks again in a minute: the state line names that try.
+        Assert.Equal(_time.GetUtcNow().UtcDateTime.AddMinutes(1), offline.NextTry);
+        Assert.Equal(new AccountConnection(AccountLink.Offline, offline.NextTry), AccountConnection.Of(offline, DateTime.UtcNow));
+        Assert.Equal("Can't reach the site — retrying at " + AccountConnection.Clock(offline.NextTry!.Value, DateTime.UtcNow),
+            AccountConnection.Of(offline, DateTime.UtcNow).Text(DateTime.UtcNow));
+        // A later try of the uploader does not hide the account's earlier one.
         var retry = DateTime.UtcNow.AddMinutes(15);
         offline.Activity.Failed(SiteService.Games, "OFFLINE", retry);
         state = AccountConnection.Of(offline, DateTime.UtcNow);
-        Assert.Equal(new AccountConnection(AccountLink.Offline, retry), state);
-        Assert.Equal("Can't reach the site — retrying at " + AccountConnection.Clock(retry, DateTime.UtcNow), state.Text(DateTime.UtcNow));
+        Assert.Equal(new AccountConnection(AccountLink.Offline, offline.NextTry), state);
         // A "not on the site yet" answer is not an outage.
         var notYet = await RestoredAsync(activity: new AccountActivity(null));
         _site.Offline = false;
@@ -167,7 +181,8 @@ public sealed class AccountCenterTests : IDisposable
         Assert.True(vm2.AccountLinkVisible);
         Assert.Equal((false, true, false), (vm2.AccountLinkOk, vm2.AccountLinkWarn, vm2.AccountLinkBad));
         Assert.Equal("Offline", vm2.AccountLinkShort);
-        Assert.Equal("hearthpulse.net: Can't reach the site. Click to open your account.", vm2.AccountLinkTip);
+        Assert.StartsWith("hearthpulse.net: Can't reach the site — retrying at ", vm2.AccountLinkTip, StringComparison.Ordinal);
+        Assert.EndsWith(". Click to open your account.", vm2.AccountLinkTip, StringComparison.Ordinal);
 
         _site.Offline = false;
         var vm3 = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), Data());
@@ -203,8 +218,10 @@ public sealed class AccountCenterTests : IDisposable
         var next = now.AddMinutes(5);
         account.Activity.Failed(SiteService.Games, "SERVER_ERROR", next);
         Assert.Equal($"Sending is paused: the site is answering with errors. Next try at {AccountConnection.Clock(next, now)}.", vm.AccountGamesPause);
+        // No token to send with is "not signed in", not an outage (review m1).
         account.Activity.Failed(SiteService.Games, "NO_TOKEN");
-        Assert.Equal("Sending is paused: can't reach the site.", vm.AccountGamesPause);
+        Assert.Equal("Sending is paused: you are not signed in to the site.", vm.AccountGamesPause);
+        Assert.Equal(AccountLink.Connected, vm.AccountConnection.Link);
 
         // Limits: off, used today, and not on the site yet.
         Assert.Equal(string.Empty, vm.AccountLimitsText);
@@ -213,7 +230,7 @@ public sealed class AccountCenterTests : IDisposable
         Assert.Equal("There are no daily limits right now.", vm.AccountLimitsText);
         var resets = now.Date.AddDays(1);
         account.Activity.SetUsage(new UsageToday(today, true, Entitlements.Battlegrounds, 2, 3, resets));
-        Assert.Equal($"Today you used 2 of 3 free games with the pool's stats; resets at {UsageGate.ResetText(resets)}.", vm.AccountLimitsText);
+        Assert.Equal($"Today you used 2 of 3 free games with community stats; resets at {UsageGate.ResetText(resets)}.", vm.AccountLimitsText);
         account.Activity.SetUsage(new UsageToday("2000-01-01", true, Entitlements.Battlegrounds, 2, 3, resets));
         Assert.StartsWith("Today you used 0 of 3", vm.AccountLimitsText, StringComparison.Ordinal);
         Assert.False(vm.AccountLimitsUnavailable);
@@ -359,6 +376,182 @@ public sealed class AccountCenterTests : IDisposable
         Assert.Equal("Отчёт о сбое будет отправлен автоматически (Настройки → Данные).", Loc.Table("ru")["Host.Crash.AutoSent"]);
     }
 
+    [Fact]
+    public async Task Offline_asks_the_site_again_on_a_backoff_and_a_later_success_connects()
+    {
+        _site.Offline = true;
+        var account = await RestoredAsync(activity: new AccountActivity(null));
+        Assert.Equal(AccountLink.Offline, AccountConnection.Of(account, DateTime.UtcNow).Link);
+
+        // While the site stays out of reach: a light /me after 1, 2, 4, 8, then every 15 minutes, one request each.
+        foreach (var minutes in new[] { 1, 2, 4, 8, 15, 15 })
+        {
+            Assert.Equal(_time.GetUtcNow().UtcDateTime.AddMinutes(minutes), account.NextTry);
+            var before = _site.Requests;
+            _time.Advance(TimeSpan.FromMinutes(minutes) - TimeSpan.FromSeconds(1));
+            Assert.Equal(before, _site.Requests);
+            _time.Advance(TimeSpan.FromSeconds(1));
+            await account.PendingRetry!;
+            Assert.Equal(before + 1, _site.Requests);
+            Assert.Equal(AccountLink.Offline, AccountConnection.Of(account, DateTime.UtcNow).Link);
+            Assert.True(account.SignedIn);
+        }
+
+        // The site is back: the next try connects, and nothing more is scheduled.
+        _site.Offline = false;
+        _time.Advance(TimeSpan.FromMinutes(15));
+        await account.PendingRetry!;
+        Assert.Equal(AccountLink.Connected, AccountConnection.Of(account, DateTime.UtcNow).Link);
+        Assert.Null(account.NextTry);
+        Assert.Null(account.LastCheckError);
+        var settled = _site.Requests;
+        _time.Advance(TimeSpan.FromHours(2));
+        Assert.Equal(settled, _site.Requests);
+
+        // Signing out stops a retry that was due.
+        account.Activity.Failed(SiteService.Games, "OFFLINE");
+        Assert.NotNull(account.NextTry);
+        await account.SignOutAsync();
+        Assert.Null(account.NextTry);
+        settled = _site.Requests;
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(settled, _site.Requests);
+    }
+
+    [Fact]
+    public async Task Turning_sending_off_never_leaves_the_connection_offline()
+    {
+        var account = await RestoredAsync(activity: new AccountActivity(null));
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings { UploadGamesToProfile = true }, Data());
+        vm.AttachAccount(account);
+        account.Activity.Failed(SiteService.Games, "OFFLINE", DateTime.UtcNow.AddMinutes(5));
+        Assert.Equal(AccountLink.Offline, vm.AccountConnection.Link);
+
+        vm.UploadGames = false;
+        Assert.False(account.Activity[SiteService.Games].Failing);
+        Assert.Equal(AccountLink.Connected, vm.AccountConnection.Link);
+        Assert.Equal(string.Empty, vm.AccountGamesPause);
+        Assert.Null(account.NextTry);
+    }
+
+    [Fact]
+    public async Task A_5xx_with_a_code_is_no_connection_and_a_replay_4xx_keeps_its_code()
+    {
+        // The site fails with its own code in the body: still "no connection", the sign-in is kept.
+        _site.TokenFailure = (503, new { error = "maintenance" });
+        var account = await RestoredAsync(activity: new AccountActivity(null));
+        Assert.True(account.SignedIn);
+        Assert.Equal("SERVER_ERROR", account.LastCheckError?.Code);
+        Assert.Equal(AccountLink.Offline, AccountConnection.Of(account, DateTime.UtcNow).Link);
+        _site.TokenFailure = (500, new { error = new { code = "invalid_grant", message = "db down" } });
+        Assert.Equal("SERVER_ERROR", (await account.CheckNowAsync())?.Code);
+        Assert.True(account.SignedIn);
+
+        // A replay the site turns down with its own 4xx: REFUSED to the card, the site's code in the journal.
+        _site.TokenFailure = null;
+        Assert.Null(await account.CheckNowAsync());
+        _site.Replay = (422, new { error = new { code = "replay_invalid" } });
+        Assert.Equal("REFUSED", (await account.UploadReplayAsync("H4sI")).Error);
+        Assert.Equal("REPLAY_INVALID", account.Activity[SiteService.Replays].LastError);
+        _site.Replay = (410, new { });
+        Assert.Equal("REFUSED", (await account.UploadReplayAsync("H4sI")).Error);
+        Assert.Equal("REFUSED", account.Activity[SiteService.Replays].LastError);
+        _site.Replay = (502, new { error = "bad_gateway" });
+        Assert.Equal("SERVER_ERROR", (await account.UploadReplayAsync("H4sI")).Error);
+        Assert.Equal(AccountLink.Offline, AccountConnection.Of(account, DateTime.UtcNow).Link);
+    }
+
+    [Theory]
+    [InlineData(503, "maintenance", "SERVER_ERROR")]
+    [InlineData(503, "temporarily_unavailable", "TEMPORARILY_UNAVAILABLE")]
+    [InlineData(500, null, "SERVER_ERROR")]
+    [InlineData(400, "invalid_grant", "INVALID_GRANT")]
+    [InlineData(404, null, "NOT_AVAILABLE")]
+    [InlineData(401, null, "BAD_RESPONSE")]
+    public void A_failed_answer_names_its_code(int status, string? code, string expected) =>
+        Assert.Equal(expected, AccountClient.FailureCode(status, code));
+
+    [Theory]
+    [InlineData("OFFLINE", "OFFLINE")]
+    [InlineData("replay_invalid", "REPLAY_INVALID")]
+    [InlineData("HTTP_403", "HTTP_403")]
+    [InlineData("v1.2-beta", "V1.2-BETA")]
+    [InlineData("two words", "OTHER")]
+    [InlineData("<script>", "OTHER")]
+    [InlineData("код", "OTHER")]
+    [InlineData("", "OTHER")]
+    public void The_journal_keeps_only_short_plain_codes(string code, string kept)
+    {
+        var journal = new AccountActivity(null);
+        journal.Failed(SiteService.Replays, code);
+        Assert.Equal(kept, journal[SiteService.Replays].LastError);
+        journal.Failed(SiteService.Replays, new string('A', 200));
+        Assert.Equal(new string('A', AccountActivity.MaxCodeLength), journal[SiteService.Replays].LastError);
+    }
+
+    [Fact]
+    public async Task Another_account_starts_the_game_counters_over()
+    {
+        // The journal counted games for another account on this machine.
+        var journal = Journal(null);
+        journal.BindAccount("u-1");
+        journal.CountGames(12, 2, 1);
+        journal.Failed(SiteService.Games, "SERVER_ERROR", DateTime.UtcNow.AddMinutes(5));
+        journal.Succeeded(SiteService.Replays);
+
+        var account = await RestoredAsync(activity: journal);
+        Assert.Equal("u-42", journal.AccountId);
+        Assert.Equal((0L, 0L, 0L), (journal.GamesSent, journal.GamesRefused, journal.GamesWithoutStatistics));
+        Assert.Null(journal.LastGameSentAt);
+        Assert.Equal(SiteServiceRecord.Empty, journal[SiteService.Games]);
+        Assert.NotNull(journal[SiteService.Replays].LastSuccess);
+
+        // The same account again keeps them; a journal from before accounts were recorded is taken as the account's own.
+        journal.CountGames(3, 0, 0);
+        await account.CheckNowAsync();
+        Assert.Equal(3, journal.GamesSent);
+        var old = Journal(null);
+        old.CountGames(5, 0, 0);
+        old.BindAccount("u-42");
+        Assert.Equal(5, old.GamesSent);
+    }
+
+    [Fact]
+    public async Task My_replays_open_on_the_site_even_when_me_names_another_host()
+    {
+        _site.ProfileUrl = "https://evil.example/profile/";
+        var account = await RestoredAsync(activity: new AccountActivity(null));
+        Assert.Equal("https://site.test/profile/#account-replays", account.ReplaysUrl.AbsoluteUri);
+        _site.ProfileUrl = "https://site.test/u/anna/";
+        Assert.Null(await account.CheckNowAsync());
+        Assert.Equal("https://site.test/u/anna/#account-replays", account.ReplaysUrl.AbsoluteUri);
+    }
+
+    [Fact]
+    public void A_burst_of_changes_is_one_write_after_a_moment()
+    {
+        var journal = Journal();
+        journal.Succeeded(SiteService.Account);
+        journal.CountGames(3, 0, 0);
+        journal.Failed(SiteService.Games, "OFFLINE");
+        Assert.Equal(0, journal.Writes);
+        Assert.False(File.Exists(JournalPath));
+
+        _time.Advance(AccountActivity.WriteDelay);
+        Assert.Equal(1, journal.Writes);
+        var again = new AccountActivity(JournalPath);
+        Assert.Equal(3, again.GamesSent);
+        Assert.Equal("OFFLINE", again[SiteService.Games].LastError);
+
+        // Nothing new: nothing written; the next change waits for its own moment.
+        _time.Advance(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, journal.Writes);
+        journal.CountGames(1, 0, 0);
+        journal.Flush();
+        Assert.Equal(2, journal.Writes);
+        Assert.Equal(4, new AccountActivity(JournalPath).GamesSent);
+    }
+
     /// <summary>hearthpulse.net in miniature: token refresh, <c>/me</c>, the limits, crash reports; anything else is 404.</summary>
     private sealed class FakeSite : HttpMessageHandler
     {
@@ -372,8 +565,20 @@ public sealed class AccountCenterTests : IDisposable
 
         public int CrashStatus { get; set; } = 201;
 
+        /// <summary>A failed answer to the token refresh (status and JSON body); null: the refresh works.</summary>
+        public (int Status, object Body)? TokenFailure { get; set; }
+
+        /// <summary>The answer to a replay upload; null: no such route yet (404).</summary>
+        public (int Status, object Body)? Replay { get; set; }
+
+        public string ProfileUrl { get; set; } = "https://site.test/profile/";
+
+        /// <summary>Requests that reached the site (or tried to, offline).</summary>
+        public int Requests { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            Requests++;
             if (Offline)
             {
                 throw new HttpRequestException("offline");
@@ -383,11 +588,13 @@ public sealed class AccountCenterTests : IDisposable
             return Task.FromResult(path switch
             {
                 "oauth/token" when RejectRefresh => Json(400, new { error = "invalid_grant" }),
+                "oauth/token" when TokenFailure is { } failure => Json(failure.Status, failure.Body),
+                "tracker/replays" when Replay is { } replay => Json(replay.Status, replay.Body),
                 "oauth/token" => Json(200, new { access_token = $"acc-{++_issued}", refresh_token = $"ref-{_issued}", token_type = "Bearer", expires_in = 900, scope = AccountClient.Scope }),
                 "oauth/revoke" => Json(200, new { }),
                 "me" => Json(200, new
                 {
-                    user = new { id = "u-42", publicProfileId = "", profileUrl = "https://site.test/profile/", email = "a@b.c", name = "Anna", avatarInitials = "AN" },
+                    user = new { id = "u-42", publicProfileId = "", profileUrl = ProfileUrl, email = "a@b.c", name = "Anna", avatarInitials = "AN" },
                     subscription = new { hasAccess = false, source = "none", checkedAt = "2026-11-05T10:00:00.000Z", stale = false, entitlements = new { } },
                 }),
                 "usage/limits" when LimitsStatus == 200 => Json(200, new

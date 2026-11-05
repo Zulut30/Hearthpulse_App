@@ -254,6 +254,7 @@ public sealed class ProfileUploadTests : IDisposable
         await uploader.PassAsync(CancellationToken.None);
         Assert.False(journal[SiteService.Games].Failing);
         Assert.Null(uploader.RetryAt);
+        journal.Flush();
         var restarted = new AccountActivity(journalPath);
         Assert.Equal((2L, 1L, 1L), (restarted.GamesSent, restarted.GamesRefused, restarted.GamesWithoutStatistics));
         Assert.Equal(_now, restarted.LastGameSentAt);

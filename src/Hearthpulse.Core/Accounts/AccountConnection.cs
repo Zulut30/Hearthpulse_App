@@ -26,9 +26,10 @@ public enum AccountLink
 /// </summary>
 public sealed record AccountConnection(AccountLink Link, DateTime? At)
 {
-    // Codes that say the site could not be reached or failed for now; any other failure is a real answer.
+    // Codes that say the site could not be reached or failed for now; any other failure is a real answer. NO_TOKEN (no
+    // sign-in to send with) is not one: a refresh that failed for want of a connection says so in the account's record.
     private static readonly HashSet<string> Unreachable =
-        ["OFFLINE", "SERVER_ERROR", "TEMPORARILY_UNAVAILABLE", "RATE_LIMITED", "BAD_RESPONSE", "NO_TOKEN"];
+        ["OFFLINE", "SERVER_ERROR", "TEMPORARILY_UNAVAILABLE", "RATE_LIMITED", "BAD_RESPONSE"];
 
     // Account failures that do not end the sign-in (the session is kept and tried again).
     private static readonly HashSet<string> Transient =
@@ -60,7 +61,8 @@ public sealed record AccountConnection(AccountLink Link, DateTime? At)
         var down = records.Where(r => r.Failing && IsUnreachable(r.LastError) && (lastSuccess is not { } ok || r.LastErrorAt > ok)).ToList();
         if (down.Count > 0)
         {
-            var next = down.Select(r => r.NextTry).Where(t => t > utcNow).Min();
+            // The earliest try still ahead: the account's own retry (AccountService.NextTry) or a service's.
+            var next = down.Select(r => r.NextTry).Append(account.NextTry).Where(t => t > utcNow).Min();
             return new AccountConnection(AccountLink.Offline, next);
         }
 
@@ -69,7 +71,7 @@ public sealed record AccountConnection(AccountLink Link, DateTime? At)
 
     /// <summary>A code that means "could not reach the site" (HTTP 5xx included).</summary>
     public static bool IsUnreachable(string? code) =>
-        code is not null && (Unreachable.Contains(code) || code.StartsWith("HTTP 5", StringComparison.Ordinal));
+        code is not null && (Unreachable.Contains(code) || code.StartsWith("HTTP_5", StringComparison.Ordinal));
 
     /// <summary>"Подключено · проверено в 14:05", "Нет связи с сайтом — повтор в 14:20", "Вход истёк — войдите снова".</summary>
     public string Text(DateTime utcNow) => Link switch

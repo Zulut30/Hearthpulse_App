@@ -56,7 +56,19 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     // While waiting for the player a short outage is ridden out until the code expires.
     private static readonly HashSet<string> PollThrough = ["OFFLINE", "SERVER_ERROR", "TEMPORARILY_UNAVAILABLE", "RATE_LIMITED"];
 
+    // While the connection reads "no connection", /me is asked again after 1, 2, 4, 8, then every 15 minutes.
+    private static readonly TimeSpan FirstOfflineRetry = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan MaxOfflineRetry = TimeSpan.FromMinutes(15);
+
     private readonly TokenStore _store = store ?? new TokenStore(Path.Combine(AppPaths.Root, "account.dat"));
+
+    // The retry while offline: its timer, how many tries failed in a row, when the next is due, whether one runs.
+    private readonly Lock _retryGate = new();
+    private ITimer? _retryTimer;
+    private int _retryFailures;
+    private DateTime? _nextTry;
+    private bool _retrying;
+    private int _watching;
 
     // One token request at a time (the site treats a second use of a refresh token as theft).
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -123,6 +135,27 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>The clock for the sign-in's end and the code's expiry; tests replace it.</summary>
     public Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
 
+    /// <summary>The clock and timer of the retry while offline; tests replace it.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
+    /// <summary>
+    /// When the account asks the site again (UTC) while the connection reads "no connection" (<see cref="AccountLink.Offline"/>):
+    /// a light <c>/me</c> after 1, 2, 4, 8, then every 15 minutes, until the site answers. Null while it is not offline.
+    /// </summary>
+    public DateTime? NextTry
+    {
+        get
+        {
+            lock (_retryGate)
+            {
+                return _nextTry;
+            }
+        }
+    }
+
+    /// <summary>The retry under way, if any (tests wait for it).</summary>
+    internal Task? PendingRetry { get; private set; }
+
     /// <summary>Opens the profile page in the browser.</summary>
     public bool OpenProfile() => (openBrowser ?? SystemBrowser.Open)(ProfileUrl);
 
@@ -141,8 +174,14 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     public bool OpenSubscription() => (openBrowser ?? SystemBrowser.Open)(SubscriptionUrl);
 
-    /// <summary>The account page's replays section: the replays this account put on the site.</summary>
-    public Uri ReplaysUrl => new UriBuilder(ProfileUrl) { Fragment = "account-replays" }.Uri;
+    /// <summary>
+    /// The account page's replays section: the replays this account put on the site. The profile address <c>/me</c>
+    /// named is used only when it is https on the site itself; otherwise the site's own profile page.
+    /// </summary>
+    public Uri ReplaysUrl => new UriBuilder(IsSiteLink(ProfileUrl.AbsoluteUri, out var profile) ? profile : client.DefaultProfileUrl)
+    {
+        Fragment = "account-replays",
+    }.Uri;
 
     public bool OpenReplays() => (openBrowser ?? SystemBrowser.Open)(ReplaysUrl);
 
@@ -339,10 +378,12 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
                 409 => "QUOTA_EXCEEDED",
                 413 => "TOO_LARGE",
                 429 => "RATE_LIMITED",
-                400 => "REFUSED",
+                >= 400 and < 500 => "REFUSED",
                 _ => "SERVER_ERROR",
             };
-            Activity.Failed(SiteService.Replays, code);
+
+            // Any other 4xx is the site saying no (REFUSED to the card); the journal keeps the code it named.
+            Activity.Failed(SiteService.Replays, code == "REFUSED" ? AccountClient.ErrorCodeOf(body) ?? code : code);
             return (null, code);
         }
         catch (AccountException ex)
@@ -385,7 +426,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     /// <summary>
     /// Deletes an uploaded replay by its delete token: null when deleted; <c>NOT_FOUND</c> when the site has no such
-    /// replay (deleted on the account page, expired); <c>OFFLINE</c>, <c>RATE_LIMITED</c> or <c>SERVER_ERROR</c> when
+    /// replay (deleted on the account page, expired); <c>OFFLINE</c>, <c>RATE_LIMITED</c>, <c>REFUSED</c> (another 4xx) or <c>SERVER_ERROR</c> when
     /// it is still there.
     /// </summary>
     public async Task<string?> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
@@ -409,6 +450,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
                 204 => null,
                 404 => "NOT_FOUND",
                 429 => "RATE_LIMITED",
+                >= 400 and < 500 => "REFUSED",
                 _ => "SERVER_ERROR",
             };
         }
@@ -669,6 +711,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         var had = User is not null;
         User = null;
         _store.Delete();
+        UpdateRetry();
         if (had)
         {
             Changed?.Invoke();
@@ -678,13 +721,94 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     // Called with the token gate held (or while restoring before any token is available).
     private void SetSession(AccountUser user, bool newSignIn)
     {
+        // From the first sign-in on, every change of the journal re-checks whether the retry while offline is due.
+        if (Interlocked.Exchange(ref _watching, 1) == 0)
+        {
+            Activity.Changed += UpdateRetry;
+        }
+
         if (user.Id.Length == 0)
         {
             Volatile.Write(ref _session, null);
+            return;
         }
-        else if (newSignIn || Session?.AccountId != user.Id)
+
+        if (newSignIn || Session?.AccountId != user.Id)
         {
             Volatile.Write(ref _session, new AccountSession(user.Id, Interlocked.Increment(ref _sessionGeneration)));
+        }
+
+        // The journal's game counters belong to this account: another one signing in starts them over.
+        Activity.BindAccount(user.Id);
+    }
+
+    /// <summary>
+    /// Starts, keeps or stops the retry while offline: signed in and <see cref="AccountLink.Offline"/> schedules a light
+    /// <c>/me</c> on the backoff (one at a time); any other state cancels it and starts the backoff over.
+    /// </summary>
+    private void UpdateRetry()
+    {
+        var now = Time.GetUtcNow().UtcDateTime;
+        var offline = SignedIn && AccountConnection.Of(this, now).Link == AccountLink.Offline;
+        lock (_retryGate)
+        {
+            if (!offline)
+            {
+                _retryTimer?.Dispose();
+                _retryTimer = null;
+                _retryFailures = 0;
+                _nextTry = null;
+                return;
+            }
+
+            if (_retryTimer is not null || _retrying)
+            {
+                return;
+            }
+
+            var wait = TimeSpan.FromTicks(FirstOfflineRetry.Ticks << Math.Min(_retryFailures, 4));
+            wait = wait > MaxOfflineRetry ? MaxOfflineRetry : wait;
+            _nextTry = now + wait;
+            _retryTimer = Time.CreateTimer(_ => StartRetry(), null, wait, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    private void StartRetry()
+    {
+        lock (_retryGate)
+        {
+            _retryTimer?.Dispose();
+            _retryTimer = null;
+            if (_retrying)
+            {
+                return;
+            }
+
+            _retrying = true;
+            _retryFailures++;
+        }
+
+        PendingRetry = RetryAsync();
+    }
+
+    private async Task RetryAsync()
+    {
+        try
+        {
+            if (_refreshToken is not null && User is not null)
+            {
+                Diag.Info("account: no connection, asking the site again");
+                LastCheckError = await RefreshAsync(withProfile: true, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            lock (_retryGate)
+            {
+                _retrying = false;
+            }
+
+            UpdateRetry();
         }
     }
 
@@ -697,13 +821,13 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     // 0 = fine, 1 = ending within two days, 2 = ended.
     private int Phase() => SessionExpires is not { } end ? 0 : UtcNow() >= end ? 2 : SessionEndingSoon ? 1 : 0;
 
-    /// <summary>An HTTP status as a journal code: 404 means the site has no such route yet (NOT_AVAILABLE).</summary>
+    /// <summary>An HTTP status as a journal code: 404 means the site has no such route yet (NOT_AVAILABLE); other 4xx are <c>HTTP_4xx</c>.</summary>
     internal static string StatusCode(int status) => status switch
     {
         404 => "NOT_AVAILABLE",
         429 => "RATE_LIMITED",
         >= 500 => "SERVER_ERROR",
-        _ => "HTTP " + status.ToString(CultureInfo.InvariantCulture),
+        _ => "HTTP_" + status.ToString(CultureInfo.InvariantCulture),
     };
 
     private static string Day(DateTime utc, string format) =>

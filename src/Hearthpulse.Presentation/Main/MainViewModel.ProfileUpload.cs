@@ -65,6 +65,12 @@ public sealed partial class MainViewModel
     private void ApplyUploadGames(bool value)
     {
         Settings.UploadGamesToProfile = value;
+        if (!value)
+        {
+            // Sending is off: its last failure is no longer news and must not keep the connection at "no connection".
+            _account?.Activity.ClearFailure(SiteService.Games);
+        }
+
         SetUploadOffPending(0);
         Raise(nameof(UploadGames));
         Raise(nameof(UploadStatus));

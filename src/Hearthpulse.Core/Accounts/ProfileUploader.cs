@@ -381,7 +381,7 @@ public sealed class ProfileUploader : IDisposable
                 continue;
             }
 
-            return Backoff(answer.ErrorCode ?? "HTTP " + answer.Status.ToString(CultureInfo.InvariantCulture));
+            return Backoff(FailureCode(answer));
         }
     }
 
@@ -422,7 +422,7 @@ public sealed class ProfileUploader : IDisposable
             }
             else
             {
-                return Backoff(answer.ErrorCode ?? "HTTP " + answer.Status.ToString(CultureInfo.InvariantCulture));
+                return Backoff(FailureCode(answer));
             }
         }
 
@@ -463,6 +463,22 @@ public sealed class ProfileUploader : IDisposable
     }
 
     private static string Field(string? field) => field is { } f ? " (" + f + ")" : string.Empty;
+
+    /// <summary>
+    /// Why a batch answer pauses sending, for the journal: a 5xx is the site failing for now (<c>SERVER_ERROR</c>) even
+    /// when its body names a code; otherwise the site's code, else <c>HTTP_4xx</c>.
+    /// </summary>
+    private static string FailureCode(TrackerBatchAnswer answer)
+    {
+        if (answer.ErrorCode is { Length: > 0 } code)
+        {
+            Diag.Info($"profile upload: HTTP {answer.Status.ToString(CultureInfo.InvariantCulture)} {code}");
+        }
+
+        return answer.Status >= 500 || answer.ErrorCode is not { Length: > 0 }
+            ? AccountService.StatusCode(answer.Status)
+            : answer.ErrorCode;
+    }
 
     internal static string Body(IEnumerable<ProfileEvent> batch) =>
         new JsonObject { ["events"] = new JsonArray([.. batch.Select(e => (JsonNode)e.ToJson())]) }.ToJsonString();
@@ -570,7 +586,7 @@ public sealed class ProfileUploader : IDisposable
             catch (Exception ex)
             {
                 Diag.Error("profile upload: send pass failed", ex);
-                wait = Backoff("ERROR " + ex.GetType().Name);
+                wait = Backoff("ERROR_" + ex.GetType().Name);
             }
 
             try

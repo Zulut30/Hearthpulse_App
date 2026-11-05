@@ -132,8 +132,12 @@ The account card is the account center (TASK-2026-11-05-account-center), the sam
 - **Connection**: one state line (`Core/Accounts/AccountConnection.cs`) with "Check now" (`AccountService.CheckNowAsync`:
   `/me` again, and `CheckRequested` makes `AppServices` re-read `usage/limits` past its six-hour pause). States:
   "Connected · checked at 14:05" (the newest success of `/me`, the game upload, replays or limits), "Can't reach the
-  site — retrying at 14:20" (the newest of those is an outage: `OFFLINE`, `SERVER_ERROR`/5xx, `TEMPORARILY_UNAVAILABLE`,
-  `RATE_LIMITED`, `BAD_RESPONSE`, `NO_TOKEN`; the time is the uploader's next try), "Sign-in expired — sign in again"
+  site — retrying at 14:20" (the newest of those is an outage: `OFFLINE`, `SERVER_ERROR` (any 5xx, whatever code its
+  body names), `TEMPORARILY_UNAVAILABLE`, `RATE_LIMITED`, `BAD_RESPONSE`; the time is the earliest try ahead: the
+  account's own `AccountService.NextTry` or the uploader's). While it reads so, the account asks `/me` again by itself
+  after 1, 2, 4, 8, then every 15 minutes (`TimeProvider` timer), until the site answers; signing out or any other
+  state stops it. `NO_TOKEN` (the uploader had no token to send with) is "not signed in", not an outage, and turning
+  the games switch off forgets the games' last failure. "Sign-in expired — sign in again"
   (the site rejected the session, at start or later, or its 30 days ran out), "Not signed in". A `NOT_AVAILABLE` (404:
   the route is not on the site yet) is shown as "Not available on the site yet." in its section, never as an outage.
 - **Games in your profile**: the switch; "12 games sent · the last at 14:02", "Waiting to be sent: 3", the pause with
@@ -143,7 +147,7 @@ The account card is the account center (TASK-2026-11-05-account-center), the sam
   "My replays on the site" → `{profile}#account-replays`. In History an uploaded replay's card has its own "Open on the
   site" (only https on the site's host or a subdomain, `AccountService.OpenSiteLink`); the cloud still deletes, after
   its question.
-- **Subscription and limits**: the summary as before, today's "Today you used 2 of 3 free games with the pool's stats;
+- **Subscription and limits**: the summary as before, today's "Today you used 2 of 3 free games with community stats;
   resets at 03:00" (`UsageGate` → `AccountActivity.Usage`), "Subscription checked at …" (`Entitlements.CheckedAt`, else
   the last `/me`).
 - **Crash reports** (shown signed out too): whether they go by themselves, that they go to hearthpulse.net, how many
@@ -152,8 +156,11 @@ The account card is the account center (TASK-2026-11-05-account-center), the sam
 The journal behind it is `Core/Accounts/AccountActivity.cs`, `account-activity.json` in the data folder: per service
 (`Account`, `Games`, `Replays`, `Limits`, `CrashReports`) the last success, the last error code and time and the next
 try; the games sent, refused and stored without statistics, kept across restarts; today's use of the limited stats.
-Nothing in it goes to the site. Written through a temporary file under a lock; a broken file starts over; it never
-throws. `AppServices` builds it and hands it to `AccountService` (`Activity`), the uploader and the usage gate take it
+Nothing in it goes to the site. Error codes are kept as at most 64 characters of `A-Z 0-9 _ . -` (else `OTHER`); a
+replay upload's other 4xx is `REFUSED` to the card and keeps the site's code in the journal. The game counters and the
+games' record belong to the account they were counted for (`AccountId`, `BindAccount`): another account signing in
+starts them over. Changes are applied under a lock and written once per burst, half a second later and outside the
+lock (`Flush` on exit), through a temporary file; a broken file starts over; it never throws. `AppServices` builds it and hands it to `AccountService` (`Activity`), the uploader and the usage gate take it
 from there, and the hosts attach it to the crash reporter, which is built before them. The restore at start keeps its
 error (`AccountService.LastCheckError`) instead of dropping it.
 

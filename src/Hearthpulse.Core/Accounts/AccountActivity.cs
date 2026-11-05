@@ -43,26 +43,55 @@ public sealed record UsageToday(string Day, bool Enabled, string Section, int Us
 /// The journal of the app's contact with hearthpulse.net for the account center (Settings → Account): per
 /// <see cref="SiteService"/> the last success and the last error, plus the games sent to the profile, refused, and
 /// stored without statistics, kept across restarts in <c>account-activity.json</c> in the data folder. Nothing in it
-/// goes to the site. Thread-safe; writes go through a temporary file; a broken or unreadable file starts over; it never
+/// goes to the site. The game counters and the games' record belong to one account (<see cref="BindAccount"/>): another
+/// account signing in starts them over. Thread-safe; changes in a burst are written once, a moment later and outside
+/// the lock (<see cref="Flush"/> writes now), through a temporary file; a broken or unreadable file starts over; it never
 /// throws to its callers. <see cref="Changed"/> fires (on any thread) after every change.
 /// </summary>
 public sealed class AccountActivity
 {
+    /// <summary>How long a change waits for the next one before the journal is written (a burst is one write).</summary>
+    internal static readonly TimeSpan WriteDelay = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>The longest error code kept; a longer one is cut to this.</summary>
+    internal const int MaxCodeLength = 64;
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly Lock _gate = new();
+
+    // One file write at a time, in order (taken before _gate, never inside it).
+    private readonly Lock _fileGate = new();
     private readonly string? _path;
     private Saved? _saved;
+    private long _version;
+    private long _written;
+    private ITimer? _writeTimer;
+    private int _writes;
 
     /// <param name="path">The journal file; null keeps it in memory only (tests, a service built without one).</param>
     public AccountActivity(string? path)
     {
         _path = path;
+        if (path is not null)
+        {
+            // A change made in the last moment before the app closes still reaches the file.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => Flush();
+        }
     }
 
     public event Action? Changed;
 
     /// <summary>The clock; tests move it.</summary>
     public Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
+
+    /// <summary>The timer behind the delayed write; tests replace it.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
+    /// <summary>How many times the journal went to the file (tests check that a burst is one write).</summary>
+    internal int Writes => Volatile.Read(ref _writes);
+
+    /// <summary>The account the counters and the games' record belong to (the site's user id); null before any.</summary>
+    public string? AccountId => Read(s => s.AccountId);
 
     public SiteServiceRecord this[SiteService service]
     {
@@ -95,8 +124,79 @@ public sealed class AccountActivity
         Change(s => s with { Services = With(s.Services, service, Get(s, service) with { LastSuccess = UtcNow(), NextTry = null }) });
 
     /// <summary>The service failed with <paramref name="code"/>; <paramref name="nextTry"/> is when it tries again, if known.</summary>
-    public void Failed(SiteService service, string code, DateTime? nextTry = null) =>
-        Change(s => s with { Services = With(s.Services, service, Get(s, service) with { LastError = code, LastErrorAt = UtcNow(), NextTry = nextTry }) });
+    public void Failed(SiteService service, string code, DateTime? nextTry = null)
+    {
+        var kept = CleanCode(code);
+        Change(s => s with { Services = With(s.Services, service, Get(s, service) with { LastError = kept, LastErrorAt = UtcNow(), NextTry = nextTry }) });
+    }
+
+    /// <summary>
+    /// The account now signed in (the site's user id). Another account than the one the journal counted for starts the
+    /// game counters and the games' record over; a journal from before accounts were recorded is taken as this one's.
+    /// </summary>
+    public void BindAccount(string accountId)
+    {
+        if (accountId.Length == 0 || Read(s => s.AccountId) == accountId)
+        {
+            return;
+        }
+
+        Change(s => s.AccountId is null || s.AccountId == accountId
+            ? s with { AccountId = accountId }
+            : s with
+            {
+                AccountId = accountId,
+                Services = new Dictionary<string, SiteServiceRecord>(s.Services.Where(p => p.Key != nameof(SiteService.Games)), StringComparer.Ordinal),
+                GamesSent = 0,
+                GamesRefused = 0,
+                GamesWithoutStatistics = 0,
+                LastGameSentAt = null,
+            });
+    }
+
+    /// <summary>Writes a change still waiting for its delayed write now (closing the app, tests).</summary>
+    public void Flush()
+    {
+        lock (_fileGate)
+        {
+            Saved saved;
+            long version;
+            lock (_gate)
+            {
+                _writeTimer?.Dispose();
+                _writeTimer = null;
+                if (_saved is null || _version == _written)
+                {
+                    return;
+                }
+
+                (saved, version) = (_saved, _version);
+            }
+
+            // Outside the lock: the record is immutable, and readers do not wait for the disk.
+            Write(saved);
+            Interlocked.Increment(ref _writes);
+            lock (_gate)
+            {
+                _written = version;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A code as the journal keeps it: at most <see cref="MaxCodeLength"/> characters of A-Z, 0-9, <c>_ . -</c> (letters
+    /// in upper case); anything else is <c>OTHER</c>, so a site's answer cannot put arbitrary text in the file or the card.
+    /// </summary>
+    internal static string CleanCode(string? code)
+    {
+        if (code is not { Length: > 0 })
+        {
+            return "OTHER";
+        }
+
+        var cut = (code.Length > MaxCodeLength ? code[..MaxCodeLength] : code).ToUpperInvariant();
+        return cut.All(c => c is (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '.' or '-') ? cut : "OTHER";
+    }
 
     /// <summary>Forgets the service's last error (the player signed out: an ended sign-in is no longer news).</summary>
     public void ClearFailure(SiteService service) =>
@@ -147,7 +247,12 @@ public sealed class AccountActivity
         lock (_gate)
         {
             _saved = change(Load());
-            Write(_saved);
+            _version++;
+            // The first change of a burst starts the timer; the ones after it ride along in the same write.
+            if (_path is not null && _writeTimer is null)
+            {
+                _writeTimer = Time.CreateTimer(_ => Flush(), null, WriteDelay, Timeout.InfiniteTimeSpan);
+            }
         }
 
         Changed?.Invoke();
@@ -174,14 +279,18 @@ public sealed class AccountActivity
             }
         }
 
-        // A file from before a field existed reads it as null.
+        // A file from before a field existed reads it as null; a stored code is cleaned like a new one.
         return _saved = new Saved(
-            new Dictionary<string, SiteServiceRecord>(read?.Services?.Where(p => p.Value is not null) ?? [], StringComparer.Ordinal),
+            new Dictionary<string, SiteServiceRecord>(
+                read?.Services?.Where(p => p.Value is not null)
+                    .Select(p => KeyValuePair.Create(p.Key, p.Value.LastError is null ? p.Value : p.Value with { LastError = CleanCode(p.Value.LastError) })) ?? [],
+                StringComparer.Ordinal),
             Math.Max(0, read?.GamesSent ?? 0),
             Math.Max(0, read?.GamesRefused ?? 0),
             Math.Max(0, read?.GamesWithoutStatistics ?? 0),
             read?.LastGameSentAt,
-            read?.Usage);
+            read?.Usage,
+            read?.AccountId is { Length: > 0 } id ? id : null);
     }
 
     private void Write(Saved saved)
@@ -212,12 +321,16 @@ public sealed class AccountActivity
         }
     }
 
-    /// <summary>The journal on disk: services by name, the game counters, today's use of the limited feature.</summary>
+    /// <summary>
+    /// The journal on disk: services by name, the game counters, today's use of the limited feature, and the account the
+    /// counters belong to.
+    /// </summary>
     private sealed record Saved(
         Dictionary<string, SiteServiceRecord> Services,
         long GamesSent,
         long GamesRefused,
         long GamesWithoutStatistics,
         DateTime? LastGameSentAt,
-        UsageToday? Usage);
+        UsageToday? Usage,
+        string? AccountId = null);
 }

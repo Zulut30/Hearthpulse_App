@@ -8,6 +8,7 @@ using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Main;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
 
@@ -33,7 +34,8 @@ public sealed partial class LocBindingTests
         var store = new TokenStore(Path.Combine(dir, "account.dat"));
         var client = new AccountClient(new HttpClient(new UnreachableSite()), "https://site.test/api/v1/");
         Assert.True(store.Save("ref-1", new AccountUser("u-1", "Anna", Entitlements.None), DateTime.UtcNow.AddDays(20), client.Site));
-        var account = new AccountService(client, store, activity: new AccountActivity(null));
+        // The retry while offline runs on a clock that never moves here.
+        var account = new AccountService(client, store, activity: new AccountActivity(null)) { Time = new FakeTimeProvider(DateTimeOffset.UtcNow) };
         await account.RestoreAsync();
         Headless.Run(() => IndicatorChecks(account, dir));
     }
@@ -58,7 +60,8 @@ public sealed partial class LocBindingTests
 
             Assert.True(button.IsVisible);
             Assert.Equal(model.AccountLinkTip, ToolTip.GetTip(button));
-            Assert.Equal("hearthpulse.net: Can't reach the site. Click to open your account.", Avalonia.Automation.AutomationProperties.GetName(button));
+            Assert.Equal(model.AccountLinkTip, Avalonia.Automation.AutomationProperties.GetName(button));
+            Assert.StartsWith("hearthpulse.net: Can't reach the site — retrying at ", model.AccountLinkTip, StringComparison.Ordinal);
             Assert.Contains(button.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Offline");
 
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -67,7 +70,7 @@ public sealed partial class LocBindingTests
             Assert.True(view.FindControl<RadioButton>("SettingsTabAccount")!.IsChecked);
             Dispatcher.UIThread.RunJobs();
             var center = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Main.SettingsTabs.AccountSettings>().Single();
-            Assert.Contains(center.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Can't reach the site");
+            Assert.Contains(center.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == model.AccountLinkText && t.Text.StartsWith("Can't reach the site — retrying at ", StringComparison.Ordinal));
             Assert.Contains(center.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == Loc.T("Account.Center.Connection"));
         }
         finally
