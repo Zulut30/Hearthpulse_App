@@ -79,7 +79,7 @@ Page backdrop (V3 direction A, both main windows, layers in this order over `Con
 |---|---|---|
 | `PageStone` | tiled DrawingBrush 220x140 | stone seams and flecks, lit on top (#0FF4E7C9) and shaded under (#26000000) |
 | `PageGlowMask` | radial alpha mask | the hero's own colours light the page: `CardArt.Glow` magnifies a small patch of its splash into a soft wash (opacity 0.6) under this mask |
-| `PageHeroFade` | opacity mask | the page hero's splash (`CardArt.Splash` = `MainViewModel.PageHero`, square top right, 0.8 of the plate wide and at most 940, opacity 0.8) dissolves to the left: nothing in the first 30 % of its box, so the title column stays clear (`ThemeContrastTests`); WPF caches the whole backdrop as a bitmap |
+| `PageHeroFade` | opacity mask | the page hero's splash (`CardArt.Splash` = `MainViewModel.PageHero`, square top right, half the plate wide and at most 640 - 1.25x HearthstoneJSON's largest art (512), smoothed - opacity 0.8) dissolves to the left, past the title column (`ThemeContrastTests`); WPF caches the whole backdrop as a bitmap |
 | `PageVignette` / `PageShade` | radial / vertical | light vignette and floor in the plate colour #1D140C over the hero; shown only with a hero |
 | `CardFill` | 90 % opaque | the hero shows faintly through cards; `ThemeContrastTests` checks text over the brightest art |
 | `PageFrame` | vertical gold | 1 px frame 8 inside the plate, bright on top |

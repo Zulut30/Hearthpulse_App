@@ -56,8 +56,8 @@ public sealed class LibraryRowXamlTests
         var row = (FrameworkElement)((DataTemplate)view.Resources["LibraryCard"]).LoadContent();
         row.DataContext = card;
         // The width is the card's: its own 12 px padding on each side comes off the row's room.
-        // Minions are 52 wide (stat badges) next to a 150 px name: none at the minimum window, four at the default, all from 968.
-        foreach (var (width, shown, more) in new[] { (666.0, 0, "+7"), (886.0, 4, "+3"), (968.0, 7, string.Empty) })
+        // The board has a line of its own under the name, as wide as the name, chips and result: all seven fit from the minimum window.
+        foreach (var (width, shown, more) in new[] { (666.0, 7, string.Empty), (886.0, 7, string.Empty), (968.0, 7, string.Empty) })
         {
             Layout(row, width);
             var minions = Descendants(row).OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && p.Orientation == Orientation.Vertical && Shown(p, row)).ToList();

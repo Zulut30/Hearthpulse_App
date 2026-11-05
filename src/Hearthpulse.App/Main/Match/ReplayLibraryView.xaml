@@ -159,10 +159,10 @@
                                  buttons. A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
                                  window - nav 250 - page margins 80 - list card border 2 and padding 32 - list chrome 2 - scroll
                                  bar 6 - item border 2; its row is 24 less (the plate's padding). -->
-                            <!-- Battlegrounds: hero · name and caption (150, one line each: "Уровень 5 · 14 ходов" fits) · chips and the
-                                 board · result · actions. The board shows the minions that fit whole and "+N" for the rest: at 1040
-                                 its room is about 69 px ("+7"), at 1260 about 289 (four and "+3"); all seven (371) from a card of
-                                 about 968. -->
+                            <!-- Battlegrounds: hero · name and caption (150, one line each) · hero power and trinket chips · result ·
+                                 actions; under them, from the name's column to the result's, the whole final board. Seven minions
+                                 with their stat badges take 371 px; the room there is about 488 at the minimum window (1040) and
+                                 708 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
                             <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
@@ -171,39 +171,36 @@
                                     <ColumnDefinition Width="150" />
                                     <ColumnDefinition Width="98" />
                                 </Grid.ColumnDefinitions>
-                                <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding HeroCardId}"
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Left" VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}"
                                         c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
                                     <TextBlock x:Name="BgCaption" Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
                                 </StackPanel>
-                                <Grid Grid.Column="2" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,8,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="11" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
-                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
-                                                VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
-                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="{StaticResource FontSizeSmall}" />
-                                        </Border>
-                                    </StackPanel>
-                                    <Border Grid.Column="1" Width="1" Height="28" Margin="4,0" Background="{StaticResource Border}" />
-                                    <!-- An empty border measures the board's room; the board itself never widens it -->
-                                    <Border x:Name="BoardRoom" Grid.Column="2" />
-                                    <ContentControl Grid.Column="2" ContentTemplate="{StaticResource BoardRow}" Focusable="False" IsTabStop="False">
-                                        <ContentControl.Content>
-                                            <MultiBinding Converter="{StaticResource BoardFit}">
-                                                <Binding ElementName="BoardRoom" Path="ActualWidth" />
-                                                <Binding Path="Summary" />
-                                            </MultiBinding>
-                                        </ContentControl.Content>
-                                    </ContentControl>
-                                </Grid>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
+                                    <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
+                                            VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
+                                        <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="{StaticResource FontSizeSmall}" />
+                                    </Border>
+                                </StackPanel>
                                 <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
                                 <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
+                                <!-- An empty border measures the board's room; the board itself never widens it -->
+                                <Border x:Name="BoardRoom" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" />
+                                <ContentControl Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,0,0" ContentTemplate="{StaticResource BoardRow}" Focusable="False" IsTabStop="False"
+                                                HorizontalAlignment="Left">
+                                    <ContentControl.Content>
+                                        <MultiBinding Converter="{StaticResource BoardFit}">
+                                            <Binding ElementName="BoardRoom" Path="ActualWidth" />
+                                            <Binding Path="Summary" />
+                                        </MultiBinding>
+                                    </ContentControl.Content>
+                                </ContentControl>
                             </Grid>
 
                             <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions. The caption

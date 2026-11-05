@@ -269,17 +269,17 @@
                     <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
                     <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
                         <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
-                             at most 512, its own size (HearthstoneJSON's largest art): never stretched (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
+                             at most 640: HearthstoneJSON's largest art is 512, so 1.25 at most, smoothed (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
                              only) keeps the hero's colours without the art, which would sit under the title -->
                         <Border Classes="pageLayer" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" MaxWidth="512" />
+                                <ColumnDefinition Width="*" MaxWidth="640" />
                             </Grid.ColumnDefinitions>
                             <Border Name="PageHeroArt" Grid.Column="1" Classes="wide" Height="{Binding $self.Bounds.Width}" VerticalAlignment="Top"
                                     Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapInterpolationMode="HighQuality" />
                             </Border>
                         </Grid>
                         <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />

@@ -202,9 +202,9 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     /// <summary>
-    /// The final board never cuts a minion at the edge. Its room is the row less 573 px: at the default window (1260)
-    /// about 289 (WPF) to 299 (Avalonia), four whole minions with their stat badges and "+3"; at the minimum (1040) about
-    /// 69 to 79, only "+7" whose tooltip names them, one per line; all seven take 371.
+    /// The final board never cuts a minion at the edge. In the views it has a line of its own (about 488 px at the minimum
+    /// window, all seven take 371), so "+N" only guards a narrower room: four whole minions and "+3" in about 289, only
+    /// "+7" whose tooltip names them, one per line, in about 69.
     /// </summary>
     [Fact]
     public void A_board_that_does_not_fit_shows_whole_minions_and_plus_n_for_the_rest()

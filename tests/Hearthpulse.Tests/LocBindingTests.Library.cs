@@ -38,8 +38,8 @@ public sealed partial class LocBindingTests
             var chipsMore = row.GetVisualDescendants().OfType<Border>().Single(b => Equals(ToolTip.GetTip(b), "D, E"));
             Assert.Equal("D, E", Avalonia.Automation.AutomationProperties.GetName(chipsMore));
 
-            // Minions are 52 wide (stat badges) next to a 150 px name: none at the minimum window, four at the default, all from 978.
-            foreach (var (width, shown, more) in new[] { (676.0, 0, "+7"), (896.0, 4, "+3"), (978.0, 7, string.Empty) })
+            // The board has a line of its own under the name, as wide as the name, chips and result: all seven fit from the minimum window.
+            foreach (var (width, shown, more) in new[] { (676.0, 7, string.Empty), (896.0, 7, string.Empty), (978.0, 7, string.Empty) })
             {
                 window.Width = width;
                 Dispatcher.UIThread.RunJobs();
