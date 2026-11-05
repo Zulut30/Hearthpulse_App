@@ -16,8 +16,43 @@ public sealed class CrashReporter(HttpClient http, Uri endpoint, string folder, 
     private static readonly TimeSpan MaxAge = TimeSpan.FromDays(30);
     private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
     private readonly Lock _gate = new();
+    private Accounts.AccountActivity? _activity;
+    private (bool Sent, string? Code)? _last;
 
-    public static string DefaultFolder => Path.Combine(AppPaths.Root, "crash-reports");
+    /// <summary>The folder's name inside the data folder.</summary>
+    public const string FolderName = "crash-reports";
+
+    public static string DefaultFolder => Path.Combine(AppPaths.Root, FolderName);
+
+    /// <summary>
+    /// The account center's journal (the hosts attach it once the app's services exist): the last send and its failure.
+    /// A send that ran before it was attached is recorded when it is.
+    /// </summary>
+    public Accounts.AccountActivity? Activity
+    {
+        get => _activity;
+        set
+        {
+            _activity = value;
+            if (_last is { } last)
+            {
+                Record(last.Sent, last.Code);
+            }
+        }
+    }
+
+    /// <summary>Reports waiting in <paramref name="folder"/> (the account center's count); 0 when it cannot be read.</summary>
+    public static int PendingIn(string folder)
+    {
+        try
+        {
+            return Directory.Exists(folder) ? Directory.GetFiles(folder, "*.json").Length : 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
 
     /// <summary>
     /// The app's reporter, built right after the settings load (before the history, the session and the windows), so a
@@ -138,6 +173,7 @@ public sealed class CrashReporter(HttpClient http, Uri endpoint, string folder, 
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 Diag.Info($"crash report: not sent now ({ex.GetType().Name}), it waits for the next start");
+                Record(false, "OFFLINE");
                 return false;
             }
 
@@ -145,10 +181,12 @@ public sealed class CrashReporter(HttpClient http, Uri endpoint, string folder, 
             if (status is >= 200 and < 300 or 400 or 413 or 422)
             {
                 Delete(file);
+                Record(true, null);
             }
             else
             {
                 Diag.Info($"crash report: the site answered {status}, it waits for the next start");
+                Record(false, Accounts.AccountService.StatusCode(status));
                 return false;
             }
         }
@@ -165,6 +203,19 @@ public sealed class CrashReporter(HttpClient http, Uri endpoint, string folder, 
             {
                 Delete(file);
             }
+        }
+    }
+
+    private void Record(bool sent, string? code)
+    {
+        _last = (sent, code);
+        if (sent)
+        {
+            _activity?.Succeeded(Accounts.SiteService.CrashReports);
+        }
+        else
+        {
+            _activity?.Failed(Accounts.SiteService.CrashReports, code ?? "OFFLINE");
         }
     }
 

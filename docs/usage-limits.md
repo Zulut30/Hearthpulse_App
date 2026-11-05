@@ -19,9 +19,10 @@ reference anyone can read, as the pool's totals are public on the site; only the
 ## What the player sees
 
 `BattlegroundsView.UsageNote` → `OverlayViewModel.UsageNote`, a muted line with a lock under the hero pick, trinket and
-tavern rows (both UIs):
+tavern rows (both UIs). Player-facing texts call these numbers "community stats" («статистика сообщества»), never
+"pool": the stats pool is the project's word for where they come from.
 
-- while free games remain: «Статистика пула Hearthpulse — бесплатных игр сегодня: осталось 2 из 3.» (`Usage.Limit.Left`);
+- while free games remain: «Статистика сообщества Hearthpulse — бесплатных игр сегодня: осталось 2 из 3.» (`Usage.Limit.Left`);
 - once they are used up: «… бесплатные игры на сегодня закончились (в день: 3). Без ограничения — с подпиской на
   разделы Полей сражений: Настройки → аккаунт Hearthpulse → «Подписка и лимиты». Обновится в 3:00.»
   (`Usage.Limit.Reached`; the reset is the UTC midnight in the player's clock);

@@ -165,6 +165,39 @@
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
+                        <!-- The site connection (account center): hidden while signed out; a click opens Settings, Account -->
+                        <Button x:Name="AccountLinkButton" Click="OnOpenAccountCenter" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand"
+                                FocusVisualStyle="{StaticResource FocusRing}" WindowChrome.IsHitTestVisibleInChrome="True"
+                                Visibility="{Binding AccountLinkVisible, Converter={StaticResource Vis}}"
+                                ToolTip="{Binding AccountLinkTip}" AutomationProperties.Name="{Binding AccountLinkTip}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                                            CornerRadius="{StaticResource RadiusPill}">
+                                        <!-- Hover and press tint the pill like the other chrome buttons (State over the groove fill) -->
+                                        <Border x:Name="State" Background="Transparent" CornerRadius="{StaticResource RadiusPill}" Padding="12,5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Grid Width="8" Height="8" VerticalAlignment="Center">
+                                                    <Ellipse Fill="{StaticResource Positive}" Visibility="{Binding AccountLinkOk, Converter={StaticResource Vis}}" />
+                                                    <Ellipse Fill="{StaticResource InfoCaution}" Visibility="{Binding AccountLinkWarn, Converter={StaticResource Vis}}" />
+                                                    <Ellipse Fill="{StaticResource Negative}" Visibility="{Binding AccountLinkBad, Converter={StaticResource Vis}}" />
+                                                </Grid>
+                                                <TextBlock Text="{Binding AccountLinkShort}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Text}" Margin="8,0,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="State" Property="Background" Value="{StaticResource Hover}" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Border}" />
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
                         <Border Style="{StaticResource Pill}" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
                                 CornerRadius="999" Padding="12,5" WindowChrome.IsHitTestVisibleInChrome="True"
                                 ToolTip="{i:Loc Main.Status.Tip}">

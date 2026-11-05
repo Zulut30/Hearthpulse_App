@@ -68,8 +68,12 @@ rule:
   page keeps no "last known board" between combats.
 - **No hand but ours, no other player's tavern**; no secret but our quest; nothing set aside except the options of our
   own choices, as card ids on the `C` line.
-- **Duos: our partner's table only while it fights** (format 5): the partner is the other player with our
-  `BACON_DUO_TEAM_ID`; their hero and board in play during a combat are side `P` and leave view at the combat's end like
+- **Duos: our partner's minions only while they fight** (format 5). Model taken from HDT, **not checked on a live Duos
+  log**: while the partner fights for the team, our player's `HERO_ENTITY` points at the partner's hero (a hero of our
+  `BACON_DUO_TEAM_ID` that is not the one we had at the combat's start) and their minions come in under our
+  controller. A minion first shown then is side `P`; ours already shown stay `L`; the partner's hero, hero power and
+  trinkets are never written. A fallback, should the log give the partner a player of their own (our team id, not
+  Bob's dummy): that player's minions in play during a combat are `P`. `P` cards leave view at the combat's end like
   the opponent's. Their tavern, hand and choices are never written (not on our screen). Cards of any other controller
   are not written.
 - **No names**: no player name, BattleTag, account id, rating or MMR of anybody (the bg-mmr rule); the leaderboard is
@@ -184,7 +188,7 @@ foreign file can start from it.
 | `C kind source opt,opt,..` | Our choice, written at the pick with the options as they were then (a hero reroll changes one): `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` a card id or `-`; 1-16 option card ids. Step (the hero choice opens the game). A choice the log never shows picked (the turn ran out) is written without `c` when the next choice comes, the combat starts or the game ends |
 | `c card` | Our pick, one of the options of the `C` before it (several lines for several picks) |
 | `R place` | The game is over for us: our hero's leaderboard place when it ended (`0` when the game gave none). Step |
-| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`; `P PLAY` (our Duos partner's table in combat, format 5) the types of `L PLAY`. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
+| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`; `P PLAY` (our Duos partner's table in combat, format 5) `MINION` only. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
 | `X n` | Card `n` left view (sold, refreshed away, removed after a fight) |
 | `Y n` | Card `n` died (from play to the graveyard): shown dying in this step, gone after it |
 | `Z n pos` | Card `n` moved to slot `pos` |
@@ -338,9 +342,9 @@ playback speeds, a library of replays.
 Known limits: Battlegrounds games saved before format 4 keep rounds, not a step-by-step replay; the opponent's rank
 shows only when the client's memory was read during the game (live, not log imports); a reconnect's replay starts at
 the reconnect; games played before this feature have no replay. Battlegrounds: the combat is the server's (GameState
-lines, the whole fight within a second), not the client's animation; Duos (our partner's table in combat, the local
-player told from the partner by the tavern's drag targets) is built and tested on synthetic lines only: **no real Duos
-log was checked**; the result and damage of a combat come
+lines, the whole fight within a second), not the client's animation; Duos (our partner's minions in combat by HDT's
+model, the local player told from a partner player by the tavern's drag targets) is built and tested on synthetic lines
+only: **no real Duos log was checked** — check against one when it turns up; the result and damage of a combat come
 from the hero attack after the fight (none: a tie, unless our hero lost health otherwise); a recording that starts
 during a combat would hide an opponent's minion frozen at that moment (it is taken for Bob's frozen offer).
 The Rounds tab, History and My Stats take a combat's result and damage from the same hero attack: against the ghost of

@@ -118,12 +118,15 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
         }
     }
 
-    /// <summary>Asks the site for its limits now and then (every 6 hours at most); keeps the last answer on failure.</summary>
-    public async Task RefreshLimitsAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Asks the site for its limits now and then (every 6 hours at most; <paramref name="force"/>: now, the account
+    /// center's "Check now"); keeps the last answer on failure.
+    /// </summary>
+    public async Task RefreshLimitsAsync(bool force = false, CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
-            if (UtcNow() - _limitsLoaded < LimitsRefresh)
+            if (!force && UtcNow() - _limitsLoaded < LimitsRefresh)
             {
                 return;
             }
@@ -141,12 +144,20 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
                     Save(Load() with { Limits = limits });
                 }
 
+                account?.Activity.Succeeded(SiteService.Limits);
+                PublishUsage();
                 Changed?.Invoke();
+            }
+            else
+            {
+                // 404: the site has no limits yet (the account center says "not available on the site").
+                account?.Activity.Failed(SiteService.Limits, AccountService.StatusCode(status));
             }
         }
         catch (AccountException ex)
         {
             Diag.Info($"usage: limits not loaded ({ex.Code})");
+            account?.Activity.Failed(SiteService.Limits, ex.Code);
         }
     }
 
@@ -236,7 +247,7 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
     };
 
     /// <summary>When the UTC day ends, in the player's time ("03:00" in Moscow).</summary>
-    internal static string ResetText(DateTime resetsAt) => resetsAt == DateTime.MinValue
+    public static string ResetText(DateTime resetsAt) => resetsAt == DateTime.MinValue
         ? "00:00"
         : DateTime.SpecifyKind(resetsAt, DateTimeKind.Utc).ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
 
@@ -282,7 +293,45 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
             });
         }
 
+        PublishUsage();
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Today's use of the overlay's limited stats for the account center (<see cref="AccountActivity.Usage"/>): games
+    /// used today (the most any decision of today counted), the free games a day and when the day ends.
+    /// </summary>
+    internal UsageToday? Today(string feature)
+    {
+        lock (_gate)
+        {
+            var saved = Today();
+            var limits = saved.Limits;
+            if (limits is null)
+            {
+                return null;
+            }
+
+            if (!limits.Enabled || !limits.Features.TryGetValue(feature, out var f))
+            {
+                return new UsageToday(saved.Day, false, string.Empty, 0, 0, limits.ResetsAt);
+            }
+
+            var prefix = feature + "|";
+            var today = saved.Decisions.Where(d => d.Key.StartsWith(prefix, StringComparison.Ordinal)).Select(d => d.Value).ToList();
+            var used = Math.Max(today.Count == 0 ? 0 : today.Max(d => d.Used), saved.Games.GetValueOrDefault(feature)?.Count ?? 0);
+            var limit = today.Where(d => d.Limit is > 0 and < int.MaxValue).Select(d => d.Limit).DefaultIfEmpty(f.FreePerDay).Last();
+            var resets = today.Select(d => d.ResetsAt).Where(r => r != DateTime.MinValue).DefaultIfEmpty(limits.ResetsAt).Max();
+            return new UsageToday(saved.Day, true, f.Section, used, limit, resets);
+        }
+    }
+
+    private void PublishUsage()
+    {
+        if (account is not null && Today(BgPoolStats) is { } usage)
+        {
+            account.Activity.SetUsage(usage);
+        }
     }
 
     /// <summary>Soft mode: the game is counted on this machine against the last known limit.</summary>

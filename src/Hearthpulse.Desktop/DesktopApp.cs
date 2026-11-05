@@ -117,6 +117,7 @@ internal sealed class DesktopApp : HearthpulseApp
         _crashReporter = Core.Diagnostics.CrashReporter.ForApp(settings, "avalonia", AppHost.Version);
         _crashReporter.SendPendingAsync().Forget("Crash reports");
         _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply, CrashReporter = _crashReporter };
+        _crashReporter.Activity = _host.Account.Activity; // the account center's journal of report sends
         // Before any window: started minimized there is no dashboard to apply it, and the overlay comes first.
         ThemeEngine.ApplySaved(this, settings);
         _releaseMain = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };

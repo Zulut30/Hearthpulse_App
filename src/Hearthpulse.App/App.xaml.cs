@@ -194,6 +194,7 @@ public partial class App : Application
             (services.Http, services.Api, services.Prefetch, services.History, services.Memory, services.Session, services.MulliganGuide, services.Account,
                 services.Uploader, services.Usage);
         _services = services;
+        _crashReporter?.Activity = services.Account.Activity; // the account center's journal of report sends
         CardArt.Http = _http;
 
         _mainViewModel = new MainViewModel(_history, _settings, _services.Data);

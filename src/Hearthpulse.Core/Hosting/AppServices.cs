@@ -53,12 +53,15 @@ public sealed class AppServices
         Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
 
         var accountClient = new AccountClient(http);
-        Account = new AccountService(accountClient);
+        // The account center's journal of the contact with the site (Settings → Account), in the data folder.
+        Account = new AccountService(accountClient, activity: new AccountActivity(Path.Combine(data.Root, "account-activity.json")));
         Uploader = ProfileUploader.For(accountClient, Account, () => settings.UploadGamesToProfile, History);
         Uploader.BaseHero = id => cards().BaseHeroId(id);
         Account.Changed += Uploader.Kick;
         // Daily free use of the stats pool's numbers (plan 3.1); the host makes the session publish again on a decision.
         Usage = new UsageGate(accountClient, Account, usagePath);
+        // "Check now" in the account center re-reads the limits as well as /me.
+        Account.CheckRequested += () => Usage.RefreshLimitsAsync(force: true).Forget("Usage limits");
         Session.Advisor.Usage = Usage;
         Session.GameFinished += _ => Usage.GameFinished();
     }

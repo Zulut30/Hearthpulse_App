@@ -203,7 +203,6 @@ public sealed class MatchXamlLoadTests
         Assert.Equal(Visibility.Collapsed, partnerPanel.Visibility);
         var duos = combat with
         {
-            Partner = new MatchBgHeroView("TB_BaconShop_HERO_02", "Partner hero", 30, 0, 3),
             PartnerBoard = [Minion("P") with { Attacking = true }, Minion("Q")],
         };
         card.DataContext = duos;
@@ -225,7 +224,6 @@ public sealed class MatchXamlLoadTests
         Assert.Equal(3, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval" && Shown(b)));
         var shownTexts = Descendants(card).OfType<TextBlock>().Where(Shown).Select(t => t.Text).ToList();
         Assert.Contains(Loc.T("Match.Player.Table.Partner"), shownTexts);
-        Assert.Contains("Partner hero", shownTexts);
         Assert.DoesNotContain("Hagatha", shownTexts);
 
         // The hero choice before the first tavern: hero portraits with names on top, no Bob's offer, no "No minions".

@@ -14,7 +14,9 @@
              xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
              x:Class="Hearthpulse.UI.Main.SettingsTabs.AccountSettings"
              x:DataType="m:MainViewModel">
-    <!-- Settings, Account: the hearthpulse.net sign-in. Same tree as the WPF AccountSettings.xaml. -->
+    <!-- Settings, Account: the hearthpulse.net sign-in and the account center (TASK-2026-11-05-account-center): connection,
+         games in the profile, replays on the site, subscription and limits, crash reports. Same tree as the WPF
+         AccountSettings.xaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -40,21 +42,32 @@
                 <TextBlock Text="{Binding AccountSessionNote}" Classes="caption" Margin="0,6,0,0" IsVisible="{Binding !AccountSessionEndingSoon}" />
                 <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
                            IsVisible="{Binding AccountSessionEndingSoon}" />
+
+                <!-- Connection: the one state line (as the main window's indicator) and "Check now" -->
+                <TextBlock Text="{i:Loc Account.Center.Connection}" Classes="label" Margin="0,16,0,4" />
+                <DockPanel>
+                    <Panel DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <Ellipse Fill="{StaticResource Positive}" IsVisible="{Binding AccountLinkOk}" />
+                        <Ellipse Fill="{StaticResource InfoCaution}" IsVisible="{Binding AccountLinkWarn}" />
+                        <Ellipse Fill="{StaticResource Negative}" IsVisible="{Binding AccountLinkBad}" />
+                    </Panel>
+                    <TextBlock Text="{Binding AccountLinkText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+                <WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Classes="ghost" Content="{i:Loc Account.Center.CheckNow}" Command="{Binding CheckAccountNow}" Margin="0,0,12,0"
+                            ToolTip.Tip="{i:Loc Account.Center.CheckNowTip}" />
+                    <TextBlock Text="{i:Loc Account.Center.Checking}" Classes="caption" VerticalAlignment="Center" IsVisible="{Binding AccountChecking}" />
+                </WrapPanel>
                 <Button Classes="bare" Command="{Binding OpenAccountProfile}" HorizontalAlignment="Left" Margin="0,8,0,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{i:Loc Settings.Account.OpenProfile}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
                         <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <!-- Plan 3.1: the subscription that lifts the daily free limit of the pool's stats in a game -->
-                <Button Classes="bare" Command="{Binding OpenAccountSubscription}" HorizontalAlignment="Left" Margin="0,4,0,0">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{i:Loc Settings.Account.Subscription}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
-                        <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
+
                 <!-- Games to the profile on the site ("My statistics") -->
-                <CheckBox Classes="switch" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4">
+                <TextBlock Text="{i:Loc Account.Center.Games}" Classes="label" Margin="0,16,0,0" />
+                <CheckBox Classes="switch" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,8,0,4">
                     <ToolTip.Tip>
                         <StackPanel>
                             <TextBlock Text="{i:Loc Upload.Intro}" TextWrapping="Wrap" />
@@ -62,6 +75,17 @@
                         </StackPanel>
                     </ToolTip.Tip>
                 </CheckBox>
+                <!-- Turning sending off while games wait: they would not be sent, so ask first -->
+                <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="{StaticResource RadiusMedium}"
+                        Padding="12" Margin="0,4,0,4" IsVisible="{Binding UploadOffConfirming}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding UploadOffConfirmText}" TextWrapping="Wrap" />
+                        <WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Classes="ghost" Content="{i:Loc Account.Center.TurnOff}" Command="{Binding ConfirmUploadOff}" Margin="0,0,8,0" />
+                            <Button Classes="ghost primary" Content="{i:Loc Account.Center.KeepOn}" Command="{Binding KeepUploadOn}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
                 <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
                     <Button Classes="bare" Command="{Binding OpenPrivacy}" Margin="0,0,14,0">
                         <TextBlock Text="{i:Loc Upload.Privacy}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
@@ -70,6 +94,15 @@
                         <TextBlock Text="{i:Loc Upload.YourData}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
                     </Button>
                 </WrapPanel>
+                <StackPanel Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
+                    <TextBlock Text="{Binding AccountGamesSent}" Classes="caption" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding AccountGamesWaiting}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0"
+                               IsVisible="{Binding AccountGamesWaiting, Converter={StaticResource Truthy}}" />
+                    <TextBlock Text="{Binding AccountGamesPause}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0"
+                               IsVisible="{Binding AccountGamesPause, Converter={StaticResource Truthy}}" />
+                    <TextBlock Text="{Binding AccountGamesProblems}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0"
+                               IsVisible="{Binding AccountGamesProblems, Converter={StaticResource Truthy}}" />
+                </StackPanel>
                 <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
                     <Button Classes="ghost" Content="{i:Loc Upload.PastGames}" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
                             ToolTip.Tip="{i:Loc Upload.PastGamesTip}" />
@@ -77,13 +110,44 @@
                 </WrapPanel>
                 <TextBlock Text="{Binding UploadMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
                            IsVisible="{Binding UploadMessage, Converter={StaticResource Truthy}}" />
-                <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
+
+                <!-- Replays on the site -->
+                <TextBlock Text="{i:Loc Account.Center.Replays}" Classes="label" Margin="0,16,0,4" />
+                <TextBlock Text="{Binding AccountReplaysText}" Classes="caption" TextWrapping="Wrap" />
+                <TextBlock Text="{i:Loc Account.Center.NotAvailable}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" IsVisible="{Binding AccountReplaysUnavailable}" />
+                <Button Classes="bare" Command="{Binding OpenAccountReplays}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{i:Loc Account.Center.ReplaysOpen}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                        <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Subscription and limits: plan 3.1, the daily free limit of the pool's stats in a game -->
+                <TextBlock Text="{i:Loc Account.Center.Limits}" Classes="label" Margin="0,16,0,4" />
+                <TextBlock Text="{Binding AccountLimitsText}" Classes="caption" TextWrapping="Wrap"
+                           IsVisible="{Binding AccountLimitsText, Converter={StaticResource Truthy}}" />
+                <TextBlock Text="{i:Loc Account.Center.NotAvailable}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" IsVisible="{Binding AccountLimitsUnavailable}" />
+                <TextBlock Text="{Binding AccountSubscriptionChecked}" Classes="caption" Margin="0,2,0,0"
+                           IsVisible="{Binding AccountSubscriptionChecked, Converter={StaticResource Truthy}}" />
+                <Button Classes="bare" Command="{Binding OpenAccountSubscription}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{i:Loc Settings.Account.Subscription}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                        <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <WrapPanel Orientation="Horizontal" Margin="0,16,0,0">
                     <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignInAgain}" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
                     <Button Classes="ghost" Content="{i:Loc Settings.Account.SignOut}" Command="{Binding SignOut}" />
                 </WrapPanel>
             </StackPanel>
             <!-- Signed out -->
             <StackPanel IsVisible="{Binding AccountSignedOut}">
+                <!-- The site ended the sign-in: the same red line as the indicator, above the button -->
+                <DockPanel Margin="0,4,0,0" IsVisible="{Binding AccountLinkBad}">
+                    <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{StaticResource Negative}" />
+                    <TextBlock Text="{Binding AccountLinkText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
                 <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignIn}" Command="{Binding SignIn}" HorizontalAlignment="Left" Margin="0,8,0,0"
                         ToolTip.Tip="{i:Loc Settings.Account.SignedOutCaption}" />
             </StackPanel>
@@ -114,6 +178,14 @@
                 </StackPanel>
                 <Button Classes="ghost" Content="{i:Loc Settings.Account.Cancel}" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
             </StackPanel>
+
+            <!-- Crash reports: no sign-in needed, so shown in every state; the switch itself is in Settings, Data -->
+            <TextBlock Text="{i:Loc Account.Center.Crash}" Classes="label" Margin="0,16,0,4" />
+            <TextBlock Text="{Binding AccountCrashText}" Classes="caption" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding AccountCrashWaiting}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0"
+                       IsVisible="{Binding AccountCrashWaiting, Converter={StaticResource Truthy}}" />
+            <TextBlock Text="{i:Loc Account.Center.NotAvailable}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" IsVisible="{Binding AccountCrashUnavailable}" />
+
             <TextBlock Text="{Binding AccountMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,10,0,0"
                        IsVisible="{Binding AccountMessage, Converter={StaticResource Truthy}}" />
         </StackPanel>

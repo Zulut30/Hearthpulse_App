@@ -21,7 +21,14 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
   your data on the site" (`{profile}#account-tracker-data`, the account page's «Данные приложения»: export and
   deletion of everything the tracker stored), the "Send past games" button and the queue status.
 - Only while signed in and switched on: a game that ends otherwise is not queued, and switching off drops what was
-  waiting (and a backfill under way).
+  waiting (and a backfill under way). While games wait, the switch asks first ("3 games haven't been sent yet. If you
+  turn sending off, they won't reach your profile." — "Turn off" / "Keep it on").
+- **Status texts in the account center** (Settings → Account → "Games in your profile", `account.json` strings,
+  `Account.Center.*`): "12 games sent · the last at 14:02" (or "No games sent yet."), "Waiting to be sent: 3",
+  "Sending is paused: <reason>. Next try at 14:20." with the reason from the journal's code (can't reach the site /
+  the site is answering with errors / too many requests in a row / the site did not take the request), and "Refused by
+  the site: 2 · stored without statistics: 1". The counts and the pause live in `AccountActivity`
+  (`account-activity.json`), so they survive a restart; `ProfileUploader.RetryAt` is the next try.
 - Each request is bound to the account and sign-in generation that started the send pass. The token, account and
   switch are checked again before every batch and individual retry, and after each response. A new sign-in (even to
   the same account) or an off/on toggle ends the old pass; a request already sent cannot be recalled.
@@ -53,7 +60,8 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
     `hearthpulse.log` (`profile upload: <type> <eventId> rejected: <code> (<field>)`) and never retried. An event in
     `warnings` (`INVALID_STATISTICS`: stored, but the statistics skip it) is logged as `stored without statistics` -
     a mapping bug to fix here; resending the same id changes nothing on the site. The status line counts both since
-    the app started ("2 games sent without statistics, 1 game refused by the site; see hearthpulse.log").
+    the app started ("2 games sent without statistics, 1 game refused by the site; see hearthpulse.log"); the account
+    center keeps them for good (`AccountActivity`, see below).
     An event absent from both lists stays queued, including during individual retries; a response naming none of
     the sent events triggers the normal retry delay.
   - 400/413/422 (bad envelope, too large): the batch is sent again one event at a time; an event refused alone is

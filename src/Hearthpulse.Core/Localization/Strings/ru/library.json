@@ -60,6 +60,7 @@
   "Library.Site.Gone": "Этого реплея на сайте уже нет.",
   "Library.Site.DeleteError.OFFLINE": "Сайт недоступен, реплей не удалён. Попробуйте позже.",
   "Library.Site.DeleteError.RATE_LIMITED": "Слишком много запросов: попробуйте удалить через минуту.",
+  "Library.Site.DeleteError.REFUSED": "Сайт отказался удалить реплей.",
   "Library.Site.DeleteError.SERVER_ERROR": "Сайт не смог удалить реплей. Попробуйте позже.",
   "Library.Search.Placeholder": "Поиск: герой, класс, соперник, колода",
   "Library.Search.Name": "Поиск игр",

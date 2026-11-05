@@ -75,7 +75,6 @@ public sealed partial class LocBindingTests
                     Assert.True(step.InCombat, step.Title);
                     Assert.Contains(lists, l => ReferenceEquals(l, step.PartnerBoard));
                     Assert.DoesNotContain(lists, l => ReferenceEquals(l, step.Board));
-                    Assert.Contains(heroes, h => ReferenceEquals(h, step.Partner));
                     Assert.DoesNotContain(heroes, h => h is not null && ReferenceEquals(h, step.Hero));
                     Assert.Contains(caption, texts);
                     Assert.Contains(step.PartnerBoard, c => c.CardId == "BG25_011");

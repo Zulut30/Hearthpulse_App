@@ -97,17 +97,46 @@ public sealed class GameState
                 return null;
             }
 
-            // In Duos the partner is a player of the game too: the opponent is the first player not on our team.
+            // Should the Duos partner be a player of the game: the opponent is the first player not on our team. When every
+            // other player shares our team (Bob's dummy player given our team id): Bob's dummy, else the first player but
+            // us and our partner, else the first but us.
             var team = TeamOf(LocalPlayerId);
+            PlayerSlot? first = null;
+            PlayerSlot? dummy = null;
             foreach (var player in Players.Values)
             {
-                if (player.PlayerId != LocalPlayerId && (team == 0 || TeamOf(player.PlayerId) != team))
+                if (player.PlayerId == LocalPlayerId)
+                {
+                    continue;
+                }
+
+                first ??= player;
+                if (team == 0 || TeamOf(player.PlayerId) != team)
+                {
+                    return player;
+                }
+
+                if (dummy is null && (Entities.GetValueOrDefault(player.EntityId)?.Has(GameTag.BaconDummyPlayer) ?? false))
+                {
+                    dummy = player;
+                }
+            }
+
+            if (dummy is not null)
+            {
+                return dummy;
+            }
+
+            var partner = PartnerPlayerId;
+            foreach (var player in Players.Values)
+            {
+                if (player.PlayerId != LocalPlayerId && player.PlayerId != partner)
                 {
                     return player;
                 }
             }
 
-            return null;
+            return first;
         }
     }
 
@@ -126,7 +155,9 @@ public sealed class GameState
 
             foreach (var player in Players.Values)
             {
-                if (player.PlayerId != LocalPlayerId && TeamOf(player.PlayerId) == team)
+                // Bob's dummy player is never the partner, whatever team id it carries.
+                if (player.PlayerId != LocalPlayerId && TeamOf(player.PlayerId) == team
+                    && !(Entities.GetValueOrDefault(player.EntityId)?.Has(GameTag.BaconDummyPlayer) ?? false))
                 {
                     return player.PlayerId;
                 }

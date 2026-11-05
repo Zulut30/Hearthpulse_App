@@ -103,6 +103,22 @@ public sealed partial class BattlegroundsReplayRecorder
         var type = entity.CardType;
         if (entity.Controller == game.LocalPlayerId)
         {
+            // Duos, HDT's model (TagChangeActions.OnHeroEntityChange, BobsBuddyInvoker): while our partner fights for the
+            // team, our player's HERO_ENTITY points at the partner's hero and the partner's minions come in under our
+            // controller. A minion first shown then is the partner's (P); one of ours already shown stays ours; nothing
+            // else of theirs (hero, hero power, trinkets) is written.
+            var seen = _shown.TryGetValue(entity.Id, out var shownNow) ? shownNow.Side : '\0';
+            // A minion shown as the partner's stays theirs until the fight ends, whatever our hero entity does meanwhile.
+            if (_combat && seen == 'P')
+            {
+                return zone == "PLAY" && type == "MINION" ? 'P' : '\0';
+            }
+
+            if (PartnerOnTable(game) && seen != 'L')
+            {
+                return zone == "PLAY" && type == "MINION" ? 'P' : '\0';
+            }
+
             return zone switch
             {
                 "PLAY" when TableTypes.Contains(type) => 'L',
@@ -112,9 +128,10 @@ public sealed partial class BattlegroundsReplayRecorder
             };
         }
 
-        if (_combat && zone == "PLAY" && entity.Controller != 0 && entity.Controller == game.PartnerPlayerId)
+        // A fallback should the partner be a player of their own: only their minions in a fight, never their hero.
+        if (_combat && zone == "PLAY" && type == "MINION" && entity.Controller != 0 && entity.Controller == game.PartnerPlayerId)
         {
-            return TableTypes.Contains(type) && (type != "HERO" || entity.GetInt(GameTag.PlayerId) > 0) ? 'P' : '\0';
+            return 'P';
         }
 
         if (entity.Controller != game.OpponentPlayerId || zone != "PLAY")
@@ -127,6 +144,34 @@ public sealed partial class BattlegroundsReplayRecorder
         return _combat
             ? TableTypes.Contains(type) && (type != "HERO" || entity.GetInt(GameTag.PlayerId) > 0) && !_offer.Contains(entity.Id) ? 'O' : '\0'
             : CardTypes.Contains(type) ? 'B' : '\0';
+    }
+
+    /// <summary>
+    /// Our partner's table is the one fighting for the team: in a combat, our player's hero is not the one we had when it
+    /// started but a hero of our Duos team (<c>BACON_DUO_TEAM_ID</c>).
+    /// </summary>
+    private bool PartnerOnTable(GameState game) =>
+        _combat && _ownHeroId != 0 && _ownTeam > 0
+        && game.LocalHero is { } hero && hero.Id != _ownHeroId && hero.GetInt(GameTag.BaconDuoTeamId) == _ownTeam;
+
+    /// <summary>
+    /// Our own hero: the one noted outside combat (<see cref="NoteOwnHero"/>), so a partner's fight, where our player's
+    /// hero entity is theirs, never makes their hero ours; before any note, the player's hero.
+    /// </summary>
+    private Entity? OwnHero(GameState game) =>
+        _ownHeroId != 0 && game.Entities.GetValueOrDefault(_ownHeroId) is { } own ? own : game.LocalHero;
+
+    /// <summary>Outside combat only: our player's hero and Duos team now (the tavern is always ours).</summary>
+    private void NoteOwnHero(GameState game)
+    {
+        // Only a hero of our own controller: our player's hero entity may still point at the partner's at the tavern's start.
+        if (_combat || game.LocalHero is not { } hero || hero.Controller != game.LocalPlayerId)
+        {
+            return;
+        }
+
+        _ownHeroId = hero.Id;
+        _ownTeam = game.TeamOf(game.LocalPlayerId);
     }
 
     private void Remove(Shown shown, int entityId, bool died)
@@ -186,7 +231,7 @@ public sealed partial class BattlegroundsReplayRecorder
     /// <summary>The rows that differ from the ones written.</summary>
     private List<(int Slot, string Line)> LeaderLines(GameState game)
     {
-        var local = game.LocalHero;
+        var local = OwnHero(game);
         var rows = new SortedDictionary<int, Entity>();
         foreach (var id in _heroes)
         {

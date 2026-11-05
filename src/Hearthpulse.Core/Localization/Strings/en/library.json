@@ -60,6 +60,7 @@
   "Library.Site.Gone": "This replay is no longer on the site.",
   "Library.Site.DeleteError.OFFLINE": "The site cannot be reached; the replay is not deleted. Try again later.",
   "Library.Site.DeleteError.RATE_LIMITED": "Too many requests: try deleting again in a minute.",
+  "Library.Site.DeleteError.REFUSED": "The site refused to delete the replay.",
   "Library.Site.DeleteError.SERVER_ERROR": "The site could not delete the replay. Try again later.",
   "Library.Search.Placeholder": "Search: hero, class, opponent, deck",
   "Library.Search.Name": "Search games",
