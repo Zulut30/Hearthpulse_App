@@ -144,12 +144,6 @@ public sealed class AppSettings
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? ShowHeroPick { get; set; }
 
-    /// <summary>Who sets the game-plan comp.</summary>
-    public CompMode CompMode { get; set; } = CompMode.Manual;
-
-    /// <summary>Comp id the player chose in <see cref="CompMode.Manual"/>, kept across games; null when none.</summary>
-    public string? ChosenCompId { get; set; }
-
     /// <summary>The tribe the player wants to build around (a race key such as "BEAST"); null for any.</summary>
     public string? CompFocus { get; set; }
 
@@ -215,14 +209,6 @@ public sealed class AppSettings
     /// <summary>Pick suggestions: "Off".</summary>
     [JsonIgnore]
     public bool PickHintsOff { get => PickHints == PickHints.Off; set => SetIf(value, () => PickHints = PickHints.Off); }
-
-    /// <summary>Game plan comp: "I choose".</summary>
-    [JsonIgnore]
-    public bool CompModeManual { get => CompMode == CompMode.Manual; set => SetIf(value, () => CompMode = CompMode.Manual); }
-
-    /// <summary>Game plan comp: "Automatic".</summary>
-    [JsonIgnore]
-    public bool CompModeAuto { get => CompMode == CompMode.Auto; set => SetIf(value, () => CompMode = CompMode.Auto); }
 
     /// <summary>Interface language: follow the system.</summary>
     [JsonIgnore]
@@ -563,7 +549,6 @@ public sealed class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
-        if (!Enum.IsDefined(CompMode)) CompMode = CompMode.Manual;
         OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
         CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, 280, 640, DefaultCardPoolBrowserWidth);

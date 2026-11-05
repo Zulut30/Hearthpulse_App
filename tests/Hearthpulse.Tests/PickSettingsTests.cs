@@ -18,14 +18,7 @@ public sealed class PickSettingsTests
     // ---- settings ------------------------------------------------------------------------------
 
     [Fact]
-    public void New_settings_default_to_stats_only_and_manual_comp()
-    {
-        var settings = new AppSettings();
-
-        Assert.Equal(PickHints.StatsOnly, settings.PickHints);
-        Assert.Equal(CompMode.Manual, settings.CompMode);
-        Assert.Null(settings.ChosenCompId);
-    }
+    public void New_settings_default_to_stats_only() => Assert.Equal(PickHints.StatsOnly, new AppSettings().PickHints);
 
     [Fact]
     public void Old_file_with_pick_hints_switched_off_loads_as_off()
@@ -44,7 +37,6 @@ public sealed class PickSettingsTests
         var settings = AppSettings.FromJson("""{ "ShowHeroPick": true }""");
 
         Assert.Equal(PickHints.StatsOnly, settings.PickHints);
-        Assert.Equal(CompMode.Manual, settings.CompMode);
         Assert.DoesNotContain("ShowHeroPick", settings.ToJson());
     }
 
@@ -55,28 +47,22 @@ public sealed class PickSettingsTests
 
         Assert.False(settings.OverlayEnabled);
         Assert.Equal(PickHints.StatsOnly, settings.PickHints);
-        Assert.Equal(CompMode.Manual, settings.CompMode);
-        Assert.Null(settings.ChosenCompId);
     }
 
     [Theory]
-    [InlineData(PickHints.Highlight, CompMode.Auto, null)]
-    [InlineData(PickHints.StatsOnly, CompMode.Manual, "comp-123")]
-    [InlineData(PickHints.Off, CompMode.Manual, null)]
-    public void Pick_settings_round_trip(PickHints hints, CompMode mode, string? chosen)
+    [InlineData(PickHints.Highlight)]
+    [InlineData(PickHints.StatsOnly)]
+    [InlineData(PickHints.Off)]
+    public void Pick_settings_round_trip(PickHints hints)
     {
-        var json = new AppSettings { PickHints = hints, CompMode = mode, ChosenCompId = chosen }.ToJson();
+        var json = new AppSettings { PickHints = hints }.ToJson();
         var loaded = AppSettings.FromJson(json);
 
         Assert.Equal(hints, loaded.PickHints);
-        Assert.Equal(mode, loaded.CompMode);
-        Assert.Equal(chosen, loaded.ChosenCompId);
         // Written by name, without the legacy switch or the radio-button helpers.
         Assert.Contains($"\"PickHints\": \"{hints}\"", json);
-        Assert.Contains($"\"CompMode\": \"{mode}\"", json);
         Assert.DoesNotContain("ShowHeroPick", json);
         Assert.DoesNotContain("PickHintsHighlight", json);
-        Assert.DoesNotContain("CompModeManual", json);
     }
 
     [Fact]
@@ -101,12 +87,6 @@ public sealed class PickSettingsTests
         settings.PickHintsOff = true;
         settings.PickHintsHighlight = false;
         Assert.Equal(PickHints.Off, settings.PickHints);
-
-        settings.CompModeAuto = true;
-        settings.CompModeManual = false;
-        Assert.Equal(CompMode.Auto, settings.CompMode);
-        settings.CompModeManual = true;
-        Assert.Equal(CompMode.Manual, settings.CompMode);
     }
 
     // ---- advisor -------------------------------------------------------------------------------
