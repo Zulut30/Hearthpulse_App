@@ -107,6 +107,10 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
 6. Renders of both UIs look right on the release commit ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)).
 7. Optional local installer smoke test (Windows needs Git Bash + NSIS; off Windows the WPF publish needs
    `-p:EnableWindowsTargeting=true`, which `build.sh` passes): `installer/windows/build.sh X.Y.Z`.
+7a. Updater check in Windows Sandbox (never on the owner's own install): install 0.14.0's setup, let it update to the
+   new version (the full setup path), check Apps & features shows the new version, then on the next release update
+   from that version (the delta path: `hearthpulse.log` says "Delta update ... ready", the folder has no
+   `.update-old`/`.update-new` left), and uninstall: the app folder must be empty, including files a delta added.
 8. Asset names unchanged (or `UpdateService.AssetName` updated in the same release and old clients considered).
 9. Ask the user: tag `vX.Y.Z` and push, or run the workflow by hand. After it finishes: the release has all files +
    `SHA256SUMS.txt` (23, or 24 with a delta), assets show a `digest`, and an older build offers the update.

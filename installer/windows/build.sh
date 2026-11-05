@@ -55,6 +55,7 @@ fi
 if [ -n "$PREV" ]; then
   PREV_MANIFEST="$WORK/previous/Hearthpulse-Files-$PREV-win-x64.json"
   if [ "${SIMULATE_PREVIOUS:-}" = "true" ]; then
+    mkdir -p "$WORK/previous"
     python3 "$ROOT/installer/windows/delta.py" simulate "$MANIFEST" "$PREV" "$PREV_MANIFEST"
   fi
   python3 "$ROOT/installer/windows/delta.py" delta "$PREV_MANIFEST" "$MANIFEST" "$WORK/app" \
