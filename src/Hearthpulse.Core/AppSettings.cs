@@ -65,6 +65,13 @@ public sealed class AppSettings
 
     public string? HearthstonePath { get; set; }
 
+    /// <summary>The smallest and largest size of the overlay (Settings) and of one panel (wheel, buttons, corner).</summary>
+    public const double MinScale = 0.6;
+
+    public const double MaxScale = 1.6;
+
+    public static double ClampScale(double scale) => Math.Clamp(scale, MinScale, MaxScale);
+
     public double OverlayScale { get; set; } = 1.0;
 
     public double OverlayOpacity { get; set; } = 1.0;
@@ -515,7 +522,7 @@ public sealed class AppSettings
 
             panel.X = Math.Clamp(panel.X, 0, 1);
             panel.Y = Math.Clamp(panel.Y, 0, 1);
-            panel.Scale = Math.Clamp(panel.Scale, 0.6, 1.6);
+            panel.Scale = ClampScale(panel.Scale);
         }
 
         PanelLooks ??= new(StringComparer.Ordinal);
@@ -549,7 +556,7 @@ public sealed class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
-        OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
+        OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
         CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, 280, 640, DefaultCardPoolBrowserWidth);
         LadderSessionBreakHours = Bounded(LadderSessionBreakHours, 1, 12, 2);

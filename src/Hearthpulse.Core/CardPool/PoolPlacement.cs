@@ -87,7 +87,7 @@ public static class PoolPlacement
     /// </summary>
     public static (double X, double Y) PlaceOnSurface(CardPoolAnchor anchor, double surfaceWidth, double scale, double panelWidth, double panelHeight)
     {
-        scale = Math.Clamp(scale, 0.6, 1.6);
+        scale = AppSettings.ClampScale(scale);
         var (x, y) = Place(anchor, surfaceWidth * scale, panelWidth * scale, panelHeight * scale);
         return (x / scale, y / scale);
     }

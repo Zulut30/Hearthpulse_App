@@ -17,7 +17,7 @@ public sealed partial class OverlayViewModel
     public static readonly TimeSpan ToastTime = TimeSpan.FromSeconds(9);
 
     /// <summary>The overlay's scale (Settings: overlay size), kept to 0.6-1.6 whatever the settings file says.</summary>
-    public static double SurfaceScale(AppSettings settings) => Math.Clamp(settings.OverlayScale, 0.6, 1.6);
+    public static double SurfaceScale(AppSettings settings) => AppSettings.ClampScale(settings.OverlayScale);
 
     /// <summary>
     /// The opacity of the panels' backgrounds (Settings: panel background opacity), kept to 0.3-1 so a panel never
