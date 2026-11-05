@@ -13,32 +13,32 @@
         <i:Truthy x:Key="Truthy" />
         <i:KeyBrush x:Key="KeyBrush" />
 
-        <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
-             column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
-             stays so the row keeps its place); the row whose count just moved flashes once (OverlayLook: rowFlash). -->
+        <!-- Deck row (V3 "gold frame"): a capsule with the cost gem at its left end, the name over card art, the copy count
+             (or the legendary star) on a dark pill, and a rarity-lit edge; the draw chance in its own column so it never runs
+             into the name. A card with no copies left dims (art, gem, edge and name sink back, the capsule stays so the row
+             keeps its place); the row whose count just moved flashes once (OverlayLook: rowFlash). -->
         <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
-            <Grid Classes="tileRow cardRow" Classes.empty="{Binding Empty}" Classes.changed="{Binding Changed}" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
-                  c:CardPreview.CardId="{Binding CardId}">
-                <c:ManaCost Classes="cost" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+            <Grid Classes="tileRow cardRow" Classes.empty="{Binding Empty}" Classes.changed="{Binding Changed}" Classes.legendary="{Binding Legendary}"
+                  Margin="0,0,0,2" ColumnDefinitions="*,Auto" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Border Classes="capsule">
                     <Panel>
                         <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
-                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="9,0,3,0">
+                        <DockPanel Margin="1,0,3,0">
+                            <c:ManaCost Classes="cost" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,4,0" />
                             <Border Classes="countBadge" DockPanel.Dock="Right" IsVisible="{Binding ShowCount}">
-                                <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                <TextBlock Classes="countText" Text="{Binding Count}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Classes="icon" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                            <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Classes="icon" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                        VerticalAlignment="Center" IsVisible="{Binding Created}" />
-                            <TextBlock Classes="tileName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Classes="tileName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
-                        <Border Classes="rowSheen" />
                         <Border Classes="rowFlash" />
                     </Panel>
                 </Border>
-                <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
+                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                <TextBlock Grid.Column="1" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                            VerticalAlignment="Center"
                            IsVisible="{Binding $parent[ItemsControl].((o:OverlayViewModel)DataContext).ShowChance, FallbackValue=True}" />
             </Grid>

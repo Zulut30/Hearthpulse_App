@@ -22,36 +22,35 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
 
-            <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
-                 column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
-                 stays so the row keeps its place); the row whose count just moved flashes once. -->
+            <!-- Deck row (V3 "gold frame"): a capsule with the cost gem at its left end, the name over card art, the copy count
+                 (or the legendary star) on a dark pill, and a rarity-lit edge; the draw chance in its own column so it never runs
+                 into the name. A card with no copies left dims (art, gem, edge and name sink back, the capsule stays so the row
+                 keeps its place); the row whose count just moved flashes once. -->
             <DataTemplate x:Key="DeckTileTemplate" DataType="{x:Type o:DeckTile}">
                 <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="26" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                    <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="12">
                         <Grid>
                             <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                             <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
-                            <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                            <DockPanel Margin="9,0,3,0">
+                            <DockPanel Margin="1,0,3,0">
+                                <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,4,0" />
                                 <Border x:Name="Copies" Style="{StaticResource OverlayCountBadge}" DockPanel.Dock="Right" Visibility="{Binding ShowCount, Converter={StaticResource Vis}}">
-                                    <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                    <TextBlock x:Name="CountText" Text="{Binding Count}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                                <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                            VerticalAlignment="Center" Visibility="{Binding Created, Converter={StaticResource Vis}}" />
-                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </DockPanel>
-                            <Border Style="{StaticResource OverlayRowSheen}" />
                             <Border x:Name="Flash" Style="{StaticResource OverlayRowFlash}" />
                         </Grid>
                     </Border>
-                    <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
+                    <Border x:Name="Edge" Style="{StaticResource OverlayRarityEdge}" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                                VerticalAlignment="Center"
                                Visibility="{Binding DataContext.ShowChance, RelativeSource={RelativeSource AncestorType=o:DeckPanel}, Converter={StaticResource Vis}}" />
                 </Grid>
@@ -64,10 +63,14 @@
                         <Setter TargetName="Gem" Property="Width" Value="18" />
                         <Setter TargetName="Gem" Property="Height" Value="18" />
                     </Trigger>
+                    <DataTrigger Binding="{Binding Legendary}" Value="True">
+                        <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource RarityLegendary}" />
+                        <Setter TargetName="CountText" Property="Foreground" Value="{StaticResource RarityLegendary}" />
+                    </DataTrigger>
                     <DataTrigger Binding="{Binding Empty}" Value="True">
                         <Setter TargetName="Art" Property="Opacity" Value="0.22" />
                         <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
-                        <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Edge" Property="Opacity" Value="0.3" />
                         <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
                         <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
                     </DataTrigger>

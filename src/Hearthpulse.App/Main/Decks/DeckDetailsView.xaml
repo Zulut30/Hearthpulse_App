@@ -88,33 +88,34 @@
                 </Grid>
             </DataTemplate>
 
-            <!-- A card of the main version as the tracker lists it: cost gem, name over the art, rarity edge, copies -->
+            <!-- A card of the main version as the tracker lists it (V3 "gold frame", as the overlay's deck rows): a capsule with
+                 the cost gem at its left end, the name over the art, the copies (or the legendary star) on a dark pill and a
+                 rarity-lit edge; legendary names in their rarity colour -->
             <DataTemplate x:Key="DeckListTile" DataType="{x:Type d:DeckListRow}">
                 <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="28" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Margin="4,0,0,0" Background="{StaticResource Row}" CornerRadius="4" c:RoundClip.Radius="4">
+                    <Border Background="{StaticResource Row}" CornerRadius="15" c:RoundClip.Radius="15">
                         <Grid>
                             <Grid Width="180" HorizontalAlignment="Right">
                                 <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                                 <Rectangle Fill="{StaticResource TileFade}" />
                             </Grid>
-                            <Border Width="3" HorizontalAlignment="Left" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                            <TextBlock Text="{Binding Name}" Margin="12,0,32,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                            <Border Width="24" HorizontalAlignment="Right" Background="{StaticResource Surface}" Opacity="0.92"
-                                    Visibility="{Binding Count, Converter={StaticResource Vis}}">
-                                <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
-                                           Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
+                            <DockPanel Margin="1,0,4,0">
+                                <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <Border DockPanel.Dock="Right" MinWidth="24" Height="22" CornerRadius="11" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
+                                        Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Count, Converter={StaticResource Vis}}">
+                                    <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
+                                               Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </DockPanel>
                         </Grid>
                     </Border>
+                    <Border CornerRadius="15" BorderThickness="1" Opacity="0.85" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
                 </Grid>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Rarity}" Value="LEGENDARY">
                         <Setter TargetName="CountText" Property="Foreground" Value="{StaticResource RarityLegendary}" />
+                        <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource RarityLegendary}" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>

@@ -150,9 +150,15 @@
         <GradientStop Color="#F01B120B" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="OverlayEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#A6E9B949" Offset="0" />
-        <GradientStop Color="#45E9B949" Offset="0.35" />
-        <GradientStop Color="#2AE9B949" Offset="1" />
+        <GradientStop Color="#F2E9B949" Offset="0" />
+        <GradientStop Color="#C7E9B949" Offset="0.5" />
+        <GradientStop Color="#99C48E2C" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Overlay panel header rule: a gold hairline that fades out at both ends (V3 "gold frame") -->
+    <LinearGradientBrush x:Key="OverlayHeaderRule" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#00E9B949" Offset="0" />
+        <GradientStop Color="#B3E9B949" Offset="0.5" />
+        <GradientStop Color="#00E9B949" Offset="1" />
     </LinearGradientBrush>
 
     <!-- ===== Character of the theme: a second accent, soft glows and a backdrop motif ===== -->

@@ -243,7 +243,7 @@ public sealed partial class UxPolishContractTests
         MovablePanel.SetCompact(row, true);
         row.UpdateLayout();
         Assert.Equal(full, Descendants<TextBlock>(row).First(t => t.Name == "CardName").FontSize);
-        Assert.Equal(12.5, full);
+        Assert.Equal(12, full); // FontSizeLabel, the V3 deck row
         var gem = Descendants<FrameworkElement>(row).First(e => e.Name == "Gem");
         Assert.Equal(18, gem.Width);
         Assert.Equal(18, gem.Height);
