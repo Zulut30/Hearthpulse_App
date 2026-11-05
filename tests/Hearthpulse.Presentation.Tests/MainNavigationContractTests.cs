@@ -175,9 +175,14 @@ public sealed class MainNavigationContractTests
             Pump();
             var games = cards.Select(c => GameOf(list, c)).ToList();
 
+            // The focus as the window keeps it (its focus scope), not the keyboard's: an off-screen window is not the
+            // active one, and another window taking the keyboard during a full run must not move these checks.
+            UIElement Focused() => (UIElement)System.Windows.Input.FocusManager.GetFocusedElement(window);
+            void FocusOn(UIElement target) => System.Windows.Input.FocusManager.SetFocusedElement(window, target);
+
             string Stop()
             {
-                var focused = System.Windows.Input.Keyboard.FocusedElement as FrameworkElement;
+                var focused = Focused() as FrameworkElement;
                 return focused?.DataContext is Hearthpulse.App.Main.Match.LibraryCard card && focused is System.Windows.Controls.Button
                     ? $"{cards.IndexOf(card)}:{(games.Contains(focused) ? "game" : System.Windows.Automation.AutomationProperties.GetName(focused))}"
                     : "out";
@@ -185,11 +190,11 @@ public sealed class MainNavigationContractTests
 
             string Key(System.Windows.Input.Key key)
             {
-                Press((UIElement)System.Windows.Input.Keyboard.FocusedElement, key);
+                Press(Focused(), key);
                 return Stop();
             }
 
-            Assert.True(games[0].Focus());
+            FocusOn(games[0]);
             var star = "0:" + cards[0].StarTip;
             var share = "0:" + Loc.T("Library.Share");
             var delete = "0:" + Loc.T("Library.Delete");
@@ -199,15 +204,16 @@ public sealed class MainNavigationContractTests
             Assert.Equal(["1:game", "2:game", "2:game", "1:game"],
                 new[] { Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Up) });
 
-            // One Tab stop: the next stop after a game is outside the list.
-            ((UIElement)System.Windows.Input.Keyboard.FocusedElement).MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.Next));
-            Assert.Equal("out", Stop());
+            // One Tab stop: Tab leaves the list after its first stop, and in a game only the game itself is a stop.
+            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Once, System.Windows.Input.KeyboardNavigation.GetTabNavigation(list));
+            Assert.All(cards, c => Assert.Equal([GameOf(list, c)],
+                Descendants((DependencyObject)list.ItemContainerGenerator.ContainerFromItem(c)).OfType<System.Windows.Controls.Button>().Where(b => b.IsTabStop)));
 
             // Delete asks first with the focus on "No"; Esc takes the question back.
-            Assert.True(games[2].Focus());
+            FocusOn(games[2]);
             Key(System.Windows.Input.Key.Delete);
             Assert.True(cards[2].Confirming);
-            Assert.Equal(Loc.T("Library.ConfirmNo"), ((System.Windows.Controls.Button)System.Windows.Input.Keyboard.FocusedElement).Content);
+            Assert.Equal(Loc.T("Library.ConfirmNo"), ((System.Windows.Controls.Button)Focused()).Content);
             Assert.Equal("2:game", Key(System.Windows.Input.Key.Escape));
             Assert.False(cards[2].Confirming);
             // Answered with Enter on "No": the question goes, the focus is back on the game.

@@ -61,17 +61,17 @@ public partial class ReplayLibraryView : UserControl
                 MoveToGame(card, key == Key.Down ? 1 : -1);
                 break;
             case Key.Right when plain && at >= 0:
-                buttons[Math.Min(at + 1, buttons.Count - 1)].Focus();
+                FocusOn(buttons[Math.Min(at + 1, buttons.Count - 1)]);
                 break;
             case Key.Left when plain && at > 0:
-                buttons[at - 1].Focus();
+                FocusOn(buttons[at - 1]);
                 break;
             case Key.Escape when plain && card.Confirming:
                 model.Cancel.Execute(card);
-                buttons.FirstOrDefault()?.Focus();
+                FocusOn(buttons.FirstOrDefault());
                 break;
             case Key.Escape when plain && at > 0:
-                buttons[0].Focus();
+                FocusOn(buttons[0]);
                 break;
             case Key.Enter or Key.Space when plain && card.Confirming && at >= buttons.Count - 2 && at > 0:
                 // "Yes" or "No" of the question: answered, the focus goes back to the game (or to the one now in its place).
@@ -92,7 +92,7 @@ public partial class ReplayLibraryView : UserControl
                     List.UpdateLayout();
                     if (List.ItemContainerGenerator.ContainerFromItem(card) is DependencyObject asked)
                     {
-                        Buttons(asked).LastOrDefault(b => b.IsVisible)?.Focus();
+                        FocusOn(Buttons(asked).LastOrDefault(b => b.IsVisible));
                     }
                 }
 
@@ -120,10 +120,25 @@ public partial class ReplayLibraryView : UserControl
 
         List.ScrollIntoView(List.Items[index]);
         List.UpdateLayout();
-        if (List.ItemContainerGenerator.ContainerFromIndex(index) is DependencyObject item && Buttons(item).FirstOrDefault() is { } game)
+        if (List.ItemContainerGenerator.ContainerFromIndex(index) is DependencyObject item)
         {
-            game.Focus();
+            FocusOn(Buttons(item).FirstOrDefault());
         }
+    }
+
+    /// <summary>
+    /// The focus on <paramref name="target"/>, kept in its focus scope as well: a window in the background takes no
+    /// keyboard focus, and gives it to the scope's element when it is activated (a check reads it there too).
+    /// </summary>
+    private static void FocusOn(Button? target)
+    {
+        if (target is null)
+        {
+            return;
+        }
+
+        target.Focus();
+        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(target), target);
     }
 
     /// <summary>A game's buttons in their order: the game itself (the card), then its own buttons and the question's.</summary>
