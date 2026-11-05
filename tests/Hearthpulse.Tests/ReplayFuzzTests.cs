@@ -24,6 +24,7 @@ public sealed class ReplayFuzzTests : IDisposable
 
     private static int Rounds => int.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_FUZZ_ROUNDS"), out var n) && n > 0 ? n : 150;
 
+    // A fixed seed (it only looks like a date): every run, CI or local, mutates the same files; another seed is an opt-in.
     private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_FUZZ_SEED"), out var n) ? n : 20261105;
 
     [Fact]
@@ -121,10 +122,14 @@ public sealed class ReplayFuzzTests : IDisposable
         _ = MatchReplay.Parse(text);
     }
 
-    /// <summary>A round: its exceptions and failed checks name the seed and round, and one that hangs fails (a loop on a damaged line).</summary>
+    /// <summary>
+    /// A round: its exceptions and failed checks name the seed and round, and one that hangs fails (a loop on a damaged
+    /// line). It runs on a thread of its own, so the limit counts its work, not a wait for a pool thread while the rest
+    /// of the suite keeps the pool busy (main CI, Windows 2/2 under coverage: an 8 ms round "ran over 20 s").
+    /// </summary>
     private static void Run(int round, Action body)
     {
-        var task = Task.Run(body);
+        var task = Task.Factory.StartNew(body, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         bool finished;
         try
         {
