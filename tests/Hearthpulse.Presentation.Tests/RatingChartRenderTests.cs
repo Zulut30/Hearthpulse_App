@@ -22,7 +22,7 @@ public sealed class RatingChartRenderTests
     [InlineData(80)]
     [InlineData(100)]
     [InlineData(400)]
-    public void A_narrow_rating_chart_still_renders(double width) => OnSta(() =>
+    public void A_narrow_rating_chart_still_renders(double width) => WpfThread.RunThemed(() =>
     {
         var chart = new RatingChart
         {
@@ -36,37 +36,4 @@ public sealed class RatingChartRenderTests
 
         Assert.Equal(width, chart.ActualWidth);
     });
-
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                if (app.Resources.MergedDictionaries.Count == 0)
-                {
-                    app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
-                }
-
-                test();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException(failure.Message, failure);
-        }
-    }
 }

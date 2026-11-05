@@ -36,6 +36,8 @@
 
   <ItemGroup>
     <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The memory recorder and what a fixture checks: Bench's tools, shared as source so Core does not carry them. -->
+    <Compile Include="..\..\tools\Hearthpulse.Bench\Memory\*.cs" Link="Memory\%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

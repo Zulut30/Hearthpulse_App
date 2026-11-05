@@ -76,7 +76,7 @@ public sealed class MainNavigationContractTests
     }
 
     [Fact]
-    public void The_wpf_window_opens_every_page_and_reads_it_back() => OnSta(() =>
+    public void The_wpf_window_opens_every_page_and_reads_it_back() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OffScreen(new WpfWindow(model));
@@ -123,35 +123,154 @@ public sealed class MainNavigationContractTests
         }
     });
 
-    private static void OnSta(Action body)
+    /// <summary>
+    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers, and game rows and History cards show a focus
+    /// ring (R13). The Avalonia twin is in LocBindingTests.Keyboard.
+    /// </summary>
+    [Fact]
+    public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => WpfThread.RunFresh(() =>
     {
-        Loc.Instance.SetLanguage(Loc.English);
-        Exception? failure = null;
-        var thread = new Thread(() =>
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        Pump();
+        try
         {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                app.Resources.MergedDictionaries.Clear();
-                app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Navigation check failed: " + failure.Message, failure);
+            var items = new[] { "NavOverview", "NavBattlegrounds", "NavStandard", "NavWild", "NavArena", "NavBrawl", "NavHistory", "NavSettings" }
+                .Select(n => (DependencyObject)window.FindName(n)).ToList();
+            Assert.Equal(WpfMain.NavPages.Count, items.Count);
+            Assert.Equal(Enumerable.Range(1, items.Count).Select(i => $"Ctrl+{i}"), items.Select(System.Windows.Automation.AutomationProperties.GetAcceleratorKey));
+
+            Assert.NotNull(((Style)window.FindResource("BareRow")).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
+            var library = window.PageHistory.LibraryView;
+            Assert.NotNull(((Style)library.Resources["CardButton"]).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
         }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+        }
+    });
+
+    /// <summary>
+    /// Review m3: History is one Tab stop; Up and Down move from game to game, Right goes on to the game's own buttons,
+    /// Left goes back and Esc returns to the game; Delete asks first. The Avalonia twin is in LocBindingTests.Keyboard.
+    /// </summary>
+    [Fact]
+    public void The_wpf_history_is_one_tab_stop_with_arrows_between_games_and_into_their_buttons() => WpfThread.RunFresh(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        window.ShowPage("History");
+        Pump();
+        try
+        {
+            var library = window.PageHistory.LibraryView;
+            var cards = Enumerable.Range(1, 3)
+                .Select(i => new Hearthpulse.App.Main.Match.LibraryCard(Core.Replay.ReplayShelf.Imported, $"{i}.hpr", $"key{i}", battlegrounds: false) { Title = "Game " + i })
+                .ToList();
+            var list = (System.Windows.Controls.ListBox)library.FindName("List");
+            list.ItemsSource = cards;
+            Pump();
+            var games = cards.Select(c => GameOf(list, c)).ToList();
+
+            string Stop()
+            {
+                var focused = System.Windows.Input.Keyboard.FocusedElement as FrameworkElement;
+                return focused?.DataContext is Hearthpulse.App.Main.Match.LibraryCard card && focused is System.Windows.Controls.Button
+                    ? $"{cards.IndexOf(card)}:{(games.Contains(focused) ? "game" : System.Windows.Automation.AutomationProperties.GetName(focused))}"
+                    : "out";
+            }
+
+            string Key(System.Windows.Input.Key key)
+            {
+                Press((UIElement)System.Windows.Input.Keyboard.FocusedElement, key);
+                return Stop();
+            }
+
+            Assert.True(games[0].Focus());
+            var star = "0:" + cards[0].StarTip;
+            var share = "0:" + Loc.T("Library.Share");
+            var delete = "0:" + Loc.T("Library.Delete");
+            Assert.Equal([star, share, delete, delete], new[] { Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right) });
+            Assert.Equal(share, Key(System.Windows.Input.Key.Left));
+            Assert.Equal("0:game", Key(System.Windows.Input.Key.Escape));
+            Assert.Equal(["1:game", "2:game", "2:game", "1:game"],
+                new[] { Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Up) });
+
+            // One Tab stop: the next stop after a game is outside the list.
+            ((UIElement)System.Windows.Input.Keyboard.FocusedElement).MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.Next));
+            Assert.Equal("out", Stop());
+
+            // Delete asks first with the focus on "No"; Esc takes the question back.
+            Assert.True(games[2].Focus());
+            Key(System.Windows.Input.Key.Delete);
+            Assert.True(cards[2].Confirming);
+            Assert.Equal(Loc.T("Library.ConfirmNo"), ((System.Windows.Controls.Button)System.Windows.Input.Keyboard.FocusedElement).Content);
+            Assert.Equal("2:game", Key(System.Windows.Input.Key.Escape));
+            Assert.False(cards[2].Confirming);
+            // Answered with Enter on "No": the question goes, the focus is back on the game.
+            Key(System.Windows.Input.Key.Delete);
+            Assert.Equal("2:game", Key(System.Windows.Input.Key.Enter));
+            Assert.False(cards[2].Confirming);
+
+            // S and O reach the game through the view's keys (no replay file here: the star says so).
+            var opened = new List<Uri>();
+            model.Library.OpenBrowser = url =>
+            {
+                opened.Add(url);
+                return true;
+            };
+            cards[2].SiteUrl = "https://hearthpulse.net/replay/abc";
+            Key(System.Windows.Input.Key.O);
+            Assert.Equal([new Uri("https://hearthpulse.net/replay/abc")], opened);
+            Key(System.Windows.Input.Key.S);
+            Assert.Equal(Loc.T("Library.Star.Failed"), model.Library.Status);
+
+            // Shift+S shares (no replay file here: it says so). The view's key method takes the modifiers a test cannot press.
+            Assert.True(library.ListKey(games[2], System.Windows.Input.Key.S, System.Windows.Input.ModifierKeys.Shift));
+            var deadline = DateTime.UtcNow.AddMinutes(1);
+            while (model.Library.Status != Loc.T("Library.ShareFailed") && DateTime.UtcNow < deadline)
+            {
+                Pump();
+            }
+
+            Assert.Equal(Loc.T("Library.ShareFailed"), model.Library.Status);
+        }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+        }
+    });
+
+    private static System.Windows.Controls.Button GameOf(System.Windows.Controls.ListBox list, object card)
+    {
+        var container = (DependencyObject)list.ItemContainerGenerator.ContainerFromItem(card);
+        return Descendants(container).OfType<System.Windows.Controls.Button>().First();
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            yield return child;
+            foreach (var deeper in Descendants(child))
+            {
+                yield return deeper;
+            }
+        }
+    }
+
+    private static void Press(UIElement target, System.Windows.Input.Key key)
+    {
+        target.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(target), 0, key)
+        {
+            RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent,
+        });
+        Pump();
     }
 
     private static WpfWindow OffScreen(WpfWindow window)

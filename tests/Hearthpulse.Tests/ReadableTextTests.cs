@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace Hearthpulse.Tests;
@@ -135,7 +134,7 @@ public sealed class ReadableTextTests
     /// <summary>Every view of both UIs but the themes and the match page, parsed with line numbers.</summary>
     private static List<(string Path, XElement Root)> Markup()
     {
-        var root = RepoRoot();
+        var root = RepoFiles.Root;
         var files = new[] { ("src/Hearthpulse.App", "*.xaml"), ("src/Hearthpulse.UI", "*.axaml") }
             .SelectMany(p => Directory.EnumerateFiles(Path.Combine(root, p.Item1), p.Item2, SearchOption.AllDirectories))
             .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'))
@@ -144,16 +143,5 @@ public sealed class ReadableTextTests
         Assert.Contains("src/Hearthpulse.App/Main/MainWindow.xaml", files);
         Assert.Contains("src/Hearthpulse.UI/Overlay/OverlayView.axaml", files);
         return files.Select(f => (f, XDocument.Load(Path.Combine(root, f), LoadOptions.SetLineInfo).Root!)).ToList();
-    }
-
-    private static string RepoRoot([CallerFilePath] string source = "")
-    {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root (Hearthpulse.slnx) not found above the test sources.");
     }
 }

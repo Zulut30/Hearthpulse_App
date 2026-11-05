@@ -108,8 +108,8 @@ not only a red border, and move focus to the first failing field. Wording is `be
 
 ## Accessible names everywhere
 
-An icon-only button needs `AutomationProperties.Name="{i:Loc Key}"`, the same key in both UIs. A text button needs
-nothing: its `Content` is the name. The visible label's words appear in the name (2.5.3). An `Image` that carries
+An icon-only button needs `AutomationProperties.Name="{i:Loc Key}"`, the same key in both UIs; `AccessibleNameTests`
+scans both UIs' markup for one without it. A text button needs nothing: its `Content` is the name. The visible label's words appear in the name (2.5.3). An `Image` that carries
 meaning gets a name; the `CardPreview` hover is a visual extra and the card's name must also be text nearby.
 
 ## Pair colour with a second cue

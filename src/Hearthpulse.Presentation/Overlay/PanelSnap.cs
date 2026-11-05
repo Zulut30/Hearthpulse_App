@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Overlay;
@@ -22,9 +23,9 @@ public static class PanelSnap
     public const double Spacing = 8;
 
     /// <summary>The smallest and largest size the player can give a panel (wheel, buttons, corner).</summary>
-    public const double MinScale = 0.6;
+    public const double MinScale = AppSettings.MinScale;
 
-    public const double MaxScale = 1.6;
+    public const double MaxScale = AppSettings.MaxScale;
 
     /// <summary>
     /// The size of a panel whose bottom-right corner was dragged by (<paramref name="dx"/>, <paramref name="dy"/>) from

@@ -99,7 +99,7 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0)
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
-    public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
+    public int WinSign => WinRate == "—" ? 0 : MetaTiers.WinRateSign(WinFraction);
 
     /// <summary>+1 on the table's best win rate, -1 on its worst (groups with enough games only), else 0.</summary>
     public int WinMark { get; init; }

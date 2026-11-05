@@ -1,5 +1,6 @@
 {
   "Main.Window.Close": "Close (keeps running in the tray if enabled)",
+  "Main.Window.CloseName": "Close",
   "Main.Window.Maximize": "Maximize",
   "Main.Window.Minimize": "Minimize",
   "Main.Nav.Home": "Home",

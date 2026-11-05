@@ -5,6 +5,7 @@ using Hearthpulse.UI.Infrastructure;
 #endif
 using System.IO;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 
@@ -80,6 +81,15 @@ public sealed record LibrarySummary(
     public LibraryBoardView BoardAt(double width) => Boards[Math.Min(BoardFits(width, Board.Count), Boards.Count - 1)];
 
     private static string More(int count) => count > Shown ? $"+{count - Shown}" : string.Empty;
+}
+
+/// <summary>The actions a key takes on a focused game card (<see cref="ReplayLibraryViewModel.CardKeyFor"/>).</summary>
+public enum CardKey
+{
+    Star,
+    Share,
+    Delete,
+    OpenOnSite,
 }
 
 /// <summary>What a library card is doing with the site (plan 2.2).</summary>
@@ -593,6 +603,46 @@ public sealed class ReplayLibraryViewModel : Observable
     }
 
     public bool CanImport => !_importing;
+
+    /// <summary>Opens a game's page on the site (O on a card); a test hands in its own.</summary>
+    internal Func<Uri, bool> OpenBrowser { get; set; } = SystemBrowser.Open;
+
+    /// <summary>
+    /// What a key does on a focused game card (review m3): S stars it, Shift+S shares it, Delete deletes an imported game
+    /// (after the same question in the card), O opens its page on the site. <paramref name="key"/> is the key's name as
+    /// both UIs spell it ("S", "Delete"); keys with Ctrl or Alt never reach here.
+    /// </summary>
+    public static CardKey? CardKeyFor(string key, bool shift) => (key, shift) switch
+    {
+        ("S", false) => CardKey.Star,
+        ("S", true) => CardKey.Share,
+        ("Delete", false) => CardKey.Delete,
+        ("O", false) => CardKey.OpenOnSite,
+        _ => null,
+    };
+
+    /// <summary>Does what the key does on <paramref name="card"/>; false when it does nothing there, so the key goes on.</summary>
+    public bool HandleCardKey(LibraryCard card, string key, bool shift)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        switch (CardKeyFor(key, shift))
+        {
+            case CardKey.Star when card.HasReplay:
+                ToggleStar.Execute(card);
+                return true;
+            case CardKey.Share when card.HasReplay:
+                Share.Execute(card);
+                return true;
+            case CardKey.Delete when card.CanDelete:
+                Delete.Execute(card);
+                return true;
+            case CardKey.OpenOnSite when card.OnSite && Uri.TryCreate(card.SiteUrl, UriKind.Absolute, out var page):
+                OpenBrowser(page);
+                return true;
+            default:
+                return false;
+        }
+    }
 
     public RelayCommand SetTab { get; }
 

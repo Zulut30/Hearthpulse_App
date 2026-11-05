@@ -546,7 +546,7 @@
         <Setter Property="Padding" Value="{StaticResource CardPadding}" />
     </Style>
     <Style Selector="Border.overlayCard">
-        <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayCardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
@@ -699,6 +699,12 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
+        <!-- Rows and cards drawn by their content: the same ring as the WPF FocusRing (Fluent's default sits off the theme). -->
+        <Setter Property="FocusAdorner">
+            <FocusAdornerTemplate>
+                <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
+            </FocusAdornerTemplate>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"

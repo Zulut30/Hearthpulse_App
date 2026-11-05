@@ -17,7 +17,7 @@ public sealed record BgDamageRange(double Mean, int Low, int High, int Max)
 }
 
 /// <summary>The simulator's saved prediction for one combat (<see cref="GameRecord.CombatOdds"/>).</summary>
-public sealed record BgCombatPrediction(int Turn, double Win, double Tie, double Loss, BgDamageRange? Taken, BgDamageRange? Dealt, double? Lethal, double? Kill)
+public sealed record BgCombatPrediction(int Turn, double Win, double Tie, double Loss, BgDamageRange? Taken, BgDamageRange? Dealt)
 {
     /// <summary>The most likely result: Win, Loss or Tie.</summary>
     public string Likely => Win >= Loss && Win >= Tie ? "Win" : Loss >= Tie ? "Loss" : "Tie";
@@ -185,7 +185,7 @@ public static class BattlegroundsStats
                     .Select(c => c.ValueKind != JsonValueKind.Object
                         ? null
                         : new BgCombatPrediction(Int(c, "turn"), Dbl(c, "win") ?? 0, Dbl(c, "tie") ?? 0, Dbl(c, "loss") ?? 0,
-                            Range(c, "taken"), Range(c, "dealt"), Dbl(c, "lethal"), Dbl(c, "kill")))
+                            Range(c, "taken"), Range(c, "dealt")))
                     .ToList();
         }
         catch (JsonException)

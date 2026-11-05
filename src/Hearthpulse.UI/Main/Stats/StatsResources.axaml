@@ -10,9 +10,6 @@
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
 
-    <ItemsPanelTemplate x:Key="StatsTilesPanel">
-        <UniformGrid Rows="1" />
-    </ItemsPanelTemplate>
     <!-- KPI cards in one row, two columns in compact (Main/Stats/StatsStyles.axaml) -->
     <ItemsPanelTemplate x:Key="StatsKpiPanel">
         <UniformGrid Classes="kpis" />

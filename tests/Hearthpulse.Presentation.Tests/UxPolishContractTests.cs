@@ -419,35 +419,6 @@ public sealed partial class UxPolishContractTests
 
     // ---- harness ----
 
-    /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
-    private static void Sta(Action body)
-    {
-        Loc.Instance.SetLanguage(Loc.English);
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("WPF check failed", failure);
-        }
-    }
-
     /// <summary>Builds the main window with the default theme on a page (and Settings tab) and lays it out, nothing shown.</summary>
     private static (WpfWindow Window, FrameworkElement Root) Open(WpfMain model, string page, string? tab = null, double width = 1260)
     {
@@ -542,4 +513,6 @@ public sealed partial class UxPolishContractTests
             }
         }
     }
+
+    private static void Sta(Action body) => WpfThread.Run(body, english: true);
 }

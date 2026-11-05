@@ -39,21 +39,10 @@ public sealed class BgMetaApiTests : IDisposable
         // The hosts are not built in tests: their refresh timers are read from the source, so neither can drift again.
         foreach (var host in new[] { Path.Combine("src", "Hearthpulse.App", "App.xaml.cs"), Path.Combine("src", "Hearthpulse.UI", "AppHost.cs") })
         {
-            var timer = System.Text.RegularExpressions.Regex.Match(System.IO.File.ReadAllText(Path.Combine(RepoRoot(), host)), @"_metaRefresh = new DispatcherTimer \{ Interval = ([^,}]+?) \}");
+            var timer = System.Text.RegularExpressions.Regex.Match(System.IO.File.ReadAllText(Path.Combine(RepoFiles.Root, host)), @"_metaRefresh = new DispatcherTimer \{ Interval = ([^,}]+?) \}");
             Assert.True(timer.Success, $"{host}: no meta refresh timer");
             Assert.Equal("BattlegroundsMeta.RefreshInterval", timer.Groups[1].Value.Trim());
         }
-    }
-
-    private static string RepoRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
-    {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
-        while (dir is not null && !System.IO.File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir!.FullName;
     }
 
     [Fact]

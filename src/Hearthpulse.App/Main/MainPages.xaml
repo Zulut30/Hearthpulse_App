@@ -111,7 +111,7 @@
         <Setter Property="Cursor" Value="Hand" />
         <!-- The row's own text has no colour of its own: without this it takes the system button colour (black) -->
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">

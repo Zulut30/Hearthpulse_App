@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text.Json;
 using Hearthpulse.Core.Api;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
 
@@ -89,6 +91,94 @@ public sealed class HearthpulseApiTests
         var result = await api.GetAsync("api/v1/meta");
 
         Assert.False(result.Ok);
+    }
+
+    [Theory]
+    [InlineData(429, "{}", "RATE_LIMITED")]
+    [InlineData(405, "", "NOT_AVAILABLE")]
+    [InlineData(418, """{"detail":{"message":"teapot"}}""", "HTTP_418")]
+    [InlineData(200, "<html>portal</html>", "BAD_RESPONSE")]
+    public void Other_statuses_and_a_page_instead_of_json_get_their_own_codes(int status, string body, string code)
+    {
+        var result = HearthpulseApi.Parse(status, body);
+
+        Assert.False(result.Ok);
+        Assert.Equal((status, code), (result.Error!.Status, result.Error.Code));
+    }
+
+    [Fact]
+    public void A_success_keeps_its_meta_and_a_body_without_data_is_the_data()
+    {
+        var wrapped = HearthpulseApi.Parse(200, """{"data":[1,2],"meta":{"period":"past_week"}}""");
+        Assert.Equal(2, wrapped.Data.GetArrayLength());
+        Assert.Equal("past_week", wrapped.Meta.GetProperty("period").GetString());
+
+        var bare = HearthpulseApi.Parse(204, string.Empty);
+        Assert.True(bare.Ok);
+        Assert.Equal(JsonValueKind.Object, bare.Data.ValueKind);
+        Assert.Equal(JsonValueKind.Undefined, bare.Meta.ValueKind);
+    }
+
+    [Fact]
+    public async Task A_request_carries_the_token_and_asks_for_json_and_a_lost_network_is_offline()
+    {
+        var seen = new List<HttpRequestMessage>();
+        var api = new HearthpulseApi(new HttpClient(new Answer(request =>
+        {
+            seen.Add(request);
+            return request.RequestUri!.AbsolutePath.EndsWith("down", StringComparison.Ordinal)
+                ? throw new HttpRequestException("no route")
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"data":1}""") };
+        })), "https://api.test/v1");
+
+        var ok = await api.GetAsync("me", bearer: "secret");
+        var down = await api.GetAsync("down");
+
+        Assert.Equal(1, ok.Data.GetInt32());
+        Assert.Equal(new Uri("https://api.test/v1/me"), seen[0].RequestUri);
+        Assert.Equal("Bearer secret", seen[0].Headers.Authorization!.ToString());
+        Assert.Contains("application/json", seen[0].Headers.Accept.ToString(), StringComparison.Ordinal);
+        Assert.Null(seen[1].Headers.Authorization);
+        Assert.Equal(new ApiError(0, "OFFLINE", "no route"), down.Error);
+    }
+
+    [Fact]
+    public async Task No_answer_in_20_seconds_is_offline_and_the_callers_own_cancel_goes_on_as_a_cancel()
+    {
+        var time = new FakeTimeProvider();
+        var asked = new SemaphoreSlim(0);
+        var api = new HearthpulseApi(new HttpClient(new Hang(asked)), "https://api.test/") { Time = time };
+
+        var waiting = api.GetAsync("slow");
+        Assert.True(await asked.WaitAsync(TimeSpan.FromMinutes(1)));
+        time.Advance(HearthpulseApi.Timeout);
+        var result = await waiting.WaitAsync(TimeSpan.FromMinutes(1));
+        Assert.Equal("OFFLINE", result.Error!.Code);
+        Assert.Contains("in time", result.Error.Message, StringComparison.Ordinal);
+
+        using var cancel = new CancellationTokenSource();
+        var cancelled = api.GetAsync("slow", cancellationToken: cancel.Token);
+        Assert.True(await asked.WaitAsync(TimeSpan.FromMinutes(1)));
+        await cancel.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled.WaitAsync(TimeSpan.FromMinutes(1)));
+    }
+
+    /// <summary>Answers each request with what the function gives (or throws).</summary>
+    private sealed class Answer(Func<HttpRequestMessage, HttpResponseMessage> answer) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(answer(request));
+    }
+
+    /// <summary>Never answers: says it was asked, then waits until the request is cancelled.</summary>
+    private sealed class Hang(SemaphoreSlim asked) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            asked.Release();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("not reached");
+        }
     }
 
     private sealed class Portal : HttpMessageHandler

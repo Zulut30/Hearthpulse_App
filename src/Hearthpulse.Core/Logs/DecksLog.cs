@@ -14,6 +14,12 @@ public sealed record DecksLogEntry(DateTime At, bool FindingGame, string Name, l
 public static class DecksLog
 {
     /// <summary>
+    /// How far a log line's time of day must fall back for the date to move on (a session past midnight), here and in
+    /// Power.log.
+    /// </summary>
+    public static readonly TimeSpan NewDayJump = TimeSpan.FromHours(12);
+
+    /// <summary>
     /// Deck blocks in <paramref name="lines"/>. Lines carry only the time of day; <paramref name="date"/> is the session
     /// start, and the date moves on when the clock jumps back by more than 12 hours (a session past midnight).
     /// </summary>
@@ -31,7 +37,7 @@ public static class DecksLog
                 continue;
             }
 
-            if (last != TimeSpan.MinValue && time < last - TimeSpan.FromHours(12))
+            if (last != TimeSpan.MinValue && time < last - NewDayJump)
             {
                 date = date.AddDays(1);
             }

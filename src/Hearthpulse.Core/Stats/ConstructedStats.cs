@@ -69,12 +69,12 @@ public static class ConstructedStats
     {
         if (game.RankLegend is > 0)
         {
-            return (51, game.RankLegend);
+            return (RankInfo.LegendStarLevel, game.RankLegend);
         }
 
         if (game.RankStarLevel is > 0 and var stars)
         {
-            return (Math.Min(stars, 51), null);
+            return (Math.Min(stars, RankInfo.LegendStarLevel), null);
         }
 
         var text = game.Rank?.Trim();
@@ -86,7 +86,7 @@ public static class ConstructedStats
         if (text.StartsWith("Legend", StringComparison.Ordinal))
         {
             var digits = new string(text.Where(char.IsDigit).ToArray());
-            return (51, int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var legend) && legend > 0 ? legend : null);
+            return (RankInfo.LegendStarLevel, int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var legend) && legend > 0 ? legend : null);
         }
 
         var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);

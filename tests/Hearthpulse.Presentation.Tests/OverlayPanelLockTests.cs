@@ -108,7 +108,7 @@ public sealed class OverlayPanelLockTests
     }
 
     [Fact]
-    public void Wpf_panels_offer_the_unlock_button_then_move_without_ctrl_except_on_the_game_cards() => Sta(WpfPanels);
+    public void Wpf_panels_offer_the_unlock_button_then_move_without_ctrl_except_on_the_game_cards() => WpfThread.Run(WpfPanels);
 
     private static void WpfPanels()
     {
@@ -235,33 +235,6 @@ public sealed class OverlayPanelLockTests
         var frame = new DispatcherFrame();
         _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
-    }
-
-    private static void Sta(Action body)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("WPF overlay check failed", failure);
-        }
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

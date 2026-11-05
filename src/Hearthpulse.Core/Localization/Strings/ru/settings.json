@@ -73,8 +73,8 @@
   "Settings.Overlay.SessionTip": "Рейтинг и места за эту сессию.",
   "Settings.Overlay.Size": "Размер",
   "Settings.Overlay.SizeTip": "Масштаб всех панелей оверлея",
-  "Settings.Overlay.Opacity": "Непрозрачность",
-  "Settings.Overlay.OpacityTip": "Насколько прозрачны панели оверлея",
+  "Settings.Overlay.Opacity": "Непрозрачность фона панелей",
+  "Settings.Overlay.OpacityTip": "Насколько плотный фон у панелей. Текст, числа и значки всегда остаются непрозрачными.",
 
   "Settings.Layout.Title": "Расположение панелей",
   "Settings.Layout.Caption": "Перетащите каждую панель оверлея куда удобно. Прокрутка над панелью меняет размер, правый клик — сброс. Сочетание клавиш: Ctrl+Shift+L.",

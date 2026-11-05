@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Controls;
@@ -279,6 +280,6 @@ public sealed class StatsLineChart : FrameworkElement
 
     private FormattedText Text(string text, double size, Brush brush, double dpi, FontWeight? weight = null) =>
         new(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, weight ?? FontWeights.Normal, FontStretches.Normal),
+            new Typeface(TextFont.Family, FontStyles.Normal, weight ?? FontWeights.Normal, FontStretches.Normal),
             size, brush, dpi);
 }

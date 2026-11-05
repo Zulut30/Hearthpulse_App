@@ -57,6 +57,13 @@ internal static partial class OffscreenRenderer
         var settings = AppSettings.Load();
         // The default panel spots, not the layout saved in the copied data folder: renders compare across runs and PCs.
         settings.Panels.Clear();
+        // HEARTHPULSE_THEME=<preset>: a theme for this render (as the WPF renderer); without it the default colours.
+        if (Environment.GetEnvironmentVariable("HEARTHPULSE_THEME") is { Length: > 0 } theme)
+        {
+            settings.Theme = theme;
+            Console.WriteLine($"theme {theme}: " + (ThemeEngine.ApplySaved(Application.Current!, settings) ? "applied" : "not applied"));
+        }
+
         using var host = new AppHost(settings, rendering: true);
         await host.InitializeAsync(watchLogs: false);
         await host.LoadMetaAsync();
@@ -66,7 +73,7 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        // "overlay" first: it is also a group name, and the groups below have no overlay of their own.
+        // Before the groups: "overlay" is a single word, which the groups would take for one of theirs.
         if (RenderOnlyOverlay)
         {
             main.Close();

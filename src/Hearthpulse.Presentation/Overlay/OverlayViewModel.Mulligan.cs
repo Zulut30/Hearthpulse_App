@@ -241,7 +241,7 @@ public sealed partial class OverlayViewModel
             }.Concat(notes).Append(view.HasPairData || view.ArenaBasis is not null ? string.Empty : Loc.T("Mulligan.NoPairData"))
              .Append(Loc.T("Overlay.Tier.KeepLegend"))
              .Where(s => s.Length > 0));
-            MulliganImpactGood = impact.Expected >= impact.Recommended - 0.0005 && vsAverage > 0.0005;
+            MulliganImpactGood = impact.Expected >= impact.Recommended - OverlayFormat.HalfStep && vsAverage > OverlayFormat.HalfStep;
             MulliganImpactBad = impact.Expected < impact.Recommended - 0.005;
             MulliganHasWarnings = notes.Count > 0;
         }
@@ -271,7 +271,7 @@ public sealed partial class OverlayViewModel
                 if (c.Edge is not null)
                 {
                     lines.Add(Loc.F(arena ? "Mulligan.Arena.EdgeLine" : "Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
-                    if (Math.Abs(edge - (delta - view.ReplaceDelta)) > 0.0005)
+                    if (Math.Abs(edge - (delta - view.ReplaceDelta)) > OverlayFormat.HalfStep)
                     {
                         // A kept synergy partner or the other copy changes what keeping this one adds.
                         lines.Add(Loc.T("Mulligan.EdgeWithOthers"));

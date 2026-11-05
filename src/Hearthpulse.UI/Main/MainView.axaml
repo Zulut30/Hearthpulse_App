@@ -221,34 +221,34 @@
                     <TextBlock Classes="h2 wide" Text="Hearthpulse" FontSize="20" Margin="12,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" IsChecked="True"
+                <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
                              ToolTip.Tip="{i:Loc Main.Nav.HomeTip}" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="{i:Loc Main.Nav.Modes}" Classes="label" />
                     <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                 </Grid>
-                <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav"
+                <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2"
                              ToolTip.Tip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav"
+                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3"
                              ToolTip.Tip="{i:Loc Main.Nav.StandardTipShort}" />
-                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav"
+                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4"
                              ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
-                <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav"
+                <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5"
                              ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
-                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav"
+                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6"
                              ToolTip.Tip="{i:Loc Brawl.NavTip}" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="{i:Loc Main.Nav.Library}" Classes="label" />
                     <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                 </Grid>
-                <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav"
+                <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7"
                              ToolTip.Tip="{i:Loc Main.Nav.HistoryTip}" />
             </StackPanel>
 
             <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
-                <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav"
+                <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8"
                              ToolTip.Tip="{i:Loc Main.Nav.SettingsTip}" />
                 <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
             </StackPanel>

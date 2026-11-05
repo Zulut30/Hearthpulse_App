@@ -65,6 +65,13 @@ public sealed class AppSettings
 
     public string? HearthstonePath { get; set; }
 
+    /// <summary>The smallest and largest size of the overlay (Settings) and of one panel (wheel, buttons, corner).</summary>
+    public const double MinScale = 0.6;
+
+    public const double MaxScale = 1.6;
+
+    public static double ClampScale(double scale) => Math.Clamp(scale, MinScale, MaxScale);
+
     public double OverlayScale { get; set; } = 1.0;
 
     public double OverlayOpacity { get; set; } = 1.0;
@@ -124,6 +131,11 @@ public sealed class AppSettings
 
     public const double DefaultCardPoolBrowserWidth = 350;
 
+    /// <summary>The card pool browser's narrowest and widest width (its edge drag).</summary>
+    public const double MinCardPoolBrowserWidth = 280;
+
+    public const double MaxCardPoolBrowserWidth = 640;
+
     /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>
     public double CardPoolBrowserWidth { get; set; } = DefaultCardPoolBrowserWidth;
 
@@ -143,12 +155,6 @@ public sealed class AppSettings
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? ShowHeroPick { get; set; }
-
-    /// <summary>Who sets the game-plan comp.</summary>
-    public CompMode CompMode { get; set; } = CompMode.Manual;
-
-    /// <summary>Comp id the player chose in <see cref="CompMode.Manual"/>, kept across games; null when none.</summary>
-    public string? ChosenCompId { get; set; }
 
     /// <summary>The tribe the player wants to build around (a race key such as "BEAST"); null for any.</summary>
     public string? CompFocus { get; set; }
@@ -215,14 +221,6 @@ public sealed class AppSettings
     /// <summary>Pick suggestions: "Off".</summary>
     [JsonIgnore]
     public bool PickHintsOff { get => PickHints == PickHints.Off; set => SetIf(value, () => PickHints = PickHints.Off); }
-
-    /// <summary>Game plan comp: "I choose".</summary>
-    [JsonIgnore]
-    public bool CompModeManual { get => CompMode == CompMode.Manual; set => SetIf(value, () => CompMode = CompMode.Manual); }
-
-    /// <summary>Game plan comp: "Automatic".</summary>
-    [JsonIgnore]
-    public bool CompModeAuto { get => CompMode == CompMode.Auto; set => SetIf(value, () => CompMode = CompMode.Auto); }
 
     /// <summary>Interface language: follow the system.</summary>
     [JsonIgnore]
@@ -532,7 +530,7 @@ public sealed class AppSettings
 
             panel.X = Math.Clamp(panel.X, 0, 1);
             panel.Y = Math.Clamp(panel.Y, 0, 1);
-            panel.Scale = Math.Clamp(panel.Scale, 0.6, 1.6);
+            panel.Scale = ClampScale(panel.Scale);
         }
 
         PanelLooks ??= new(StringComparer.Ordinal);
@@ -566,10 +564,9 @@ public sealed class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
-        if (!Enum.IsDefined(CompMode)) CompMode = CompMode.Manual;
-        OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
+        OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
-        CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, 280, 640, DefaultCardPoolBrowserWidth);
+        CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, MinCardPoolBrowserWidth, MaxCardPoolBrowserWidth, DefaultCardPoolBrowserWidth);
         LadderSessionBreakHours = Bounded(LadderSessionBreakHours, 1, 12, 2);
         LeaderboardTop = Bounded(LeaderboardTop, 0, 1, DefaultLeaderboardTop);
         LeaderboardSlotHeight = Bounded(LeaderboardSlotHeight, 0.01, 1, DefaultLeaderboardSlotHeight);

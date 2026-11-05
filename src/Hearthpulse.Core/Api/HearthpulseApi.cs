@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace Hearthpulse.Core.Api;
@@ -49,35 +48,27 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
 
     public const string Attribution = "Data: Hearthpulse API (api.kolodahearthstone.com)";
 
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+    internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+
+    /// <summary>The clock the 20-second limit runs on; a test hands in its own.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
 
     /// <summary>The server: <paramref name="baseUrl"/>, else the HEARTHPULSE_API variable (for a test server), else the public one.</summary>
     public Uri BaseUri { get; } = new(EnsureSlash(baseUrl is { Length: > 0 } ? baseUrl
         : Environment.GetEnvironmentVariable("HEARTHPULSE_API") is { Length: > 0 } custom ? custom
         : DefaultBaseUrl));
 
-    public Task<ApiResult> GetAsync(string path, string? bearer = null, CancellationToken cancellationToken = default) =>
-        SendAsync(HttpMethod.Get, path, null, bearer, cancellationToken);
-
-    public Task<ApiResult> PostAsync(string path, object body, string? bearer = null, CancellationToken cancellationToken = default) =>
-        SendAsync(HttpMethod.Post, path, body, bearer, cancellationToken);
-
-    private async Task<ApiResult> SendAsync(HttpMethod method, string path, object? body, string? bearer, CancellationToken cancellationToken)
+    public async Task<ApiResult> GetAsync(string path, string? bearer = null, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(method, new Uri(BaseUri, path));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(BaseUri, path));
         request.Headers.Accept.ParseAdd("application/json");
         if (bearer is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
         }
 
-        if (body is not null)
-        {
-            request.Content = new StringContent(JsonSerializer.Serialize(body, Json.Options), Encoding.UTF8, "application/json");
-        }
-
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(Timeout);
+        using var limit = new CancellationTokenSource(Timeout, Time);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, limit.Token);
         try
         {
             using var response = await http.SendAsync(request, timeout.Token).ConfigureAwait(false);

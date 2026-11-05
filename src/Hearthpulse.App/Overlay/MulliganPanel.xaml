@@ -27,7 +27,7 @@
                     <ControlTemplate TargetType="Button">
                         <!-- 156 wide: the edge number keeps a gap after the gauge at "+10,4"; four bars still fit the row at overlay scale 1.6 -->
                         <Grid>
-                            <Border x:Name="Bar" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1.5"
+                            <Border x:Name="Bar" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1.5"
                                     CornerRadius="10" Padding="10,6,10,7" Width="156">
                                 <StackPanel>
                                     <!-- Call and flags -->
@@ -60,7 +60,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <Grid Width="78" Height="8" VerticalAlignment="Center">
-                                            <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
+                                            <Border Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
                                             <Grid Margin="1">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />

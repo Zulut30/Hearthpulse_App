@@ -553,7 +553,7 @@ public sealed partial class MainViewModel : Observable
                 h.PickRate.ToString("P0", CultureInfo.CurrentCulture),
                 h.DataPoints > 0 ? h.DataPoints.ToString("N0", CultureInfo.CurrentCulture) : "—",
                 personal.TryGetValue(h.HeroCardId, out var p) ? $"{p.Games} · {p.AveragePlace}" : string.Empty,
-                worst - best < 0.01 ? 1 : 1 - ((h.AveragePosition - best) / (worst - best) * 0.85),
+                PlacementWidth(h.AveragePosition, best, worst),
                 h.Top4Rate > 0 ? h.Top4Rate.ToString("P0", CultureInfo.CurrentCulture) : "—",
                 h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : "—",
                 h.Top4Rate,
@@ -583,7 +583,7 @@ public sealed partial class MainViewModel : Observable
                     string.IsNullOrEmpty(c.Comp.PowerLevel) ? "–" : c.Comp.PowerLevel,
                     c.Comp.Difficulty,
                     c.Placement.ToString("0.00", CultureInfo.CurrentCulture),
-                    cWorst - cBest < 0.01 ? 1 : 1 - ((c.Placement - cBest) / (cWorst - cBest) * 0.85),
+                    PlacementWidth(c.Placement, cBest, cWorst),
                     c.Comp.WhenToCommit ?? string.Empty,
                     string.Join(", ", c.Comp.Cards.Where(x => x.Status == "CORE").Select(x => _cards.NameOf(x.CardId)))))
                 .ToList();
@@ -606,7 +606,7 @@ public sealed partial class MainViewModel : Observable
                 t.Stats.Value.Placement.ToString("0.00", CultureInfo.CurrentCulture),
                 t.Stats.Value.PickRate.ToString("P0", CultureInfo.CurrentCulture),
                 t.Stats.Value.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
-                tWorst - tBest < 0.01 ? 1 : 1 - ((t.Stats.Value.Placement - tBest) / (tWorst - tBest) * 0.85)))
+                PlacementWidth(t.Stats.Value.Placement, tBest, tWorst)))
             .ToList();
 
         CompEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Comps"));
@@ -633,7 +633,7 @@ public sealed partial class MainViewModel : Observable
                 c.Card.TechLevel > 0 ? c.Card.TechLevel.ToString(CultureInfo.CurrentCulture) : "–",
                 c.Stats.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                 c.Stats.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
-                kWorst - kBest < 0.01 ? 1 : 1 - ((c.Stats.AveragePlacement - kBest) / (kWorst - kBest) * 0.85)))
+                PlacementWidth(c.Stats.AveragePlacement, kBest, kWorst)))
             .ToList();
 
         // The API publishes tavern spells nowhere and has fewer minion brackets than hero brackets: both are said, not hidden.
@@ -671,6 +671,13 @@ public sealed partial class MainViewModel : Observable
             g.RatingDelta ?? 0,
             g.Key);
     }
+
+    /// <summary>
+    /// The length of an average-place bar among others (0..1): full for the best place, 15 % for the worst, full for all
+    /// when they are within 0.01 of each other.
+    /// </summary>
+    internal static double PlacementWidth(double place, double best, double worst) =>
+        worst - best < 0.01 ? 1 : 1 - ((place - best) / (worst - best) * 0.85);
 
     private static bool FilterMatch(GameRecord g, string filter) => filter switch
     {

@@ -53,14 +53,6 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
-            // "overlay" first: it is also a group name, and the groups below have no overlay of their own.
-            if (RenderOnlyOverlay)
-            {
-                await RenderOverlayCheckAsync(folder);
-                Quit();
-                return;
-            }
-
             if (RenderOnlyGroups.Length > 0)
             {
                 await RenderOnlyAsync(folder);

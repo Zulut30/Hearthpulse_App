@@ -46,7 +46,7 @@ public sealed class SessionSettingsTests : IDisposable
     {
         _session.SetCompMode(CompMode.Auto, null);
 
-        _session.ApplySettings(new AppSettings { CompMode = CompMode.Auto, ChosenCompId = "old-comp" });
+        _session.ApplySettings(AppSettings.FromJson("""{"CompMode":"Auto","ChosenCompId":"old-comp"}"""));
 
         Assert.Equal(CompMode.Manual, _session.Advisor.CompMode);
         Assert.Null(_session.Advisor.PinnedCompId);

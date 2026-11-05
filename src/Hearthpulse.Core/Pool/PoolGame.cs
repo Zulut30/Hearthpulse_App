@@ -29,6 +29,12 @@ public sealed record PoolDetails(
     IReadOnlyList<TierStep> TierUps,
     IReadOnlyList<PoolCombat> Combats)
 {
+    /// <summary>The most picks one game records and shares (the tracker stops there too).</summary>
+    public const int MaxChoices = 120;
+
+    /// <summary>The most cards played from hand one game records and shares.</summary>
+    public const int MaxPlays = 300;
+
     /// <summary>Every pick offered (Discover, triple rewards, trinkets...) and what was taken.</summary>
     public IReadOnlyList<BgChoice> Choices { get; init; } = [];
 
@@ -73,10 +79,10 @@ public sealed record PoolDetails(
         {
             Choices = d.Choices
                 .Where(c => c.Offered.Count is > 0 and <= 8)
-                .Take(120)
+                .Take(MaxChoices)
                 .Select(c => c with { Picked = c.Picked.Where(c.Offered.Contains).Take(4).ToList() })
                 .ToList(),
-            Plays = d.Plays.Take(300).ToList(),
+            Plays = d.Plays.Take(MaxPlays).ToList(),
         };
     }
 

@@ -6,14 +6,14 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Data;
 
-public sealed record BackfillResult(int Sessions, int GamesFound, int GamesAdded);
+public sealed record BackfillResult(int Sessions, int GamesAdded);
 
 /// <summary>Imports finished games from every Power log the client kept on disk.</summary>
 public static class LogBackfill
 {
     public static BackfillResult Run(string installDir, HistoryStore history, CardDb cards, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
-        int sessions = 0, found = 0, added = 0;
+        int sessions = 0, added = 0;
         // One trim of the replays folder at the end instead of one per imported game.
         var replays = new Replay.ReplayStore(AppPaths.Replays) { AutoPrune = false };
         foreach (var session in HearthstoneInstall.AllLogSessions(installDir))
@@ -37,7 +37,6 @@ public static class LogBackfill
                 progress?.Report($"Reading {Path.GetFileName(session)}");
                 foreach (var record in Parse(path, start.Value, cards, cancellationToken, replays))
                 {
-                    found++;
                     if (history.Add(record))
                     {
                         added++;
@@ -53,7 +52,7 @@ public static class LogBackfill
 
         replays.Prune();
         FillDecks(installDir, history, cards);
-        return new BackfillResult(sessions, found, added);
+        return new BackfillResult(sessions, added);
     }
 
     /// <summary>

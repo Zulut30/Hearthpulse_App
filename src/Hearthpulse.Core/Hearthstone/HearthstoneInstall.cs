@@ -29,6 +29,11 @@ public static class HearthstoneInstall
 
     public static bool IsRunning()
     {
+        if (Isolation.On)
+        {
+            return false;
+        }
+
         try
         {
             return _lastRunning = GameProcess.IsRunning();
@@ -46,6 +51,11 @@ public static class HearthstoneInstall
         if (IsInstall(configured))
         {
             return configured;
+        }
+
+        if (Isolation.On)
+        {
+            return null;
         }
 
         if (FromRunningProcess() is { } running)
@@ -389,26 +399,24 @@ public static class LogConfig
     }
 
     /// <summary>Required sections missing from the client's log.config (empty when its location is unknown).</summary>
-    public static IReadOnlyList<string> MissingSections(string? installDir)
-    {
-        if (HearthstoneInstall.LogConfigPathFor(installDir) is not { } path)
-        {
-            return Array.Empty<string>();
-        }
+    public static IReadOnlyList<string> MissingSections(string? installDir) =>
+        HearthstoneInstall.LogConfigPathFor(installDir) is { } path ? MissingSectionsIn(path) : Array.Empty<string>();
 
+    /// <summary>Required sections missing from the log.config at <paramref name="path"/> (all of them when it does not exist).</summary>
+    internal static IReadOnlyList<string> MissingSectionsIn(string path)
+    {
         var sections = Read(path);
         return Required.Where(r => !sections.TryGetValue(r.Section, out var values) || !IsSatisfied(values, r.Verbose))
             .Select(r => r.Section).ToList();
     }
 
     /// <summary>Adds or fixes required sections; other sections are preserved. Returns true if the file changed.</summary>
-    public static bool Ensure(string? installDir)
-    {
-        if (HearthstoneInstall.LogConfigPathFor(installDir) is not { } path)
-        {
-            return false;
-        }
+    public static bool Ensure(string? installDir) =>
+        HearthstoneInstall.LogConfigPathFor(installDir) is { } path && EnsureIn(path);
 
+    /// <summary>The same on the log.config at <paramref name="path"/> (created with its folder when missing).</summary>
+    internal static bool EnsureIn(string path)
+    {
         var sections = Read(path);
         var changed = false;
         foreach (var (section, verbose) in Required)
@@ -549,7 +557,8 @@ public static class ClientConfig
         _ => true,
     };
 
-    private static DateTime? ClientStartTime() => GameProcess.StartTime();
+    /// <summary>When the running client started, or null. Tests put a time of their own here.</summary>
+    internal static Func<DateTime?> ClientStartTime { get; set; } = GameProcess.StartTime;
 
     /// <summary>Sets Log.FileSizeLimit.Int=-1 and keeps everything else in the file. True when the file changed.</summary>
     public static bool Ensure(string? installDir)

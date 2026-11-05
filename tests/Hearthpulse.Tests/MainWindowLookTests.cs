@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.CardPool;
@@ -173,19 +172,8 @@ public sealed class MainWindowLookTests
 
     /// <summary>The elements of a main window and of every page control in <paramref name="folder"/>.</summary>
     private static IEnumerable<XElement> WithPages(XElement window, string folder, string pattern) =>
-        window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot(), folder), pattern)
+        window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoFiles.Root, folder), pattern)
             .SelectMany(f => XDocument.Load(f).Root!.Descendants()));
 
-    private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoRoot(), relative)).Root!;
-
-    private static string RepoRoot([CallerFilePath] string source = "")
-    {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root (Hearthpulse.slnx) not found above the test sources.");
-    }
+    private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoFiles.Root, relative)).Root!;
 }

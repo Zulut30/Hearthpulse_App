@@ -1,5 +1,6 @@
 {
   "Main.Window.Close": "Закрыть (если включено, Hearthpulse останется в трее)",
+  "Main.Window.CloseName": "Закрыть",
   "Main.Window.Maximize": "Развернуть",
   "Main.Window.Minimize": "Свернуть",
   "Main.Nav.Home": "Главная",

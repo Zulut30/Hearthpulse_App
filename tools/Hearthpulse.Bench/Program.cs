@@ -41,6 +41,7 @@ internal static class Program
           watch     LogWatcher + GameSession on the installed game's logs: CPU time over 20 s
           poll      one idle watcher pass and one "is Hearthstone running" (game closed): thread CPU per call
           meta      Battlegrounds meta, Constructed meta and the card pool catalog from the cache: time and allocations
+          memory    records a memory fixture of the running game into the folder after it (MemoryBench, tests/Hearthpulse.Tests/Fixtures/Memory)
           all       cards, replay, overlay, history
 
         HEARTHPULSE_DATA must point at a copy of the data folder; the bench refuses to touch the real one.
@@ -104,6 +105,8 @@ internal static class Program
             case "meta":
                 CoreBench.Meta();
                 break;
+            case "memory":
+                return MemoryBench.Record(args.Length > 1 ? args[1] : "memory-fixture");
             case "cleanup":
                 CoreBench.Cleanup();
                 break;

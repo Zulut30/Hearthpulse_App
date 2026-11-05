@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Controls;
 
@@ -14,7 +15,7 @@ namespace Hearthpulse.App.Controls;
 public sealed class ManaCost : FrameworkElement
 {
     private static readonly ImageSource Gem = LoadGem();
-    private static readonly FontFamily FallbackFont = new("Segoe UI Variable Text, Segoe UI");
+    private static readonly FontFamily FallbackFont = TextFont.Family;
     private static readonly Brush Outline = Frozen(new SolidColorBrush(Color.FromRgb(0x05, 0x05, 0x08)));
 
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(

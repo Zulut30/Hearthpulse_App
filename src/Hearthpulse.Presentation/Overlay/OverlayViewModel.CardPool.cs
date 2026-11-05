@@ -316,7 +316,7 @@ public sealed partial class OverlayViewModel
         get => _cardPoolBrowserWidth;
         set
         {
-            if (!Set(ref _cardPoolBrowserWidth, Math.Clamp(value, 280, 640)))
+            if (!Set(ref _cardPoolBrowserWidth, Math.Clamp(value, AppSettings.MinCardPoolBrowserWidth, AppSettings.MaxCardPoolBrowserWidth)))
             {
                 return;
             }

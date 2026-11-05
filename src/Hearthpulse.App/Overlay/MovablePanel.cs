@@ -318,7 +318,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         SetVisible(Shown || IsEditing, animate);
         ShowPlaceholder = IsEditing && !Shown;
         IsFree = IsUnlocked && !IsEditing && !SitsOnGame;
-        OverlayHit.SetInteractive(this, CanMove || _interactiveContent);
+        OverlayHit.SetInteractive(this, CanMove);
         Cursor = CanMove ? Cursors.SizeAll : null;
         UpdateChrome();
     }
@@ -415,19 +415,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     {
         BeginAnimation(OpacityProperty, null);
         _rise.BeginAnimation(TranslateTransform.YProperty, null);
-    }
-
-    private bool _interactiveContent;
-
-    /// <summary>Whether the content has its own buttons and should receive the mouse outside layout mode.</summary>
-    public bool InteractiveContent
-    {
-        get => _interactiveContent;
-        set
-        {
-            _interactiveContent = value;
-            UpdateState();
-        }
     }
 
     private void CaptureDefaults()

@@ -55,14 +55,14 @@
     </UserControl.Styles>
 
     <!-- 916 = 1080 - its top (148, under the Battlegrounds bar) - 16: the whole card stays on screen; the grid scrolls inside -->
-    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Height="916" Width="{Binding CardPoolBrowserWidth}"
+    <Border Classes="overlayCard" Background="{DynamicResource OverlayPanelSolid}" Height="916" Width="{Binding CardPoolBrowserWidth}"
             o:OverlayHit.Interactive="True" PointerEntered="OnPointerEntered" PointerExited="OnPointerExited">
         <Grid RowDefinitions="Auto,Auto,Auto,*">
             <!-- Header: "<Card> Pool: N cards" and the close button -->
             <Border Classes="overlayHeader" Padding="14,8,8,7">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
-                            Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="{i:Loc Pool.CloseEsc}" />
+                            Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="{i:Loc Pool.CloseEsc}" AutomationProperties.Name="{i:Loc Pool.CloseEsc}" />
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding CardPoolBrowserTitle}" Classes="headerTitle" TextTrimming="None" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding CardPoolDescription}" Classes="headerNote" TextTrimming="None" TextWrapping="Wrap" />

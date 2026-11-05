@@ -32,6 +32,11 @@ public static class MetaTiers
         return Floors[Math.Min(i, Floors.Length - 1)];
     }
 
+    /// <summary>
+    /// The colour sign of a win rate (deck pages, My Stats): +1 at S (53 % and up), -1 at 47 % and below, 0 between.
+    /// </summary>
+    public static int WinRateSign(double winRate) => winRate >= Floors[0] ? 1 : winRate <= Floors[^1] ? -1 : 0;
+
     /// <summary>Whether <see cref="Floor"/> is the tier's upper bound ("below 47 %") rather than its lower one.</summary>
     public static bool IsLast(string tier) => IndexOf(tier) == Letters.Count - 1;
 

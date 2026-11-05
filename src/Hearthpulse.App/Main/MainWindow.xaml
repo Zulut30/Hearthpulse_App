@@ -60,9 +60,9 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <StackPanel Orientation="Horizontal" Margin="18,14,0,0">
-                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="{i:Loc Main.Window.Close}" />
-                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" />
-                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" />
+                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="{i:Loc Main.Window.Close}" AutomationProperties.Name="{i:Loc Main.Window.CloseName}" />
+                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" AutomationProperties.Name="{i:Loc Main.Window.Maximize}" />
+                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                         <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
@@ -70,7 +70,7 @@
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" IsChecked="True" Checked="OnNavigate"
+                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HomeTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
@@ -81,15 +81,15 @@
                         <TextBlock Text="{i:Loc Main.Nav.Modes}" Style="{StaticResource Label}" />
                         <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
-                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                    <RadioButton x:Name="NavStandard" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavStandard" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.StandardTip}" />
-                    <RadioButton x:Name="NavWild" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavWild" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.WildTip}" />
-                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.ArenaTip}" />
-                    <RadioButton x:Name="NavBrawl" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavBrawl" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6" Checked="OnNavigate"
                                  ToolTip="{i:Loc Brawl.NavTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
@@ -100,12 +100,12 @@
                         <TextBlock Text="{i:Loc Main.Nav.Library}" Style="{StaticResource Label}" />
                         <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
-                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HistoryTip}" />
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
-                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" Checked="OnNavigate"
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.SettingsTip}" />
                     <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
                 </StackPanel>

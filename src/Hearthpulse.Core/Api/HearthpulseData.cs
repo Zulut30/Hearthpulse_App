@@ -26,6 +26,9 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     [System.Text.RegularExpressions.GeneratedRegex("^[a-z0-9_.]{1,64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
     private static partial System.Text.RegularExpressions.Regex SafeKey { get; }
 
+    /// <summary>The longest archetype name sent in a query; a longer one is not a real archetype.</summary>
+    private const int MaxArchetypeLength = 120;
+
     private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
 
     /// <summary>MMR slices the API serves for heroes (<c>/api/bg/heroes</c>); it has no all-ranks slice.</summary>
@@ -142,7 +145,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     /// </summary>
     public async Task<HsguruAnalysis?> LoadHsguruAnalysisAsync(string archetype, string format, CancellationToken cancellationToken = default)
     {
-        if (!SafeKey.IsMatch(format) || archetype.Length is 0 or > 120)
+        if (!SafeKey.IsMatch(format) || archetype.Length is 0 or > MaxArchetypeLength)
         {
             return null;
         }
@@ -161,7 +164,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     public async Task<MulliganSlice?> LoadHsguruMulliganAsync(string archetype, string format, string rank, string coin, string opponentClass, CancellationToken cancellationToken = default)
     {
         var opponent = opponentClass.ToLowerInvariant();
-        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || !SafeKey.IsMatch(coin) || !SafeKey.IsMatch(opponent) || archetype.Length is 0 or > 120)
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || !SafeKey.IsMatch(coin) || !SafeKey.IsMatch(opponent) || archetype.Length is 0 or > MaxArchetypeLength)
         {
             return null;
         }
@@ -180,7 +183,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     /// </summary>
     public async Task<IReadOnlyList<GuideMatchup>> LoadHsguruClassMatchupsAsync(string archetype, string format, string rank, CancellationToken cancellationToken = default)
     {
-        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || archetype.Length is 0 or > 120)
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || archetype.Length is 0 or > MaxArchetypeLength)
         {
             return [];
         }

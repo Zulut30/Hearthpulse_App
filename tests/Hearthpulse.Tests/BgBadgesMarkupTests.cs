@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
@@ -16,11 +15,11 @@ public sealed class BgBadgesMarkupTests
     [InlineData("src/Hearthpulse.UI/Overlay/OverlayView.axaml", "src/Hearthpulse.UI/Overlay/BgBadgesLayer.axaml")]
     public void The_badge_layer_lets_every_click_through_and_draws_under_the_hover_popup(string overlay, string layer)
     {
-        var markup = XDocument.Load(Path.Combine(RepoRoot(), layer)).Root!;
+        var markup = XDocument.Load(Path.Combine(RepoFiles.Root, layer)).Root!;
         Assert.Equal("False", (string?)markup.Attribute("IsHitTestVisible"));
         Assert.DoesNotContain(markup.DescendantsAndSelf().SelectMany(e => e.Attributes()), a => a.Name.LocalName.Contains("Interactive", StringComparison.Ordinal));
 
-        var elements = XDocument.Load(Path.Combine(RepoRoot(), overlay)).Root!.Descendants().ToList();
+        var elements = XDocument.Load(Path.Combine(RepoFiles.Root, overlay)).Root!.Descendants().ToList();
         var badges = Assert.Single(elements, e => e.Name.LocalName == "BgBadgesLayer");
         // Not a panel: it is not moved or armed with Ctrl, it follows the leaderboard calibration.
         Assert.DoesNotContain(badges.Ancestors(), e => e.Name.LocalName == "MovablePanel");
@@ -37,7 +36,7 @@ public sealed class BgBadgesMarkupTests
     [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml")]
     public void The_switch_follows_the_lobby_panels_and_is_on_by_default(string file)
     {
-        var switches = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants().Where(e => e.Name.LocalName == "CheckBox").ToList();
+        var switches = XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!.Descendants().Where(e => e.Name.LocalName == "CheckBox").ToList();
         var lobby = switches.FindIndex(e => (string?)e.Attribute("IsChecked") == "{Binding ShowBgLobbyPanel}");
         var badges = switches.FindIndex(e => (string?)e.Attribute("IsChecked") == "{Binding ShowBgLeaderboardBadges}");
         Assert.True(lobby >= 0 && badges == lobby + 1, $"{file}: lobby {lobby}, badges {badges}");
@@ -54,7 +53,4 @@ public sealed class BgBadgesMarkupTests
 
     private static string? NameOf(XElement element) =>
         (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ?? (string?)element.Attribute("Name");
-
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }

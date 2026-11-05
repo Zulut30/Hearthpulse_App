@@ -27,7 +27,7 @@ public sealed class CardPoolPopupTests
     private static readonly TimeSpan Rested = OverlayViewModel.CardPoolHoldDelay + TimeSpan.FromMilliseconds(50);
 
     [Fact]
-    public void Right_click_on_a_held_popup_opens_the_browser_in_the_wpf_overlay() => OnSta(() =>
+    public void Right_click_on_a_held_popup_opens_the_browser_in_the_wpf_overlay() => WpfThread.RunThemed(() =>
     {
         var vm = new OverlayViewModel();
         var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
@@ -191,7 +191,7 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void The_wpf_popup_lays_out_a_this_game_list() => OnSta(() =>
+    public void The_wpf_popup_lays_out_a_this_game_list() => WpfThread.RunThemed(() =>
     {
         var vm = new OverlayViewModel();
         var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
@@ -246,7 +246,7 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void The_wpf_popup_lays_out_an_excavate_pool() => OnSta(() =>
+    public void The_wpf_popup_lays_out_an_excavate_pool() => WpfThread.RunThemed(() =>
     {
         var vm = new OverlayViewModel();
         var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
@@ -357,38 +357,5 @@ public sealed class CardPoolPopupTests
         var (cost, attack, health) = PoolStats.Histograms(cards);
         var entries = cards.Select(c => new PoolEntry(c.Id, c.Name, c.Cost, c.Attack, c.Health, c.Type, c.Rarity, "MAGE", meta.GetValueOrDefault(c.Id))).ToList();
         return new CardPoolView(id, "Generator " + id, PoolTrigger.Hover, "Discover a minion", "Mage + Neutral · Standard", cards.Count, cost, attack, health, [], null, null, entries);
-    }
-
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                if (app.Resources.MergedDictionaries.Count == 0)
-                {
-                    app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
-                }
-
-                test();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException(failure.Message, failure);
-        }
     }
 }

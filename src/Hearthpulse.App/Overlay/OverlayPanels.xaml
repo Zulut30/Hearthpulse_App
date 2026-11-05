@@ -48,7 +48,7 @@
                     <DockPanel Margin="1,0,3,0">
                         <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" Width="21" Height="21" DockPanel.Dock="Left" Margin="0,0,4,0" />
                         <!-- Copies and turn on a dark plate, like the deck's copy count, so they stay readable over bright art -->
-                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="8" Height="16" Padding="4,0"
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="8" Height="16" Padding="4,0"
                                 Margin="4,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
@@ -111,7 +111,7 @@
                     <DockPanel Margin="7,0,7,0">
                         <TextBlock x:Name="Mark" DockPanel.Dock="Left" Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Faint}"
                                    Margin="0,0,6,0" VerticalAlignment="Center" Visibility="{Binding IsPart, Converter={StaticResource Vis}}" />
-                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
                                 Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding Count, Converter={StaticResource Vis}}">
                             <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -231,7 +231,7 @@
                     </Grid>
                     <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
                     <Button x:Name="HideButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="11" Width="20" Height="20"
-                            HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}"
+                            HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                             CommandParameter="{Binding Id}" Command="{Binding DataContext.HideCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -297,7 +297,7 @@
                     </Border>
                 </StackPanel>
                 <Button x:Name="HideButton" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="10" Width="18" Height="18"
-                        Margin="4,0,0,0" VerticalAlignment="Top" Visibility="Hidden" ToolTip="{i:Loc Overlay.BgCounter.HideTip}"
+                        Margin="4,0,0,0" VerticalAlignment="Top" Visibility="Hidden" ToolTip="{i:Loc Overlay.BgCounter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                         CommandParameter="{Binding Id}" Command="{Binding DataContext.HideBgCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
             </Grid>
         </Border>
@@ -359,7 +359,7 @@
         <Grid Width="340">
             <Border x:Name="Halo" Width="268" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -417,7 +417,7 @@
         <Grid Width="277">
             <Border x:Name="Halo" Width="232" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     Width="196" Padding="9,7" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -467,7 +467,7 @@
     <!-- Tavern: hint pinned above a shop minion: its tags, plus how players who bought it placed.
          "Mark the best" turns the best buy gold with BUY; "Stats only" keeps every badge neutral. -->
     <DataTemplate x:Key="ShopBadgeTemplate" DataType="{x:Type o:ShopBadge}">
-        <Border x:Name="Bd" Width="126" MinHeight="26" CornerRadius="6" Padding="8,3" Background="{StaticResource OverlayPanelSolid}"
+        <Border x:Name="Bd" Width="126" MinHeight="26" CornerRadius="6" Padding="8,3" Background="{DynamicResource OverlayPanelSolid}"
                 BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" VerticalAlignment="Bottom">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -503,7 +503,7 @@
     <!-- Discover-style choice (hero power, spell, triple reward, Dark Gift…): one badge above each option (slot = 340 units) -->
     <DataTemplate x:Key="DiscoverBadgeTemplate" DataType="{x:Type o:DiscoverBadge}">
         <Grid Width="340">
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     MinWidth="150" MaxWidth="236" Padding="9,7,12,7" Margin="0,9,0,0" Opacity="0.85">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -597,11 +597,11 @@
             <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="60" Height="84" Stretch="Uniform" />
             <Border x:Name="Gold" BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" Visibility="Collapsed" />
             <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
                 <TextBlock Text="{Binding Attack}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TierS}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
                 <TextBlock Text="{Binding Health}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
         </Grid>
@@ -626,7 +626,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Plate" Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+                            <Setter TargetName="Plate" Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -720,11 +720,11 @@
                                     </Border>
                                     <Border x:Name="Tools" Visibility="Collapsed" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Height="19" Margin="4,0,0,0">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" />
-                                            <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" />
-                                            <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" />
-                                            <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" Visibility="Collapsed" />
-                                            <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" />
+                                            <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" AutomationProperties.Name="{i:Loc Overlay.Layout.Smaller}" />
+                                            <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" AutomationProperties.Name="{i:Loc Overlay.Layout.Larger}" />
+                                            <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" AutomationProperties.Name="{i:Loc Overlay.Layout.FadeName}" />
+                                            <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" AutomationProperties.Name="{i:Loc Overlay.Layout.CompactName}" Visibility="Collapsed" />
+                                            <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" AutomationProperties.Name="{i:Loc Overlay.Layout.ResetPanelName}" />
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

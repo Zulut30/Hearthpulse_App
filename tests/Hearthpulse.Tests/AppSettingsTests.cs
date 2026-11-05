@@ -51,7 +51,6 @@ public sealed class AppSettingsTests : IDisposable
             """);
 
         Assert.Equal(PickHints.StatsOnly, settings.PickHints);
-        Assert.Equal(CompMode.Manual, settings.CompMode);
         Assert.Equal((0.6, 1.0, 640.0, 1.0, 0.0),
             (settings.OverlayScale, settings.OverlayOpacity, settings.CardPoolBrowserWidth, settings.LadderSessionBreakHours, settings.ThemeBaseTint));
         var panel = settings.Panels["deck"];
@@ -85,7 +84,8 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void Settings_of_the_removed_game_plan_still_load()
     {
-        // Saved by a version with the game plan panel: its placement, comp mode and chosen comp are read and kept, unused.
+        // Saved by a version with the game plan panel: the file loads, its placement is kept, the comp mode and the chosen
+        // comp are dropped at the next save.
         var settings = AppSettings.FromJson("""
             {"CompMode":"Auto","ChosenCompId":"murlocs","CompFocus":"MURLOC","OverlayEnabled":true,
              "Panels":{"plan":{"X":0.8,"Y":0.1,"Scale":1.1},"deck":{"X":0.9,"Y":0.1,"Scale":1}}}
@@ -93,7 +93,8 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.True(settings.OverlayEnabled);
         Assert.Equal(new[] { "deck", "plan" }, settings.Panels.Keys.Order(StringComparer.Ordinal));
-        Assert.Equal("murlocs", settings.ChosenCompId);
+        Assert.DoesNotContain("ChosenCompId", settings.ToJson(), StringComparison.Ordinal);
+        Assert.DoesNotContain("CompMode", settings.ToJson(), StringComparison.Ordinal);
     }
 
     [Fact]
