@@ -20,9 +20,21 @@ public sealed class ApiLoadTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_cache))
+        // A lookup a test no longer waits for (a held answer let go at the end) may still be writing its cache file.
+        for (var attempt = 0; Directory.Exists(_cache); attempt++)
         {
-            Directory.Delete(_cache, recursive: true);
+            try
+            {
+                Directory.Delete(_cache, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && attempt < 20)
+            {
+                Thread.Sleep(50);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return;
+            }
         }
     }
 
