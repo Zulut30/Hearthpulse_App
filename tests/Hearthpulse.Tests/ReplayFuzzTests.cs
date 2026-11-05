@@ -218,6 +218,7 @@ public sealed class ReplayFuzzTests : IDisposable
         }
 
         var packed = output.ToArray();
-        return random.Next(2) == 0 ? packed : packed[..random.Next(2, packed.Length)];
+        // An empty text packs to nothing at all: nothing to cut then.
+        return packed.Length <= 2 || random.Next(2) == 0 ? packed : packed[..random.Next(2, packed.Length)];
     }
 }
