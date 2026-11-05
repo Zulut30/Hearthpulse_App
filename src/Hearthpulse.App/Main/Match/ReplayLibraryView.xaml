@@ -30,12 +30,12 @@
                 </Setter>
             </Style>
 
-            <!-- A small card button of a card (star, Share, delete): does not take the focus from the list -->
+            <!-- A small button of a card (star, Share, site, delete): Right from its game reaches it, the list keeps one Tab stop -->
             <Style x:Key="CardIcon" TargetType="Button" BasedOn="{StaticResource IconButton}">
                 <Setter Property="Width" Value="30" />
                 <Setter Property="Height" Value="30" />
                 <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
-                <Setter Property="Focusable" Value="False" />
+                <Setter Property="IsTabStop" Value="False" />
                 <Setter Property="Foreground" Value="{StaticResource Faint}" />
             </Style>
 
@@ -138,7 +138,7 @@
 
             <DataTemplate x:Key="LibraryCard" DataType="{x:Type mt:LibraryCard}">
                 <Button Style="{StaticResource CardButton}" Command="{Binding DataContext.Open, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        CommandParameter="{Binding}" ToolTip="{i:Loc Match.View.OpenTip}">
+                        CommandParameter="{Binding}" ToolTip="{i:Loc Library.CardTip}">
                     <Border x:Name="Plate" CornerRadius="8" Padding="12,8" Margin="0,0,0,4" Background="{StaticResource Row}">
                         <StackPanel>
                             <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
@@ -230,11 +230,14 @@
                             <Border Margin="0,8,0,0" CornerRadius="8" Padding="12,8" Background="{StaticResource NegativeSoft}" BorderBrush="{StaticResource Negative}"
                                     BorderThickness="1" Visibility="{Binding Confirming, Converter={StaticResource Vis}}">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,4" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
-                                            Command="{Binding DataContext.Cancel, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,4" Foreground="{StaticResource Negative}"
-                                            Content="{i:Loc Library.ConfirmYes}"
-                                            Command="{Binding DataContext.Confirm, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                    <!-- Yes, then No: Right from the game reaches them in the order they read (the list keeps one Tab stop) -->
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Style="{StaticResource GhostButton}" Padding="12,4" Foreground="{StaticResource Negative}" IsTabStop="False"
+                                                Content="{i:Loc Library.ConfirmYes}"
+                                                Command="{Binding DataContext.Confirm, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                        <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="8,0,0,0" IsTabStop="False" Content="{i:Loc Library.ConfirmNo}"
+                                                Command="{Binding DataContext.Cancel, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                    </StackPanel>
                                     <TextBlock Text="&#xF05D6;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
@@ -340,7 +343,7 @@
                     <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" Visibility="{Binding IsSearchEmpty, Converter={StaticResource Vis}}" />
                 </StackPanel>
-                <ListBox x:Name="List" KeyboardNavigation.TabNavigation="Once" KeyboardNavigation.DirectionalNavigation="Contained" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
+                <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
                          SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemContainerStyle>

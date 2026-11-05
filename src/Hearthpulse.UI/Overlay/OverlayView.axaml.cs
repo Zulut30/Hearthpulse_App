@@ -28,6 +28,7 @@ public partial class OverlayView : UserControl
     private OverlayViewModel? _viewModel;
     private Size _layoutSize;
     private double _backdropOpacity = -1;
+    private int _backdropColours;
     private double _scale = 1;
     private string _guideKey = string.Empty;
 
@@ -110,22 +111,57 @@ public partial class OverlayView : UserControl
 
     /// <summary>
     /// The opacity setting fades only the panels' backgrounds (R06): faded copies of the theme's backdrop brushes go into
-    /// this view's resources, and the overlay's markup takes them as dynamic resources. Text stays opaque.
+    /// this view's resources, and the overlay's markup takes them as dynamic resources. Text stays opaque. Fully opaque,
+    /// the theme's own brushes show. The theme engine recolours its brushes in place, so the copies are made again when
+    /// those colours change (a theme picked while the overlay is open).
     /// </summary>
     private void FadeBackdrops(double opacity)
     {
-        if (opacity.Equals(_backdropOpacity))
+        var app = Application.Current;
+        var originals = new IBrush?[OverlayViewModel.BackdropBrushes.Count];
+        var colours = new HashCode();
+        for (var i = 0; i < originals.Length; i++)
+        {
+            originals[i] = app is not null && app.TryGetResource(OverlayViewModel.BackdropBrushes[i], ActualThemeVariant, out var value) ? value as IBrush : null;
+            AddColours(ref colours, originals[i]);
+        }
+
+        var signature = colours.ToHashCode();
+        if (opacity.Equals(_backdropOpacity) && signature == _backdropColours)
         {
             return;
         }
 
         _backdropOpacity = opacity;
-        foreach (var key in OverlayViewModel.BackdropBrushes)
+        _backdropColours = signature;
+        for (var i = 0; i < originals.Length; i++)
         {
-            if (Application.Current is { } app && app.TryGetResource(key, ActualThemeVariant, out var value) && Faded(value as IBrush, opacity) is { } faded)
+            var key = OverlayViewModel.BackdropBrushes[i];
+            if (opacity < 1 && Faded(originals[i], opacity) is { } faded)
             {
                 Resources[key] = faded;
             }
+            else
+            {
+                Resources.Remove(key);
+            }
+        }
+    }
+
+    private static void AddColours(ref HashCode hash, IBrush? brush)
+    {
+        switch (brush)
+        {
+            case ISolidColorBrush solid:
+                hash.Add(solid.Color);
+                break;
+            case GradientBrush gradient:
+                foreach (var stop in gradient.GradientStops)
+                {
+                    hash.Add(stop.Color);
+                }
+
+                break;
         }
     }
 

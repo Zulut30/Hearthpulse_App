@@ -124,8 +124,8 @@ public sealed class MainNavigationContractTests
     });
 
     /// <summary>
-    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers, game rows and History cards show a focus ring,
-    /// and the History list is one Tab stop with the arrows inside (R13). The Avalonia twin is in LocBindingTests.Keyboard.
+    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers, and game rows and History cards show a focus
+    /// ring (R13). The Avalonia twin is in LocBindingTests.Keyboard.
     /// </summary>
     [Fact]
     public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => OnSta(() =>
@@ -144,9 +144,6 @@ public sealed class MainNavigationContractTests
             Assert.NotNull(((Style)window.FindResource("BareRow")).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
             var library = window.PageHistory.LibraryView;
             Assert.NotNull(((Style)library.Resources["CardButton"]).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
-            var list = (System.Windows.Controls.ListBox)library.FindName("List");
-            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Once, System.Windows.Input.KeyboardNavigation.GetTabNavigation(list));
-            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Contained, System.Windows.Input.KeyboardNavigation.GetDirectionalNavigation(list));
         }
         finally
         {
@@ -154,6 +151,96 @@ public sealed class MainNavigationContractTests
             Pump();
         }
     });
+
+    /// <summary>
+    /// Review m3: History is one Tab stop; Up and Down move from game to game, Right goes on to the game's own buttons,
+    /// Left goes back and Esc returns to the game; Delete asks first. The Avalonia twin is in LocBindingTests.Keyboard.
+    /// </summary>
+    [Fact]
+    public void The_wpf_history_is_one_tab_stop_with_arrows_between_games_and_into_their_buttons() => OnSta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        window.ShowPage("History");
+        Pump();
+        try
+        {
+            var library = window.PageHistory.LibraryView;
+            var cards = Enumerable.Range(1, 3)
+                .Select(i => new Hearthpulse.App.Main.Match.LibraryCard(Core.Replay.ReplayShelf.Imported, $"{i}.hpr", $"key{i}", battlegrounds: false) { Title = "Game " + i })
+                .ToList();
+            var list = (System.Windows.Controls.ListBox)library.FindName("List");
+            list.ItemsSource = cards;
+            Pump();
+            var games = cards.Select(c => GameOf(list, c)).ToList();
+
+            string Stop()
+            {
+                var focused = System.Windows.Input.Keyboard.FocusedElement as FrameworkElement;
+                return focused?.DataContext is Hearthpulse.App.Main.Match.LibraryCard card && focused is System.Windows.Controls.Button
+                    ? $"{cards.IndexOf(card)}:{(games.Contains(focused) ? "game" : System.Windows.Automation.AutomationProperties.GetName(focused))}"
+                    : "out";
+            }
+
+            string Key(System.Windows.Input.Key key)
+            {
+                Press((UIElement)System.Windows.Input.Keyboard.FocusedElement, key);
+                return Stop();
+            }
+
+            Assert.True(games[0].Focus());
+            var star = "0:" + cards[0].StarTip;
+            var share = "0:" + Loc.T("Library.Share");
+            var delete = "0:" + Loc.T("Library.Delete");
+            Assert.Equal([star, share, delete, delete], new[] { Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right) });
+            Assert.Equal(share, Key(System.Windows.Input.Key.Left));
+            Assert.Equal("0:game", Key(System.Windows.Input.Key.Escape));
+            Assert.Equal(["1:game", "2:game", "2:game", "1:game"],
+                new[] { Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Up) });
+
+            // One Tab stop: the next stop after a game is outside the list.
+            ((UIElement)System.Windows.Input.Keyboard.FocusedElement).MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.Next));
+            Assert.Equal("out", Stop());
+
+            Assert.True(games[2].Focus());
+            Key(System.Windows.Input.Key.Delete);
+            Assert.True(cards[2].Confirming);
+        }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+        }
+    });
+
+    private static System.Windows.Controls.Button GameOf(System.Windows.Controls.ListBox list, object card)
+    {
+        var container = (DependencyObject)list.ItemContainerGenerator.ContainerFromItem(card);
+        return Descendants(container).OfType<System.Windows.Controls.Button>().First();
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            yield return child;
+            foreach (var deeper in Descendants(child))
+            {
+                yield return deeper;
+            }
+        }
+    }
+
+    private static void Press(UIElement target, System.Windows.Input.Key key)
+    {
+        target.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(target), 0, key)
+        {
+            RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent,
+        });
+        Pump();
+    }
 
     private static void OnSta(Action body)
     {

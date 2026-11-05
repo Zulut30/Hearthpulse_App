@@ -90,7 +90,7 @@
             </DataTemplate>
 
             <DataTemplate x:Key="LibraryCard" x:DataType="mt:LibraryCard">
-                <Button Classes="bare libraryCard" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
+                <Button Classes="bare libraryCard" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Library.CardTip}"
                         Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Open}" CommandParameter="{Binding}">
                     <Border Classes="plate" CornerRadius="8" Padding="12,8" Margin="0,0,0,4">
                         <StackPanel>
@@ -166,10 +166,13 @@
                             <Border Margin="0,8,0,0" CornerRadius="8" Padding="12,8" Background="{StaticResource NegativeSoft}" BorderBrush="{StaticResource Negative}"
                                     BorderThickness="1" IsVisible="{Binding Confirming}">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,4" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
-                                            Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Cancel}" CommandParameter="{Binding}" />
-                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,4" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
-                                            Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Confirm}" CommandParameter="{Binding}" />
+                                    <!-- Yes, then No: Right from the game reaches them in the order they read (the list keeps one Tab stop) -->
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Classes="ghost" Padding="12,4" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
+                                                Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Confirm}" CommandParameter="{Binding}" />
+                                        <Button Classes="ghost" Padding="12,4" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
+                                                Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Cancel}" CommandParameter="{Binding}" />
+                                    </StackPanel>
                                     <TextBlock Text="&#xF05D6;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
@@ -212,11 +215,15 @@
             <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
             <Setter Property="BorderThickness" Value="1.5" />
         </Style>
+        <!-- Focus goes to the game and its own buttons, not to the list's item around them (as WPF) -->
+        <Style Selector="ListBox.history ListBoxItem">
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <!-- A card's small buttons: Right from its game reaches them, the list keeps one Tab stop -->
         <Style Selector="Button.cardIcon">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
             <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
-            <Setter Property="Focusable" Value="False" />
             <Setter Property="Foreground" Value="{StaticResource Faint}" />
         </Style>
         <Style Selector="Button.cardIcon.star.starred">

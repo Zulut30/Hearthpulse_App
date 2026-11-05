@@ -7,27 +7,29 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Match;
 
 namespace Hearthpulse.Tests;
 
-/// <summary>Etalon D2: the keyboard in the Avalonia main window (R13).</summary>
+/// <summary>Etalon D2: the keyboard in the Avalonia main window (R13, review m3).</summary>
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// The History list is one Tab stop (Avalonia's ListBox default): Tab leaves it from any game, the arrows move between
-    /// games, and the focused game shows the theme's ring rather than Fluent's.
+    /// The History list (R13, review m3): one Tab stop; Up and Down move from game to game, Right goes on to the game's own
+    /// buttons (star, Share, delete), Left goes back and Esc returns to the game; the focused game shows the theme's ring
+    /// rather than Fluent's; Delete asks before deleting.
     /// </summary>
     [Fact]
-    public void History_list_is_one_tab_stop_with_arrows_inside_and_a_themed_ring() => Headless.Run(() =>
+    public void History_is_one_tab_stop_with_arrows_between_games_and_into_their_buttons() => Headless.Run(() =>
     {
         var theme = Theme();
         var model = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-keyboard-{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App);
         var view = new ReplayLibraryView { DataContext = model.Library };
         var cards = Enumerable.Range(1, 3)
-            .Select(i => new LibraryCard(ReplayShelf.Recent, $"{i}.hpr", $"key{i}", battlegrounds: false) { Title = "Game " + i, Caption = "Caption", When = "Today" })
+            .Select(i => new LibraryCard(ReplayShelf.Imported, $"{i}.hpr", $"key{i}", battlegrounds: false) { Title = "Game " + i, Caption = "Caption", When = "Today" })
             .ToList();
         // The games themselves, without replay files on disk; the commands stay the view model's.
         view.FindControl<ListBox>("List")!.ItemsSource = cards;
@@ -42,16 +44,38 @@ public sealed partial class LocBindingTests
             var ring = Assert.IsType<Border>(rows[0].FocusAdorner?.Build());
             Assert.Equal(new CornerRadius(8), ring.CornerRadius);
             Assert.Same(Application.Current!.FindResource("Accent"), ring.BorderBrush);
+
+            string Stop()
+            {
+                var focused = Focused(window);
+                return focused is Button { DataContext: LibraryCard card } button
+                    ? $"{cards.IndexOf(card)}:{(button.Classes.Contains("libraryCard") ? "game" : Avalonia.Automation.AutomationProperties.GetName(button))}"
+                    : "out";
+            }
+
+            string Press(PhysicalKey key, RawInputModifiers modifiers = RawInputModifiers.None)
+            {
+                window.KeyPressQwerty(key, modifiers);
+                return Stop();
+            }
+
             Assert.True(rows[0].Focus(NavigationMethod.Tab));
-            Assert.Same(rows[0], Focused(window));
+            var star = "0:" + cards[0].StarTip;
+            var share = "0:" + Loc.T("Library.Share");
+            var delete = "0:" + Loc.T("Library.Delete");
+            Assert.Equal([star, share, delete, delete], new[] { Press(PhysicalKey.ArrowRight), Press(PhysicalKey.ArrowRight), Press(PhysicalKey.ArrowRight), Press(PhysicalKey.ArrowRight) });
+            Assert.Equal(share, Press(PhysicalKey.ArrowLeft));
+            Assert.Equal("0:game", Press(PhysicalKey.Escape));
+            Assert.Equal(["1:game", "2:game", "2:game", "1:game"], new[] { Press(PhysicalKey.ArrowDown), Press(PhysicalKey.ArrowDown), Press(PhysicalKey.ArrowDown), Press(PhysicalKey.ArrowUp) });
 
-            window.KeyPressQwerty(PhysicalKey.ArrowDown, RawInputModifiers.None);
-            Assert.Same(cards[1], Focused(window)?.DataContext);
+            // One Tab stop: Tab leaves the list from a game, Shift+Tab comes back to a game.
+            Assert.Equal("out", Press(PhysicalKey.Tab));
+            Assert.EndsWith(":game", Press(PhysicalKey.Tab, RawInputModifiers.Shift), StringComparison.Ordinal);
 
-            window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.None);
-            Assert.IsNotType<LibraryCard>(Focused(window)?.DataContext);
-            window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.Shift);
-            Assert.IsType<LibraryCard>(Focused(window)?.DataContext);
+            // Delete on a game asks first, in the card.
+            Assert.True(rows[1].Focus(NavigationMethod.Tab));
+            Press(PhysicalKey.Delete);
+            Assert.True(cards[1].Confirming);
         }
         finally
         {

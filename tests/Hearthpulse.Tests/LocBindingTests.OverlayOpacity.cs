@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Hearthpulse.Core;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Overlay;
 
 namespace Hearthpulse.Tests;
@@ -40,10 +41,22 @@ public sealed partial class LocBindingTests
             // The panels draw with the overlay's copy, not the theme's.
             var solid = view.Resources["OverlayPanelSolid"];
             Assert.Contains(view.GetLogicalDescendants().OfType<Border>(), b => ReferenceEquals(b.Background, solid));
+
+            // A theme picked while the overlay is open: the copies take its colours at the next tick.
+            Assert.True(ThemeEngine.Apply(app, ThemePalette.Presets.Single(p => p.Name == "Frost")));
+            view.Fit(1920, 1080);
+            Assert.True(app.TryGetResource("OverlayPanel", ThemeVariant.Default, out var frost));
+            Assert.Equal(((ISolidColorBrush)frost!).Color, Assert.IsAssignableFrom<ISolidColorBrush>(view.Resources["OverlayPanel"]).Color);
+
+            // Fully opaque: no copies, the theme's own brushes.
+            view.Settings.OverlayOpacity = 1;
+            view.Fit(1920, 1080);
+            Assert.DoesNotContain(view.Resources.Keys, k => OverlayViewModel.BackdropBrushes.Contains(k as string));
         }
         finally
         {
             window.Close();
+            ThemeEngine.Apply(app, ThemePalette.Presets[0]);
             app.Styles.Remove(theme);
         }
     });

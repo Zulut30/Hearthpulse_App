@@ -20,7 +20,7 @@
         <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type o:HandMark}">
                 <Border Width="{x:Static o:OverlayViewModel.HandMarkWidth}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{Binding Offset}"
-                        Padding="0,1,0,2" CornerRadius="6" Background="{StaticResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                        Padding="0,1,0,2" CornerRadius="6" Background="{DynamicResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
                         o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}"
                         c:CardPreview.Placement="Below">
                     <StackPanel HorizontalAlignment="Center">

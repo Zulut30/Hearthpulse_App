@@ -29,7 +29,7 @@ public sealed partial class OverlayViewModel
     /// The theme brushes behind the overlay's text: panel and card fills and badge shades. The overlay puts faded copies
     /// of them in its own resources, which the overlay's markup takes as dynamic resources.
     /// </summary>
-    public static IReadOnlyList<string> BackdropBrushes { get; } = ["OverlayCardFill", "OverlayPanelSolid", "OverlayBadgeShade"];
+    public static IReadOnlyList<string> BackdropBrushes { get; } = ["OverlayCardFill", "OverlayPanelSolid", "OverlayPanel", "OverlayBadgeShade"];
 
     /// <summary>
     /// Whether this change just showed the toast or the move tip, so the view starts their <see cref="ToastTime"/>

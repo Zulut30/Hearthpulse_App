@@ -5,6 +5,7 @@
   "Library.Subtitle.Saved": "{0} saved game · copies are never cleaned up|{0} saved games · copies are never cleaned up",
   "Library.Subtitle.Imported": "{0} imported game · not in your stats, the last 500 are kept|{0} imported games · not in your stats, the last 500 are kept",
   "Library.Import": "Import",
+  "Library.CardTip": "Open the match: replay, decks and analysis.\nKeys: ↑ ↓ — games, Enter — open, → — the card's buttons, ← or Esc — back, S — star, Shift+S — Share, Delete — delete an imported game, O — open on the site.",
   "Library.ImportTip": "Open a .hpr replay or a Power.log. You can also paste a file or its path: Ctrl+V",
   "Library.ImportTitle": "Import a replay",
   "Library.ImportFilter": "Replays and logs (*.hpr; *.log)",

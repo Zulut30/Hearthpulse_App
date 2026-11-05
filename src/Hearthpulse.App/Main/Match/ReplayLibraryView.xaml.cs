@@ -23,6 +23,84 @@ public partial class ReplayLibraryView : UserControl
         DataContextChanged += (_, _) => Attach(DataContext as ReplayLibraryViewModel, IsLoaded);
         Loaded += (_, _) => Attach(DataContext as ReplayLibraryViewModel, listen: true);
         Unloaded += (_, _) => Attach(DataContext as ReplayLibraryViewModel, listen: false);
+        // Before the list: its items take no focus, so it would not move between them.
+        List.PreviewKeyDown += OnListKey;
+    }
+
+    /// <summary>
+    /// The keyboard in the list (review m3). The list is one Tab stop and its items take no focus: Up and Down move from
+    /// game to game (the next one scrolled into view), Right goes on to the game's own buttons, Left goes back, Esc returns
+    /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>).
+    /// </summary>
+    private void OnListKey(object sender, KeyEventArgs e)
+    {
+        if (e.OriginalSource is not Button { DataContext: LibraryCard card } current || _model is not { } model
+            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        {
+            return;
+        }
+
+        var plain = Keyboard.Modifiers == ModifierKeys.None;
+        var buttons = List.ItemContainerGenerator.ContainerFromItem(card) is DependencyObject item
+            ? Buttons(item).Where(b => b.IsVisible && b.IsEnabled).ToList()
+            : [];
+        var at = buttons.IndexOf(current);
+        switch (e.Key)
+        {
+            case Key.Up or Key.Down when plain:
+                MoveToGame(card, e.Key == Key.Down ? 1 : -1);
+                break;
+            case Key.Right when plain && at >= 0:
+                buttons[Math.Min(at + 1, buttons.Count - 1)].Focus();
+                break;
+            case Key.Left when plain && at > 0:
+                buttons[at - 1].Focus();
+                break;
+            case Key.Escape when plain && at > 0:
+                buttons[0].Focus();
+                break;
+            default:
+                if (!model.HandleCardKey(card, e.Key.ToString(), shift: !plain))
+                {
+                    return;
+                }
+
+                break;
+        }
+
+        e.Handled = true;
+    }
+
+    private void MoveToGame(LibraryCard card, int step)
+    {
+        var next = List.Items.IndexOf(card) + step;
+        if (next >= 0 && next < List.Items.Count)
+        {
+            List.ScrollIntoView(List.Items[next]);
+            List.UpdateLayout();
+            if (List.ItemContainerGenerator.ContainerFromIndex(next) is DependencyObject item && Buttons(item).FirstOrDefault() is { } game)
+            {
+                game.Focus();
+            }
+        }
+    }
+
+    /// <summary>A game's buttons in their order: the game itself (the card), then its own buttons and the question's.</summary>
+    private static IEnumerable<Button> Buttons(DependencyObject parent)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is Button button)
+            {
+                yield return button;
+            }
+
+            foreach (var inner in Buttons(child))
+            {
+                yield return inner;
+            }
+        }
     }
 
     /// <summary>Ctrl+F: the search box takes the focus with its text selected.</summary>

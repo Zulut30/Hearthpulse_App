@@ -242,7 +242,7 @@ public partial class OverlayWindow : Window
     /// The opacity setting fades only the panels' backgrounds (R06): faded copies of the theme's backdrop brushes go into
     /// this window's resources, and the overlay's markup takes them as dynamic resources. Text stays opaque.
     /// </summary>
-    private void FadeBackdrops(double opacity)
+    internal void FadeBackdrops(double opacity)
     {
         if (opacity.Equals(_backdropOpacity))
         {
@@ -252,7 +252,12 @@ public partial class OverlayWindow : Window
         _backdropOpacity = opacity;
         foreach (var key in OverlayViewModel.BackdropBrushes)
         {
-            if (Application.Current?.TryFindResource(key) is Brush brush)
+            // Fully opaque, the theme's own brush. A theme change recreates this window, so copies never go stale.
+            if (opacity >= 1)
+            {
+                Resources.Remove(key);
+            }
+            else if (Application.Current?.TryFindResource(key) is Brush brush)
             {
                 var faded = brush.Clone();
                 faded.Opacity = brush.Opacity * opacity;
