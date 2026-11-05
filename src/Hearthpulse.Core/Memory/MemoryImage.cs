@@ -6,7 +6,7 @@ namespace Hearthpulse.Core.Memory;
 
 /// <summary>
 /// The bytes a memory scan read, by address, and the module bases it asked for: a recording of the game's memory
-/// (<see cref="RecordingMemorySource"/>) that reads back the same, for tests. A read succeeds only within what was
+/// (Bench's <c>RecordingMemorySource</c>) that reads back the same, for tests. A read succeeds only within what was
 /// recorded, as an unmapped page fails in the game.
 /// </summary>
 public sealed class MemoryImage : IMemorySource

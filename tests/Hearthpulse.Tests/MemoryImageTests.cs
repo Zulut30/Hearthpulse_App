@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Hearthpulse.Bench;
 using Hearthpulse.Core.Memory;
 
 namespace Hearthpulse.Tests;

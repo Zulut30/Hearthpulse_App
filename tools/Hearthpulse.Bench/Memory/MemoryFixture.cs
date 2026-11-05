@@ -1,13 +1,14 @@
 using System.Text.Json;
 using Hearthpulse.Core.Arena;
+using Hearthpulse.Core.Memory;
 
-namespace Hearthpulse.Core.Memory;
+namespace Hearthpulse.Bench;
 
 /// <summary>
 /// What a memory fixture records and checks: the reads that need no player's name. The recorder (Bench <c>memory</c>)
 /// stores them next to the image; the fixture test reads the image back and compares.
 /// </summary>
-public sealed record MemoryFixture(
+internal sealed record MemoryFixture(
     BattlegroundsRating? Rating,
     int? PostGameRating,
     IReadOnlyList<int>? Races,

@@ -1,11 +1,13 @@
-namespace Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Memory;
+
+namespace Hearthpulse.Bench;
 
 /// <summary>
 /// Passes reads through to <paramref name="inner"/> and keeps every byte that came back, and every module base asked
 /// for, in <see cref="Image"/>: a scan of the running game recorded as a test fixture. Reads that failed are not kept,
 /// so they fail again on replay.
 /// </summary>
-public sealed class RecordingMemorySource(IMemorySource inner) : IMemorySource
+internal sealed class RecordingMemorySource(IMemorySource inner) : IMemorySource
 {
     public MemoryImage Image { get; } = new();
 

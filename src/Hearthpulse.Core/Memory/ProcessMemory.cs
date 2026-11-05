@@ -76,7 +76,7 @@ public sealed class ProcessMemory : IDisposable
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The process handle goes to the returned ProcessMemory, which disposes it.")]
     public static ProcessMemory? Open(int processId) => GameProcessSource.Open(processId) is { } source ? new ProcessMemory(source, processId) : null;
 
-    /// <summary>Where the bytes come from: a recorder wraps the game's (<see cref="RecordingMemorySource"/>).</summary>
+    /// <summary>Where the bytes come from: a recorder wraps the game's (Bench's <c>RecordingMemorySource</c>).</summary>
     public IMemorySource Source => _source;
 
     public ulong FindModuleBase(string moduleName) => _source.FindModuleBase(moduleName);

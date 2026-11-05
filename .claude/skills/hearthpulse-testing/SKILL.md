@@ -115,9 +115,13 @@ locally installed game; report which kept-log checks actually ran.
 
 Game-memory reading goes through `IMemorySource`: tests build a `MemoryImage` (regions by address, module bases) and
 read it with `ProcessMemory.FromSource(image)`; a read outside what was recorded fails as an unmapped page does.
-Bench `memory <dir>` records a scan of the running game (`RecordingMemorySource`, no player names) into
-`game.hpmem` plus `game.expected.json`; put the folder under `Fixtures/Memory/<name>/` and `MemoryImageTests` replays it
-(`HearthstoneMemory.AttachTo`). Look through an image before committing it: it holds whatever the read objects hold.
+`MonoImageBuilder` builds a tiny Mono runtime by hand (domain, assembly, class table, statics, objects) for
+`MonoRuntimeTests`; its layout numbers are written out apart from `MonoOffsets`, so a wrong offset goes red.
+Bench `memory <dir>` records a scan of the running game (Bench's `RecordingMemorySource` and `MemoryFixture`, shared
+with the tests as source; no player names) into `game.hpmem` plus `game.expected.json`; put the folder under
+`Fixtures/Memory/<name>/` and `MemoryImageTests` replays it (`HearthstoneMemory.AttachTo`). Look through an image before
+committing it: it holds whatever the read objects hold, and `MemoryFixtureGuardTests` fails on a BattleTag-like `#1234`
+or a user folder.
 
 ### No network: fake `HttpMessageHandler`
 
