@@ -4,7 +4,7 @@
     "project": "Hearthpulse.Core.csproj",
     "test-projects": [ "tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj" ],
     "configuration": "Release",
-    "mutate": [ "**/Replay/ReplayImport.cs{118..159}", "**/Replay/ReplayImport.cs{258..578}" ],
+    "mutate": [ "**/Replay/ReplayImport.cs" ],
     "coverage-analysis": "perTest",
     "reporters": [ "html", "json", "markdown", "progress" ],
     "thresholds": { "high": 80, "low": 60, "break": 0 }
