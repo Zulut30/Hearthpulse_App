@@ -27,6 +27,7 @@
             <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
             <TextBlock TextWrapping="Wrap" Classes="caption" Text="{i:Loc Settings.About.TextCrossPlatform}" />
             <TextBlock Text="{i:Loc Settings.About.FontsCrossPlatform}" Classes="caption" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{i:Loc Settings.About.Icons}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Margin="0,4,0,0" TextWrapping="Wrap" />
             <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
             <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
             <TextBlock Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />

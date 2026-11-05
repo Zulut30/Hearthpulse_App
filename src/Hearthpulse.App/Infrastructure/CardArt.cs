@@ -268,7 +268,9 @@ public static class CardArt
             // list of 300 games does not wait on 300 file checks before its first frame.
             if (Http is { } http && !await Task.Run(() => File.Exists(file)).ConfigureAwait(false))
             {
-                await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
+                // card picture from another source would not fit the backdrop).
+                await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
 
             if (File.Exists(file))

@@ -15,7 +15,6 @@ public static class GameIcons
     public static Geometry Brawl { get; } = Parse(GameIconData.Brawl);
     public static Geometry History { get; } = Parse(GameIconData.History);
     public static Geometry Settings { get; } = Parse(GameIconData.Settings);
-    public static Geometry Account { get; } = Parse(GameIconData.Account);
 
     private static Geometry Parse(string data)
     {
@@ -66,33 +65,51 @@ public sealed class GoldGlyph : FrameworkElement
         // Pens are in the box's units: one screen pixel is Box / size of them.
         var px = Box / size;
         var outline = Find("GlyphOutline");
-        dc.PushTransform(new TranslateTransform((ActualWidth - size) / 2, (ActualHeight - size) / 2));
-        dc.PushTransform(new ScaleTransform(size / Box, size / Box));
-        if (!engraved)
+        // One push for the box onto the control (scaled, centred), popped below whatever is drawn.
+        var scale = size / Box;
+        dc.PushTransform(new MatrixTransform(scale, 0, 0, scale, (ActualWidth - size) / 2, (ActualHeight - size) / 2));
+        try
         {
-            dc.DrawGeometry(outline, Pen(outline, 1.7 * px), glyph);
-            dc.DrawGeometry(Find(Lit ? "GlyphGoldLit" : "GlyphGoldFlat"), Pen(Find("GlyphGoldEdge"), 0.5 * px), glyph);
-        }
-        else
-        {
+            if (!engraved)
+            {
+                dc.DrawGeometry(outline, Pen(outline, 1.7 * px), glyph);
+                dc.DrawGeometry(Find(Lit ? "GlyphGoldLit" : "GlyphGoldFlat"), Pen(Find("GlyphGoldEdge"), 0.5 * px), glyph);
+                return;
+            }
+
             var bevel = Math.Min(1.2, size / 30) * px;
-            dc.PushTransform(new TranslateTransform(0, 0.9 * px));
-            dc.DrawGeometry(outline, Pen(outline, Math.Min(2.0, size / 16) * px), glyph);
-            dc.Pop();
+            DrawShifted(dc, 0.9 * px, () => dc.DrawGeometry(outline, Pen(outline, Math.Min(2.0, size / 16) * px), glyph));
             dc.DrawGeometry(Find(Lit ? "GlyphGoldLit" : "GlyphGold"), null, glyph);
             dc.PushClip(glyph);
-            dc.PushTransform(new TranslateTransform(0, bevel * 0.85));
-            dc.DrawGeometry(null, Pen(Find("GlyphBevelLight"), bevel), glyph);
-            dc.Pop();
-            dc.PushTransform(new TranslateTransform(0, -bevel * 0.85));
-            dc.DrawGeometry(null, Pen(Find("GlyphBevelDark"), bevel), glyph);
-            dc.Pop();
-            dc.DrawRectangle(Find("GlyphGloss"), null, new Rect(0, 0, Box, Box * 0.42));
+            try
+            {
+                DrawShifted(dc, bevel * 0.85, () => dc.DrawGeometry(null, Pen(Find("GlyphBevelLight"), bevel), glyph));
+                DrawShifted(dc, -bevel * 0.85, () => dc.DrawGeometry(null, Pen(Find("GlyphBevelDark"), bevel), glyph));
+                dc.DrawRectangle(Find("GlyphGloss"), null, new Rect(0, 0, Box, Box * 0.42));
+            }
+            finally
+            {
+                dc.Pop();
+            }
+        }
+        finally
+        {
             dc.Pop();
         }
+    }
 
-        dc.Pop();
-        dc.Pop();
+    /// <summary>Draws <paramref name="draw"/> moved down by <paramref name="dy"/> box units (a push and its pop).</summary>
+    private static void DrawShifted(DrawingContext dc, double dy, Action draw)
+    {
+        dc.PushTransform(new TranslateTransform(0, dy));
+        try
+        {
+            draw();
+        }
+        finally
+        {
+            dc.Pop();
+        }
     }
 
     private Brush? Find(string key) => TryFindResource(key) as Brush;

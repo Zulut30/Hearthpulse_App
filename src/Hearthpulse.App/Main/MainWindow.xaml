@@ -127,13 +127,25 @@
                          and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
                          (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the Avalonia MainView. -->
                     <Grid Grid.RowSpan="2" IsHitTestVisible="False">
+                        <!-- Static while a page scrolls over it: cached as a bitmap instead of re-blending its masks on every frame -->
+                        <Grid.CacheMode>
+                            <BitmapCache SnapsToDevicePixels="True" />
+                        </Grid.CacheMode>
                         <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageStone}" />
                         <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
-                            <!-- The hero's colours light the whole page; the art itself is square, top right, as wide as most of it -->
+                            <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
+                                 at most 940 (the columns), so at the narrowest window it still clears the titles on the left -->
                             <Border Style="{StaticResource PageLayer}" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
-                            <Border Width="940" Height="940" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" />
-                            </Border>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="4*" MaxWidth="940" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
+                                        Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
+                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                                </Border>
+                            </Grid>
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageShade}" />
                         </Grid>

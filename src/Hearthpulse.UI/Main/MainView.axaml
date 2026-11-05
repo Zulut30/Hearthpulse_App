@@ -267,11 +267,20 @@
                 <Panel Grid.RowSpan="2" IsHitTestVisible="False">
                     <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
                     <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
-                        <!-- The hero's colours light the whole page; the art itself is square, top right, as wide as most of it -->
+                        <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
+                             at most 940 (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
+                             only) keeps the hero's colours without the art, which would sit under the title -->
                         <Border Classes="pageLayer" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
-                        <Border Width="940" Height="940" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                            <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" />
-                        </Border>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4*" MaxWidth="940" />
+                            </Grid.ColumnDefinitions>
+                            <Border Name="PageHeroArt" Grid.Column="1" Classes="wide" Height="{Binding $self.Bounds.Width}" VerticalAlignment="Top"
+                                    Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
+                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                            </Border>
+                        </Grid>
                         <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />
                         <Border Classes="pageLayer" Background="{StaticResource PageShade}" />
                     </Panel>

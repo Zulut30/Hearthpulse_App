@@ -16,7 +16,6 @@ public static class GameIcons
     public static Geometry Brawl { get; } = StreamGeometry.Parse(GameIconData.Brawl);
     public static Geometry History { get; } = StreamGeometry.Parse(GameIconData.History);
     public static Geometry Settings { get; } = StreamGeometry.Parse(GameIconData.Settings);
-    public static Geometry Account { get; } = StreamGeometry.Parse(GameIconData.Account);
 }
 
 /// <summary>

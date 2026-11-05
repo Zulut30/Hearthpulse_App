@@ -198,7 +198,9 @@ public static class CardArt
             // EnsureArtAsync makes is off the UI thread.
             if (Http is { } http)
             {
-                await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
+                // card picture from another source would not fit the backdrop).
+                await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
 
             if (File.Exists(file))

@@ -65,11 +65,10 @@ public sealed class ThemeContrastTests
     [MemberData(nameof(Presets))]
     public void Text_reads_on_cards_over_the_brightest_hero(string preset)
     {
-        // The hero's Opacity in MainWindow.xaml / MainView.axaml
-        const double HeroOpacity = 0.8;
+        var (heroOpacity, _, _) = Hero();
         var theme = ThemePalette.Resolve(preset, 0, 0, 1);
         var colours = Colours();
-        var behind = Over(0xFFFFFFFF, ThemePalette.Map(colours["Bg"][0], theme), HeroOpacity);
+        var behind = Over(0xFFFFFFFF, ThemePalette.Map(colours["Bg"][0], theme), heroOpacity);
         var failures = new List<string>();
         foreach (var text in new[] { "Text", "Muted", "Accent" })
         {
@@ -86,6 +85,111 @@ public sealed class ThemeContrastTests
         }
 
         Assert.Empty(failures);
+    }
+
+    /// <summary>
+    /// Text outside the cards - the page titles, their rule and the tab bars in the left column - stays readable over
+    /// the page's hero at any width of the plate: the brightest art (white) at the hero's opacity, faded by
+    /// PageHeroFade across the hero's box (0.8 of the plate, at most 940 wide, at the right), then the plate-coloured
+    /// PageVignette and PageShade over it.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Presets))]
+    public void Text_beside_the_hero_reads_at_every_plate_width(string preset)
+    {
+        var (opacity, share, max) = Hero();
+        var theme = ThemePalette.Resolve(preset, 0, 0, 1);
+        var root = XDocument.Load(RepoFile("src/Hearthpulse.App/Themes/Theme.xaml")).Root!;
+        var fade = Stops(root, "PageHeroFade");
+        var vignette = Stops(root, "PageVignette");
+        var shade = Stops(root, "PageShade");
+        var (cx, cy, rx, ry) = Radial(root, "PageVignette");
+        var colours = Colours();
+        var plate = ThemePalette.Map(colours["Bg"][0], theme);
+        var failures = new List<string>();
+        // The window's narrowest plate (1040 wide), the default (1260) and a wide one; the title column is the left 45 %
+        foreach (var (width, height) in new[] { (790.0, 790.0), (1010.0, 790.0), (1500.0, 900.0) })
+        {
+            var heroWidth = Math.Min(max, share * width);
+            for (var x = 0.0; x <= 0.45; x += 0.05)
+            {
+                for (var y = 0.0; y <= 0.2; y += 0.05)
+                {
+                    var inHero = (x * width) - (width - heroWidth);
+                    var heroAlpha = inHero < 0 ? 0 : opacity * At(fade, inHero / heroWidth);
+                    var d = Math.Sqrt(Math.Pow((x - cx) / rx, 2) + Math.Pow((y - cy) / ry, 2));
+                    var back = Over(0xFFFFFFFF, plate, heroAlpha);
+                    back = Over(ThemePalette.Map(vignette[^1].Color, theme), back, At(vignette, d));
+                    back = Over(ThemePalette.Map(shade[^1].Color, theme), back, At(shade, y));
+                    foreach (var text in new[] { "Text", "Muted" })
+                    {
+                        var ratio = Contrast(ThemePalette.Map(colours[text][0], theme), back);
+                        if (ratio < 4.5)
+                        {
+                            failures.Add($"{text} at {x:0.00},{y:0.00} of a {width} plate: {ratio:0.00}");
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    /// <summary>
+    /// The page hero's opacity, its share of the plate's width and its widest, read from MainWindow.xaml (the art under
+    /// PageHeroFade in a column of a star share, capped); MainView.axaml must say the same.
+    /// </summary>
+    private static (double Opacity, double Share, double Max) Hero()
+    {
+        (double, double, double) Read(string path)
+        {
+            var art = XDocument.Load(RepoFile(path)).Descendants().Single(e => (string?)e.Attribute("OpacityMask") == "{StaticResource PageHeroFade}");
+            var columns = art.Parent!.Descendants().Where(e => e.Name.LocalName == "ColumnDefinition").ToList();
+            double Star(XElement c) => double.Parse(((string)c.Attribute("Width")!).TrimEnd('*') is { Length: > 0 } s ? s : "1", CultureInfo.InvariantCulture);
+            return (double.Parse((string)art.Attribute("Opacity")!, CultureInfo.InvariantCulture),
+                Star(columns[1]) / (Star(columns[0]) + Star(columns[1])),
+                double.Parse((string)columns[1].Attribute("MaxWidth")!, CultureInfo.InvariantCulture));
+        }
+
+        var wpf = Read("src/Hearthpulse.App/Main/MainWindow.xaml");
+        Assert.Equal(wpf, Read("src/Hearthpulse.UI/Main/MainView.axaml"));
+        return wpf;
+    }
+
+    /// <summary>A gradient's stops (offset, colour) by key.</summary>
+    private static List<(double Offset, uint Color)> Stops(XElement root, string key) =>
+        root.Elements().Single(e => (string?)e.Attribute(X + "Key") == key).Elements()
+            .Select(s => (double.Parse((string)s.Attribute("Offset")!, CultureInfo.InvariantCulture), Parse((string)s.Attribute("Color")!)))
+            .ToList();
+
+    /// <summary>A radial gradient's centre and radii, relative to the plate.</summary>
+    private static (double Cx, double Cy, double Rx, double Ry) Radial(XElement root, string key)
+    {
+        var e = root.Elements().Single(b => (string?)b.Attribute(X + "Key") == key);
+        var c = ((string)e.Attribute("Center")!).Split(',').Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+        return (c[0], c[1], double.Parse((string)e.Attribute("RadiusX")!, CultureInfo.InvariantCulture), double.Parse((string)e.Attribute("RadiusY")!, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>The alpha of a gradient (0..1) at <paramref name="offset"/>, linear between its stops.</summary>
+    private static double At(List<(double Offset, uint Color)> stops, double offset)
+    {
+        double Alpha(uint c) => (c >> 24) / 255.0;
+        if (offset <= stops[0].Offset)
+        {
+            return Alpha(stops[0].Color);
+        }
+
+        for (var i = 1; i < stops.Count; i++)
+        {
+            if (offset <= stops[i].Offset)
+            {
+                var t = (offset - stops[i - 1].Offset) / (stops[i].Offset - stops[i - 1].Offset);
+                return Alpha(stops[i - 1].Color) + (t * (Alpha(stops[i].Color) - Alpha(stops[i - 1].Color)));
+            }
+        }
+
+        return Alpha(stops[^1].Color);
     }
 
     /// <summary><paramref name="top"/> at <paramref name="alpha"/> over an opaque <paramref name="bottom"/>.</summary>

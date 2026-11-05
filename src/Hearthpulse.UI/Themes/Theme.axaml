@@ -399,8 +399,14 @@
             <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
             <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#00000000" Offset="0" />
-                <GradientStop Color="#B3000000" Offset="0.25" />
+                <GradientStop Color="#00000000" Offset="0.3" />
+                <GradientStop Color="#B3000000" Offset="0.55" />
+                <GradientStop Color="#FF000000" Offset="0.8" />
+            </LinearGradientBrush>
+            <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
+            <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0%,0%" EndPoint="0%,100%">
                 <GradientStop Color="#FF000000" Offset="0.55" />
+                <GradientStop Color="#00000000" Offset="1" />
             </LinearGradientBrush>
             <!-- Over the art: a light vignette and floor in the plate's own colour; the hero's own colours light the page
                  (CardArt.Glow through PageGlowMask) -->

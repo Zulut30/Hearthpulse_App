@@ -13,6 +13,22 @@ public sealed partial class DeckPageTests
         new() { Key = key, Mode = "Battlegrounds", HeroCardId = hero, Placement = place, Result = place <= 4 ? "Win" : "Loss" };
 
     [Fact]
+    public void Turning_background_characters_off_drops_the_page_hero()
+    {
+        var settings = new Hearthpulse.Core.AppSettings();
+        var vm = new MainViewModel(HistoryStore.InMemory(), settings, TestDataFolder.App);
+        Assert.NotNull(vm.PageHero);
+        var raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(MainViewModel.PageHero);
+
+        settings.PageHeroes = false;
+        vm.RefreshPanelToggles();
+
+        Assert.True(raised);
+        Assert.Null(vm.PageHero);
+    }
+
+    [Fact]
     public void Battlegrounds_shows_the_hero_with_the_best_average_place()
     {
         GameRecord[] games =
