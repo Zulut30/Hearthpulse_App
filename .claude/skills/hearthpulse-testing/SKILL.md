@@ -111,13 +111,21 @@ locally installed game; report which kept-log checks actually ran.
 `Path.Combine(AppContext.BaseDirectory, "Fixtures", ...)`. When you add fixture data, record how it was produced
 (script or exact request) so the numbers can be reproduced.
 
+### Memory images
+
+Game-memory reading goes through `IMemorySource`: tests build a `MemoryImage` (regions by address, module bases) and
+read it with `ProcessMemory.FromSource(image)`; a read outside what was recorded fails as an unmapped page does.
+Bench `memory <dir>` records a scan of the running game (`RecordingMemorySource`, no player names) into
+`game.hpmem` plus `game.expected.json`; put the folder under `Fixtures/Memory/<name>/` and `MemoryImageTests` replays it
+(`HearthstoneMemory.AttachTo`). Look through an image before committing it: it holds whatever the read objects hold.
+
 ### No network: fake `HttpMessageHandler`
 
 Every network client takes an `HttpClient`, so tests pass `new HttpClient(handler)`:
 
 | Fake | Where | Pattern |
 |---|---|---|
-| `FixtureServer` | `ApiLoadTests` | routes by path/query fragment to fixture files, 404 otherwise, records `Requests`; `new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cacheDir)` |
+| `FixtureServer` | `ApiLoadTests` | routes by path/query fragment to fixture files, 404 otherwise, records `Requests`, `Hold` keeps every answer until released; `new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cacheDir)` |
 | `FakeSite` | `AccountTests` | stateful device-flow site (code, token rotation, revoke, `/me`), `Offline`, held responses via `TaskCompletionSource`; `new AccountClient(new HttpClient(site), FakeSite.Base)` |
 | `Stub(status, body)`, `Offline` | `UpdateTests` | `UpdateService.CheckAsync(new HttpClient(new Stub(HttpStatusCode.OK, json)))` |
 
