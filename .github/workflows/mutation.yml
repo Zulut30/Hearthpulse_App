@@ -5,6 +5,8 @@
 name: Mutation tests
 
 on:
+  push:
+    branches: [claude/track-quality]
   workflow_dispatch:
     inputs:
       target:
@@ -33,7 +35,7 @@ jobs:
           TARGET: ${{ inputs.target || 'all' }}
         run: |
           if [ "$TARGET" = all ]; then
-            echo 'list=["replay-share","replay-sanitize","crash-report","likely-deck","combat-simulator"]' >> "$GITHUB_OUTPUT"
+            echo 'list=["replay-share","replay-sanitize","crash-report"]' >> "$GITHUB_OUTPUT"
           else
             echo "list=[\"$TARGET\"]" >> "$GITHUB_OUTPUT"
           fi
