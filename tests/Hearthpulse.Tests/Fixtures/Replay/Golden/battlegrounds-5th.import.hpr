@@ -1,0 +1,67 @@
+HPR4
+{"kind":"battlegrounds","summary":{"mode":"Battlegrounds","gameType":"GT_BATTLEGROUNDS","format":"","startedAt":"@STARTED@","seconds":0,"heroCardId":"TB_BaconShop_HERO_50","playerClass":"NEUTRAL","result":"Loss","turns":2,"placement":5,"tavernTier":2,"tribes":[],"heroPowers":["TB_BaconShop_HP_050"],"trinkets":[],"finalBoard":[{"cardId":"BG26_801","attack":9,"health":4,"golden":false,"keywords":[]}],"finalHand":["BGS_039"]},"truncated":false,"events":64}
+E 1 L PLAY 0 TB_BaconShop_HERO_50 HERO HEALTH=30
+E 2 L PLAY 0 TB_BaconShop_HP_050 HERO_POWER
+L 1 L TB_BaconShop_HERO_50 1 30 0 0
+L 4 - BG20_HERO_102 2 30 0 2
+T 1 0
+E 3 B PLAY 1 BGS_004 MINION ATK=1 HEALTH=1 TECH_LEVEL=1
+E 4 B PLAY 2 BGS_039 MINION ATK=2 HEALTH=1 TECH_LEVEL=1
+E 5 B PLAY 3 BG28_810 BATTLEGROUND_SPELL TECH_LEVEL=1
+V L RESOURCES 3
+V L PLAYER_TECH_LEVEL 1
+M BUY 4
+V L RESOURCES_USED 3
+E 4 L HAND 0 BGS_039 MINION ATK=2 HEALTH=1 TECH_LEVEL=1
+Z 4 1
+L 1 L TB_BaconShop_HERO_50 1 30 0 1
+E 6 L PLAY 1 BG26_801 MINION ATK=4 HEALTH=6
+F 1 0
+X 3
+X 5
+E 7 O PLAY 0 BG20_HERO_102 HERO HEALTH=30
+E 8 O PLAY 1 BGS_119 MINION ATK=1 HEALTH=2
+E 9 O PLAY 2 BGS_061 MINION ATK=2 HEALTH=3
+M ATTACK 6 8
+V 8 DAMAGE 2
+V 6 DAMAGE 1
+M DEATHS -
+Y 8
+M ATTACK 9 6
+V 6 DAMAGE 2
+M TRIGGER 6
+V 6 ATK 9
+V 6 HEALTH 7
+M ATTACK 6 9
+V 9 DAMAGE 9
+V 6 DAMAGE 3
+M DEATHS -
+Y 9
+f WIN 0 5
+V 7 DAMAGE 5
+X 7
+T 2 0
+V L RESOURCES 4
+V L RESOURCES_USED 0
+E 10 B PLAY 1 BG21_001 MINION ATK=3 HEALTH=3 TECH_LEVEL=2
+M UPGRADE -
+V L RESOURCES_USED 4
+V L PLAYER_TECH_LEVEL 2
+L 1 L TB_BaconShop_HERO_50 1 30 0 2
+F 2 0
+X 10
+E 11 O PLAY 0 BG20_HERO_102 HERO DAMAGE=5 HEALTH=30
+E 12 O PLAY 1 BGS_119 MINION ATK=6 HEALTH=6
+M ATTACK 12 6
+V 6 DAMAGE 9
+M DEATHS -
+Y 6
+M ATTACK 11 1
+V 1 DAMAGE 30
+L 1 L TB_BaconShop_HERO_50 1 0 0 2
+f LOSS 30 0
+X 11
+X 12
+L 1 L TB_BaconShop_HERO_50 5 0 0 2
+R 5
+G {"rounds":[{"turn":1,"tier":1,"health":30,"board":[{"cardId":"BG26_801","attack":4,"health":6,"golden":false}],"opponentBoard":[{"cardId":"BGS_119","attack":1,"health":2,"golden":false},{"cardId":"BGS_061","attack":2,"health":3,"golden":false}],"shop":["BGS_004","BGS_039","BG28_810"],"damageTaken":0,"damageDealt":0},{"turn":2,"tier":2,"health":30,"board":[{"cardId":"BG26_801","attack":9,"health":4,"golden":false}],"opponentBoard":[{"cardId":"BGS_119","attack":6,"health":6,"golden":false}],"shop":["BG21_001"],"damageTaken":0,"damageDealt":0}],"lobby":[{"heroCardId":"BG20_HERO_102","place":2,"local":false},{"heroCardId":"TB_BaconShop_HERO_50","place":5,"local":true}]}

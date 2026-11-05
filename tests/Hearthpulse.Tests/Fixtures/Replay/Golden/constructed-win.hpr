@@ -1,0 +1,11 @@
+HPR4
+{"kind":"constructed","summary":{"mode":"Ranked","gameType":"GT_RANKED","format":"FT_STANDARD","startedAt":"@STARTED@","seconds":0,"heroCardId":"HERO_09","playerClass":"","opponentHeroCardId":"HERO_08","result":"Win","turns":3,"placement":0,"tavernTier":0,"tribes":[],"heroPowers":[],"trinkets":[],"finalBoard":[],"finalHand":[]},"truncated":false,"events":9}
+E 1 L PLAY 0 HERO_09 HERO HEALTH=30
+E 2 O PLAY 0 HERO_08 HERO HEALTH=30
+E 3 L HAND 0 CORE_CS2_004 SPELL
+D L 1
+D O 1
+V L MULLIGAN_STATE DONE
+T 5 L 0
+V L PLAYSTATE WON
+R WON

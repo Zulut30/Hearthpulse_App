@@ -239,6 +239,12 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
 1. Title with the game's star and Share on its right (the same actions as its History card, on the same card: the
    star is one state on both; only when the replay file is there), a status line or the "only copy" question under the
    subtitle; then the header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
+   Left of them, on the Replay tab of either mode, "Save the step as PNG" (plan R4, `MatchPlayer.Export.cs` and
+   `MatchView.Export.cs` in each UI): the playback stops, a save dialog (Pictures, "Hearthpulse Step 34 · turn 7.png")
+   takes the step's table card as the page shows it at twice its size (at most 4096 px a side), whole even when
+   scrolled partly out of view, corners transparent; the status line says "Saved: <file>" or that it failed. The card
+   holds no names, BattleTags or ranks, and only what the page may show after the game, so the picture carries no more
+   than the Share copy. No video or GIF (estimate in the R4 task card).
 2. Tabs: **Replay** | **Decks** | **Analysis** (Battlegrounds: **Rounds** | **Lobby**).
 3. Replay (Constructed, and Battlegrounds games with a format 4 file, where it opens first): a player card - the
    whole-game timeline (`MatchPage.Timeline`: mulligan and turns, or tavern and combats coloured by the combat's
