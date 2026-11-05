@@ -5,6 +5,8 @@
 name: Mutation tests
 
 on:
+  push:
+    branches: [claude/track-quality]
   workflow_dispatch:
     inputs:
       target:
@@ -41,7 +43,8 @@ jobs:
   mutate:
     name: Stryker ${{ matrix.target }}
     needs: targets
-    runs-on: ubuntu-latest
+    # Stryker builds the whole solution, the WPF app included: Windows only.
+    runs-on: windows-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
@@ -56,6 +59,7 @@ jobs:
         run: dotnet tool restore --add-source https://api.nuget.org/v3/index.json
       # Mutants that do not compile are dropped by Stryker; warnings of mutated code must not fail its build.
       - name: Mutate
+        shell: bash
         run: dotnet dotnet-stryker -f tests/mutation/${{ matrix.target }}.json -O "$RUNNER_TEMP/stryker"
       - name: Summary
         if: always()
