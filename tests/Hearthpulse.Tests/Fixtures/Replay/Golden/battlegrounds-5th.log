@@ -1,0 +1,228 @@
+D 12:30:00.0000000 GameState.DebugPrintPower() - CREATE_GAME
+D 12:30:00.0000000 GameState.DebugPrintPower() -     GameEntity EntityID=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=CARDTYPE value=GAME
+D 12:30:00.0000000 GameState.DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=11]
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=HERO_ENTITY value=10
+D 12:30:00.0000000 GameState.DebugPrintPower() -     Player EntityID=3 PlayerID=9 GameAccountId=[hi=0 lo=0]
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER
+D 12:30:00.0000000 GameState.DebugPrintPower() -         tag=BACON_DUMMY_PLAYER value=1
+D 12:30:00.0000000 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS
+D 12:30:00.0000000 GameState.DebugPrintGame() - PlayerID=1, PlayerName=Me#1234
+D 12:30:00.0000000 GameState.DebugPrintGame() - PlayerID=9, PlayerName=Rival#4321
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=TB_BaconShop_HERO_50
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_ID value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=30
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_LEADERBOARD_PLACE value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=11 CardID=TB_BaconShop_HP_050
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO_POWER
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BG20_HERO_102
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_ID value=4
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=30
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_LEADERBOARD_PLACE value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_TECH_LEVEL value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=SETASIDE
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=30 CardID=TB_BaconShopBob
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=40 CardID=TB_BaconShop_DragBuy
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MOVE_MINION_HOVER_TARGET
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=41 CardID=TB_BaconShop_DragSell
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MOVE_MINION_HOVER_TARGET
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=42 CardID=TB_BaconShop_8p_Reroll_Button
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=GAME_MODE_BUTTON
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=43 CardID=TB_BaconShopLockAll_Button
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=GAME_MODE_BUTTON
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=44 CardID=TB_BaconShopTechUp02_Button
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=GAME_MODE_BUTTON
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=46 CardID=TB_BaconShop_8P_PlayerE
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=ENCHANTMENT
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY 
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=50 CardID=BGS_004
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=TECH_LEVEL value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=51 CardID=BGS_039
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=TECH_LEVEL value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=52 CardID=BG28_810
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=BATTLEGROUND_SPELL
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=3
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=TECH_LEVEL value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=RESOURCES value=3 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYER_TECH_LEVEL value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_ACTION 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=40 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=RESOURCES_USED value=3 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=40 tag=CARD_TARGET value=51 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=51 tag=CONTROLLER value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=51 tag=ZONE_POSITION value=0 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=51 tag=ZONE value=HAND 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=51 tag=ZONE_POSITION value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=101 CardID=BG26_801
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=4
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=6
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BOARD_VISUAL_STATE value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=50 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=52 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=46 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=30 tag=ZONE value=SETASIDE 
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=110 CardID=BG20_HERO_102
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=30
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=110 tag=PLAYER_ID value=4 
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=111 CardID=BGS_119
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=112 CardID=BGS_061
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=3
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_START 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=101 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=PROPOSED_DEFENDER value=111 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=111 tag=DEFENDING value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=111 tag=DAMAGE value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=DAMAGE value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=111 tag=DEFENDING value=0 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=DEATHS Entity=GameEntity EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=111 tag=ZONE value=GRAVEYARD 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=112 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=PROPOSED_DEFENDER value=101 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=DAMAGE value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=101 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ATK value=5 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ATK value=6 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ATK value=7 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ATK value=8 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ATK value=9 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=GameEntity EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=HEALTH value=6 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=46 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=HEALTH value=7 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=101 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=PROPOSED_DEFENDER value=112 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=112 tag=DAMAGE value=9 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=DAMAGE value=3 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=DEATHS Entity=GameEntity EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=112 tag=ZONE value=GRAVEYARD 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=46 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=110 tag=DAMAGE value=5 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=111 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=112 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=110 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BOARD_VISUAL_STATE value=1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=30 tag=ZONE value=PLAY 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=3 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=0 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=RESOURCES value=4 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=RESOURCES_USED value=0 
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=54 CardID=BG21_001
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=3
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=3
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=TECH_LEVEL value=2
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=44 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=RESOURCES_USED value=4 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYER_TECH_LEVEL value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=4 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BOARD_VISUAL_STATE value=2 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=54 tag=ZONE value=REMOVEDFROMGAME 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY 
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=120 CardID=BG20_HERO_102
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=HERO
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=30
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=DAMAGE value=5
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=PLAYER_ID value=4
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=121 CardID=BGS_119
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CONTROLLER value=9
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ATK value=6
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=HEALTH value=6
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1
+D 12:30:00.0000000 GameState.DebugPrintPower() -     tag=ZONE value=PLAY
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_START 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=121 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=PROPOSED_DEFENDER value=101 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=DAMAGE value=9 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=DEATHS Entity=GameEntity EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=101 tag=ZONE value=GRAVEYARD 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=120 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=PROPOSED_DEFENDER value=10 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=10 tag=DAMAGE value=30 
+D 12:30:00.0000000 GameState.DebugPrintPower() - BLOCK_END
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYSTATE value=LOST 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=10 tag=PLAYER_LEADERBOARD_PLACE value=5 
+D 12:30:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE 

@@ -1,2 +1,4 @@
 # The CI helper scripts run under bash on the Windows runners too, where checkout would otherwise give them CRLF.
 .github/ci/*.sh text eol=lf
+# Golden replays are compared byte for byte (GoldenReplayTests): no CRLF on a Windows checkout.
+tests/Hearthpulse.Tests/Fixtures/Replay/Golden/** -text

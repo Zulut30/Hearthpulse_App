@@ -225,6 +225,11 @@ public sealed class MatchReplay
     private sealed class Folder(MatchReplay replay)
     {
         private readonly Dictionary<int, CardState> _cards = new();
+
+        // The cards on the table, in hand or secret (what a frame shows): a long game's graveyard is not walked at every
+        // step (plan R5: a file at the event cap opened in seconds, not ten).
+        private readonly Dictionary<int, CardState> _shown = new();
+        private int _order;
         private readonly Dictionary<string, string>[] _players = [new(StringComparer.Ordinal), new(StringComparer.Ordinal)];
         private readonly List<ReplayFrame> _frames = new();
         private readonly int[] _decks = new int[2];
@@ -344,7 +349,7 @@ public sealed class MatchReplay
 
         /// <summary>The game entities of the opponent's card backs in hand now (the Coin left out), left to right.</summary>
         private List<int> OpponentHandEntities() =>
-            _cards.Values.Where(c => c is { Player: ReplayPlayer.Opponent, Zone: "HAND" } && c.Tags.GetValueOrDefault("ORIGIN") != "coin")
+            _shown.Values.Where(c => c is { Player: ReplayPlayer.Opponent, Zone: "HAND" } && c.Tags.GetValueOrDefault("ORIGIN") != "coin")
                 .OrderBy(c => c.Position).ThenBy(c => c.Id)
                 .Select(c => _entities.GetValueOrDefault(c.Id)).Where(e => e > 0).ToList();
 
@@ -393,6 +398,7 @@ public sealed class MatchReplay
                     ApplyEntity(t);
                     break;
                 case "X":
+                    _shown.Remove(Int(t[1]));
                     if (_cards.Remove(Int(t[1]), out var gone) && Dealing && gone is { Player: ReplayPlayer.Local, Zone: "HAND", CardId: { } back })
                     {
                         _replaced.Add(back);
@@ -404,12 +410,14 @@ public sealed class MatchReplay
                     break;
                 case "Z" when _cards.TryGetValue(Int(t[1]), out var moved):
                     moved.Position = Int(t[2]);
+                    moved.View = null;
                     break;
                 case "V" when t[1] is "L" or "O":
                     _players[t[1] == "L" ? 0 : 1][t[2]] = t[3];
                     break;
                 case "V" when _cards.TryGetValue(Int(t[1]), out var tagged):
                     tagged.Tags[t[2]] = t[3];
+                    tagged.View = null;
                     break;
                 case "B":
                     Step(new ReplayAction(ReplayActionKind.Play, _active));
@@ -498,7 +506,8 @@ public sealed class MatchReplay
             }
 
             var enteredHand = zone == "HAND" && state?.Zone != "HAND";
-            state ??= new CardState(id);
+            state ??= new CardState(id) { Order = _order++ };
+            state.View = null;
             state.Player = player;
             state.Zone = zone;
             state.Position = Int(t[4]);
@@ -520,6 +529,15 @@ public sealed class MatchReplay
             }
 
             _cards[id] = state;
+            if (zone is "PLAY" or "HAND" or "SECRET")
+            {
+                _shown[id] = state;
+            }
+            else
+            {
+                _shown.Remove(id);
+            }
+
             if (enteredHand && player == ReplayPlayer.Local && card is not null)
             {
                 if (Dealing)
@@ -572,7 +590,8 @@ public sealed class MatchReplay
 
         private ReplayBoard Board(ReplayPlayer player)
         {
-            var mine = _cards.Values.Where(c => c.Player == player).ToList();
+            // In the order the cards were first seen, as the whole list was walked before.
+            var mine = _shown.Values.Where(c => c.Player == player).OrderBy(c => c.Order).ToList();
             var tags = _players[player == ReplayPlayer.Local ? 0 : 1];
             return new ReplayBoard
             {
@@ -595,7 +614,10 @@ public sealed class MatchReplay
         private ReplayReveal? RevealOf(CardState card) =>
             card.CardId is null && _entities.TryGetValue(card.Id, out var entity) ? _reveals.GetValueOrDefault(entity) : null;
 
-        private ReplayCard ToCard(CardState c)
+        /// <summary>The card as a frame shows it, made again only after the card changed: frames share it (memory of a long game).</summary>
+        private ReplayCard ToCard(CardState c) => c.View ??= NewCard(c);
+
+        private ReplayCard NewCard(CardState c)
         {
             var health = Tag(c.Tags, "HEALTH");
             if (c.Type == "WEAPON" && health == 0)
@@ -662,5 +684,11 @@ public sealed class MatchReplay
         public int EnteredTurn { get; set; } = -1;
 
         public Dictionary<string, string> Tags { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>When the card was first seen: the order the frame's lists had.</summary>
+        public int Order { get; init; }
+
+        /// <summary>The card's last <see cref="ReplayCard"/>, until the card changes.</summary>
+        public ReplayCard? View { get; set; }
     }
 }
