@@ -22,7 +22,6 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Data}" Style="{StaticResource CardNote}" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.PoolSharing}" IsChecked="{Binding PoolSharing}"
                           Visibility="{Binding PoolAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,18"
                           ToolTip="{i:Loc Settings.Data.PoolSharingTip}" />
@@ -37,14 +36,6 @@
                 <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
                 <!-- The replay rule was only in the folder path's tip: it decides what is deleted, so it is a visible line -->
                 <TextBlock x:Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
-            </StackPanel>
-        </Border>
-
-        <Border Style="{StaticResource Card}">
-            <StackPanel>
-                <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Sources}" Style="{StaticResource CardNote}" Margin="0,-6,0,10" />
-                <TextBlock Text="{Binding Attribution}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
     </StackPanel>

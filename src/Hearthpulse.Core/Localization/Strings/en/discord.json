@@ -1,6 +1,6 @@
 {
   "Discord.Title": "Discord status",
-  "Discord.Note": "Everyone who can see your Discord profile (friends, members of servers you share) sees what you're playing: the mode, classes, turn or place, and time since the game began.",
+  "Discord.Note": "Discord friends see the mode, classes and turn or place.",
   "Discord.Switch": "Discord status",
   "Discord.SwitchTip": "Hearthpulse passes the mode, classes, turn or place to the Discord app on this computer, and Discord shows them to everyone who can see your profile (friends and members of servers you share). Nothing goes anywhere else. Turn it off and the status clears at once.",
   "Discord.Keeps": "The status has no names, BattleTags or ratings, yours or your opponents'.",

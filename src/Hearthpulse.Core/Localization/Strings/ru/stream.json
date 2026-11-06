@@ -14,7 +14,7 @@
   "Stream.Tray.Mode": "Режим стримера",
   "Stream.Tray.Tip": "Hearthpulse · режим стримера",
   "Stream.Windows.Title": "Окна для OBS",
-  "Stream.Windows.Note": "Отдельные окна с панелями оверлея: добавьте их в OBS как «Захват окна» и расставьте в сцене. Показывают то же, что оверлей, и работают даже при выключенном оверлее.",
+  "Stream.Windows.Note": "Окна с панелями оверлея для OBS: добавьте их как «Захват окна».",
   "Stream.Windows.Group": "Окна",
   "Stream.Window.Title": "Hearthpulse — {0}",
   "Stream.Window.Deck": "Колода",

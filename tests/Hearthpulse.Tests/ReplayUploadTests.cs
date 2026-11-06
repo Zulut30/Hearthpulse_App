@@ -20,10 +20,8 @@ public sealed class ReplayUploadTests : IDisposable
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        if (Directory.Exists(_dir))
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
+        // A background write can still land in the folder on macOS: the shared helper retries and never fails a test.
+        TestDataFolder.TryDelete(_dir);
     }
 
     [Fact]
@@ -253,7 +251,7 @@ public sealed class ReplayUploadTests : IDisposable
         var card = new LibraryCard(ReplayShelf.Recent, name, null, battlegrounds: false) { HasReplay = true };
 
         vm.Library.SiteAction.Execute(card);
-        Assert.Equal(Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), card.ConfirmText);
+        Assert.Equal(Loc.T("Library.Site.ConfirmUpload"), card.ConfirmText);
         Assert.Equal(Loc.T("Library.Site.ConfirmUploadYes"), card.ConfirmLabel);
         vm.Library.Confirm.Execute(card);
         await vm.LibraryIdleAsync();

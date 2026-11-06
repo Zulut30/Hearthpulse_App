@@ -1,8 +1,8 @@
 {
   "OpponentDeck.Title": "Likely deck",
   "OpponentDeck.Setting": "Likely deck",
-  "OpponentDeck.SettingTip": "The most played Hearthpulse data meta list of the opponent's likely archetype, with the cards it has already played marked. Ranked and casual Constructed games only; only cards the opponent played face up from its own deck count.",
-  "OpponentDeck.Source": "Hearthpulse data · {0} · {1}",
+  "OpponentDeck.SettingTip": "The most played list of the opponent's likely archetype, with the cards it played marked. Ranked and casual games only.",
+  "OpponentDeck.Source": "{0} · {1}",
   "OpponentDeck.CoreOnly": "No lists: the archetype's core cards, one copy each",
   "OpponentDeck.OffList": "Not in the list · {0}",
   "OpponentDeck.More": "+{0} more"

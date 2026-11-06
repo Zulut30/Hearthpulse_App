@@ -51,8 +51,6 @@ public sealed class ViewModelContractTests
         Assert.Equal(wpf.OverviewTiles.Select(t => (t.Label, t.Detail)), ava.OverviewTiles.Select(t => (t.Label, t.Detail)));
         Assert.Equal(Loc.T("Main.Tile.SoloRating"), wpf.OverviewTiles[0].Label);
         Assert.Equal(string.Empty, wpf.OverviewTiles[1].Detail);
-        Assert.Equal(Loc.P("Main.History.SubtitlePc", 401), wpf.HistorySubtitle);
-        Assert.Equal(Loc.P("Main.History.SubtitleDevice", 400), ava.HistorySubtitle);
     }
 
     [Fact]
@@ -265,8 +263,6 @@ public sealed class ViewModelContractTests
         Assert.Equal((ava.ArenaMode, ava.ArenaSliceNote), (wpf.ArenaMode, wpf.ArenaSliceNote));
         Assert.Equal("Normal Arena", ava.ArenaMode);
         Assert.Equal("from Underground Arena games", ava.ArenaSliceNote);
-        // One footer: the source, then which games the scores come from.
-        Assert.Equal((wpf.ArenaSource, "Scores: Hearthpulse data · from Underground Arena games"), (ava.ArenaSource, ava.ArenaSource));
         // A scored card that is not the best pick needs no caption under its number.
         Assert.Equal(string.Empty, ava.ArenaPicks[1].Caption);
         // The letters are explained once, on the card scale while cards are offered.
@@ -357,7 +353,7 @@ public sealed class ViewModelContractTests
         Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)));
         static string P(double share) => share.ToString("P0", CultureInfo.CurrentCulture);
         Assert.Equal([("CARD_A", P(0.6), P(0.583) + " won", true, false), ("CARD_B", P(0.222), P(0.375) + " won", false, false), ("CARD_C", "—", "", false, false), ("CARD_D", P(0.5), P(0.4) + " won", false, true)], rows);
-        Assert.Equal("Legend · Hearthpulse data · faded: few games", wpf.CardPoolPicksNote);
+        Assert.Equal("Faded: few games", wpf.CardPoolPicksNote);
         Assert.Equal(wpf.CardPoolPicksNote, ava.CardPoolPicksNote);
 
         // The pick is made: the session hands no hint any more, and the rows go.

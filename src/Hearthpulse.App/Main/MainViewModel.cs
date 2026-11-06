@@ -10,9 +10,6 @@ namespace Hearthpulse.App.Main;
 
 public sealed partial class MainViewModel
 {
-    /// <summary>Under the History title: how many games are kept, and that they stay on this PC.</summary>
-    public string HistorySubtitle => Loc.P("Main.History.SubtitlePc", HistoryCount);
-
     // ---- stats pool -----------------------------------------------------------------------
 
     private bool _poolAvailable;

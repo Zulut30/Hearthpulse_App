@@ -78,7 +78,7 @@ public sealed class BrawlPageTests
         Assert.Equal(0, vm.BrawlClasses[2].WinMark);
 
         Assert.Equal(Loc.F("Brawl.Classes.Unclassed", Loc.P("Stats.Games", 1240)), vm.BrawlUnclassed);
-        Assert.Equal("Hearthpulse data · " + Loc.P("Stats.Games", 28515), vm.BrawlSource);
+        Assert.Equal(Loc.P("Stats.Games", 28515), vm.BrawlSource);
         Assert.False(vm.BrawlClassesLoading);
         Assert.False(vm.BrawlClassesNone);
 
@@ -129,7 +129,7 @@ public sealed class BrawlPageTests
         unclassed.SetBrawlMeta(new BrawlMeta([], 300, 300));
         await Until(() => unclassed.BrawlClassesNone);
         Assert.Equal(Loc.F("Brawl.Classes.Unclassed", Loc.P("Stats.Games", 300)), unclassed.BrawlUnclassed);
-        Assert.Equal("Hearthpulse data · " + Loc.P("Stats.Games", 300), unclassed.BrawlSource);
+        Assert.Equal(Loc.P("Stats.Games", 300), unclassed.BrawlSource);
         Assert.False(unclassed.BrawlClassesUnavailable);
     }
 

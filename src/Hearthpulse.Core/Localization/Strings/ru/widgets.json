@@ -7,7 +7,7 @@
   "Widgets.Archetype.MayHold": "Может ещё быть в колоде",
   "Widgets.Archetype.Hide": "Скрыть до конца игры",
   "Widgets.Archetype.Setting": "Архетип соперника",
-  "Widgets.Archetype.SettingTip": "Вероятный архетип соперника и карты, которые обычно есть в его списках. Считается только по картам, которые соперник разыграл открыто, и мете Hearthpulse data для формата игры",
+  "Widgets.Archetype.SettingTip": "Вероятный архетип соперника по картам, которые он разыграл, и типичные карты его списков.",
   "Widgets.Ladder.Panel": "Сессия ладдера",
   "Widgets.Ladder.Title": "Сессия ладдера",
   "Widgets.Ladder.Standard": "Стандартный",

@@ -27,7 +27,6 @@
     <Border Classes="card">
         <StackPanel>
             <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,14" />
-            <TextBlock Text="{i:Loc Settings.Note.Account}" Classes="caption cardNote" Margin="0,-6,0,8" />
             <!-- Signed in -->
             <StackPanel IsVisible="{Binding AccountShowProfile}">
                 <TextBlock Text="{i:Loc Settings.Account.SignedInAs}" Classes="caption" Margin="0,4,0,2" />
