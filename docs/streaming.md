@@ -87,8 +87,9 @@ No Twitch secret is in the app: it signs in with the account's own token (device
   Anything else (no game, Battlegrounds, the Arena draft, a Brawl whose deck is unknown) is `{"mode":"none"}`. Never
   the hand, the deck order or anything about the opponent.
 - **When** (`Core/Twitch/TwitchPublisher.cs`, built in `Core/Hosting/AppServices.cs` on every live snapshot): only with
-  the switch on and signed in. Each new state waits *delay* seconds in a queue (to match the stream delay set in OBS;
-  a shorter delay lets the newest state replace older ones still waiting), then goes out only if it differs from the
+  the switch on and signed in. Each new state waits *delay* seconds in a queue (at least OBS's Stream Delay: the
+  extension only holds back what it shows, the data reaches viewers before the video, so this delay is the only
+  guard against stream sniping; a shorter delay lets the newest state replace older ones still waiting), then goes out only if it differs from the
   last one sent, at most once a second (the last of a burst). An unchanged deck is sent again every 15 s, so the site
   keeps a fresh copy for viewers who join; `none` goes once. `seq` starts at the Unix time in milliseconds when the app
   starts and grows by one per send, so it also grows across restarts. Switching off clears the channel with one
