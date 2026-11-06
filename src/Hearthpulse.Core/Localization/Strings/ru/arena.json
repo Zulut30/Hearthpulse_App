@@ -42,16 +42,16 @@
   "Arena.Types.Spells": "{0:N0} заклинание|{0:N0} заклинания|{0:N0} заклинаний",
   "Arena.Types.Weapons": "{0:N0} оружие|{0:N0} оружия|{0:N0} оружий",
   "Arena.Types.Locations": "{0:N0} локация|{0:N0} локации|{0:N0} локаций",
-  "Arena.Mode.Underground": "Подземная Арена",
+  "Arena.Mode.Underground": "Подпольная арена",
   "Arena.Mode.Normal": "Обычная Арена",
-  "Arena.Slice.Underground": "по играм Подземной Арены",
+  "Arena.Slice.Underground": "по играм Подпольной арены",
   "Arena.Slice.Normal": "по играм обычной Арены",
   "Arena.Page.Tabs": "Какая арена",
   "Arena.Page.TabArena": "Арена",
   "Arena.Page.TabArenaTip": "Обычная Арена: забег до 12 побед или 3 поражений",
-  "Arena.Page.TabUnderground": "Подземная арена",
-  "Arena.Page.TabUndergroundTip": "Подземная арена: забег до 12 побед или 5 поражений, своя статистика",
-  "Arena.Page.CommunityNoSplit": "Нет данных: общий винрейт классов есть только для обычной Арены, смешивать его с Подземной не будем.",
-  "Arena.Page.DeckOtherSliceUnderground": "Оценки карт сейчас есть только по Подземной арене: колоду обычной Арены по ним не оцениваем.",
-  "Arena.Page.DeckOtherSliceRegular": "Оценки карт сейчас есть только по обычной Арене: колоду Подземной по ним не оцениваем."
+  "Arena.Page.TabUnderground": "Подпольная арена",
+  "Arena.Page.TabUndergroundTip": "Подпольная арена: забег до 12 побед или 5 поражений, своя статистика",
+  "Arena.Page.CommunityNoSplit": "Для Подпольной арены винрейта классов пока нет.",
+  "Arena.Page.DeckOtherSliceUnderground": "Оценки карт сейчас есть только по Подпольной арене: колоду обычной Арены по ним не оцениваем.",
+  "Arena.Page.DeckOtherSliceRegular": "Оценки карт сейчас есть только по обычной Арене: колоду Подпольной по ним не оцениваем."
 }

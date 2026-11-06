@@ -303,7 +303,7 @@
   "Main.Bg.HeroTierFrom": "ср. место от {1} · {0:N0} герой|ср. место от {1} · {0:N0} героя|ср. место от {1} · {0:N0} героев",
   "Main.Bg.TrinketTierUnder": "ср. место до {1} · {0:N0} безделушка|ср. место до {1} · {0:N0} безделушки|ср. место до {1} · {0:N0} безделушек",
   "Main.Bg.TrinketTierFrom": "ср. место от {1} · {0:N0} безделушка|ср. место от {1} · {0:N0} безделушки|ср. место от {1} · {0:N0} безделушек",
-  "Main.Mode.Underground": "Подземная арена",
-  "Main.History.Underground": "Подземная",
-  "Main.History.UndergroundTip": "Игры Подземной арены"
+  "Main.Mode.Underground": "Подпольная арена",
+  "Main.History.Underground": "Подпольная",
+  "Main.History.UndergroundTip": "Игры Подпольной арены"
 }
