@@ -112,6 +112,11 @@ internal static partial class WpfBench
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"[pages] {what,-40} {elapsed,8:N0} ms ready, all built {built,6:N0} ms (input waited ≤ {worst.TotalMilliseconds,3:N0} ms)  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB (UI {(GC.GetAllocatedBytesForCurrentThread() - mine) / 1048576.0,5:N1})  gen0 {GC.CollectionCount(0) - gen0,2} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds,4:N0} ms  visuals {now,6:N0} ({now - elements:+#,0;-#,0;0})  SettingsChanged {settingsChanged - changed}  extent {PageExtent(main)}"));
             elements = now;
+            if (Environment.GetEnvironmentVariable("HP_BENCH_VISUALS") is { Length: > 0 } dump && what.Contains(dump, StringComparison.Ordinal))
+            {
+                VisualsByBlock(main);
+            }
+
             SettleArt(what);
         }
 
@@ -248,5 +253,42 @@ internal static partial class WpfBench
         settings.SettingsTab = savedTab;
         Close(main, settings);
         GC.KeepAlive(app);
+    }
+    /// <summary>HP_BENCH_VISUALS=step: the shown visuals counted by the nearest named element above them, and by type.</summary>
+    internal static void VisualsByBlock(System.Windows.Media.Visual root)
+    {
+        var blocks = new Dictionary<string, int>(StringComparer.Ordinal);
+        var types = new Dictionary<string, int>(StringComparer.Ordinal);
+        void Walk(DependencyObject node, string block)
+        {
+            if (node is UIElement { IsVisible: false })
+            {
+                return;
+            }
+
+            if (node is FrameworkElement { Name.Length: > 0 } named && named.TemplatedParent is null)
+            {
+                block = named.Name;
+            }
+
+            blocks[block] = blocks.GetValueOrDefault(block) + 1;
+            var type = node.GetType().Name;
+            types[type] = types.GetValueOrDefault(type) + 1;
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(node); i++)
+            {
+                Walk(System.Windows.Media.VisualTreeHelper.GetChild(node, i), block);
+            }
+        }
+
+        Walk(root, "(window)");
+        foreach (var (name, count) in blocks.OrderByDescending(b => b.Value).Take(25))
+        {
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[visuals] block {name,-40} {count,6:N0}"));
+        }
+
+        foreach (var (name, count) in types.OrderByDescending(b => b.Value).Take(20))
+        {
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[visuals] type  {name,-40} {count,6:N0}"));
+        }
     }
 }
