@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 24
       - name: Pool API validation
-        run: node --test server/pool/test/validation.test.mjs
+        run: node --test server/pool/test/validation.test.mjs server/pool/test/events.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
