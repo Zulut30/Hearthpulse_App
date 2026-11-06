@@ -1,8 +1,11 @@
 using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
@@ -49,8 +52,58 @@ public partial class ShareWindow : Window
     /// <summary>The picture control on screen (for the PNG and the render scenes).</summary>
     internal Control Card => (Control)CardHost.Content!;
 
-    /// <summary>The picture as PNG, twice its size (as the turn picture, at most 4096 px a side).</summary>
-    internal byte[] Encode() => MatchView.Encode(Card);
+    /// <summary>
+    /// The picture as PNG at twice its size (the turn picture's scale, at most 4096 px a side), laid on the theme's
+    /// background: a card a fraction of a pixel high would leave its last row half see-through, a dark line once pasted.
+    /// </summary>
+    internal byte[] Encode()
+    {
+        var card = Card;
+        var size = card.Bounds.Size;
+        var scale = MatchViewModel.StepExportScaleFor(size.Width, size.Height);
+        var pixels = new PixelSize(Math.Max(1, (int)Math.Ceiling(size.Width * scale)), Math.Max(1, (int)Math.Ceiling(size.Height * scale)));
+        var dpi = new Vector(96 * scale, 96 * scale);
+        using var drawn = new RenderTargetBitmap(pixels, dpi);
+        drawn.Render(card);
+        using var opaque = new WriteableBitmap(pixels, dpi, PixelFormat.Bgra8888, AlphaFormat.Premul);
+        using (var buffer = opaque.Lock())
+        {
+            drawn.CopyPixels(buffer);
+            var bg = (ThemeBrushes.Get("Bg") as ISolidColorBrush)?.Color ?? Colors.Black;
+            OverBackground(buffer.Address, buffer.RowBytes, pixels, bg);
+        }
+
+        using var output = new MemoryStream();
+        opaque.Save(output, new PngBitmapEncoderOptions());
+        return output.ToArray();
+    }
+
+    /// <summary>Lays premultiplied BGRA pixels over an opaque colour: every pixel ends fully opaque.</summary>
+    private static void OverBackground(IntPtr address, int stride, PixelSize size, Color background)
+    {
+        var row = new byte[stride];
+        for (var y = 0; y < size.Height; y++)
+        {
+            var at = address + (y * stride);
+            System.Runtime.InteropServices.Marshal.Copy(at, row, 0, stride);
+            for (var x = 0; x < size.Width; x++)
+            {
+                var i = x * 4;
+                var rest = 255 - row[i + 3];
+                if (rest == 0)
+                {
+                    continue;
+                }
+
+                row[i] = (byte)(row[i] + (background.B * rest / 255));
+                row[i + 1] = (byte)(row[i + 1] + (background.G * rest / 255));
+                row[i + 2] = (byte)(row[i + 2] + (background.R * rest / 255));
+                row[i + 3] = 255;
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(row, 0, at, stride);
+        }
+    }
 
     private Control BuildCard() => _model.Kind switch
     {

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.App.Main.Match;
 using Hearthpulse.Core;
@@ -36,8 +37,35 @@ public partial class ShareWindow : Window
     /// <summary>The picture control on screen (for the PNG and the render scenes).</summary>
     internal FrameworkElement Card => (FrameworkElement)CardHost.Content;
 
-    /// <summary>The picture as PNG, twice its size (as the turn picture, at most 4096 px a side).</summary>
-    internal byte[] Encode() => MatchView.Encode(Card);
+    /// <summary>
+    /// The picture as PNG at twice its size (the turn picture's scale, at most 4096 px a side), on the theme's background:
+    /// a card a fraction of a pixel high (layout rounding at 125 or 150 %) would leave its last row half see-through,
+    /// a dark line once pasted as a bitmap.
+    /// </summary>
+    internal byte[] Encode()
+    {
+        var card = Card;
+        card.UpdateLayout();
+        var size = new Rect(0, 0, card.ActualWidth, card.ActualHeight);
+        var scale = MatchViewModel.StepExportScaleFor(size.Width, size.Height);
+        var width = Math.Max(1, (int)Math.Ceiling(size.Width * scale));
+        var height = Math.Max(1, (int)Math.Ceiling(size.Height * scale));
+        var visual = new DrawingVisual();
+        using (var context = visual.RenderOpen())
+        {
+            context.DrawRectangle((Brush)FindResource("Bg"), null, new Rect(0, 0, width / scale, height / scale));
+            var brush = new VisualBrush(card) { Stretch = Stretch.None, Viewbox = size, ViewboxUnits = BrushMappingMode.Absolute, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
+            context.DrawRectangle(brush, null, size);
+        }
+
+        var bitmap = new RenderTargetBitmap(width, height, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var output = new MemoryStream();
+        encoder.Save(output);
+        return output.ToArray();
+    }
 
     private FrameworkElement BuildCard() => _model.Kind switch
     {
