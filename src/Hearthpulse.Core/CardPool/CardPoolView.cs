@@ -42,7 +42,7 @@ public sealed record PoolEntry(
     string Type,
     string Rarity,
     string CardClass,
-    int MetaGames)
+    int MetaGames) : IImmutableView
 {
     /// <summary>The shown mechanics this card has (tags of <see cref="PoolKeywords.Shown"/>), for the list filters.</summary>
     public IReadOnlyList<string> Mechanics { get; init; } = [];

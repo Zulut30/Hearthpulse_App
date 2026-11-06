@@ -15,7 +15,7 @@ public sealed record MatchHeader(
     string Result,
     string ResultKey,
     MatchPlayerView Local,
-    MatchPlayerView Opponent)
+    MatchPlayerView Opponent) : IImmutableView
 {
     /// <summary>The game was won (Constructed) or placed in the top half (Battlegrounds).</summary>
     public bool Won => ResultKey == "Win";
@@ -26,16 +26,16 @@ public sealed record MatchHeader(
     public IReadOnlyList<MatchFact> Facts { get; init; } = [];
 }
 
-public sealed record MatchPlayerView(string Name, string HeroCardId, string Hero, string Class, string Rank);
+public sealed record MatchPlayerView(string Name, string HeroCardId, string Hero, string Class, string Rank) : IImmutableView;
 
-public sealed record MatchFact(string Label, string Value);
+public sealed record MatchFact(string Label, string Value) : IImmutableView;
 
 /// <summary>
 /// A card at one step, ready to show. <see cref="CardBack"/> cards have no id and no name. A <see cref="Revealed"/> card
 /// was a card back at this step and is shown face up because the log revealed it later in the game (match page of a
 /// finished game only).
 /// </summary>
-public sealed record MatchCardView(string? CardId, string Name, bool CardBack)
+public sealed record MatchCardView(string? CardId, string Name, bool CardBack) : IImmutableView
 {
     public bool Revealed { get; init; }
 
@@ -110,7 +110,7 @@ public sealed record MatchSideView(
     IReadOnlyList<MatchCardView> Hand,
     IReadOnlyList<MatchCardView> Secrets,
     string Mana,
-    string Deck)
+    string Deck) : IImmutableView
 {
     /// <summary>The health on the portrait's badge, next to a heart; the armor has its own value next to a shield.</summary>
     public string HealthText => Health.ToString(CultureInfo.CurrentCulture);
@@ -155,7 +155,7 @@ public sealed record MatchSideView(
 }
 
 /// <summary>A step of the replay as shown: the table from the chosen side and what happened.</summary>
-public sealed record MatchStepView(int Index, int Count, string Turn, string Action, string Detail, bool LocalActs, MatchSideView Top, MatchSideView Bottom)
+public sealed record MatchStepView(int Index, int Count, string Turn, string Action, string Detail, bool LocalActs, MatchSideView Top, MatchSideView Bottom) : IImmutableView
 {
     /// <summary>
     /// The step's acting card and its target by replay id (plan R2: the view draws an arrow between them); 0 when none
@@ -175,7 +175,7 @@ public sealed record MatchStepView(int Index, int Count, string Turn, string Act
 /// A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not. Equal by value,
 /// cards included: the player's list keeps the row of a choice shown again on the next step instead of building it anew.
 /// </summary>
-public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards)
+public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards) : IImmutableView
 {
     /// <summary>The Battlegrounds hero choice: the views show the options as round hero portraits, not as cards.</summary>
     public bool IsHero { get; init; }
@@ -187,14 +187,14 @@ public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> 
 }
 
 /// <summary>A turn chip in the turn strip.</summary>
-public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);
+public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame) : IImmutableView;
 
 /// <summary>An action in the turn's list (clicking it goes to its step).</summary>
 /// <summary>
 /// A row of the game's event feed (plan R2): a turn's header (<see cref="Header"/>, its text in <see cref="Text"/>), or an
 /// action of that turn, which goes to its step.
 /// </summary>
-public sealed record MatchFeedRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current, bool Header)
+public sealed record MatchFeedRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current, bool Header) : IImmutableView
 {
     /// <summary>The action is a key card's biggest swing (as <see cref="MatchActionRow.Key"/>).</summary>
     public bool Key { get; init; }
@@ -205,7 +205,7 @@ public sealed record MatchFeedRow(int Frame, string Icon, string Text, bool Loca
     public bool Mulligan { get; init; }
 }
 
-public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current)
+public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current) : IImmutableView
 {
     /// <summary>The action is a key card's biggest swing (<see cref="KeyCardRow"/>): the row is marked.</summary>
     public bool Key { get; init; }
@@ -215,7 +215,7 @@ public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Lo
 }
 
 /// <summary>A card of a deck list: ours with draw/play marks, or one the opponent showed with its turn.</summary>
-public sealed record MatchDeckRow(string CardId, string Name, int Cost, string Count, string Note, bool Used)
+public sealed record MatchDeckRow(string CardId, string Name, int Cost, string Count, string Note, bool Used) : IImmutableView
 {
     /// <summary>The card's rarity ("COMMON", "RARE", "EPIC", "LEGENDARY", "FREE"), for the row's rarity edge.</summary>
     public string Rarity { get; init; } = string.Empty;
@@ -232,6 +232,6 @@ public sealed record MatchRoundView(
     string OpponentHero,
     IReadOnlyList<MatchCardView> Board,
     IReadOnlyList<MatchCardView> OpponentBoard,
-    IReadOnlyList<MatchCardView> Shop);
+    IReadOnlyList<MatchCardView> Shop) : IImmutableView;
 
-public sealed record MatchLobbyRow(string HeroCardId, string Hero, string Place, bool Local);
+public sealed record MatchLobbyRow(string HeroCardId, string Hero, string Place, bool Local) : IImmutableView;

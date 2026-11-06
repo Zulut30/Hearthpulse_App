@@ -8,6 +8,7 @@ using System.Globalization;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -15,7 +16,7 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-public sealed record MetaChoice(string Key, string Label, bool Selected);
+public sealed record MetaChoice(string Key, string Label, bool Selected) : IImmutableView;
 
 /// <summary>
 /// One archetype of the Standard/Wild tier list, as hearthpulse.net shows it: tier, class portrait, name (the English
@@ -38,7 +39,7 @@ public sealed record MetaArchetypeRow(
     double PopularityFraction,
     string Games,
     string First,
-    string Coin) : INotifyPropertyChanged
+    string Coin) : IImmutableView, INotifyPropertyChanged
 {
     private bool _isSelected;
 
@@ -63,30 +64,30 @@ public sealed record MetaArchetypeRow(
 }
 
 /// <summary>One tier of the tier list: "Tier S", its bound ("from 53 % · 3 archetypes") and its rows (none is a valid tier).</summary>
-public sealed record MetaTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaArchetypeRow> Rows)
+public sealed record MetaTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaArchetypeRow> Rows) : IImmutableView
 {
     public bool IsEmpty => Rows.Count == 0;
 }
 
 /// <summary>The sort arrow of each sortable column ("▼", "▲" or empty), so a header shows how the table is ordered.</summary>
-public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games);
+public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games) : IImmutableView;
 
-public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code);
+public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code) : IImmutableView;
 
 /// <summary>One card of the mulligan guide; <see cref="Seen"/> is its tooltip ("Seen in 1,234 opening hands").</summary>
-public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen);
+public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen) : IImmutableView;
 
 /// <summary>A column of the matchup heat map: the opponent archetype's portrait, short name and full name as tooltip.</summary>
-public sealed record MatchupHead(string Name, string HeroId, string Tip);
+public sealed record MatchupHead(string Name, string HeroId, string Tip) : IImmutableView;
 
 /// <summary>
 /// One cell of the heat map: the win rate as a number, <see cref="Edge"/> (win rate − 50 %) for the colour and
 /// <see cref="Heat"/> for the tint's opacity (up to 0.6, so the number stays readable); no games leaves it blank.
 /// </summary>
-public sealed record MatchupCellView(string Text, double Edge, double Heat, string Tip);
+public sealed record MatchupCellView(string Text, double Edge, double Heat, string Tip) : IImmutableView;
 
 /// <summary>One archetype of the heat map against every column.</summary>
-public sealed record MatchupMatrixRow(string Name, string HeroId, string WinRate, double Edge, IReadOnlyList<MatchupCellView> Cells);
+public sealed record MatchupMatrixRow(string Name, string HeroId, string WinRate, double Edge, IReadOnlyList<MatchupCellView> Cells) : IImmutableView;
 
 public sealed partial class MainViewModel
 {

@@ -5,6 +5,7 @@ using Hearthpulse.UI.Controls;
 #endif
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main.Decks;
@@ -21,7 +22,7 @@ public sealed record DeckGamePoint(
     string Detail,
     string When,
     string SoFar,
-    string OpponentHeroCardId) : IChartValue
+    string OpponentHeroCardId) : IImmutableView, IChartValue
 {
     /// <summary>The result as the player reads it; <see cref="Result"/> keeps the stored value for the colour.</summary>
     public string ResultText => DeckDetailsViewModel.ResultText(Result);
@@ -39,7 +40,7 @@ public sealed record DeckMatchupRow(
     bool IsArchetype,
     bool Selected,
     bool Few,
-    int GameCount = 0)
+    int GameCount = 0) : IImmutableView
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
     public int WinSign => WinRate == "—" ? 0 : MetaTiers.WinRateSign(WinFraction);
@@ -61,7 +62,7 @@ public sealed record DeckMatchupRow(
 }
 
 /// <summary>One cost of the main version's mana curve ("0" … "7+"): cards at that cost and the bar's share of the tallest.</summary>
-public sealed record ManaCurveBar(string Label, int Count, double Fraction)
+public sealed record ManaCurveBar(string Label, int Count, double Fraction) : IImmutableView
 {
     /// <summary>No card at this cost: the stub and its count are dimmed.</summary>
     public bool Empty => Count == 0;
@@ -71,7 +72,7 @@ public sealed record ManaCurveBar(string Label, int Count, double Fraction)
 /// A card of the main version as the deck tracker lists it: cost gem, name over its art, rarity edge and the copies
 /// ("2", "★" for a legendary, empty for one copy).
 /// </summary>
-public sealed record DeckListRow(string CardId, string Name, int Cost, string Rarity, string Count)
+public sealed record DeckListRow(string CardId, string Name, int Cost, string Rarity, string Count) : IImmutableView
 {
     /// <summary>The star then takes the legendary colour.</summary>
     public bool Legendary => Rarity == "LEGENDARY";
@@ -102,7 +103,7 @@ public sealed record DeckCardStatRow(
     string Played,
     string PlayedWinRate,
     int PlayedSign,
-    string AverageTurn)
+    string AverageTurn) : IImmutableView
 {
     /// <summary>The raw numbers behind the columns, for sorting and the bars (null: no value).</summary>
     public DeckCardNumbers Numbers { get; init; } = DeckCardNumbers.None;
@@ -165,13 +166,13 @@ public sealed record DeckCardNumbers(
     double? DrawnWinRate,
     int Played,
     double? PlayedWinRate,
-    double? AverageTurn)
+    double? AverageTurn) : IImmutableView
 {
     public static DeckCardNumbers None { get; } = new(0, null, null, null, null, null, 0, null, 0, null, null);
 }
 
 /// <summary>A card whose copies differ between two lists: its tile, name and "+2" / "−1" (the sign colours it).</summary>
-public sealed record CardDiffRow(string CardId, string Name, string Count, int Sign);
+public sealed record CardDiffRow(string CardId, string Name, string Count, int Sign) : IImmutableView;
 
 /// <summary>
 /// A version of the deck with its own results and its cards against the main version. <see cref="Few"/>: too few games
@@ -190,7 +191,7 @@ public sealed record DeckVersionRow(
     string Changes,
     IReadOnlyList<CardDiffRow> Diff,
     bool DiffOpen,
-    bool CanManage)
+    bool CanManage) : IImmutableView
 {
     public bool CanMakeMain => CanManage && !IsMain;
 
@@ -205,7 +206,7 @@ public sealed record DeckVersionRow(
 /// Another deck that looks like a version of this one. On the deck page it also has its cards against this deck's main
 /// version (<see cref="Changes"/> "+2 / −2 cards", <see cref="Diff"/>), shown while <see cref="DiffOpen"/>.
 /// </summary>
-public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string Title, string Detail)
+public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string Title, string Detail) : IImmutableView
 {
     public string Changes { get; init; } = string.Empty;
 
@@ -215,10 +216,10 @@ public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string
 }
 
 /// <summary>A deck of the same class and format that can be added to this one by hand (most alike first).</summary>
-public sealed record MergeCandidateRow(string Key, string Name, string HeroCardId, string Detail, string Shared, bool Dismissed, bool Selected);
+public sealed record MergeCandidateRow(string Key, string Name, string HeroCardId, string Detail, string Shared, bool Dismissed, bool Selected) : IImmutableView;
 
 /// <summary>A recent game of the deck.</summary>
-public sealed record DeckGameRow(string Key, string When, string Result, string Opponent, string OpponentHeroCardId, string Detail)
+public sealed record DeckGameRow(string Key, string When, string Result, string Opponent, string OpponentHeroCardId, string Detail) : IImmutableView
 {
     /// <summary>The result as the player reads it; <see cref="Result"/> keeps the stored value for the colour.</summary>
     public string ResultText => DeckDetailsViewModel.ResultText(Result);

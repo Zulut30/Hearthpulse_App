@@ -23,7 +23,7 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>A minion of the final board in the rating chart's hover card.</summary>
-public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden);
+public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden) : IImmutableView;
 
 /// <summary>A Battlegrounds game on the rating chart, with what its hover card shows.</summary>
 public sealed record BgGamePoint(
@@ -36,7 +36,7 @@ public sealed record BgGamePoint(
     string Delta,
     int DeltaValue,
     string When,
-    IReadOnlyList<BoardMinionRow> Board) : IChartValue;
+    IReadOnlyList<BoardMinionRow> Board) : IImmutableView, IChartValue;
 
 /// <summary>A ranked game on the rank chart, with what its hover card shows (<see cref="Result"/> is the saved "Win"/"Loss" for its colour).</summary>
 public sealed record CtGamePoint(
@@ -47,7 +47,7 @@ public sealed record CtGamePoint(
     string Result,
     string ResultText,
     string Detail,
-    string When) : IChartValue;
+    string When) : IImmutableView, IChartValue;
 
 /// <summary>One hero in "Hero performance": your numbers, the community's (when known) and the difference.</summary>
 public sealed record BgHeroPerfRow(
@@ -65,13 +65,13 @@ public sealed record BgHeroPerfRow(
     VsGlobal AverageVs,
     string PickRate,
     double PickFraction,
-    VsGlobal PickVs);
+    VsGlobal PickVs) : IImmutableView;
 
 /// <summary>
 /// A "vs Global" difference: the text (e.g. "0.42"), an arrow for its direction and whether it is good for the
 /// player (+1), bad (-1) or neutral (0). <see cref="Shown"/> is false when there is no community number.
 /// </summary>
-public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
+public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign) : IImmutableView
 {
     public static VsGlobal None { get; } = new(false, string.Empty, string.Empty, 0);
 
@@ -96,7 +96,7 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 }
 
 /// <summary>A group in a My Stats table (class, opponent class, archetype, game length).</summary>
-public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0)
+public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0) : IImmutableView
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
     public int WinSign => WinRate == "—" ? 0 : MetaTiers.WinRateSign(WinFraction);
@@ -128,7 +128,7 @@ public sealed record StatGroupRow(string Label, string CardId, string Games, str
 /// A final place in "Where you finish": "1st", its share of the games, the bar against the most common place and
 /// whether it counts as a top finish (top 4, top 2 in Duos) for the bar's colour.
 /// </summary>
-public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip)
+public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip) : IImmutableView
 {
     /// <summary>No game ended on this place: the row sinks back and shows no "0 %" (D3, A06).</summary>
     public bool Empty => Fraction <= 0;
@@ -142,7 +142,7 @@ public sealed record BgPlaceRow(string Place, string Share, double Fraction, boo
 
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
-public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "")
+public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "") : IImmutableView
 {
     /// <summary>The run's key (<see cref="ArenaRun.Key"/>): its rewards are kept under it.</summary>
     public string Key { get; init; } = string.Empty;

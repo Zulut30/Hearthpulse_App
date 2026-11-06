@@ -16,28 +16,28 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>One average of the pool's line "Mana 6 · Attack 4.2 · Health 5.1": the stat's name and its value.</summary>
-public sealed record PoolAverage(string Label, string Value);
+public sealed record PoolAverage(string Label, string Value) : IImmutableView;
 
 /// <summary>
 /// One pool card played most in meta decks, drawn like a tracker row: cost gem, the whole name over a strip of art and
 /// its share of the meta-deck games of the pool's listed cards.
 /// </summary>
-public sealed record PoolTopRow(string CardId, string Name, int Cost, string Rarity, string ShareText);
+public sealed record PoolTopRow(string CardId, string Name, int Cost, string Rarity, string ShareText) : IImmutableView;
 
 /// <summary>One card of this game the hovered card looks back at, as a tracker row: cost gem, name, "×2" when it counts twice.</summary>
-public sealed record PoolListRow(string CardId, string Name, int Cost, string Rarity, string CountText);
+public sealed record PoolListRow(string CardId, string Name, int Cost, string Rarity, string CountText) : IImmutableView;
 
 /// <summary>One Excavate tier after the next one, on one quiet line: "T3  Collapse!, Motherlode Drake, …".</summary>
-public sealed record ExcavateTierRow(string Label, string Rarity, string Names);
+public sealed record ExcavateTierRow(string Label, string Rarity, string Names) : IImmutableView;
 
 /// <summary>One mechanic of the pool: label and share.</summary>
-public sealed record PoolMechanicRow(string Label, string PercentText);
+public sealed record PoolMechanicRow(string Label, string PercentText) : IImmutableView;
 
 /// <summary>A mechanic filter chip of the pool browser, or (Section) one of the generator's pools.</summary>
-public sealed record PoolChipModel(string Key, string Label, bool Selected, bool Section = false);
+public sealed record PoolChipModel(string Key, string Label, bool Selected, bool Section = false) : IImmutableView;
 
 /// <summary>One row of the pool browser's card grid (up to three cards).</summary>
-public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
+public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards) : IImmutableView;
 
 /// <summary>
 /// One option of the player's open choice with what players did when it was offered (Hearthpulse data): the share of
@@ -46,7 +46,7 @@ public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
 /// <param name="FillWidth">The pick bar's filled width in overlay units (the track is a fixed width).</param>
 /// <param name="Top">The most taken option, clearly ahead of the others.</param>
 /// <param name="LowSample">The numbers rest on few games: the panel draws them faded.</param>
-public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top, bool LowSample);
+public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top, bool LowSample) : IImmutableView;
 
 /// <summary>
 /// The card pool: a compact panel (pool of the generator being discovered from or hovered in hand, about 300 x 250

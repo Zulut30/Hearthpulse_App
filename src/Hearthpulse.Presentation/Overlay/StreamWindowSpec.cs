@@ -25,7 +25,7 @@ public enum StreamWindowState
 /// <see cref="AppSettings.StreamWindows"/>), its name in the title, and its default and smallest size and default spot in
 /// device-independent pixels (design: the panel at scale 1 plus the window's margins of 8).
 /// </summary>
-public sealed record StreamWindowSpec(string Id, string NameKey, double Width, double Height, double MinWidth, double MinHeight, double Left, double Top)
+public sealed record StreamWindowSpec(string Id, string NameKey, double Width, double Height, double MinWidth, double MinHeight, double Left, double Top) : IImmutableView
 {
     /// <summary>The window's margin around the panel, each side.</summary>
     public const double Padding = 8;

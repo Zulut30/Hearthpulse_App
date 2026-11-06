@@ -17,10 +17,10 @@ namespace Hearthpulse.UI.Main.Match;
 #endif
 
 /// <summary>A hero power or trinket of a library card: the card (full card on hover) and its name.</summary>
-public sealed record LibraryChip(string CardId, string Tooltip);
+public sealed record LibraryChip(string CardId, string Tooltip) : IImmutableView;
 
 /// <summary>A minion of a Battlegrounds card's final board: attack and health badges under its portrait, golden, taunt, divine shield.</summary>
-public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip, int AttackValue = 0, int HealthValue = 0)
+public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip, int AttackValue = 0, int HealthValue = 0) : IImmutableView
 {
     /// <summary>The attack badge: the number, shortened from 1000 ("1,4k") so the board never cuts it.</summary>
     public string Attack => Short(AttackValue);
@@ -40,7 +40,7 @@ public sealed record LibraryMinion(string CardId, string Stats, bool Golden, boo
 /// <summary>
 /// The final board as one width shows it: the minions that fit whole and "+N" for the rest, its tooltip naming them.
 /// </summary>
-public sealed record LibraryBoardView(IReadOnlyList<LibraryMinion> Shown, string More, string MoreTip);
+public sealed record LibraryBoardView(IReadOnlyList<LibraryMinion> Shown, string More, string MoreTip) : IImmutableView;
 
 /// <summary>
 /// The parts of a Battlegrounds card read from its replay's header: up to 3 chips (hero powers, trinkets) and "+N" with
@@ -51,7 +51,7 @@ public sealed record LibrarySummary(
     IReadOnlyList<LibraryChip> Chips,
     string ChipsMore,
     string ChipsMoreTip,
-    IReadOnlyList<LibraryMinion> Board)
+    IReadOnlyList<LibraryMinion> Board) : IImmutableView
 {
     /// <summary>Chips shown before the rest goes into "+N".</summary>
     public const int Shown = 3;

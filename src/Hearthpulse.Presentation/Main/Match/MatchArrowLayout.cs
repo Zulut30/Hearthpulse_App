@@ -1,3 +1,4 @@
+using Hearthpulse.Core;
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main.Match;
 #else
@@ -33,7 +34,7 @@ public sealed record MatchArrow(
     MatchArrowPoint HeadLeft,
     MatchArrowPoint HeadRight,
     bool Attack,
-    bool Local);
+    bool Local) : IImmutableView;
 
 /// <summary>
 /// The arrow of the Constructed table in both UIs (<c>MatchArrowLayer</c>, plan R2, <c>docs/match-replay.md</c>): where an

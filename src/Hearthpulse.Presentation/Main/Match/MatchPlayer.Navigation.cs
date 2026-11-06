@@ -22,7 +22,7 @@ namespace Hearthpulse.UI.Main.Match;
 /// choice step), <see cref="Text"/> the entry ("Turn 7 · You"), <see cref="Tooltip"/> the stretch's full caption and
 /// <see cref="Look"/> its marker colour (<see cref="MatchTimelineLayout.MarkerBrush"/>).
 /// </summary>
-public sealed record MatchJumpRow(int FirstFrame, string Text, bool Mulligan, string Tooltip = "", MatchTimelineLook Look = MatchTimelineLook.Neutral)
+public sealed record MatchJumpRow(int FirstFrame, string Text, bool Mulligan, string Tooltip = "", MatchTimelineLook Look = MatchTimelineLook.Neutral) : IImmutableView
 {
     /// <summary>The stretch's first step: the list's entry on screen is the stretch holding the step.</summary>
     internal int Start { get; init; } = FirstFrame;
@@ -38,7 +38,7 @@ public sealed record MatchJumpRow(int FirstFrame, string Text, bool Mulligan, st
 }
 
 /// <summary>A bookmarked step: "Step 34 · turn 7"; <see cref="Current"/> is the step on screen.</summary>
-public sealed record MatchBookmarkRow(int Frame, string Text, bool Current = false);
+public sealed record MatchBookmarkRow(int Frame, string Text, bool Current = false) : IImmutableView;
 
 /// <summary>
 /// The player's jumps (<c>docs/match-replay.md</c>, plan R1): the "Turn" list (G), the mulligan (M), bookmarks on steps
