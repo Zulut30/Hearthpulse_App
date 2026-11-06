@@ -191,7 +191,7 @@ public sealed partial class MainViewModel
                 c.Games))
             .ToList();
         var unclassed = meta is { OtherGames: > 0 } ? Loc.F("Brawl.Classes.Unclassed", Loc.P("Stats.Games", meta.OtherGames)) : string.Empty;
-        var source = meta is { TotalGames: > 0 } ? HearthpulseData.Attribution + " · " + Loc.P("Stats.Games", meta.TotalGames) : string.Empty;
+        var source = meta is { TotalGames: > 0 } ? Loc.P("Stats.Games", meta.TotalGames) : string.Empty;
         var note = meta?.FetchedAt is { } fetched && DateTime.UtcNow - fetched > BrawlStaleAfter
             ? Loc.F("Brawl.Classes.NoteStale", fetched.ToLocalTime())
             : Loc.T("Brawl.Classes.Note");

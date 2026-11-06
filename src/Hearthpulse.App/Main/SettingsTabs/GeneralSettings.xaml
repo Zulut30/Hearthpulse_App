@@ -20,7 +20,6 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Language}" Style="{StaticResource CardNote}" />
                 <Grid DataContext="{Binding Settings}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -43,7 +42,6 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Theme}" Style="{StaticResource CardNote}" />
                 <TextBlock Text="{i:Loc Settings.Theme.Presets}" Style="{StaticResource SettingGroup}" Margin="0,0,0,10" />
                 <ItemsControl ItemsSource="{Binding Themes}" Focusable="False" Margin="0,0,-10,0">
                     <ItemsControl.ItemsPanel>
@@ -109,7 +107,6 @@
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.App}" Style="{StaticResource CardNote}" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Click="RaiseSettingClicked"
                           ToolTip="{i:Loc Settings.App.AutoUpdateTip}" Margin="0,0,0,14" />

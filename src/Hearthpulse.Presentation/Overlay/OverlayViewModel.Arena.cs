@@ -136,7 +136,7 @@ public sealed partial class OverlayViewModel
     /// <summary>Card types of the deck so far: "12 minions · 5 spells · 1 weapon"; empty before the first card.</summary>
     public string ArenaTypes { get => _arenaTypes; private set => Set(ref _arenaTypes, value); }
 
-    /// <summary>"from Underground Arena games" when the run is the other mode, else empty; part of <see cref="ArenaSource"/>.</summary>
+    /// <summary>"from Underground Arena games" when the run is the other mode, else empty; shown in the header tip.</summary>
     public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
 
     /// <summary>What the tier letters on screen mean: the class scale at the hero pick, the card scale after it.</summary>
@@ -147,11 +147,6 @@ public sealed partial class OverlayViewModel
     /// wraps in the middle of a number; empty before the hero is known.
     /// </summary>
     public IReadOnlyList<ArenaStat> ArenaClassStats { get => _arenaClassStats; private set => Set(ref _arenaClassStats, value); }
-
-    /// <summary>The panel's one footer: "Scores: Hearthpulse data", with "· from Underground Arena games" when the run is the other mode.</summary>
-    public string ArenaSource => string.IsNullOrEmpty(ArenaSliceNote)
-        ? Loc.F("Arena.Source", ArenaMeta.Attribution)
-        : Loc.F("Arena.Source", ArenaMeta.Attribution) + " · " + ArenaSliceNote;
 
     private void UpdateArena(ArenaDraftView? draft, AppSettings settings)
     {
@@ -241,7 +236,6 @@ public sealed partial class OverlayViewModel
         ArenaTierLegend = !draft.HasData ? string.Empty
             : draft.HeroPick ? Loc.T("Overlay.Tier.ArenaClasses")
             : Loc.T("Overlay.Tier.ArenaCards");
-        Raise(nameof(ArenaSource));
     }
 
     /// <summary>A hero: class win rate, its place among the classes and the 7+ wins share.</summary>

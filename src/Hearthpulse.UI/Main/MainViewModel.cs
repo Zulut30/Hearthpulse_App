@@ -11,9 +11,6 @@ public sealed partial record PlacementBar
 
 public sealed partial class MainViewModel
 {
-    /// <summary>Under the History title: how many games are kept, and that they stay on this device.</summary>
-    public string HistorySubtitle => Loc.P("Main.History.SubtitleDevice", HistoryCount);
-
     private static int CountHistory(IReadOnlyList<GameRecord> recent) => recent.Count(g => !g.IsAbandoned);
 
     private static bool UseTribeRows(BattlegroundsMeta meta) => false;

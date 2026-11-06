@@ -14,7 +14,7 @@
   "Stream.Tray.Mode": "Streamer mode",
   "Stream.Tray.Tip": "Hearthpulse · streamer mode",
   "Stream.Windows.Title": "Windows for OBS",
-  "Stream.Windows.Note": "Separate windows with overlay panels: add them to OBS as a Window Capture and place them in your scene. They show the same as the overlay and work even with the overlay off.",
+  "Stream.Windows.Note": "Overlay panels as separate windows for OBS: add them as a Window Capture.",
   "Stream.Windows.Group": "Windows",
   "Stream.Window.Title": "Hearthpulse — {0}",
   "Stream.Window.Deck": "Deck",

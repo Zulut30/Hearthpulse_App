@@ -26,7 +26,6 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Language}" Classes="caption cardNote" />
                 <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyChoice) -->
                 <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                     <TextBlock Text="{i:Loc Settings.Language.Label}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Language.Caption}" />
@@ -51,7 +50,6 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Theme}" Classes="caption cardNote" />
                 <TextBlock Text="{i:Loc Settings.Theme.Presets}" Classes="label settingGroup" Margin="0,0,0,10" />
                 <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,0">
                     <ItemsControl.ItemsPanel>
@@ -105,7 +103,6 @@
         <Border Classes="card">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.App}" Classes="caption cardNote" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />

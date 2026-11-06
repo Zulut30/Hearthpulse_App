@@ -394,7 +394,7 @@ public sealed class ReplayLibraryViewModel : Observable
                 }
                 else
                 {
-                    Ask(card, Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), Loc.T("Library.Site.ConfirmUploadYes"), () => _owner.UploadLibraryCard(card, name));
+                    Ask(card, Loc.T("Library.Site.ConfirmUpload"), Loc.T("Library.Site.ConfirmUploadYes"), () => _owner.UploadLibraryCard(card, name));
                 }
             }
         });
@@ -471,7 +471,6 @@ public sealed class ReplayLibraryViewModel : Observable
                 Raise(nameof(IsSaved));
                 Raise(nameof(IsImported));
                 Raise(nameof(ShowFolder));
-                Raise(nameof(Subtitle));
                 Raise(nameof(EmptyText));
                 Raise(nameof(EmptyGlyph));
             }
@@ -578,31 +577,14 @@ public sealed class ReplayLibraryViewModel : Observable
     public int SavedCount
     {
         get => _savedCount;
-        internal set
-        {
-            if (Set(ref _savedCount, value))
-            {
-                Raise(nameof(Subtitle));
-            }
-        }
+        internal set => Set(ref _savedCount, value);
     }
 
     public int ImportedCount
     {
         get => _importedCount;
-        internal set
-        {
-            if (Set(ref _importedCount, value))
-            {
-                Raise(nameof(Subtitle));
-            }
-        }
+        internal set => Set(ref _importedCount, value);
     }
-
-    /// <summary>Under the History title: Recent keeps the History subtitle, the others say what their folder keeps.</summary>
-    public string Subtitle => IsSaved ? Loc.P("Library.Subtitle.Saved", _savedCount)
-        : IsImported ? Loc.P("Library.Subtitle.Imported", _importedCount)
-        : _owner.HistorySubtitle;
 
     public string Status { get => _status; private set => Set(ref _status, value); }
 
@@ -870,7 +852,6 @@ public sealed class ReplayLibraryViewModel : Observable
     internal void Refresh()
     {
         Raise(nameof(RecentCount));
-        Raise(nameof(Subtitle));
         Raise(nameof(EmptyText));
         Raise(nameof(EmptyGlyph));
     }

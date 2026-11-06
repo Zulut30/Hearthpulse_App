@@ -156,7 +156,8 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding CardPoolPicksNote}" FontSize="9.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,1,0,0" />
+                <TextBlock Text="{Binding CardPoolPicksNote}" FontSize="9.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,1,0,0"
+                           Visibility="{Binding CardPoolPicksNote, Converter={StaticResource Vis}}" />
             </StackPanel>
 
             <!-- ===== One line of averages: "Average  Mana 6  Attack 4.2  Health 5.1" ===== -->

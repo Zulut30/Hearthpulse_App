@@ -47,9 +47,8 @@ public sealed partial class LocBindingTests
         // calibration has its cross-platform wording here.
         string[] cards =
         [
-            "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout", "Overlay.Move.SettingsWindows",
-            "Settings.Leaderboard.CaptionCrossPlatform", "Settings.Note.Tracker", "Settings.Note.Counters", "Stream.Mode.Note", "Discord.Note", "Stream.Windows.Note", "Settings.Note.Account",
-            "Migration.Settings.Note", "Settings.Note.Data", "Settings.Note.Sources",
+            "Overlay.Move.SettingsWindows", "Settings.Leaderboard.CaptionCrossPlatform", "Stream.Mode.Note", "Discord.Note", "Stream.Windows.Note",
+            "Migration.Settings.Note",
         ];
         var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()
             .Where(t => t.Classes.Contains("cardNote")).ToList();

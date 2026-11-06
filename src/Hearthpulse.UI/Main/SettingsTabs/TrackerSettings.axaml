@@ -26,7 +26,6 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                 <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Tracker}" Classes="caption cardNote" />
                 <Border Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
                         IsVisible="{Binding !$parent[st:TrackerSettings].OverlayOn}">
                     <Grid ColumnDefinitions="Auto,*">
@@ -54,7 +53,6 @@
         <Border Classes="card">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Counters}" Classes="caption cardNote" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.Counters.Caption}" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />

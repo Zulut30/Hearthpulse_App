@@ -22,14 +22,8 @@
             </Border>
         </Grid>
 
-        <!-- Highest MMR, average placement, games, time played; the combat simulator's accuracy -->
+        <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
-        <!-- Outside the cards it sits over the page's hero (V3 backdrop A): a translucent plaque with a card's edge keeps it readable in every theme -->
-        <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="{StaticResource RadiusLarge}"
-                Padding="12,4" Margin="0,0,0,12" HorizontalAlignment="Left"
-                Visibility="{Binding BgSimAccuracy, Converter={StaticResource Vis}}">
-            <TextBlock Text="{Binding BgSimAccuracy}" ToolTip="{i:Loc Stats.Bg.SimAccuracyTip}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextWrapping="Wrap" />
-        </Border>
 
         <!-- Rating over time beside where you finish -->
         <Grid Margin="0,0,0,16">
@@ -166,7 +160,7 @@
                 <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
                                 Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,8,0,0"
-                           TextWrapping="Wrap" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}" />
+                           TextWrapping="Wrap" Visibility="{Binding BgStatsNote, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
     </StackPanel>

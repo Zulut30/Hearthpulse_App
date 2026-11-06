@@ -261,11 +261,6 @@ public sealed partial class MainViewModel
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
 
-    private string _bgSimAccuracy = string.Empty;
-
-    /// <summary>One line on how well the combat simulator predicted these games' fights; empty without predictions.</summary>
-    public string BgSimAccuracy { get => _bgSimAccuracy; private set => Set(ref _bgSimAccuracy, value); }
-
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
 
     public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
@@ -393,7 +388,7 @@ public sealed partial class MainViewModel
         [
             new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
                 summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
-            new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", Loc.T("Stats.Bg.LowerIsBetter")),
+            new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),
         ];
@@ -459,17 +454,10 @@ public sealed partial class MainViewModel
             ? Loc.T("Stats.Bg.NoteDuos")
             : meta is null
                 ? Loc.T(metaFailed ? "Main.Bg.CommunityUnavailable" : "Stats.Bg.NoteLoading")
-                : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
-        // Duos fights are not predicted with damage (the loser of one board is not the one who takes it).
-        var accuracy = duos ? null : BattlegroundsStats.SimAccuracy(games);
-        var accuracyText = accuracy is not { Fights: > 0 }
-            ? string.Empty
-            : Loc.F("Stats.Bg.SimAccuracy", accuracy.DamageRate is { } dr ? dr.ToString("P0", CultureInfo.CurrentCulture) : "—",
-                accuracy.ResultRate!.Value.ToString("P0", CultureInfo.CurrentCulture), accuracy.Fights);
+                : string.Empty;
         return () =>
         {
             BgStatTiles = tiles;
-            BgSimAccuracy = accuracyText;
             BgPlaces = placeRows;
             BgRatingChart = chart;
             BgHeroPerf = rows;

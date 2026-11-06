@@ -11,8 +11,7 @@
   "Pool.FeaturedReason": "Most played in meta decks",
   "Pool.Picks.Title": "What players take",
   "Pool.Picks.Win": "{0} won",
-  "Pool.Picks.Note": "Legend · Hearthpulse data",
-  "Pool.Picks.LowSample": "faded: few games",
+  "Pool.Picks.LowSample": "Faded: few games",
   "Pool.Picks.Few": "No Hearthpulse data for these cards yet",
 
   "Pool.Average": "Average",
