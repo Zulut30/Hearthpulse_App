@@ -1,0 +1,25 @@
+{
+  "name": "hearthpulse-twitch-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hearthpulse Twitch extension: the streamer's remaining deck (video overlay, panel, config).",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "zip": "node scripts/zip.mjs"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5",
+    "vitest": "^3.2.7"
+  }
+}

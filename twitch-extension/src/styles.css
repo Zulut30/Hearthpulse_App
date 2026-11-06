@@ -1,0 +1,379 @@
+/*
+ * Hearthpulse look for the Twitch views. Colours are the project's tokens (hearthpulse-design, Themes/Theme.xaml,
+ * Tavern preset) under the same names; views use the variables only. Dark = Tavern. The project has no light theme,
+ * so light is Tavern turned to parchment: the same hues, wood-ink text, a deeper gold that keeps AA on parchment.
+ * The mana gem blue is a meaning colour (ManaGem) and stays the same in both.
+ */
+:root,
+:root[data-theme='dark'] {
+  --bg: #140d08;
+  --surface: #21160e;
+  --surface2: #2b1d12;
+  --surface3: #3a2817;
+  --border: #3d2a19;
+  --text: #f4e7c9;
+  --muted: #cdb894;
+  --faint: #8f7a5c;
+  --accent: #e9b949;
+  --accent-line: #e9b94999;
+  --accent-soft: #e9b9491f;
+  --row: #2e1f13;
+  --row-fade-0: #2e1f13ff;
+  --row-fade-1: #2e1f1366;
+  --row-fade-2: #2e1f1314;
+  --badge-shade: #140d08cc;
+  --badge-text: #e9b949;
+  --overlay-panel: #201510f0;
+  --overlay-edge: #e9b94940;
+  --name-shadow: 0 1px 2px #000000cc;
+  --hover: #f4e7c912;
+  --focus: #e9b949;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f7efdd;
+  --surface: #fbf6ea;
+  --surface2: #f3e8d0;
+  --surface3: #eadbb9;
+  --border: #dac7a2;
+  --text: #2a1906;
+  --muted: #5e4526;
+  --faint: #9a8462;
+  --accent: #8a5a12;
+  --accent-line: #8a5a1299;
+  --accent-soft: #8a5a121f;
+  --row: #f1e4c8;
+  --row-fade-0: #f1e4c8ff;
+  --row-fade-1: #f1e4c880;
+  --row-fade-2: #f1e4c81a;
+  --badge-shade: #2a1906cc;
+  --badge-text: #f2cf74;
+  --overlay-panel: #fbf6eaf2;
+  --overlay-edge: #8a5a1266;
+  --name-shadow: 0 0 2px #fbf6ea, 0 0 4px #fbf6eacc;
+  --hover: #2a190614;
+  --focus: #8a5a12;
+  color-scheme: light;
+}
+
+:root {
+  --mana: #2f6fd8;
+  --mana-deep: #163f8f;
+  --mana-light: #8cc0ff;
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --font-ui: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-display: Montserrat, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* Panel and config pages carry their own background; the overlay stays transparent over the video. */
+body.view-panel,
+body.view-config {
+  background: var(--bg);
+}
+
+body.view-video_overlay {
+  background: transparent;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* ---- Deck card ---- */
+
+.card {
+  background: var(--overlay-panel);
+  border: 1px solid var(--overlay-edge);
+  border-radius: var(--radius-medium);
+  box-shadow: 0 4px 16px #0000004d;
+}
+
+.deck-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--accent-line);
+  margin-bottom: 6px;
+}
+
+.deck-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deck-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 6px;
+}
+
+/* A capsule: gem on the left, name over the tile art (right), copies on a dark pill (V3 "gold frame" of DeckPanel). */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 2px;
+  padding: 0 3px 0 1px;
+  border-radius: 12px;
+  background: var(--row);
+  border: 1px solid var(--accent-line);
+  overflow: hidden;
+  cursor: default;
+  outline-offset: -2px;
+}
+
+.row:hover {
+  border-color: var(--accent);
+}
+
+.tile {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 112px;
+  object-fit: cover;
+  object-position: right center;
+  pointer-events: none;
+}
+
+.fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 112px;
+  background: linear-gradient(90deg, var(--row-fade-0) 0%, var(--row-fade-1) 60%, var(--row-fade-2) 100%);
+  pointer-events: none;
+}
+
+.gem {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--mana-light) 0%, var(--mana) 45%, var(--mana-deep) 100%);
+  box-shadow: inset 0 0 0 1px #0a1f4d;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: var(--name-shadow);
+}
+
+.copies {
+  position: relative;
+  flex: none;
+  min-width: 20px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--badge-shade);
+  color: var(--badge-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* No copies left: the row keeps its place, its parts sink back (DeckPanel's Empty trigger). */
+.row.empty {
+  border-color: transparent;
+}
+.row.empty .tile {
+  opacity: 0.22;
+}
+.row.empty .gem {
+  opacity: 0.45;
+}
+.row.empty .copies {
+  opacity: 0.55;
+}
+.row.empty .name {
+  color: var(--faint);
+}
+
+.preview {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 14px #000000a6);
+}
+
+.empty-state {
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.empty-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.empty-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---- Video overlay ----
+ * The zone leaves the top of the video to the player's title bar and the bottom to its controls, where the overlay
+ * gets no clicks (Twitch "safe zone"); the deck sits at the right edge, as the app's deck panel does in game. */
+.overlay-zone {
+  position: fixed;
+  top: max(10%, 64px);
+  bottom: max(18%, 96px);
+  right: 1.5%;
+  width: clamp(196px, 20vw, 264px);
+  pointer-events: none;
+}
+
+.overlay-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-height: 100%;
+}
+
+.overlay-dock > * {
+  pointer-events: auto;
+}
+
+.dock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: 16px;
+  border: 1px solid var(--overlay-edge);
+  background: var(--overlay-panel);
+  color: var(--accent);
+  font: 600 12px var(--font-ui);
+  cursor: pointer;
+  box-shadow: 0 2px 8px #0000004d;
+}
+
+.dock-button:hover {
+  border-color: var(--accent);
+}
+
+.dock-count {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.overlay-card {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.overlay-card .rows {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+/* ---- Panel (318 x up to 496) ---- */
+.panel {
+  width: 100%;
+  height: 100vh;
+  max-height: 496px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.panel .deck-header {
+  flex: none;
+}
+
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.panel .empty-state {
+  margin: auto 0;
+}
+
+/* ---- Config ---- */
+.config {
+  max-width: 720px;
+  padding: 16px 24px 24px;
+  line-height: 1.5;
+}
+
+.config h1 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.config ol {
+  padding-left: 20px;
+}
+
+.config li {
+  margin-bottom: 8px;
+}
+
+.config-note {
+  color: var(--muted);
+  font-size: 12px;
+}
