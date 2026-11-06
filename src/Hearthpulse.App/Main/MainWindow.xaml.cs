@@ -342,11 +342,6 @@ public partial class MainWindow : Window
         PageBrawl.Visibility = NavBrawl.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         // The match page stands in for the History list while a game is open.
         Show(_history, () => PageHistory, NavHistory.IsChecked == true && !_viewModel.MatchOpen);
-        if (NavHistory.IsChecked == true && _viewModel.MatchOpen)
-        {
-            _ = MatchDetailsPage;
-        }
-
         PageMatch.Visibility = NavHistory.IsChecked == true && _viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
         if (PageMatch.Visibility == Visibility.Visible)
         {
@@ -418,11 +413,7 @@ public partial class MainWindow : Window
     /// <summary>The deck page view (used by the UI render check).</summary>
     public Decks.DeckDetailsView DeckDetailsPage => _deck ??= Fill(PageDeck, new Decks.DeckDetailsView(), nameof(MainViewModel.DeckPage));
 
-    /// <summary>The match page's view, built on the first open.</summary>
-    public Match.MatchView MatchDetailsPage => _match ??= Fill(PageMatch, new Match.MatchView(), nameof(MainViewModel.MatchPage));
-
     private Decks.DeckDetailsView? _deck;
-    private Match.MatchView? _match;
 
     /// <summary>A page view built late, bound to its view model and placed in its scrolling page.</summary>
     private static T Fill<T>(ScrollViewer page, T view, string path) where T : FrameworkElement

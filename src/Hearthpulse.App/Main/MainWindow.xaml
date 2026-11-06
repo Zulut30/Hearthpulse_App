@@ -8,6 +8,7 @@
         xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
         xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
         xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
+        xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
         xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
         xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
         xmlns:su="clr-namespace:Hearthpulse.App.Main.Setup"
@@ -392,8 +393,10 @@
                     <ContentControl x:Name="SlotHistory" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
-                    <!-- Its MatchView is built on the first open (MainWindow.MatchDetailsPage). -->
-                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
+                    <!-- Built with the window, unlike the other pages: built late it opened 3-5x slower (TASK-2026-11-06-perf). -->
+                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
+                    </ScrollViewer>
 
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
