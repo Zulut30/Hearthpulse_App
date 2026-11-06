@@ -1,6 +1,6 @@
 ---
 name: better-colors
-description: Use when choosing, naming or checking colours in Hearthpulse - token roles in the theme files, meaning colours that must not recolour, the seven theme presets built by ThemePalette, and measured contrast of rendered pairs in every preset (ThemeContrastTests). Triggers - "цвет", "контраст", "не видно в теме", "токен", "палитра", "тема Frost/Arcane", "colour", "contrast".
+description: Use when choosing, naming or checking colours in Hearthpulse - token roles in the theme files, meaning colours that must not recolour, the thirteen theme presets and accent swatches built by ThemePalette, and measured contrast of rendered pairs in every preset (ThemeContrastTests). Triggers - "цвет", "контраст", "не видно в теме", "токен", "палитра", "тема Frost/Arcane", "colour", "contrast".
 ---
 
 > Source: [jakubkrehel/skills](https://github.com/jakubkrehel/skills) `skills/better-colors/SKILL.md` at `592aedc`,
@@ -28,7 +28,8 @@ These are the owner's rules and CLAUDE.md; a session brief may narrow them (for 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
   content follows the window from its minimum size up (WPF `MinWidth="1040"`, Avalonia compact below 900 px).
-- **All seven themes.** Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow: colours only from tokens
+- **All thirteen themes.** Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow, Grove, Void, Bloodsteel, Sands, Midnight,
+  Mech (and the accent swatches over each): colours only from tokens
   (`hearthpulse-design`), and a look at WPF under at least one non-default preset.
 - **Render, but never while the game runs.** Renders go through `hearthpulse-visual-check` on a copy of the data
   folder. First check that `Hearthstone.exe` is not running: `Get-Process Hearthstone -ErrorAction SilentlyContinue`

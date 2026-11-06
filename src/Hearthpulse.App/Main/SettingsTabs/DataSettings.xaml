@@ -38,5 +38,29 @@
                 <TextBlock x:Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
             </StackPanel>
         </Border>
+
+        <!-- The settings file (export / import) and "reset everything", which asks first in place -->
+        <Border x:Name="SettingsFileCard" Style="{StaticResource Card}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.File.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.File.Caption}" Style="{StaticResource CardNote}" />
+                <WrapPanel>
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.File.Export}" Click="RaiseExportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.File.Import}" Click="RaiseImportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Reset.All}" Command="{Binding AskResetAll}" Margin="0,0,0,8" />
+                </WrapPanel>
+                <Border Style="{StaticResource RowBorder}" Padding="16,12" Margin="0,4,0,0" Visibility="{Binding ResetAllPending, Converter={StaticResource Vis}}">
+                    <StackPanel>
+                        <TextBlock Text="{i:Loc Settings.Reset.Ask}" Style="{StaticResource Base}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Reset.Confirm}" Command="{Binding ConfirmResetAll}" Margin="0,0,8,0" />
+                            <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Reset.Cancel}" Command="{Binding CancelResetAll}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding SettingsFileNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0"
+                           Visibility="{Binding SettingsFileNote, Converter={StaticResource Vis}}" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

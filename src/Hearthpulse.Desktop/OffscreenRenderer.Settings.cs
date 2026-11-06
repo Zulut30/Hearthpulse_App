@@ -8,7 +8,7 @@ namespace Hearthpulse.Desktop;
 /// <summary>Render-check scenes of the Settings tabs (<c>main-settings-general.png</c>...), in the interface language of the data copy.</summary>
 internal static partial class OffscreenRenderer
 {
-    private static readonly string[] SettingsTabs = ["General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"];
+    private static readonly string[] SettingsTabs = ["General", "Appearance", "Overlay", "Tracker", "Stream", "Account", "Data", "About"];
 
     private static async Task RenderSettingsTabsAsync(Window main, MainView view, string folder)
     {
@@ -27,6 +27,29 @@ internal static partial class OffscreenRenderer
             }
         }
 
+        view.ShowSettingsTab("General");
+    }
+
+    /// <summary>
+    /// HEARTHPULSE_RENDER_ONLY=settings: the Appearance tab (gallery, accent, background, shape) and the search with
+    /// "size" typed in the interface language (<c>main-settings-appearance.png</c>, <c>main-settings-search.png</c>).
+    /// </summary>
+    private static async Task RenderSettingsToolsAsync(Window main, MainView view, string folder)
+    {
+        if (view.DataContext is not MainViewModel model)
+        {
+            return;
+        }
+
+        view.ShowPage("Settings");
+        view.ShowSettingsTab("Appearance");
+        await Task.Delay(2500);
+        Dispatcher.UIThread.RunJobs();
+        await Save(main, Path.Combine(folder, "main-settings-appearance.png"));
+        model.SettingsQuery = Core.Localization.Loc.T("Settings.Overlay.Size");
+        Dispatcher.UIThread.RunJobs();
+        await Save(main, Path.Combine(folder, "main-settings-search.png"));
+        model.SettingsQuery = string.Empty;
         view.ShowSettingsTab("General");
     }
 }

@@ -1,0 +1,34 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- What the Settings tabs share: the "Advanced" disclosure and the per-group reset button. The WPF twin is
+         SettingsLook.xaml (AdvancedToggle, ResetButton). -->
+    <Style Selector="ToggleButton.advanced">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,16,0,0" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel Orientation="Horizontal" Background="Transparent">
+                    <TextBlock Name="Chevron" Text="&#xF0142;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{TemplateBinding Foreground}"
+                               VerticalAlignment="Center" />
+                    <ContentPresenter Content="{TemplateBinding Content}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.advanced:checked /template/ TextBlock#Chevron">
+        <Setter Property="RenderTransform" Value="rotate(90deg)" />
+    </Style>
+    <Style Selector="ToggleButton.advanced:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.ghost.reset">
+        <Setter Property="Padding" Value="12,4" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+</Styles>

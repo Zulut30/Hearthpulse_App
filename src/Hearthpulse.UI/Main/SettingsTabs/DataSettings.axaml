@@ -41,5 +41,28 @@
                 <TextBlock Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
             </StackPanel>
         </Border>
+        <!-- The settings file (export / import) and "reset everything", which asks first in place -->
+        <Border Name="SettingsFileCard" Classes="card">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.File.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.File.Caption}" Classes="caption cardNote" />
+                <WrapPanel>
+                    <Button Classes="ghost" Content="{i:Loc Settings.File.Export}" Click="RaiseExportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Classes="ghost" Content="{i:Loc Settings.File.Import}" Click="RaiseImportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Classes="ghost" Content="{i:Loc Settings.Reset.All}" Command="{Binding AskResetAll}" Margin="0,0,0,8" />
+                </WrapPanel>
+                <Border Classes="row" Padding="16,12" Margin="0,4,0,0" IsVisible="{Binding ResetAllPending}">
+                    <StackPanel>
+                        <TextBlock Text="{i:Loc Settings.Reset.Ask}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Classes="ghost primary" Content="{i:Loc Settings.Reset.Confirm}" Command="{Binding ConfirmResetAll}" Margin="0,0,8,0" />
+                            <Button Classes="ghost" Content="{i:Loc Settings.Reset.Cancel}" Command="{Binding CancelResetAll}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding SettingsFileNote}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0"
+                           IsVisible="{Binding SettingsFileNote, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

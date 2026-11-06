@@ -24,13 +24,18 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/SettingsTabs/SettingsStyles.axaml" />
         <!-- The preview's deck panel takes the overlay's look, as the OBS window does -->
         <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
     </UserControl.Styles>
     <StackPanel>
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
-                <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" />
+                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.Overlay}" />
+                </Grid>
                 <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
                 <!-- The overlay is off: said by a banner in the accent container colours (as the setup warning on Home); the
@@ -155,9 +160,16 @@
                 <TextBlock Name="MoveHintLine" Text="{i:Loc Overlay.Move.SettingsWindows}" Classes="caption cardNote" />
                 <CheckBox Name="PanelLockSetting" Classes="switch" Content="{i:Loc Settings.Layout.Unlocked}" IsChecked="{Binding OverlayPanelsUnlocked}"
                           Margin="0,0,0,14" ToolTip.Tip="{i:Loc Settings.Layout.UnlockedCaption}" />
-                <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="RaiseArrangeOverlayClicked" Margin="0,0,0,24"
+                <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="RaiseArrangeOverlayClicked"
                         ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
-                <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                <!-- Rare and expert: the leaderboard calibration -->
+                <ToggleButton Name="AdvancedToggle" Classes="advanced" Content="{i:Loc Settings.Advanced}" AutomationProperties.Name="{i:Loc Settings.Advanced}" />
+                <StackPanel Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding #AdvancedToggle}" IsVisible="{Binding #AdvancedToggle.IsChecked}">
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" />
+                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.Leaderboard}" />
+                </Grid>
                 <TextBlock Text="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" Classes="caption cardNote" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" />
@@ -179,6 +191,7 @@
                     <!-- From the slider itself: the settings object does not notify -->
                     <TextBlock Grid.Column="2" Text="{Binding #LeaderboardWidthSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                 </Grid>
+                </StackPanel>
             </StackPanel>
         </Border>
     </StackPanel>

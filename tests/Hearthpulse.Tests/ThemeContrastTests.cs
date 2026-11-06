@@ -27,13 +27,19 @@ public sealed class ThemeContrastTests
         ("RarityLegendary", ["Row", "OverlayBadgeShade"], 4.5),
     ];
 
-    public static TheoryData<string> Presets() => new(ThemePalette.Presets.Select(p => p.Name));
+    /// <summary>Every preset on its own and with every accent swatch over its accent ("Frost+Rose").</summary>
+    public static TheoryData<string> Presets() => new(ThemePalette.Presets.Select(p => p.Name)
+        .Concat(ThemePalette.Presets.SelectMany(p => ThemePalette.Accents.Select(a => p.Name + "+" + a.Key))));
+
+    private static ThemeSpec Theme(string name) => name.Split('+') is [var preset, var accent]
+        ? ThemePalette.WithAccent(ThemePalette.Resolve(preset, 0, 0, 1), accent)
+        : ThemePalette.Resolve(name, 0, 0, 1);
 
     [Theory]
     [MemberData(nameof(Presets))]
     public void Text_meets_wcag_contrast_on_every_surface(string preset)
     {
-        var theme = ThemePalette.Resolve(preset, 0, 0, 1);
+        var theme = Theme(preset);
         var colours = Colours();
         var failures = new List<string>();
         foreach (var (text, surfaces, min) in Pairs)
@@ -66,7 +72,7 @@ public sealed class ThemeContrastTests
     public void Text_reads_on_cards_over_the_brightest_hero(string preset)
     {
         var (heroOpacity, _, _) = Hero();
-        var theme = ThemePalette.Resolve(preset, 0, 0, 1);
+        var theme = Theme(preset);
         var colours = Colours();
         var behind = Over(0xFFFFFFFF, ThemePalette.Map(colours["Bg"][0], theme), heroOpacity);
         var failures = new List<string>();
@@ -98,7 +104,7 @@ public sealed class ThemeContrastTests
     public void Text_beside_the_hero_reads_at_every_plate_width(string preset)
     {
         var (opacity, share, max) = Hero();
-        var theme = ThemePalette.Resolve(preset, 0, 0, 1);
+        var theme = Theme(preset);
         var root = XDocument.Load(RepoFile("src/Hearthpulse.App/Themes/Theme.xaml")).Root!;
         var fade = Stops(root, "PageHeroFade");
         var vignette = Stops(root, "PageVignette");

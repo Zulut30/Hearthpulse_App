@@ -1,0 +1,116 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="using:Hearthpulse.UI.Main"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- The theme gallery's tile and preview and the accent chip. The WPF twin is SettingsLook.xaml. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Each theme as a small main window with its hero, line art, sidebar, a plate with a button in the accent, and an
+         overlay panel over the corner with a win/loss mark (meaning colours stay). -->
+    <DataTemplate x:Key="GalleryTile" x:DataType="m:ThemeChoice">
+        <Border Width="172" CornerRadius="12" Background="{Binding Background}" BorderBrush="{Binding Frame}" BorderThickness="2" ClipToBounds="True">
+            <StackPanel>
+                <Panel Height="96" ClipToBounds="True">
+                    <Border Width="112" HorizontalAlignment="Right" i:CardArt.Portrait="{Binding Hero}" Opacity="0.6" OpacityMask="{StaticResource PageHeroFade}" />
+                    <Path Data="{Binding Motif}" Stretch="Uniform" Width="84" Height="84" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                          Margin="-24,0,0,-32" Stroke="{Binding Accent}" StrokeThickness="1" Opacity="0.35" />
+                    <Grid ColumnDefinitions="20,*" Margin="8,8,8,0">
+                        <StackPanel Margin="0,2,4,0">
+                            <Border Height="8" CornerRadius="4" Background="{Binding Surface}">
+                                <Border Width="2" Margin="0,1" HorizontalAlignment="Left" Background="{Binding Accent}" />
+                            </Border>
+                            <Border Height="8" CornerRadius="4" Background="{Binding Surface}" Opacity="0.45" Margin="0,4,0,0" />
+                            <Border Height="8" CornerRadius="4" Background="{Binding Surface}" Opacity="0.45" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="78" CornerRadius="4" Background="{Binding Card}" BorderBrush="{Binding Edge}" BorderThickness="1"
+                                Padding="4" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <StackPanel>
+                                <Border Width="40" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Text}" />
+                                <Border Width="56" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Muted}" Margin="0,4,0,0" />
+                                <DockPanel Margin="0,8,0,0" LastChildFill="False">
+                                    <Border DockPanel.Dock="Left" Width="28" Height="8" CornerRadius="4" Background="{Binding Accent}" />
+                                    <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Fill="{Binding Secondary}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Border Width="58" CornerRadius="4" Background="{Binding Panel}" BorderBrush="{Binding Accent}" BorderThickness="1" Padding="4"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,8">
+                        <StackPanel>
+                            <Border Height="4" CornerRadius="2" Background="{Binding Text}" />
+                            <Border Height="4" CornerRadius="2" Background="{Binding Muted}" Margin="0,4,8,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Border Width="16" Height="4" CornerRadius="2" Background="{StaticResource Positive}" />
+                                <Border Width="8" Height="4" CornerRadius="2" Background="{StaticResource Negative}" Margin="2,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Panel>
+                <DockPanel Margin="8,4,8,8">
+                    <TextBlock DockPanel.Dock="Right" Text="&#xF012C;" Classes="icon" FontSize="{StaticResource FontSizeLead}" Foreground="{Binding Accent}"
+                               IsVisible="{Binding Selected}" />
+                    <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- The preview over the gallery: the theme under the pointer or focus, larger, with its full art -->
+    <DataTemplate x:Key="GalleryPreview" x:DataType="m:ThemeChoice">
+        <Border CornerRadius="12" Background="{Binding Background}" BorderBrush="{Binding Accent}" BorderThickness="2" Height="200" ClipToBounds="True">
+            <Panel>
+                <Border Width="300" HorizontalAlignment="Right" i:CardArt.Splash="{Binding Hero}" Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}" />
+                <Path Data="{Binding Motif}" Stretch="Uniform" Width="200" Height="200" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                      Margin="-48,0,0,-72" Stroke="{Binding Accent}" StrokeThickness="1.2" Opacity="0.3" />
+                <Grid ColumnDefinitions="44,*" Margin="16">
+                    <StackPanel Margin="0,4,12,0">
+                        <Border Height="14" CornerRadius="4" Background="{Binding Surface}">
+                            <Border Width="3" Margin="0,2" HorizontalAlignment="Left" Background="{Binding Accent}" />
+                        </Border>
+                        <Border Height="14" CornerRadius="4" Background="{Binding Surface}" Opacity="0.45" Margin="0,8,0,0" />
+                        <Border Height="14" CornerRadius="4" Background="{Binding Surface}" Opacity="0.45" Margin="0,8,0,0" />
+                        <Border Height="14" CornerRadius="4" Background="{Binding Surface}" Opacity="0.45" Margin="0,8,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold"
+                                   FontSize="{StaticResource FontSizeHeadline}" TextTrimming="CharacterEllipsis" />
+                        <Border Width="200" CornerRadius="8" Background="{Binding Card}" BorderBrush="{Binding Edge}" BorderThickness="1" Padding="12"
+                                HorizontalAlignment="Left" Margin="0,12,0,0">
+                            <StackPanel>
+                                <Border Width="110" Height="8" CornerRadius="4" HorizontalAlignment="Left" Background="{Binding Text}" />
+                                <Border Width="150" Height="6" CornerRadius="4" HorizontalAlignment="Left" Background="{Binding Muted}" Margin="0,8,0,0" />
+                                <DockPanel Margin="0,12,0,0" LastChildFill="False">
+                                    <Border DockPanel.Dock="Left" Width="64" Height="20" CornerRadius="4" Background="{Binding Accent}" />
+                                    <Ellipse DockPanel.Dock="Right" Width="14" Height="14" Fill="{Binding Secondary}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+                <Border Width="120" CornerRadius="4" Background="{Binding Panel}" BorderBrush="{Binding Accent}" BorderThickness="1" Padding="8"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16">
+                    <StackPanel>
+                        <Border Height="6" CornerRadius="4" Background="{Binding Text}" />
+                        <Border Height="6" CornerRadius="4" Background="{Binding Muted}" Margin="0,4,24,0" />
+                        <Border Height="6" CornerRadius="4" Background="{Binding Muted}" Margin="0,4,40,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Border Width="36" Height="8" CornerRadius="4" Background="{StaticResource Positive}" />
+                            <Border Width="20" Height="8" CornerRadius="4" Background="{StaticResource Negative}" Margin="4,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Panel>
+        </Border>
+    </DataTemplate>
+
+    <!-- An accent swatch: a gem of the colour, a ring when chosen -->
+    <DataTemplate x:Key="AccentChip" x:DataType="m:AccentChoice">
+        <Panel Width="36" Height="36">
+            <Ellipse Margin="4" Fill="{Binding Fill}" />
+            <Ellipse Stroke="{StaticResource Text}" StrokeThickness="2" IsVisible="{Binding Selected}" />
+        </Panel>
+    </DataTemplate>
+</ResourceDictionary>

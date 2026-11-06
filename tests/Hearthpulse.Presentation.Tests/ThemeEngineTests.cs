@@ -50,4 +50,22 @@ public sealed class ThemeEngineTests
             Assert.True(frost.B > frost.G, $"expected an aurora violet, got {frost}");
         });
     }
+
+    [Fact]
+    public void Sharp_corners_and_compact_density_rewrite_the_shape_tokens_and_still_parse()
+    {
+        WpfThread.Run(() =>
+        {
+            var plain = ThemeEngine.Build(ThemePalette.Presets[0]);
+            var look = ThemeEngine.Build(ThemePalette.Presets[0], new ThemeLook(SharpCorners: true, Dense: true));
+            Assert.Equal(new CornerRadius(12), plain["RadiusLarge"]);
+            Assert.Equal(new CornerRadius(2), look["RadiusLarge"]);
+            Assert.Equal(new CornerRadius(2), look["RadiusMedium"]);
+            Assert.Equal(new Thickness(24), plain["CardPadding"]);
+            Assert.Equal(new Thickness(16), look["CardPadding"]);
+            // Pills and switch tracks stay round.
+            Assert.Equal(new CornerRadius(999), look["RadiusPill"]);
+            Assert.DoesNotContain("CornerRadius=\"8\"", ThemeEngine.Source(ThemePalette.Presets[0], new ThemeLook(true, false)), StringComparison.Ordinal);
+        });
+    }
 }

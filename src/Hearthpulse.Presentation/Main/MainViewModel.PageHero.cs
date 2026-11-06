@@ -68,11 +68,15 @@ public sealed partial class MainViewModel
     private string _shownPage = NavPages[0];
     private string? _openMatchHero;
 
-    /// <summary>The art behind the page on screen, or null while "Background characters" is off.</summary>
-    public string? PageHero => Settings.PageHeroes
-        ? PageHeroes.For(_shownPage, Recent.FirstOrDefault(g => g.HeroCardId.Length > 0)?.HeroCardId, _allGames.Count > 0 ? _allGames : _historyGames,
-            _deckFamilies, MatchOpen ? _openMatchHero : null, ClassHero)
-        : null;
+    /// <summary>
+    /// The art behind the page on screen, or null while the page background is off: the hero the player chose for every
+    /// page, else Settings shows the theme's hero and the other pages pick by page and mode.
+    /// </summary>
+    public string? PageHero => !Settings.PageHeroes ? null
+        : Settings.BackgroundHero.Length > 0 ? Settings.BackgroundHero
+        : _shownPage == "Settings" ? CurrentTheme.Hero
+        : PageHeroes.For(_shownPage, Recent.FirstOrDefault(g => g.HeroCardId.Length > 0)?.HeroCardId, _allGames.Count > 0 ? _allGames : _historyGames,
+            _deckFamilies, MatchOpen ? _openMatchHero : null, ClassHero);
 
     /// <summary>The games, decks, open match or page behind <see cref="PageHero"/> changed.</summary>
     private void RaisePageHero() => Raise(nameof(PageHero));

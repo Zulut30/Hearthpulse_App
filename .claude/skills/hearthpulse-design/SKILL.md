@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-design
-description: Use when changing how Hearthpulse looks - colours and design tokens, theme presets (Tavern/Frost/Fel/Arcane/Ember/Tide/Shadow), fonts, MDI icons, styles and classes, custom controls (Scallop, Ornament, Wave, charts, CardPreview), page layout rules, motion, or any XAML/AXAML styling in the WPF app or Avalonia preview. Also the reference for "no hex in views" and the list of accepted WPF/Avalonia gaps. For the step-by-step recipes use hearthpulse-overlay-panel, hearthpulse-main-page and hearthpulse-visual-check.
+description: Use when changing how Hearthpulse looks - colours and design tokens, theme presets (Tavern/Frost/Fel/Arcane/Ember/Tide/Shadow/Grove/Void/Bloodsteel/Sands/Midnight/Mech), the Appearance tab (gallery, accent swatches, corners, density, interface size), fonts, MDI icons, styles and classes, custom controls (Scallop, Ornament, Wave, charts, CardPreview), page layout rules, motion, or any XAML/AXAML styling in the WPF app or Avalonia preview. Also the reference for "no hex in views" and the list of accepted WPF/Avalonia gaps. For the step-by-step recipes use hearthpulse-overlay-panel, hearthpulse-main-page and hearthpulse-visual-check.
 ---
 
 # Hearthpulse visual design
@@ -35,8 +35,13 @@ theme/focus and Avalonia compact differences remain intentional. See `src/Hearth
 WPF themes work by **rewriting hex literals inside Theme.xaml only**:
 
 - `src/Hearthpulse.Core/ThemePalette.cs`: `ThemeSpec(Name, AccentHue, BaseHue, BaseTint, SecondaryHue, AccentLift,
-  SurfaceLift, Motif)`. Presets: `Tavern` (default: gold 42 + patina teal 168 on wood 28, tint 1.0), `Frost`, `Fel`,
-  `Arcane`, `Ember`, `Tide`, `Shadow`, each with its own accent, second accent, surface lightness and backdrop motif;
+  SurfaceLift, Motif, Hero, Depth)`. Presets: `Tavern` (default: gold 42 + patina teal 168 on wood 28, tint 1.0), `Frost`, `Fel`,
+  `Arcane`, `Ember`, `Tide`, `Shadow`, `Grove`, `Void`, `Bloodsteel`, `Sands`, `Midnight` (OLED black), `Mech`, each with its
+  own accent, second accent, surface lightness, backdrop motif and hero (card id: Settings backdrop, gallery tile);
+  `Depth` sinks only tones darker than 0.2 (Midnight, Void) so `Faint` keeps 3:1. `ThemePalette.Accents` are curated
+  accent swatches (`AppSettings.ThemeAccent`, `WithAccent`/`FromSettings`); `ThemeContrastTests` runs every preset and
+  every preset+swatch pair. A real light theme is not possible with `Map` alone: the meaning colours are tuned for dark
+  surfaces and must not change;
   anything else resolves to `Custom` (`ThemePalette.Resolve`: the second accent keeps Tavern's spacing, the motif is the
   nearest preset's). `Map(argb, theme)` returns the colour unchanged for the default theme and for low saturation
   (s < 0.08). Teals at 150-186 deg (chroma >= 0.15) are the second accent and turn to `SecondaryHue`; other hues
@@ -50,8 +55,13 @@ WPF themes work by **rewriting hex literals inside Theme.xaml only**:
   Uses of `{StaticResource MotifTavern(Alt)}` are pointed at the theme's `Motif<Name>`, and every brush, geometry and
   drawing of the dictionary is frozen (`ThemeEngine.Freeze`).
   Windows resolve brushes when created, so the host (`App.xaml.cs` `ApplyTheme`) recreates windows after a change.
-- Settings: `AppSettings.Theme` (default `"Tavern"`), `ThemeAccentHue`, `ThemeBaseHue`, `ThemeBaseTint`. Picker UI:
-  `Main/MainViewModel.Theme.cs` (`ThemeChoice` previews use `ThemeEngine.Brush`).
+- Settings: `AppSettings.Theme` (default `"Tavern"`), `ThemeAccentHue`, `ThemeBaseHue`, `ThemeBaseTint`, `ThemeAccent`,
+  `PageHeroes` + `BackgroundHero` + `BackgroundIntensity` (page art: by page / one hero / off, strength up to the
+  built-in opacity), `CornerStyle`, `Density`, `InterfaceScale`. Picker UI: Settings → Appearance
+  (`MainViewModel.Theme.cs`, `MainViewModel.Appearance.cs`; `ThemeChoice` previews use `ThemeEngine.Brush`).
+  Corners/density (`Core/ThemeLook.cs`): WPF `ThemeEngine.Source(theme, look)` rewrites `Radius*`/`CardPadding` and plain
+  template radii; Avalonia puts classes `sharp`/`dense` on windows (`ThemeEngine.ApplyLook`/`Dress`, styles at the end of
+  Theme.axaml). Interface size is a layout transform on the main window's root, bound to `InterfaceScale`.
 
 Consequences:
 

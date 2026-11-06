@@ -15,7 +15,6 @@ concern and a name that says it (`GameSession.Replay.cs`).
 | `*.g.cs` | Generated tables (`tools/`), regenerated rather than edited |
 | `src/Hearthpulse.App/App.xaml.cs`, `src/Hearthpulse.UI/Main/MainView.axaml.cs`, `src/Hearthpulse.App/Main/MainWindow.xaml.cs` | Host and window code-behind, worked on by the page-markup and settings/theme packages in the same round (2026-11-07); split with package Q5 once those land, not around them |
 | `src/Hearthpulse.App/Overlay/MovablePanel.cs`, `src/Hearthpulse.UI/Overlay/MovablePanel.cs` | One control per UI (drag, resize, snap, lock); deferred to Q5 with the overlay markup |
-| `src/Hearthpulse.Core/AppSettings.cs` | Owned by the settings/theme package this round; split there |
 
 Packages Q4 (Core giants) and Q5 (markup) add the files they decide to keep whole, with the reason. `tests/` files are
 split when touched; the limit is not enforced there.
