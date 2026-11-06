@@ -18,6 +18,9 @@
         <!-- Hero tier list: a click on a column head sorts the heroes inside their tiers -->
         <Border x:Name="HeroTierCard" Style="{StaticResource Card}">
             <StackPanel>
+                <!-- The essential columns; the switch adds first places, pick rate and games -->
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding HeroAllColumns}" HorizontalAlignment="Right"
+                          FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
                 <Grid Margin="0,0,0,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="40" />
@@ -26,9 +29,9 @@
                         <ColumnDefinition Width="56" />
                         <ColumnDefinition Width="190" />
                         <ColumnDefinition Width="64" />
-                        <ColumnDefinition Width="56" />
-                        <ColumnDefinition Width="72" />
-                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="100" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="#" Style="{StaticResource TableHead}" />
@@ -51,19 +54,19 @@
                             <TextBlock Text="{Binding HeroArrows.Top4}" Style="{StaticResource SortArrow}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="6" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="First">
+                    <Button Grid.Column="6" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Width="56" HorizontalContentAlignment="Right" Visibility="{Binding HeroAllColumns, Converter={StaticResource Vis}}" Command="{Binding SetHeroSort}" CommandParameter="First">
                         <StackPanel Orientation="Horizontal" ToolTip="{i:Loc Main.Table.FirstTip}">
                             <TextBlock Text="{i:Loc Main.Table.First}" Style="{StaticResource SortLabel}" />
                             <TextBlock Text="{Binding HeroArrows.First}" Style="{StaticResource SortArrow}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="7" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Pick">
+                    <Button Grid.Column="7" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Width="72" HorizontalContentAlignment="Right" Visibility="{Binding HeroAllColumns, Converter={StaticResource Vis}}" Command="{Binding SetHeroSort}" CommandParameter="Pick">
                         <StackPanel Orientation="Horizontal" ToolTip="{i:Loc Main.Table.PickRateTip}">
                             <TextBlock Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource SortLabel}" />
                             <TextBlock Text="{Binding HeroArrows.Pick}" Style="{StaticResource SortArrow}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="8" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Games">
+                    <Button Grid.Column="8" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Width="80" HorizontalContentAlignment="Right" Visibility="{Binding HeroAllColumns, Converter={StaticResource Vis}}" Command="{Binding SetHeroSort}" CommandParameter="Games">
                         <StackPanel Orientation="Horizontal" ToolTip="{i:Loc Main.Table.GamesTip}">
                             <TextBlock Text="{i:Loc Main.Table.Games}" Style="{StaticResource SortLabel}" />
                             <TextBlock Text="{Binding HeroArrows.Games}" Style="{StaticResource SortArrow}" />
@@ -99,9 +102,9 @@
                                                         <ColumnDefinition Width="56" />
                                                         <ColumnDefinition Width="190" />
                                                         <ColumnDefinition Width="64" />
-                                                        <ColumnDefinition Width="56" />
-                                                        <ColumnDefinition Width="72" />
-                                                        <ColumnDefinition Width="80" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="100" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
@@ -120,9 +123,9 @@
                                                         </Border>
                                                     </StackPanel>
                                                     <TextBlock Grid.Column="5" Text="{Binding Top4}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding FirstPlace}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="7" Text="{Binding PickRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="8" Text="{Binding DataPoints}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="6" Width="56" TextAlignment="Right" Visibility="{Binding DataContext.HeroAllColumns, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}" Text="{Binding FirstPlace}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="7" Width="72" TextAlignment="Right" Visibility="{Binding DataContext.HeroAllColumns, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}" Text="{Binding PickRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="8" Width="80" TextAlignment="Right" Visibility="{Binding DataContext.HeroAllColumns, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}" Text="{Binding DataPoints}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="9" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeLabel}" />
                                                 </Grid>
                                             </Border>

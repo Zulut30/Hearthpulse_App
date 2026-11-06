@@ -183,6 +183,7 @@ public sealed partial class MainViewModel
     private StatsPeriod _ctPeriod = StatsPeriod.All;
     private IReadOnlyList<StatTile> _ctStatTiles = [];
     private IReadOnlyList<StatTile> _ctMoreTiles = [];
+    private bool _bgHeroAllColumns;
     private IReadOnlyList<IChartValue> _ctRankChart = [];
     private IReadOnlyList<StatGroupRow> _ctClasses = [];
     private IReadOnlyList<StatGroupRow> _ctOpponents = [];
@@ -268,6 +269,9 @@ public sealed partial class MainViewModel
     public IReadOnlyList<BgPlaceRow> BgPlaces { get => _bgPlaces; private set => Set(ref _bgPlaces, value); }
 
     public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
+
+    /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
+    public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }
 
     public IReadOnlyList<BgHeroPerfRow> BgHeroPerf { get => _bgHeroPerf; private set => Set(ref _bgHeroPerf, value); }
 
