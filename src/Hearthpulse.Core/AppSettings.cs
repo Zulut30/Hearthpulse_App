@@ -27,7 +27,7 @@ public enum CompMode
     Auto,
 }
 
-public sealed class AppSettings
+public sealed partial class AppSettings
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
     private string? _unpreservedFile;
@@ -580,6 +580,7 @@ public sealed class AppSettings
         ThemeAccentHue = double.IsFinite(ThemeAccentHue) ? ThemeAccentHue : 42;
         ThemeBaseHue = double.IsFinite(ThemeBaseHue) ? ThemeBaseHue : 28;
         ThemeBaseTint = Bounded(ThemeBaseTint, 0, 1.5, 1);
+        NormalizeGrowth();
     }
 
     private static string DefaultIfBlank(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
