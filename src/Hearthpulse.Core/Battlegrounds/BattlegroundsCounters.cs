@@ -151,7 +151,7 @@ public static class BattlegroundsCounters
                     return new(Num(count), Details: [Loc.P("Core.BgCounter.FreeRefreshes", count)], Active: true);
                 }
 
-                var button = c.Game.Controlled(c.Game.LocalPlayerId, "PLAY").FirstOrDefault(e => e.CardId == RerollButtonId);
+                var button = c.LocalPlay.FirstOrDefault(e => e.CardId == RerollButtonId);
                 if (button is null || button.GetString(GameTag.Cost).Length == 0)
                 {
                     return Missing();
@@ -194,7 +194,13 @@ public static class BattlegroundsCounters
     /// Every Battlegrounds counter of the local player; the overlay applies each counter's <see cref="CounterMode"/>.
     /// </summary>
     /// <param name="visibleCardIds">Cards the player can see now: tavern, hand, board, trinkets, hero power.</param>
-    public static IReadOnlyList<CounterView> Build(GameState game, BattlegroundsCounterTracker tracker, CardDb cards, IEnumerable<string> visibleCardIds)
+    public static IReadOnlyList<CounterView> Build(GameState game, BattlegroundsCounterTracker tracker, CardDb cards, IEnumerable<string> visibleCardIds) =>
+        Build(game, tracker, cards, visibleCardIds, localPlay: null, enchantments: null);
+
+    /// <param name="localPlay">The local player's entities in play, when the caller has them (else read from the game).</param>
+    /// <param name="enchantments">Enchantments in play attached to the local player entity, when the caller has them.</param>
+    internal static IReadOnlyList<CounterView> Build(GameState game, BattlegroundsCounterTracker tracker, CardDb cards, IEnumerable<string> visibleCardIds,
+        IReadOnlyList<Entity>? localPlay, IReadOnlyList<Entity>? enchantments)
     {
         var result = new List<CounterView>();
         if (!game.IsBattlegrounds || game.LocalPlayerId == 0)
@@ -204,10 +210,13 @@ public static class BattlegroundsCounters
 
         var player = game.LocalPlayerEntity;
         var seen = visibleCardIds.Select(id => Normal(cards, id)).ToHashSet(StringComparer.Ordinal);
-        var enchantments = player is null
+        enchantments = player is null
             ? []
-            : game.Entities.Values.Where(e => e.CardType == "ENCHANTMENT" && e.Zone == "PLAY" && e.GetInt("ATTACHED") == player.Id).ToList();
-        var context = new CounterContext(game, player, tracker, cards, enchantments);
+            : enchantments ?? game.Entities.Values.Where(e => e.CardType == "ENCHANTMENT" && e.Zone == "PLAY" && e.GetInt("ATTACHED") == player.Id).ToList();
+        var context = new CounterContext(game, player, tracker, cards, enchantments)
+        {
+            LocalPlay = localPlay ?? game.Controlled(game.LocalPlayerId, "PLAY").ToList(),
+        };
         foreach (var def in Defs)
         {
             var value = def.Compute(context);
@@ -287,6 +296,9 @@ public static class BattlegroundsCounters
 
     private sealed record CounterContext(GameState Game, Entity? Player, BattlegroundsCounterTracker Tracker, CardDb Cards, IReadOnlyList<Entity> Enchantments)
     {
+        /// <summary>The local player's entities in play (the reroll button is one).</summary>
+        public IReadOnlyList<Entity> LocalPlay { get; init; } = [];
+
         public int Tag(string tag) => Player?.GetInt(tag) ?? 0;
 
         /// <summary>The tag has arrived on the player entity (any value, 0 included).</summary>

@@ -17,7 +17,8 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [graveyard.md](graveyard.md) | Graveyard panel: the minions that died this game on each side |
 | [opponent-deck.md](opponent-deck.md) | Likely deck panel: the opponent's likely meta list with its played cards marked |
 | [secrets-helper.md](secrets-helper.md) | Opponent Secrets panel |
-| [streaming.md](streaming.md) | OBS capture windows (deck, lobby, combat odds) and streamer mode: what each hides and shows |
+| [streaming.md](streaming.md) | OBS capture windows (deck, lobby, combat odds, session) and streamer mode: what each hides and shows |
+| [sharing.md](sharing.md) | Share pictures (session recap, deck list and 16:9 cover, year in review), YouTube timestamps, the year page |
 | [discord.md](discord.md) | Discord status: what it shows and never shows, sending limits, registering the Discord app |
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |

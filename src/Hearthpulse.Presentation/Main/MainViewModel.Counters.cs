@@ -4,6 +4,7 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.UI.Infrastructure;
 #endif
 using Hearthpulse.Core.Tracking.Counters;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -12,7 +13,7 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>One counter on the settings page with its mode.</summary>
-public sealed partial record CounterSettingRow(string Id, string Title, string Description, bool IsAuto, bool IsAlways, bool IsOff);
+public sealed partial record CounterSettingRow(string Id, string Title, string Description, bool IsAuto, bool IsAlways, bool IsOff) : IImmutableView;
 
 public sealed partial class MainViewModel
 {

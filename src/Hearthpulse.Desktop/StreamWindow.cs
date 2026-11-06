@@ -52,13 +52,23 @@ internal sealed class StreamWindow : Window
         reset.Click += (_, _) => ResetSize();
         var close = new MenuItem { Header = Loc.T("Stream.Menu.Close") };
         close.Click += (_, _) => CloseRequested?.Invoke(Spec);
-        ContextMenu = new ContextMenu { ItemsSource = new object[] { reset, _onTopItem, new Separator(), close } };
+        var items = new List<object> { reset, _onTopItem };
+        var newSession = new MenuItem { Header = Loc.T("Stream.Session.Reset") };
+        newSession.Click += (_, _) => ResetSessionRequested?.Invoke();
+        if (spec == StreamWindowSpec.Session)
+        {
+            items.Add(newSession);
+        }
+
+        items.AddRange([new Separator(), close]);
+        ContextMenu = new ContextMenu { ItemsSource = items };
         ContextMenu.Opening += (_, _) =>
         {
             // Texts in the current language each time it opens.
             reset.Header = Loc.T("Stream.Menu.ResetSize");
             _onTopItem.Header = Loc.T("Stream.OnTop");
             close.Header = Loc.T("Stream.Menu.Close");
+            newSession.Header = Loc.T("Stream.Session.Reset");
         };
         ApplyLook();
 
@@ -86,6 +96,9 @@ internal sealed class StreamWindow : Window
 
     /// <summary>"Always on top" from the window's menu: the host flips the setting for all three.</summary>
     public event Action? OnTopToggled;
+
+    /// <summary>"Start a new session" from the "Session" window's menu.</summary>
+    public event Action? ResetSessionRequested;
 
     /// <summary>The bounds to save, in device-independent pixels; null while minimized or maximized.</summary>
     public StreamRect? Place

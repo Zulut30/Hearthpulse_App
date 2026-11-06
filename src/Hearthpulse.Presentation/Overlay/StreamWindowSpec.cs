@@ -21,11 +21,11 @@ public enum StreamWindowState
 }
 
 /// <summary>
-/// One of the three OBS capture windows: its id (the overlay panel's, also the key in
+/// One of the OBS capture windows: its id (the overlay panel's, also the key in
 /// <see cref="AppSettings.StreamWindows"/>), its name in the title, and its default and smallest size and default spot in
 /// device-independent pixels (design: the panel at scale 1 plus the window's margins of 8).
 /// </summary>
-public sealed record StreamWindowSpec(string Id, string NameKey, double Width, double Height, double MinWidth, double MinHeight, double Left, double Top)
+public sealed record StreamWindowSpec(string Id, string NameKey, double Width, double Height, double MinWidth, double MinHeight, double Left, double Top) : IImmutableView
 {
     /// <summary>The window's margin around the panel, each side.</summary>
     public const double Padding = 8;
@@ -39,7 +39,10 @@ public sealed record StreamWindowSpec(string Id, string NameKey, double Width, d
     /// <summary>The panel 250 × about 110, plus 14 for the note wrapping onto a second line.</summary>
     public static readonly StreamWindowSpec Odds = new("odds", "Stream.Window.Odds", 266, 140, 166, 84, 570, 24);
 
-    public static readonly IReadOnlyList<StreamWindowSpec> All = [Deck, Lobby, Odds];
+    /// <summary>The session card 250 × about 160: the rank or rating, the change, the record or the last places.</summary>
+    public static readonly StreamWindowSpec Session = new("session", "Stream.Window.Session", 266, 184, 166, 104, 852, 24);
+
+    public static readonly IReadOnlyList<StreamWindowSpec> All = [Deck, Lobby, Odds, Session];
 
     /// <summary>The window title OBS finds it by: "Hearthpulse — Deck" (in the interface language).</summary>
     public string Title => Loc.F("Stream.Window.Title", Loc.T(NameKey));
@@ -49,6 +52,7 @@ public sealed record StreamWindowSpec(string Id, string NameKey, double Width, d
     {
         "deck" => settings.StreamDeckWindow,
         "lobby" => settings.StreamLobbyWindow,
+        "session" => settings.StreamSessionWindow,
         _ => settings.StreamOddsWindow,
     };
 
@@ -61,6 +65,9 @@ public sealed record StreamWindowSpec(string Id, string NameKey, double Width, d
                 break;
             case "lobby":
                 settings.StreamLobbyWindow = on;
+                break;
+            case "session":
+                settings.StreamSessionWindow = on;
                 break;
             default:
                 settings.StreamOddsWindow = on;

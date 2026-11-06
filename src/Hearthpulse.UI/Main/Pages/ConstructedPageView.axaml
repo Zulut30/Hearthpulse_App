@@ -18,9 +18,14 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+                <!-- The headline tiles above the decks -->
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+    </UserControl.Styles>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
@@ -32,27 +37,39 @@
             </StackPanel>
             <c:Wave Classes="pageRule" />
 
-            <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,14">
-                <WrapPanel>
-                    <RadioButton Name="TabMyDecks" Classes="segment" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True"
-                                 ToolTip.Tip="{i:Loc Main.Ct.MyStatsTip}" />
-                    <RadioButton Name="TabMetaTiers" Classes="segment" Content="{i:Loc Main.Ct.MetaTiers}" GroupName="CtTab"
-                                 ToolTip.Tip="{i:Loc Main.Ct.MetaTiersTip}" />
-                    <RadioButton Name="TabMetaDecks" Classes="segment" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab"
-                                 ToolTip.Tip="{i:Loc Main.Ct.TopDecksTip}" />
-                    <RadioButton Name="TabMetaMatchups" Classes="segment" Content="{i:Loc Main.Ct.MetaMatchups}" GroupName="CtTab"
-                                 ToolTip.Tip="{i:Loc Main.Ct.MetaMatchupsTip}" />
-                </WrapPanel>
-            </Border>
+            <!-- The tabs, then the period of My stats (one filter row for the page; the window shows it with My stats) -->
+            <WrapPanel Margin="0,0,0,6">
+                <Border Classes="segmentBar" Margin="0,0,12,8">
+                    <WrapPanel>
+                        <RadioButton Name="TabMyDecks" Classes="segment" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True"
+                                     ToolTip.Tip="{i:Loc Main.Ct.MyStatsTip}" />
+                        <RadioButton Name="TabMetaTiers" Classes="segment" Content="{i:Loc Main.Ct.MetaTiers}" GroupName="CtTab"
+                                     ToolTip.Tip="{i:Loc Main.Ct.MetaTiersTip}" />
+                        <RadioButton Name="TabMetaDecks" Classes="segment" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab"
+                                     ToolTip.Tip="{i:Loc Main.Ct.TopDecksTip}" />
+                        <RadioButton Name="TabMetaMatchups" Classes="segment" Content="{i:Loc Main.Ct.MetaMatchups}" GroupName="CtTab"
+                                     ToolTip.Tip="{i:Loc Main.Ct.MetaMatchupsTip}" />
+                    </WrapPanel>
+                </Border>
+                <Border Name="CtPeriodBar" Classes="segmentBar statsBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Week" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Month" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Season}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Season"
+                                     ToolTip.Tip="{i:Loc Stats.Period.SeasonTip}" />
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
 
             <!-- Community tabs (Main/Meta): tier list, top decks, matchup heat map -->
             <mm:ConstructedMetaView Name="CtMeta" IsVisible="False" />
 
-            <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
-            <s:ConstructedStatsView Name="CtStats" />
-
-            <Grid Name="DeckColumns" ColumnDefinitions="3*,16,2*">
-                <Border Classes="card" VerticalAlignment="Top">
+            <!-- My stats: the four headline numbers, then your decks (the way into a deck page), then the rank and the rest
+                 (Main/Stats ConstructedStatsView) -->
+            <StackPanel Name="DeckColumns">
+                <ItemsControl ItemsSource="{Binding CtStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
+                <Border Classes="card" Margin="0,0,0,16">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Main.Ct.Decks}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
                         <!-- Decks that look like versions of one -->
@@ -112,27 +129,8 @@
                                 HorizontalAlignment="Left" Margin="0,4,0,8" IsVisible="{Binding ShowGettingStarted}" />
                     </StackPanel>
                 </Border>
-                <Border Name="MatchupCard" Grid.Column="2" Classes="card" VerticalAlignment="Top">
-                    <StackPanel>
-                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10"
-                                    ToolTip.Tip="{i:Loc Main.Ct.MatchupsHint}" />
-                        <ItemsControl ItemsSource="{Binding Matchups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="m:MatchupRow">
-                                    <Border Classes="row" Padding="10,8">
-                                        <Grid ColumnDefinitions="*,60,56">
-                                            <TextBlock Text="{Binding Class}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="{i:Loc Main.Ct.MatchupsEmpty}" Classes="caption" IsVisible="{Binding Matchups, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+            </StackPanel>
+            <s:ConstructedStatsView Name="CtStats" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

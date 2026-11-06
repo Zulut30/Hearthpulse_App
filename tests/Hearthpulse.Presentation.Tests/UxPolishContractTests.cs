@@ -57,7 +57,7 @@ public sealed partial class UxPolishContractTests
     /// </summary>
     private static readonly string[] CardNotes =
     [
-        "Overlay.Move.Settings", "Settings.Leaderboard.Caption", "Stream.Mode.Note", "Discord.Note", "Stream.Windows.Note", "Migration.Settings.Note",
+        "Overlay.Move.Settings", "Settings.Leaderboard.Caption", "Stream.Mode.Note", "Discord.Note", "Twitch.Note", "Stream.Windows.Note", "Migration.Settings.Note",
     ];
 
     [Fact]

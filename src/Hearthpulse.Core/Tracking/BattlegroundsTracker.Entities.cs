@@ -59,18 +59,24 @@ public sealed partial class BattlegroundsTracker
             .OrderBy(e => e.ZonePosition);
 
     /// <summary>Bob's current offer: shop minions plus tavern spells, in row order.</summary>
-    private static IEnumerable<Entity> ShopCards(GameState game) =>
-        game.Entities.Values
-            .Where(e => e.Controller == game.OpponentPlayerId && e.InPlay
+    private static IEnumerable<Entity> ShopCards(GameState game)
+    {
+        var opponent = game.OpponentPlayerId;
+        return game.Entities.Values
+            .Where(e => e.Controller == opponent && e.InPlay
                         && (e.IsMinion || e.CardType is "SPELL" or "BATTLEGROUND_SPELL"))
             .OrderBy(e => e.ZonePosition);
+    }
 
     /// <summary>Opponents' persistent leaderboard heroes (not combat copies or hero choices).</summary>
-    private static IEnumerable<Entity> LeaderboardHeroes(GameState game)
+    private static IEnumerable<Entity> LeaderboardHeroes(GameState game) =>
+        LeaderboardHeroes(game.Entities.Values.Where(e => e.IsHero), game.LocalHero);
+
+    /// <summary>The leaderboard heroes among <paramref name="heroes"/> (every hero entity, in the game's order).</summary>
+    private static IEnumerable<Entity> LeaderboardHeroes(IEnumerable<Entity> heroes, Entity? local)
     {
-        var local = game.LocalHero;
-        return game.Entities.Values
-            .Where(e => e.IsHero && e.GetInt(GameTag.PlayerId) > 0 && e.GetInt(GameTag.PlayerLeaderboardPlace) > 0
+        return heroes
+            .Where(e => e.GetInt(GameTag.PlayerId) > 0 && e.GetInt(GameTag.PlayerLeaderboardPlace) > 0
                         && (e.Zone == "SETASIDE" || e == local) && e.CardId != PlaceholderHero)
             .GroupBy(e => e.GetInt(GameTag.PlayerId))
             // Combat copies share PLAYER_ID; the persistent leaderboard entity is the oldest one.

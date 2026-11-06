@@ -258,7 +258,7 @@ public sealed class StreamWindowTests
         Assert.Equal(new StreamRect(40, 50, 266, 140), StreamWindowLayout.OriginalSize(StreamWindowSpec.Odds, new StreamRect(40, 50, 300, 160)));
 
         // The ids are the overlay panels' (never renamed: saved places would be lost).
-        Assert.Equal(new[] { "deck", "lobby", "odds" }, StreamWindowSpec.All.Select(s => s.Id));
+        Assert.Equal(new[] { "deck", "lobby", "odds", "session" }, StreamWindowSpec.All.Select(s => s.Id));
         foreach (var spec in StreamWindowSpec.All)
         {
             Assert.False(spec.IsOn(settings));
@@ -268,6 +268,6 @@ public sealed class StreamWindowTests
             Assert.Equal(Loc.F("Stream.Window.Title", Loc.T(spec.NameKey)), spec.Title);
         }
 
-        Assert.True(settings.StreamDeckWindow && settings.StreamLobbyWindow && settings.StreamOddsWindow);
+        Assert.True(settings.StreamDeckWindow && settings.StreamLobbyWindow && settings.StreamOddsWindow && settings.StreamSessionWindow);
     }
 }

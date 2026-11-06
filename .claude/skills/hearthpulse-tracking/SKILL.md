@@ -63,7 +63,7 @@ deal, the Coin can be a skin like `JAIL_COIN3` with `COIN_CARD=1`).
 
 ## 2. Listen: `IPowerListener`
 
-Defined in `src/Hearthpulse.Core/Power/PowerParser.cs`; every member has a default body, override what you need:
+Defined in `src/Hearthpulse.Core/Power/IPowerListener.cs`; every member has a default body, override what you need:
 `OnGameStarted`, `OnEntityCreated`, `OnEntityRevealed`, `OnTagChanged(game, entity, tag, previous, value)`,
 `OnBlockStart(game, blockType, source)`, `OnBlockEnd`, `OnChoices(game, choiceType, source, options)` (local player
 only), `OnChoiceMade`, `OnGameEnded`.
@@ -115,7 +115,7 @@ input and rebuild on change (review findings on card pool and mulligan).
 
 ## 4. Persist: a new history field
 
-`GameRecord` (sealed record) lives in `src/Hearthpulse.Core/Data/HistoryStore.cs`; rows are built by
+`GameRecord` (sealed record) lives in `src/Hearthpulse.Core/Data/GameRecord.cs`; rows are built by
 `GameRecords.Build` (`Tracking/GameRecords.cs`), live from `GameSession.RecordIfFinished`, imported from
 `LogBackfill`. A new column touches:
 

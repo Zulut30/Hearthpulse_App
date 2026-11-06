@@ -4,6 +4,7 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:sh="using:Hearthpulse.UI.Main.Share"
              xmlns:cs="using:Hearthpulse.Core.Stats"
              x:Class="Hearthpulse.UI.Main.Pages.OverviewPage"
              x:DataType="m:MainViewModel">
@@ -36,6 +37,9 @@
             <Panel IsVisible="{Binding Migration.ShowOnHome}">
                 <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16" />
             </Panel>
+
+            <!-- December and January: the year in review is ready (Main/Share) -->
+            <sh:YearReviewBanner />
 
             <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
                  worth doing before a match. The buttons are the existing import and layout actions. -->
@@ -104,41 +108,16 @@
                 </StackPanel>
             </Border>
 
-            <Grid Name="HomeCharts" ColumnDefinitions="3*,16,2*" Margin="0,0,0,16" IsVisible="{Binding HasBgGames}">
-                <Border Classes="card">
-                    <DockPanel>
-                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                        <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
-                    </DockPanel>
-                </Border>
-                <Border Name="PlacementCard" Grid.Column="2" Classes="card">
-                    <DockPanel>
-                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.Placements}" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
-                        <ItemsControl ItemsSource="{Binding Placements}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="m:PlacementBar">
-                                    <!-- A place nobody finished on sinks back, with no "0 · 0 %" -->
-                                    <Grid Height="25" ColumnDefinitions="22,*,70" Opacity="{Binding Dim}">
-                                        <TextBlock Text="{Binding Place}" Classes="caption" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border Classes="placeBar" Classes.top="{Binding Top}" Classes.first="{Binding First}"
-                                                    HorizontalAlignment="Left" CornerRadius="3" Opacity="0.85"
-                                                    Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                        </Border>
-                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" IsVisible="{Binding !Empty}"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </DockPanel>
-                </Border>
-            </Grid>
-
+            <!-- The last games first: what a player opens Home for -->
             <Border Classes="card">
                 <StackPanel>
                     <Grid Margin="0,0,0,10">
-                        <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
-                        <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
+                        <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,280,0" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                            <Button Name="SessionRecapButton" Content="{i:Loc Growth.Recap.Button}" Classes="ghost" Padding="14,6" FontSize="12"
+                                    Click="OnSessionRecap" ToolTip.Tip="{i:Loc Growth.Recap.ButtonTip}" AutomationProperties.Name="{i:Loc Growth.Recap.Button}" />
+                            <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" Click="OnViewHistory" />
+                        </StackPanel>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" ClipToBounds="False" />
                     <ContentControl Classes="emptyState" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
@@ -199,6 +178,13 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+            </Border>
+            <!-- Battlegrounds rating over time; where you finish is on the Battlegrounds page (My stats) -->
+            <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HasBgGames}">
+                <DockPanel>
+                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
+                </DockPanel>
             </Border>
         </StackPanel>
     </ScrollViewer>

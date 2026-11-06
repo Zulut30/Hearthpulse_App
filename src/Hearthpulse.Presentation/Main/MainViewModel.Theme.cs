@@ -22,7 +22,7 @@ namespace Hearthpulse.UI.Main;
 /// backdrop line art (null where the theme's geometries are not loaded).
 /// </summary>
 public sealed record ThemeChoice(string Key, string Name, Brush Background, Brush Card, Brush Surface, Brush Accent, Brush Text,
-    Brush Muted, Brush Secondary, Geometry? Motif, bool Selected)
+    Brush Muted, Brush Secondary, Geometry? Motif, bool Selected) : IImmutableView
 {
     public static ThemeChoice From(ThemeSpec theme, bool selected) => new(
         theme.Name,

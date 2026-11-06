@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.SettingsTabs.TwitchSettingsCard"
+             x:DataType="m:MainViewModel">
+    <!-- Settings, Stream: the Twitch extension's card (docs/streaming.md). Same tree as the WPF TwitchSettingsCard.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Border Classes="card">
+        <StackPanel>
+            <c:Ornament Text="{i:Loc Twitch.Title}" Icon="&#xF0543;" Size="13" Margin="0,0,0,14" />
+            <TextBlock Text="{i:Loc Twitch.Note}" Classes="caption cardNote" />
+            <CheckBox Name="TwitchSetting" Classes="switch" Content="{i:Loc Twitch.Switch}" IsChecked="{Binding TwitchExtension}" Margin="0,0,0,12"
+                      ToolTip.Tip="{i:Loc Twitch.SwitchTip}" />
+            <Grid Margin="0,0,0,16" ColumnDefinitions="160,*,56">
+                <TextBlock Text="{i:Loc Twitch.Delay}" Classes="settingLabel" ToolTip.Tip="{i:Loc Twitch.DelayTip}" />
+                <Slider Name="TwitchDelaySetting" Grid.Column="1" Minimum="0" Maximum="600" Value="{Binding TwitchDelay}" SmallChange="1" LargeChange="10"
+                        IsSnapToTickEnabled="True" TickFrequency="1" AutomationProperties.Name="{i:Loc Twitch.Delay}" ToolTip.Tip="{i:Loc Twitch.DelayTip}" />
+                <TextBlock Grid.Column="2" Text="{Binding TwitchDelayText}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+            </Grid>
+            <!-- The link to the site and Twitch: green once the site takes the deck, faint otherwise -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8" IsVisible="{Binding TwitchStatusShown}">
+                <Panel Margin="0,4,8,0" VerticalAlignment="Top">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Faint}" />
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Positive}" IsVisible="{Binding TwitchConnected}" />
+                </Panel>
+                <TextBlock Name="TwitchStatusLine" Grid.Column="1" Text="{Binding TwitchStatusText}" Classes="caption" TextWrapping="Wrap" />
+            </Grid>
+            <Button Name="TwitchLinkButton" Classes="ghost primary" Content="{i:Loc Twitch.Link}" Command="{Binding LinkTwitch}" HorizontalAlignment="Left" Margin="0,4,0,8"
+                    ToolTip.Tip="{i:Loc Twitch.LinkTip}" IsVisible="{Binding TwitchLinkShown}" />
+            <TextBlock Text="{i:Loc Twitch.Keeps}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+    </Border>
+</UserControl>

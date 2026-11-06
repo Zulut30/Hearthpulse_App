@@ -41,16 +41,16 @@ public enum MatchTimelineLook
 /// A timeline stretch as drawn: where it sits as fractions of the game (by step, not by time), the steps it holds, its
 /// look and texts.
 /// </summary>
-public sealed record MatchTimelineSegment(double Start, double End, int FirstFrame, int LastFrame, MatchTimelineLook Look, string Label, string Tooltip)
+public sealed record MatchTimelineSegment(double Start, double End, int FirstFrame, int LastFrame, MatchTimelineLook Look, string Label, string Tooltip) : IImmutableView
 {
     public bool IsCombat => Look is MatchTimelineLook.Combat or MatchTimelineLook.Won or MatchTimelineLook.Lost;
 }
 
 /// <summary>An event tick (close events merged into one): where it sits, the step it goes to, whose it is, what happened.</summary>
-public sealed record MatchTimelineTick(double At, int Frame, MatchTimelineLook Look, string Tooltip);
+public sealed record MatchTimelineTick(double At, int Frame, MatchTimelineLook Look, string Tooltip) : IImmutableView;
 
 /// <summary>A leaderboard row of the Battlegrounds table: hero names only, never the players'.</summary>
-public sealed record MatchLeaderLine(string HeroCardId, string Name, string Place, string Health, string Tier, bool Local, bool Fighting, bool Dead, string Tooltip)
+public sealed record MatchLeaderLine(string HeroCardId, string Name, string Place, string Health, string Tier, bool Local, bool Fighting, bool Dead, string Tooltip) : IImmutableView
 {
     /// <summary>The armor after the health, next to a shield ("" without armor).</summary>
     public string Armor { get; init; } = string.Empty;

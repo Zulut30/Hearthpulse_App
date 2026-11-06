@@ -6,6 +6,7 @@ using Hearthpulse.UI.Infrastructure;
 using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -14,13 +15,13 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>One tier of the hero tier list: "Tier S", its bound ("average place under 3.75 · 7 heroes") and its heroes.</summary>
-public sealed record HeroTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaHeroRow> Rows);
+public sealed record HeroTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaHeroRow> Rows) : IImmutableView;
 
 /// <summary>One tier of the trinket tier list, as <see cref="HeroTierGroup"/>.</summary>
-public sealed record TrinketTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaTrinketRow> Rows);
+public sealed record TrinketTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaTrinketRow> Rows) : IImmutableView;
 
 /// <summary>The sort arrow of each sortable hero column ("▲", "▼" or empty).</summary>
-public sealed record HeroSortArrows(string Name, string Placement, string Top4, string First, string Pick, string Games);
+public sealed record HeroSortArrows(string Name, string Placement, string Top4, string First, string Pick, string Games) : IImmutableView;
 
 public sealed partial class MainViewModel
 {
@@ -30,11 +31,15 @@ public sealed partial class MainViewModel
     private bool _heroSortAscending = true;
     private RelayCommand? _setHeroSort;
     private bool _bgMetaFailed;
+    private bool _heroAllColumns;
 
     /// <summary>The hero tier list by tier, S to D; tiers without heroes are left out.</summary>
     public IReadOnlyList<HeroTierGroup> HeroTierGroups { get => _heroTierGroups; private set => Set(ref _heroTierGroups, value); }
 
     public IReadOnlyList<TrinketTierGroup> TrinketTierGroups { get => _trinketTierGroups; private set => Set(ref _trinketTierGroups, value); }
+
+    /// <summary>The hero tier table's rarely read columns (first places, pick rate, games); off by default.</summary>
+    public bool HeroAllColumns { get => _heroAllColumns; set => Set(ref _heroAllColumns, value); }
 
     public HeroSortArrows HeroArrows => new(HeroArrow("Name"), HeroArrow("Placement"), HeroArrow("Top4"), HeroArrow("First"), HeroArrow("Pick"), HeroArrow("Games"));
 

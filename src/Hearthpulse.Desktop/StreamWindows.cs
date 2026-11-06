@@ -83,6 +83,7 @@ internal sealed class StreamWindows
             _host.OnSettingsChanged();
         };
         window.OnTopToggled += () => _host.Main.StreamWindowsOnTop = !Settings.StreamWindowsOnTop;
+        window.ResetSessionRequested += _host.Main.ResetStreamSession;
         window.CloseRequested += s =>
         {
             // Closed by hand: switched off (the switch in Settings follows), which closes it in Sync.

@@ -62,6 +62,14 @@ public sealed class DeckLookContractTests
         Assert.StartsWith("3–1", (string)model.WinRecord);
         Assert.Equal(2, ((IEnumerable<string>)model.Facts).Count());
         Assert.DoesNotContain(((IEnumerable<object>)model.Tiles).Cast<dynamic>(), t => (string)t.Label == Loc.T("Deck.Tile.WinRate"));
+        // With the banner's win rate, four numbers at the top; going first / on the coin wait under «Подробнее»,
+        // and both tables start with their essential columns.
+        Assert.Equal(new[] { Loc.T("Deck.Tile.Games"), Loc.T("Deck.Tile.AvgGame"), Loc.T("Deck.Tile.VsMeta") },
+            ((IEnumerable<object>)model.Tiles).Cast<dynamic>().Select(t => (string)t.Label));
+        Assert.Equal(new[] { Loc.T("Deck.Tile.OnPlay"), Loc.T("Deck.Tile.OnCoin") },
+            ((IEnumerable<object>)model.MoreTiles).Cast<dynamic>().Select(t => (string)t.Label));
+        Assert.False((bool)model.MulliganAllColumns);
+        Assert.False((bool)model.CardsAllColumns);
 
         // Six cards: 0 at cost 0, 2 at cost 1, 3 at cost 2, the 9-drop in 7+ (the tallest bar is 1.0).
         var curve = ((IEnumerable<object>)model.Curve).Cast<dynamic>().ToList();

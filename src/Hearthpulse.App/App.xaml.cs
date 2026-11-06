@@ -200,6 +200,7 @@ public partial class App : Application
         _mainViewModel = new MainViewModel(_history, _settings, _services.Data);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
+        _mainViewModel.AttachTwitch(services.Twitch);
         _mainViewModel.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.

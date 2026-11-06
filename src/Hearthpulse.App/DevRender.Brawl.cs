@@ -37,6 +37,11 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("share"))
+        {
+            await RenderShareAsync(folder);
+        }
+
         if (RenderOnly("home"))
         {
             // The whole home page: the recent games and the deck banners sit below the fold.
@@ -85,11 +90,11 @@ public partial class App
         if (RenderOnly("pages"))
         {
             // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
-            // hero and its art at a wide window.
+            // hero and its art at a wide window; HEARTHPULSE_RENDER_PAGES=Arena,Brawl picks other sidebar pages.
             var width = RenderWidth ?? 1260;
             _main.Width = width;
             _main.Height = width >= 1600 ? 1080 : 840;
-            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            foreach (var page in RenderPagesOnly() is { } pages ? Hearthpulse.App.Main.MainViewModel.NavPages.Where(pages.Contains) : ["Overview", "Battlegrounds"])
             {
                 _main.ShowPage(page);
                 await Task.Delay(2500);

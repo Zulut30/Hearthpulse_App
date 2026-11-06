@@ -31,6 +31,13 @@ public sealed class PageRowsPanel : VirtualizingPanel
     private int _last = -1;
     private bool _aheadQueued;
 
+    /// <summary>
+    /// Arranged since it was attached or its list was replaced: only then does it know where it stands on the page. Before
+    /// that every panel of a page took its top for the page's, and the meta tier list (five panels, one per tier) built
+    /// about 90 of its 100 rows on the first opening instead of a screen of them.
+    /// </summary>
+    private bool _placed;
+
     public PageRowsPanel()
     {
         Loaded += (_, _) => Attach();
@@ -80,7 +87,9 @@ public sealed class PageRowsPanel : VirtualizingPanel
             Realize(0, 0, rowSize);
         }
 
-        (_first, _last) = Wanted(count);
+        // Not placed yet: the first row (its height) is enough. The arrange that follows measures again, in the same
+        // layout pass, with the panel's real place on the page, so no frame shows the rows missing.
+        (_first, _last) = _placed ? Wanted(count) : (0, 0);
         Realize(_first, _last, rowSize);
         var width = 0.0;
         foreach (UIElement child in children)
@@ -90,7 +99,11 @@ public sealed class PageRowsPanel : VirtualizingPanel
             width = Math.Max(width, child.DesiredSize.Width);
         }
 
-        QueueAheadBuild();
+        if (_placed)
+        {
+            QueueAheadBuild();
+        }
+
         return new Size(width, count * _row);
     }
 
@@ -167,6 +180,12 @@ public sealed class PageRowsPanel : VirtualizingPanel
             children[i].Arrange(new Rect(0, index * _row, finalSize.Width, _row));
         }
 
+        if (!_placed)
+        {
+            _placed = true;
+            InvalidateMeasure();
+        }
+
         return finalSize;
     }
 
@@ -184,6 +203,7 @@ public sealed class PageRowsPanel : VirtualizingPanel
                 // A new list: its rows are built again, and may come with another template, so their height is measured again.
                 RemoveInternalChildRange(0, InternalChildren.Count);
                 _row = double.NaN;
+                _placed = false;
                 break;
         }
     }
@@ -293,6 +313,7 @@ public sealed class PageRowsPanel : VirtualizingPanel
             if (parent is ScrollViewer page)
             {
                 _page = page;
+                _placed = false;
                 page.ScrollChanged += OnPageScrolled;
                 return;
             }

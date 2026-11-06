@@ -64,6 +64,7 @@
             </StackPanel>
         </Border>
 
+        <st:TwitchSettingsCard Margin="0,0,0,16" />
         <Border Classes="card">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />
@@ -75,6 +76,7 @@
                           ToolTip.Tip="{i:Loc Stream.Window.LobbyTip}" />
                 <CheckBox Name="StreamOddsSetting" Classes="switch" Content="{i:Loc Stream.Window.Odds}" IsChecked="{Binding StreamOddsWindow}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Stream.Window.OddsTip}" />
+                <st:StreamSessionSettings />
                 <TextBlock Text="{i:Loc Stream.Look.Group}" Classes="label settingGroup" />
                 <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyStreamChoice) -->
                 <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
