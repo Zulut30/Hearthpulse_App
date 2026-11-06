@@ -8,6 +8,12 @@ namespace Hearthpulse.Desktop;
 /// <summary>Render-check scenes of the Tavern Brawl page (docs/brawl.md) and the render groups that run alone.</summary>
 internal static partial class OffscreenRenderer
 {
+    /// <summary><c>HEARTHPULSE_RENDER_PAGES</c> as a set of page names, null when not set (the <c>pages</c> group's pick).</summary>
+    private static HashSet<string>? RenderPagesOnly() =>
+        Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_PAGES") is { Length: > 0 } pages
+            ? new HashSet<string>(pages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase)
+            : null;
+
     /// <summary>
     /// <c>HEARTHPULSE_RENDER_ONLY=brawl,history</c>: only those groups, not the whole set (a check of one page stays a
     /// frame or two instead of a hundred). Empty: everything.
@@ -75,11 +81,11 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("pages"))
         {
             // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
-            // hero and its art at a wide window.
+            // hero and its art at a wide window; HEARTHPULSE_RENDER_PAGES=Arena,Brawl picks other sidebar pages.
             var width = RenderWidth ?? 1260;
             main.Width = width;
             main.Height = width >= 1600 ? 1080 : 840;
-            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            foreach (var page in RenderPagesOnly() is { } pages ? MainViewModel.NavPages.Where(pages.Contains) : ["Overview", "Battlegrounds"])
             {
                 view.ShowPage(page);
                 await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-{width:0}.png"));
