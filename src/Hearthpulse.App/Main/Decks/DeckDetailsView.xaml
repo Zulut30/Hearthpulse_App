@@ -671,7 +671,12 @@
             <!-- The main version: mana curve and the list as the tracker shows it -->
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Deck.List.Title}" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
+                    <DockPanel Margin="0,0,0,4">
+                        <Button x:Name="DeckImageButton" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Deck.Button}" Padding="12,4"
+                                FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" Click="OnDeckImage" ToolTip="{i:Loc Growth.Deck.ButtonTip}"
+                                AutomationProperties.Name="{i:Loc Growth.Deck.Button}" Visibility="{Binding DeckList, Converter={StaticResource Vis}}" />
+                        <c:Ornament Text="{i:Loc Deck.List.Title}" Icon="&#xF0638;" Size="13" VerticalAlignment="Center" />
+                    </DockPanel>
                     <TextBlock Text="{Binding DeckListNote}" Style="{StaticResource Caption}" Margin="2,0,0,12" Visibility="{Binding DeckListNote, Converter={StaticResource Vis}}" />
                     <StackPanel Visibility="{Binding Curve, Converter={StaticResource Vis}}" Margin="0,0,0,16">
                         <TextBlock Text="{i:Loc Deck.List.Curve}" Style="{StaticResource StatsHead}" Margin="0,0,0,4" />

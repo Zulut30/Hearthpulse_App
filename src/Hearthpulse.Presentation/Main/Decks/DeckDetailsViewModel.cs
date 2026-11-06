@@ -27,7 +27,7 @@ namespace Hearthpulse.UI.Main.Decks;
 /// version) go to the history and the page is shown again from the reloaded families. The Versions card's text comes
 /// from <see cref="DeckVersionsText"/>.
 /// </summary>
-public sealed class DeckDetailsViewModel : Observable
+public sealed partial class DeckDetailsViewModel : Observable
 {
     /// <summary>Bars of the mana curve: 0 … 6 and 7+.</summary>
     private const int CurveBuckets = 8;
