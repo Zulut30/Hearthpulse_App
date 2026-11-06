@@ -70,30 +70,23 @@
         <Style Selector="m|MainView.compact RadioButton.nav /template/ ContentPresenter#Presenter">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- The BETA pill on the wordmark's line: a solid accent pill, 16 high, dark bold capitals spaced a little -->
+        <!-- The BETA flag on the logo's lower edge (owner's pick E, 2026-11-07): a small outlined tag over the sidebar fill,
+             accent capitals; the same in compact, where the wordmark hides -->
         <Style Selector="Border.beta">
-            <Setter Property="Background" Value="{StaticResource Accent}" />
-            <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
-            <Setter Property="Height" Value="16" />
-            <Setter Property="Padding" Value="8,0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <!-- The logo: 36 beside the wordmark and its pill (they fill the 250 px column), 42 alone in compact -->
-        <Style Selector="Image.logo">
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="36" />
-        </Style>
-        <Style Selector="m|MainView.compact Image.logo">
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="42" />
+            <Setter Property="Background" Value="{StaticResource SidebarFill}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="3,0" />
+            <Setter Property="Margin" Value="0,0,0,-8" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
         </Style>
         <Style Selector="Border.beta > TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
-            <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
+            <Setter Property="FontSize" Value="8" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="LetterSpacing" Value="0.8" />
-            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
         <Style Selector="m|MainView.compact :is(Control).wide">
             <Setter Property="IsVisible" Value="False" />
@@ -285,22 +278,13 @@
         <DockPanel>
             <StackPanel DockPanel.Dock="Top">
                 <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                    <!-- In compact the wordmark hides and the 76 px column has no room beside the icon: the pill sits on its lower edge -->
-                    <Panel>
-                        <Image Classes="logo" Source="{StaticResource HearthpulseLogo}" />
-                        <Border Classes="beta narrow" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-8"
-                                ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
+                    <Panel Width="42" Height="42">
+                        <Image Source="{StaticResource HearthpulseLogo}" />
+                        <Border Name="BetaBadge" Classes="beta" ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
                             <TextBlock Text="{i:Loc Main.Beta}" />
                         </Border>
                     </Panel>
-                    <!-- The wordmark and the BETA pill on its line, centred on its lower-case letters (the box also holds the descender) -->
-                    <StackPanel Classes="wide" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Name="Wordmark" Classes="h2" Text="Hearthpulse" FontSize="18" VerticalAlignment="Center" />
-                        <Border Name="BetaBadge" Classes="beta" Margin="8,0,0,2"
-                                ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
-                            <TextBlock Text="{i:Loc Main.Beta}" />
-                        </Border>
-                    </StackPanel>
+                    <TextBlock Name="Wordmark" Classes="h2 wide" Text="Hearthpulse" FontSize="21" Margin="12,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live

@@ -69,19 +69,19 @@
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                        <Image Source="{StaticResource HearthpulseLogo}" Width="36" Height="36" />
-                        <!-- The wordmark and the BETA pill on its line: a solid accent pill with dark capitals, centred on the
-                             wordmark's lower-case letters (the box also holds the descender), a single TextBlock -->
-                        <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="Wordmark" Text="Hearthpulse" Style="{StaticResource H2}" FontSize="18" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
-                                       VerticalAlignment="Center" />
-                            <Border x:Name="BetaBadge" Background="{StaticResource Accent}" CornerRadius="{StaticResource RadiusPill}" Height="16" Padding="8,0" Margin="8,0,0,2"
-                                    VerticalAlignment="Center" SnapsToDevicePixels="True" UseLayoutRounding="True"
+                        <!-- The logo with the BETA flag on its lower edge (owner's pick E, 2026-11-07): a small outlined tag over the
+                             sidebar fill, accent capitals; the wordmark's line stays clean -->
+                        <Grid Width="42" Height="42">
+                            <Image Source="{StaticResource HearthpulseLogo}" />
+                            <Border x:Name="BetaBadge" Background="{StaticResource SidebarFill}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="3"
+                                    Padding="3,0" Margin="0,0,0,-8" HorizontalAlignment="Center" VerticalAlignment="Bottom" SnapsToDevicePixels="True" UseLayoutRounding="True"
                                     ToolTip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}" Focusable="False">
-                                <TextBlock Text="{i:Loc Main.Beta}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeMicro}" FontWeight="Bold"
-                                           Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" TextOptions.TextFormattingMode="Display" />
+                                <TextBlock Text="{i:Loc Main.Beta}" FontFamily="{StaticResource DisplayFont}" FontSize="8" FontWeight="Bold"
+                                           Foreground="{StaticResource Accent}" TextOptions.TextFormattingMode="Display" />
                             </Border>
-                        </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="Wordmark" Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
+                                   Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live
