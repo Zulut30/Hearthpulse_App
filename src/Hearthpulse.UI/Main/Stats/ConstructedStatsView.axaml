@@ -92,6 +92,7 @@
                 </StackPanel>
             </Border>
         </Grid>
-        <TextBlock Text="{Binding CtStatsNote}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding CtStatsNote}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap"
+                   IsVisible="{Binding CtStatsNote, Converter={StaticResource Truthy}}" />
     </StackPanel>
 </UserControl>

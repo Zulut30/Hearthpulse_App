@@ -159,14 +159,14 @@
                                  buttons. A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
                                  window - nav 250 - page margins 80 - list card border 2 and padding 32 - list chrome 2 - scroll
                                  bar 6 - item border 2; its row is 24 less (the plate's padding). -->
-                            <!-- Battlegrounds: hero · name and caption (150, one line each) · hero power and trinket chips · result ·
+                            <!-- Battlegrounds: hero · name and caption (190, one line each: long hero names stay whole) · hero power and trinket chips · result ·
                                  actions; under them, from the name's column to the result's, the whole final board. Seven minions
                                  with their stat badges take 371 px; the room there is about 488 at the minimum window (1040) and
                                  708 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
                             <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
-                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="190" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="150" />
                                     <ColumnDefinition Width="98" />

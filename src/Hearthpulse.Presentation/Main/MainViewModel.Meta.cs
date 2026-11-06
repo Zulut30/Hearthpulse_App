@@ -338,9 +338,7 @@ public sealed partial class MainViewModel
         _ => string.Empty,
     };
 
-    private static string ConstructedNote(ConstructedMeta? meta) => meta is null
-        ? Loc.T("Stats.Ct.NoteNoMeta")
-        : Loc.F("Stats.Ct.NoteSource", meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank));
+    private static string ConstructedNote(ConstructedMeta? meta) => meta is null ? Loc.T("Stats.Ct.NoteNoMeta") : string.Empty;
 
     partial void OnConstructedFormatChanged()
     {

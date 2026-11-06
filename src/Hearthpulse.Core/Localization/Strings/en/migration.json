@@ -3,7 +3,7 @@
   "Migration.Home.Both": "HDT and Firestone",
   "Migration.Found": "Found {0} history: {1}.",
   "Migration.FoundUncounted": "Found {0} history: its games are counted when you transfer.",
-  "Migration.What": "Games go to History and My stats, decks are kept, and HDT replays open like your own. HDT and Firestone files are only read.",
+  "Migration.What": "Games, decks and HDT replays move to Hearthpulse. HDT and Firestone files stay untouched.",
   "Migration.Count.Games": "{0} game|{0} games",
   "Migration.Count.Decks": "{0} deck|{0} decks",
   "Migration.Count.Pair": "{0} and {1}",

@@ -356,7 +356,6 @@
                                     Visibility="{Binding ArenaCommunityLoading, Converter={StaticResource Vis}}" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
                                     Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
-                    <TextBlock Text="{Binding ArenaCommunitySource}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
         </Grid>

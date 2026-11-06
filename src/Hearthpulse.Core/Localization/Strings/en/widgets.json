@@ -7,7 +7,7 @@
   "Widgets.Archetype.MayHold": "May still be in the deck",
   "Widgets.Archetype.Hide": "Hide until the end of the game",
   "Widgets.Archetype.Setting": "Opponent's archetype",
-  "Widgets.Archetype.SettingTip": "The opponent's likely archetype and the cards its lists usually run. Worked out only from the cards the opponent played face up and the Hearthpulse data meta of the game's format",
+  "Widgets.Archetype.SettingTip": "The opponent's likely archetype from the cards it played, and the cards its lists usually run.",
   "Widgets.Ladder.Panel": "Ladder session",
   "Widgets.Ladder.Title": "Ladder session",
   "Widgets.Ladder.Standard": "Standard",

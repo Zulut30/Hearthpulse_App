@@ -105,7 +105,7 @@
   "Deck.Mulligan.FewTip": "Few games: too few offers to tell",
   "Deck.Mulligan.OtherVersion": "other version",
   "Deck.Mulligan.NoData": "No game of this deck saved its mulligan yet: games from now on fill this in.",
-  "Deck.Mulligan.From": "From {1:N0} of {0:N0} game (older games did not save cards). Under {2} offers a card is greyed out: too few games to tell.|From {1:N0} of {0:N0} games (older games did not save cards). Under {2} offers a card is greyed out: too few games to tell.",
+  "Deck.Mulligan.From": "From {1:N0} of {0:N0} game. Faded cards: too few games.|From {1:N0} of {0:N0} games. Faded cards: too few games.",
   "Deck.Mulligan.Meta": "Meta: {0}, {1}.",
   "Deck.Mulligan.NeedsMeta": "Meta columns need the community meta of this format.",
   "Deck.Mulligan.NoMetaData": "The meta has no mulligan data for this list.",
@@ -122,7 +122,7 @@
   "Deck.Cards.AvgTurnTip": "The turn you first played it, on average",
   "Deck.Cards.FewTip": "Few games: drawn too rarely to tell",
   "Deck.Cards.NoData": "Cards drawn and played are saved from now on.",
-  "Deck.Cards.Note": "Per game: drawn = in hand at any point (a kept opening card counts), played = played from hand. Win rates are coloured against the deck's {0}.",
+  "Deck.Cards.Note": "Win rates are coloured against the deck's {0}.",
 
   "Deck.Recent.Title": "Recent games",
   "Deck.Recent.ShowInHistory": "Show in History",

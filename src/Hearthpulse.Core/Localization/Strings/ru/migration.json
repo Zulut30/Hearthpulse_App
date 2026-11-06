@@ -3,7 +3,7 @@
   "Migration.Home.Both": "HDT и Firestone",
   "Migration.Found": "Найдена история {0}: {1}.",
   "Migration.FoundUncounted": "Найдена история {0}: игры посчитаются при переносе.",
-  "Migration.What": "Игры появятся в «Истории» и «Моей статистике», колоды сохранятся, реплеи HDT откроются как свои. Файлы HDT и Firestone только читаются.",
+  "Migration.What": "Игры, колоды и реплеи HDT перейдут в Hearthpulse. Файлы HDT и Firestone не меняются.",
   "Migration.Count.Games": "{0} игра|{0} игры|{0} игр",
   "Migration.Count.Decks": "{0} колода|{0} колоды|{0} колод",
   "Migration.Count.Pair": "{0} и {1}",

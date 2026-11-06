@@ -72,7 +72,7 @@ public sealed class LibraryRowXamlTests
                 Assert.Equal(rest, System.Windows.Automation.AutomationProperties.GetName(pill));
             }
 
-            // The Russian caption fits the 150 px name column on one line.
+            // The Russian caption fits the 190 px name column on one line.
             var caption = Descendants(row).OfType<TextBlock>().Single(t => t.Name == "BgCaption");
             Assert.Equal(TextWrapping.NoWrap, caption.TextWrapping);
             Assert.True(caption.ActualHeight < 20, $"{caption.ActualHeight}");

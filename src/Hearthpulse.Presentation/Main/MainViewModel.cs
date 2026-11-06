@@ -207,7 +207,6 @@ public sealed partial class MainViewModel : Observable
 
     public string DataFolder { get; }
 
-    public string Attribution => Loc.T("Settings.Sources.Text");
 
     // ---- live status ----------------------------------------------------------------------
     private LiveSnapshot? _lastSnapshot;
@@ -354,7 +353,7 @@ public sealed partial class MainViewModel : Observable
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
     public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }
     public string MetaUpdated { get => _metaUpdated; private set => Set(ref _metaUpdated, value); }
-    public int HistoryCount { get => _historyCount; private set { if (Set(ref _historyCount, value)) Raise(nameof(HistorySubtitle)); } }
+    public int HistoryCount { get => _historyCount; private set => Set(ref _historyCount, value); }
 
     public void SetCards(CardDb cards)
     {
@@ -646,8 +645,7 @@ public sealed partial class MainViewModel : Observable
         CardEmptyText = CardTier == 0 ? meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Spells")) : Loc.T("Main.Bg.NoCardData");
         var bracketText = BattlegroundsMeta.BracketLabel(Bracket)
             + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? Loc.F("Main.Bg.CardsBracket", BattlegroundsMeta.BracketLabel(cardBracket)) : string.Empty);
-        var sharedText = meta.SharedGames > 0 ? Loc.F("Main.Bg.SharedGames", meta.SharedGames) : string.Empty;
-        MetaUpdated = Loc.F("Main.Bg.MetaUpdated", meta.Source, bracketText, meta.Updated.ToLocalTime(), sharedText);
+        MetaUpdated = Loc.F("Main.Bg.MetaUpdated", bracketText, meta.Updated.ToLocalTime());
     }
 
     private GameRow Row(GameRecord g)

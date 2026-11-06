@@ -134,7 +134,6 @@ public sealed partial class OverlayViewModel : Observable
     private string _oddsLethal = string.Empty;
     private string _oddsKill = string.Empty;
     private bool _lethalDanger;
-    private string _metaSource = string.Empty;
     private string _usageNote = string.Empty;
     private int _selectedTier;
     private IReadOnlyList<BrowserGroup> _browser = Array.Empty<BrowserGroup>();
@@ -174,7 +173,6 @@ public sealed partial class OverlayViewModel : Observable
 
     /// <summary>The fight can kill the player: the odds panel turns red.</summary>
     public bool LethalDanger { get => _lethalDanger; private set => Set(ref _lethalDanger, value); }
-    public string MetaSource { get => _metaSource; private set => Set(ref _metaSource, value); }
 
     /// <summary>Why the stats pool's numbers are missing: today's free games are used up (plan 3.1); empty otherwise.</summary>
     public string UsageNote { get => _usageNote; private set => Set(ref _usageNote, value); }
@@ -465,7 +463,7 @@ public sealed partial class OverlayViewModel : Observable
 
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
-        var heroTierTip = string.Join('\n', new[] { view.MetaSource ?? string.Empty, Loc.T("Overlay.Tier.Heroes") }.Where(s => s.Length > 0));
+        var heroTierTip = Loc.T("Overlay.Tier.Heroes");
         Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
@@ -487,7 +485,7 @@ public sealed partial class OverlayViewModel : Observable
             })
             .ToList());
 
-        var trinketTierTip = Loc.T("Overlay.Trinket.Source") + "\n" + Loc.T("Overlay.Tier.Heroes");
+        var trinketTierTip = Loc.T("Overlay.Tier.Heroes");
         Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
@@ -528,7 +526,6 @@ public sealed partial class OverlayViewModel : Observable
                     ? Loc.F("Overlay.Discover.BestMarked", source)
                     : Loc.F("Overlay.Discover.CloseCall", source);
 
-        MetaSource = view.MetaSource ?? string.Empty;
         UsageNote = view.UsageNote ?? string.Empty;
 
         var shopSize = view.Shop.Count;

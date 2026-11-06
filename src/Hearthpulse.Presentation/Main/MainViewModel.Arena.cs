@@ -40,7 +40,6 @@ public sealed partial class MainViewModel
     private IReadOnlyList<ArenaCardLine> _arenaDeckBest = [];
     private IReadOnlyList<ArenaCardLine> _arenaDeckWeakest = [];
     private IReadOnlyList<StatGroupRow> _arenaCommunity = [];
-    private string _arenaCommunitySource = string.Empty;
 
     /// <summary>The latest run has a deck with scored cards.</summary>
     public bool HasArenaDeck { get => _hasArenaDeck; private set => Set(ref _hasArenaDeck, value); }
@@ -79,9 +78,6 @@ public sealed partial class MainViewModel
 
     /// <summary>No class rows: the load failed, or the numbers came without classes.</summary>
     public bool ArenaCommunityUnavailable => _arenaCommunity.Count == 0 && (_arenaMetaFailed || _arenaMeta is { Classes.Count: 0 });
-
-    /// <summary>"Hearthpulse data · ArenaSmith score".</summary>
-    public string ArenaCommunitySource { get => _arenaCommunitySource; private set => Set(ref _arenaCommunitySource, value); }
 
     /// <summary>The Arena numbers the host loaded; the Arena page is rebuilt with them.</summary>
     public void SetArenaMeta(ArenaMeta? meta)
@@ -127,14 +123,12 @@ public sealed partial class MainViewModel
                 c.WinRate,
                 VsGlobal.None))
             .ToList();
-        var source = Loc.F("Arena.Source", ArenaMeta.Attribution);
         if (latest.Report is not { } report)
         {
             return vm =>
             {
                 vm.HasArenaDeck = false;
                 vm.ArenaCommunity = community;
-                vm.ArenaCommunitySource = source;
             };
         }
 
@@ -163,7 +157,6 @@ public sealed partial class MainViewModel
             vm.ArenaDeckBest = best;
             vm.ArenaDeckWeakest = weakest;
             vm.ArenaCommunity = community;
-            vm.ArenaCommunitySource = source;
         };
     }
 }
