@@ -8,6 +8,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Twitch;
 
 namespace Hearthpulse.Core.Hosting;
 
@@ -64,6 +65,19 @@ public sealed class AppServices
         Account.CheckRequested += () => Usage.RefreshLimitsAsync(force: true).Forget("Usage limits");
         Session.Advisor.Usage = Usage;
         Session.GameFinished += _ => Usage.GameFinished();
+
+        // The Twitch extension (docs/streaming.md): the deck of every snapshot, sent while the switch is on and signed in.
+        Twitch = new TwitchPublisher(new TwitchClient(http, accountClient.BaseUri), Account.GetAccessTokenAsync, settings, cards);
+        Session.SnapshotChanged += Twitch.Update;
+        var signedIn = Account.SignedIn;
+        Account.Changed += () =>
+        {
+            if (Account.SignedIn != signedIn)
+            {
+                signedIn = Account.SignedIn;
+                Twitch.Kick();
+            }
+        };
     }
 
     public AppSettings Settings { get; }
@@ -92,6 +106,9 @@ public sealed class AppServices
 
     /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
     public UsageGate Usage { get; }
+
+    /// <summary>Sends the deck to the Twitch extension through the site (Settings → Stream).</summary>
+    public TwitchPublisher Twitch { get; }
 
     /// <summary>
     /// The app's one HTTP client: compressed answers, connections renewed every 10 minutes (DNS changes), a 40-second

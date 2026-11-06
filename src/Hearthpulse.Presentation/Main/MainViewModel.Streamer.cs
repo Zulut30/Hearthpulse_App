@@ -119,6 +119,7 @@ public sealed partial class MainViewModel
         Raise(nameof(StreamKeyNote));
         ShowDiscord(_lastSnapshot);
         RaiseDiscord();
+        RaiseTwitch();
     }
 
     private void SetIfChosen(bool value, string background)

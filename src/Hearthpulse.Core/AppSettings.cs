@@ -286,6 +286,18 @@ public sealed class AppSettings
     /// <summary>The Discord status (<c>docs/discord.md</c>): off until turned on.</summary>
     public bool DiscordStatus { get; set; }
 
+    /// <summary>
+    /// The Twitch extension (docs/streaming.md): while on and signed in, the deck's remaining cards go to hearthpulse.net,
+    /// which hands them to the Hearthpulse extension on the player's channel. Off until turned on.
+    /// </summary>
+    public bool TwitchExtension { get; set; }
+
+    /// <summary>How many seconds the extension's deck lags behind the game, to match the stream's delay in OBS (0–600).</summary>
+    public int TwitchDelaySeconds { get; set; }
+
+    /// <summary>The longest <see cref="TwitchDelaySeconds"/>: ten minutes.</summary>
+    public const int MaxTwitchDelaySeconds = 600;
+
     /// <summary>The OBS capture window "Hearthpulse — Deck" (the deck panel, every mode but Battlegrounds) is open.</summary>
     public bool StreamDeckWindow { get; set; }
 
@@ -570,6 +582,7 @@ public sealed class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
+        TwitchDelaySeconds = Math.Clamp(TwitchDelaySeconds, 0, MaxTwitchDelaySeconds);
         OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
         CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, MinCardPoolBrowserWidth, MaxCardPoolBrowserWidth, DefaultCardPoolBrowserWidth);

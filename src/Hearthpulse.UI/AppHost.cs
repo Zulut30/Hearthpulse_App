@@ -49,6 +49,7 @@ public sealed partial class AppHost : IDisposable
         Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
         Main = new MainViewModel(History, Settings, _services.Data);
         Main.AttachAccount(Account);
+        Main.AttachTwitch(_services.Twitch);
         Main.AttachUploader(Uploader);
         if (!_rendering)
         {
