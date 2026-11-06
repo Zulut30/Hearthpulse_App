@@ -1069,7 +1069,7 @@
     <Style Selector=".sharp Border.pill">
         <Setter Property="CornerRadius" Value="2" />
     </Style>
-    <Style Selector=".sharp Button.ghost">
+    <Style Selector=".sharp Button.ghost /template/ Border">
         <Setter Property="CornerRadius" Value="2" />
     </Style>
     <Style Selector=".sharp TextBox">
