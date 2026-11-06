@@ -80,6 +80,7 @@
                 </StackPanel>
             </Border>
         </Grid>
-        <TextBlock Text="{Binding CtStatsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding CtStatsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap"
+                   Visibility="{Binding CtStatsNote, Converter={StaticResource Vis}}" />
     </StackPanel>
 </UserControl>
