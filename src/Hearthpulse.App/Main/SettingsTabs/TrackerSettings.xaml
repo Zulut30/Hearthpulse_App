@@ -11,15 +11,20 @@
              xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
              xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
-             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+             xmlns:core="clr-namespace:Hearthpulse.Core;assembly=Hearthpulse.Core">
     <!-- Settings, Tracker: the Constructed deck tracker, counters and mulligan. Same tree as the Avalonia TrackerSettings.axaml. -->
     <UserControl.Resources>
-        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+        <ResourceDictionary Source="/Hearthpulse;component/Main/SettingsTabs/SettingsLook.xaml" />
     </UserControl.Resources>
     <StackPanel>
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}">
-                <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" CommandParameter="{x:Static core:SettingsGroups.Tracker}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding DataContext.ResetSettingsGroup, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
                 <Border x:Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
                         Visibility="{Binding OverlayOn, RelativeSource={RelativeSource AncestorType=st:TrackerSettings}, Converter={StaticResource Vis}, ConverterParameter=!}">
                     <Grid>

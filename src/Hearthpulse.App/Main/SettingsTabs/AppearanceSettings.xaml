@@ -1,0 +1,205 @@
+<UserControl x:Class="Hearthpulse.App.Main.SettingsTabs.AppearanceSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:Hearthpulse.App.Main"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:core="clr-namespace:Hearthpulse.Core;assembly=Hearthpulse.Core">
+    <!-- Settings, Appearance: the theme gallery with a live preview, accent, page background, corners, density and size.
+         Same tree as the Avalonia AppearanceSettings.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/SettingsTabs/SettingsLook.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <!-- Theme gallery: the preview follows the pointer and the keyboard, a click applies -->
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Gallery.Title}" Icon="&#xF03D8;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" Command="{Binding ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.Appearance}"
+                            AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}" />
+                </Grid>
+                <TextBlock Text="{i:Loc Settings.Gallery.Hint}" Style="{StaticResource CardNote}" Margin="0,0,0,12" />
+                <ContentControl x:Name="Preview" Content="{Binding PreviewTheme}" ContentTemplate="{StaticResource GalleryPreview}" Focusable="False" Margin="0,0,0,16"
+                                AutomationProperties.Name="{i:Loc Settings.Gallery.Preview}" />
+                <ItemsControl x:Name="Gallery" ItemsSource="{Binding Themes}" Focusable="False" Margin="0,0,-8,0" MouseLeave="OnGalleryLeave">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:ThemeChoice}">
+                            <Button Style="{StaticResource ThemeSwatch}" Content="{Binding}" ContentTemplate="{StaticResource GalleryTile}"
+                                    AutomationProperties.Name="{Binding Description}" CommandParameter="{Binding Key}"
+                                    Command="{Binding DataContext.SelectTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    MouseEnter="OnTileEnter" GotKeyboardFocus="OnTileEnter" LostKeyboardFocus="OnGalleryLeave" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Accent swatches over the theme -->
+                <TextBlock Text="{i:Loc Settings.Accent.Title}" Style="{StaticResource SettingGroup}" Margin="0,12,0,8" />
+                <ItemsControl ItemsSource="{Binding AccentChoices}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:AccentChoice}">
+                            <Button Style="{StaticResource AccentSwatch}" Content="{Binding}" ContentTemplate="{StaticResource AccentChip}" ToolTip="{Binding Name}"
+                                    AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding Key}"
+                                    Command="{Binding DataContext.SelectAccent, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Rare: the custom theme's three hues -->
+                <ToggleButton x:Name="CustomToggle" Style="{StaticResource AdvancedToggle}" Content="{i:Loc Settings.Theme.MakeOwn}" Checked="OnDisclosure" Unchecked="OnDisclosure"
+                              AutomationProperties.Name="{i:Loc Settings.Theme.MakeOwn}" />
+                <Grid Margin="0,12,0,0" Visibility="{Binding IsChecked, ElementName=CustomToggle, Converter={StaticResource Vis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0">
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{i:Loc Settings.Theme.Accent}" Style="{StaticResource SettingLabel}" />
+                            <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="8,0,8,-24" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding AccentHue}" SmallChange="5" LargeChange="30"
+                                    AutomationProperties.Name="{i:Loc Settings.Theme.Accent}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{i:Loc Settings.Theme.Background}" Style="{StaticResource SettingLabel}" />
+                            <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="8,0,8,-24" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding BaseHue}" SmallChange="5" LargeChange="30"
+                                    AutomationProperties.Name="{i:Loc Settings.Theme.Background}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{i:Loc Settings.Theme.Tint}" Style="{StaticResource SettingLabel}" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding BaseTint}" SmallChange="0.05" LargeChange="0.25"
+                                    AutomationProperties.Name="{i:Loc Settings.Theme.Tint}" ToolTip="{i:Loc Settings.Theme.TintTip}" />
+                        </Grid>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Page background -->
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Background.Title}" Icon="&#xF02E9;" Size="13" Margin="0,0,0,16" />
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Settings.Background.Title}" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Column="1" Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Background.Auto}" GroupName="Background" IsChecked="{Binding BackgroundAuto}"
+                                         ToolTip="{i:Loc Settings.Background.AutoTip}" />
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Background.Chosen}" GroupName="Background" IsChecked="{Binding BackgroundChosen}" />
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Background.Off}" GroupName="Background" IsChecked="{Binding BackgroundOff}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <ItemsControl ItemsSource="{Binding BackgroundHeroes}" Focusable="False" Margin="180,0,0,4"
+                              Visibility="{Binding BackgroundChosen, Converter={StaticResource Vis}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:BackgroundHeroChoice}">
+                            <Button Style="{StaticResource AccentSwatch}" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding CardId}"
+                                    Command="{Binding DataContext.SelectBackgroundHero, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                <Border x:Name="Ring" Width="44" Height="44" CornerRadius="22" BorderThickness="2" BorderBrush="Transparent" Padding="2">
+                                    <Border CornerRadius="20" i:CardArt.Portrait="{Binding CardId}" Background="{StaticResource Surface3}" />
+                                </Border>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Selected}" Value="True">
+                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid Visibility="{Binding BackgroundOff, Converter={StaticResource Vis}, ConverterParameter=!}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="56" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Settings.Background.Strength}" Style="{StaticResource SettingLabel}" />
+                    <Slider Grid.Column="1" Minimum="{x:Static core:AppSettings.MinBackgroundIntensity}" Maximum="1" Value="{Binding BackgroundIntensity}" ValueChanged="OnSliderChanged"
+                            SmallChange="0.05" LargeChange="0.25" AutomationProperties.Name="{i:Loc Settings.Background.Strength}" />
+                    <TextBlock Grid.Column="2" Text="{Binding BackgroundIntensityText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Shape and size -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Shape.Title}" Icon="&#xF0E6F;" Size="13" Margin="0,0,0,16" />
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Settings.Shape.Corners}" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Column="1" Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Shape.Rounded}" GroupName="Corners" IsChecked="{Binding CornersRounded}" />
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Shape.Sharp}" GroupName="Corners" IsChecked="{Binding CornersSharp}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Settings.Shape.Density}" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Column="1" Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Shape.Comfortable}" GroupName="Density" IsChecked="{Binding InterfaceComfortable}" />
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Shape.Compact}" GroupName="Density" IsChecked="{Binding InterfaceCompact}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="56" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Settings.Shape.Scale}" Style="{StaticResource SettingLabel}" ToolTip="{i:Loc Settings.Shape.ScaleTip}" />
+                    <Slider Grid.Column="1" Minimum="{x:Static core:AppSettings.MinInterfaceScale}" Maximum="{x:Static core:AppSettings.MaxInterfaceScale}"
+                            Value="{Binding InterfaceScale}" ValueChanged="OnSliderChanged" SmallChange="0.05" LargeChange="0.1" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{i:Loc Settings.Shape.Scale}" />
+                    <TextBlock Grid.Column="2" Text="{Binding InterfaceScaleText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.ReduceMotion}" IsChecked="{Binding Settings.ReduceMotion}" ToolTip="{i:Loc Settings.App.ReduceMotionTip}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

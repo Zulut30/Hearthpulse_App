@@ -769,7 +769,7 @@ public partial class App : Application
         try
         {
             Motion.Reduced = _settings.ReduceMotion;
-            ThemeEngine.Apply(this, CurrentTheme());
+            ThemeEngine.Apply(this, CurrentTheme(), ThemeLook.FromSettings(_settings));
             return true;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)

@@ -1,6 +1,6 @@
 ---
 name: better-interface
-description: Use when reviewing a Hearthpulse screen, overlay panel, settings card or flow across accessibility, layout, writing, typography, colour and polish in both UIs (WPF + Avalonia) and all seven themes, and returning one ranked report with B/M/m findings. Triggers - "проверь интерфейс", "ревью экрана", "UI review", "что не так с панелью", "polish this page". For a branch or diff use interface-review.
+description: Use when reviewing a Hearthpulse screen, overlay panel, settings card or flow across accessibility, layout, writing, typography, colour and polish in both UIs (WPF + Avalonia) and all thirteen themes, and returning one ranked report with B/M/m findings. Triggers - "проверь интерфейс", "ревью экрана", "UI review", "что не так с панелью", "polish this page". For a branch or diff use interface-review.
 ---
 
 > Source: [jakubkrehel/skills](https://github.com/jakubkrehel/skills) `skills/better-interface/SKILL.md` at
@@ -24,7 +24,8 @@ These are the owner's rules and CLAUDE.md; a session brief may narrow them (for 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
   content follows the window from its minimum size up (WPF `MinWidth="1040"`, Avalonia compact below 900 px).
-- **All seven themes.** Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow: colours only from tokens
+- **All thirteen themes.** Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow, Grove, Void, Bloodsteel, Sands, Midnight,
+  Mech (and the accent swatches over each): colours only from tokens
   (`hearthpulse-design`), and a look at WPF under at least one non-default preset.
 - **Render, but never while the game runs.** Renders go through `hearthpulse-visual-check` on a copy of the data
   folder. First check that `Hearthstone.exe` is not running: `Get-Process Hearthstone -ErrorAction SilentlyContinue`

@@ -24,7 +24,7 @@ public sealed record ThemeLook(bool SharpCorners, bool Dense)
     {
         "RadiusSmall" when SharpCorners => 2,
         "RadiusMedium" when SharpCorners => 2,
-        "RadiusLarge" when SharpCorners => 3,
+        "RadiusLarge" when SharpCorners => 2,
         "CardPadding" when Dense => 16,
         _ => null,
     };

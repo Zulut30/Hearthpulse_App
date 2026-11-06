@@ -41,23 +41,37 @@ public static partial class ThemeEngine
     [GeneratedRegex("\\{StaticResource Motif" + ThemePalette.DefaultName + "(Alt)?\\}")]
     private static partial Regex MotifUse();
 
-    public static void Apply(Application app, ThemeSpec theme)
+    /// <summary>The shape tokens at the top of Theme.xaml (<c>&lt;CornerRadius x:Key="RadiusSmall"&gt;4&lt;/CornerRadius&gt;</c>, CardPadding).</summary>
+    [GeneratedRegex("(<(?:CornerRadius|Thickness) x:Key=\"(Radius(?:Small|Medium|Large)|CardPadding)\">)[0-9.]+(</(?:CornerRadius|Thickness)>)")]
+    private static partial Regex ShapeToken();
+
+    /// <summary>A plain corner radius in a control template (buttons, boxes, overlay cards): pills (999) and odd shapes stay.</summary>
+    [GeneratedRegex("CornerRadius=\"([3-9]|1[0-6])\"")]
+    private static partial Regex PlainRadius();
+
+    public static void Apply(Application app, ThemeSpec theme) => Apply(app, theme, ThemeLook.Default);
+
+    public static void Apply(Application app, ThemeSpec theme, ThemeLook look)
     {
         // With motion off (Windows' animation setting or the app's reduce-motion setting), the theme is rebuilt with every control animation made instant.
         // An isolated run builds the theme from its source too: its text font is the one every Windows has (TextFont).
-        var dictionary = ThemePalette.IsDefault(theme) && Motion.On && !Isolation.On
+        var dictionary = ThemePalette.IsDefault(theme) && look.IsDefault && Motion.On && !Isolation.On
             ? new ResourceDictionary { Source = BuiltIn }
-            : Build(theme);
+            : Build(theme, look);
         Freeze(dictionary);
         var merged = app.Resources.MergedDictionaries;
         merged.Clear();
         merged.Add(dictionary);
     }
 
-    public static ResourceDictionary Build(ThemeSpec theme) => (ResourceDictionary)XamlReader.Parse(Source(theme));
+    public static ResourceDictionary Build(ThemeSpec theme) => Build(theme, ThemeLook.Default);
 
-    /// <summary>The theme's XAML: Theme.xaml recoloured, with the theme's motif and, if needed, instant animations.</summary>
-    public static string Source(ThemeSpec theme)
+    public static ResourceDictionary Build(ThemeSpec theme, ThemeLook look) => (ResourceDictionary)XamlReader.Parse(Source(theme, look));
+
+    public static string Source(ThemeSpec theme) => Source(theme, ThemeLook.Default);
+
+    /// <summary>The theme's XAML: Theme.xaml recoloured, with the theme's motif, its look's shape and, if needed, instant animations.</summary>
+    public static string Source(ThemeSpec theme, ThemeLook look)
     {
         _source ??= Load();
         var lines = _source.Split('\n');
@@ -72,6 +86,17 @@ public static partial class ThemeEngine
         var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"")
             .Replace(TextFont.Families, TextFont.Name, StringComparison.Ordinal);
         xaml = MotifUse().Replace(xaml, m => "{StaticResource Motif" + theme.Motif + m.Groups[1].Value + "}");
+        if (!look.IsDefault)
+        {
+            xaml = ShapeToken().Replace(xaml, m => look.Token(m.Groups[2].Value) is { } value
+                ? m.Groups[1].Value + value.ToString(CultureInfo.InvariantCulture) + m.Groups[3].Value
+                : m.Value);
+            if (look.SharpCorners)
+            {
+                xaml = PlainRadius().Replace(xaml, "CornerRadius=\"2\"");
+            }
+        }
+
         if (!Motion.On)
         {
             xaml = Timing().Replace(xaml, "$1=\"0:0:0\"");

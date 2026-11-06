@@ -12,15 +12,20 @@
              xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
              xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
-             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+             xmlns:core="clr-namespace:Hearthpulse.Core;assembly=Hearthpulse.Core">
     <!-- Settings, Overlay: what is drawn over the game, its size, panel layout. Same tree as the Avalonia OverlaySettings.axaml. -->
     <UserControl.Resources>
-        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+        <ResourceDictionary Source="/Hearthpulse;component/Main/SettingsTabs/SettingsLook.xaml" />
     </UserControl.Resources>
     <StackPanel>
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}">
-                <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" CommandParameter="{x:Static core:SettingsGroups.Overlay}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding DataContext.ResetSettingsGroup, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
                 <CheckBox x:Name="OverlaySetting" Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                           ToolTip="{i:Loc Settings.Overlay.EnabledTip}" />
                 <!-- The overlay is off: said by a banner in the accent container colours (as the setup warning on Home); the
@@ -171,9 +176,18 @@
                 <TextBlock x:Name="MoveHintLine" Text="{i:Loc Overlay.Move.Settings}" Style="{StaticResource CardNote}" />
                 <CheckBox x:Name="PanelLockSetting" Style="{StaticResource Switch}" Content="{i:Loc Settings.Layout.Unlocked}" IsChecked="{Binding OverlayPanelsUnlocked}"
                           Margin="0,0,0,14" ToolTip="{i:Loc Settings.Layout.UnlockedCaption}" />
-                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="RaiseArrangeOverlayClicked" Margin="0,0,0,24"
+                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="RaiseArrangeOverlayClicked"
                         ToolTip="{i:Loc Settings.Layout.Caption}" />
-                <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                <!-- Rare and expert: the leaderboard calibration -->
+                <ToggleButton x:Name="AdvancedToggle" Style="{StaticResource AdvancedToggle}" Content="{i:Loc Settings.Advanced}" Checked="OnDisclosure" Unchecked="OnDisclosure"
+                              AutomationProperties.Name="{i:Loc Settings.Advanced}" />
+                <StackPanel x:Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding ElementName=AdvancedToggle}"
+                            Visibility="{Binding IsChecked, ElementName=AdvancedToggle, Converter={StaticResource Vis}}">
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" CommandParameter="{x:Static core:SettingsGroups.Leaderboard}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding DataContext.ResetSettingsGroup, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
                 <TextBlock Text="{i:Loc Settings.Leaderboard.Caption}" Style="{StaticResource CardNote}" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                           ToolTip="{i:Loc Settings.Leaderboard.Caption}" />
@@ -210,6 +224,7 @@
                     <!-- From the slider itself: the settings object does not notify -->
                     <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardWidthSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                 </Grid>
+                </StackPanel>
             </StackPanel>
         </Border>
     </StackPanel>

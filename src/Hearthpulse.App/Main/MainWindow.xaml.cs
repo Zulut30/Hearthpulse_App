@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         BindingOperations.SetBinding(SettingsTracker, global::Hearthpulse.App.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
             new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsOverlay.OverlaySetting });
         SettingsGeneral.SettingClicked += e => OnSettingChanged(SettingsGeneral, e);
+        SettingsAppearance.SliderChanged += e => OnSliderChanged(SettingsAppearance, e);
         SettingsOverlay.SliderChanged += e => OnSliderChanged(SettingsOverlay, e);
         SettingsOverlay.DensityChanged += () =>
         {
@@ -48,6 +49,7 @@ public partial class MainWindow : Window
         viewModel.PropertyChanged += OnViewModelChanged;
         viewModel.HistoryRequested += ShowHistoryGame;
         viewModel.PanelToggled += OnPanelToggled;
+        InitSettingsTools(viewModel);
         ShowSettingsTab(viewModel.Settings.SettingsTab);
         SyncStatus();
         StateChanged += (_, _) =>
@@ -75,10 +77,10 @@ public partial class MainWindow : Window
     /// <summary>Opens a page by name (see <see cref="CurrentPage"/>); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
-    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
+    /// <summary>Shows a Settings tab by its tag ("General", "Appearance", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
     public void ShowSettingsTab(string tab)
     {
-        var radio = new[] { SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
+        var radio = new[] { SettingsTabAppearance, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
             .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
         radio.IsChecked = true;
         UpdateSettingsTab(radio);
@@ -269,6 +271,7 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.HistoryRequested -= ShowHistoryGame;
         _viewModel.PanelToggled -= OnPanelToggled;
+        ReleaseSettingsTools();
         base.OnClosed(e);
     }
 
@@ -559,6 +562,7 @@ public partial class MainWindow : Window
 
         _viewModel.Settings.SettingsTab = tab;
         SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsAppearance.Visibility = SettingsTabAppearance.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsTracker.Visibility = SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsStream.Visibility = SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;

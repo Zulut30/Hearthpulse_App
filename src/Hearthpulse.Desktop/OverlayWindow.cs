@@ -46,6 +46,7 @@ internal sealed class OverlayWindow : Window
         Height = 1;
 
         _view = new OverlayView { DataContext = host.Overlay, Settings = host.Settings, IsVisible = false };
+        UI.Infrastructure.ThemeEngine.Dress(this);
         _view.LayoutChanged += host.OnSettingsChanged;
         Content = _view;
 

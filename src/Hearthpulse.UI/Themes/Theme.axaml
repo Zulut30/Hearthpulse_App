@@ -1058,4 +1058,24 @@
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="12,8" />
     </Style>
+    <!-- Settings → Appearance: "sharp" corners and "compact" density are classes on the main view and the overlay
+         (ThemeLook, set by MainView.ApplyLook); the WPF engine rewrites the same tokens in its theme source -->
+    <Style Selector=".sharp Border.card">
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector=".sharp Border.overlayCard">
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector=".sharp Border.pill">
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector=".sharp Button.ghost">
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector=".sharp TextBox">
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector=".dense Border.card">
+        <Setter Property="Padding" Value="16" />
+    </Style>
 </Styles>

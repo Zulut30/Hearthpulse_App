@@ -32,6 +32,10 @@
 
     <Border x:Name="Frame">
         <Grid>
+            <!-- Settings → Appearance → Interface size (90-120 %) -->
+            <Grid.LayoutTransform>
+                <ScaleTransform ScaleX="{Binding InterfaceScale}" ScaleY="{Binding InterfaceScale}" />
+            </Grid.LayoutTransform>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250" />
                 <ColumnDefinition Width="*" />
@@ -280,7 +284,8 @@
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
                                         Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality"
+                                            Opacity="{Binding BackgroundIntensity}" />
                                 </Border>
                             </Grid>
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
@@ -398,7 +403,7 @@
                         <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
                     </ScrollViewer>
 
-                    <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
+                    <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
                             <StackPanel Orientation="Horizontal">
@@ -407,9 +412,14 @@
                             </StackPanel>
                             <c:Wave Style="{StaticResource PageRule}" />
 
+                            <!-- Search over every tab; while a query is typed its matches replace the tabs -->
+                            <st:SettingsSearchBox x:Name="SettingsSearchBar" />
+
+                            <StackPanel x:Name="SettingsTabsArea" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
                                 <WrapPanel>
                                     <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnSettingsTab" />
+                                    <RadioButton x:Name="SettingsTabAppearance" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Appearance}" GroupName="SettingsTab" Tag="Appearance" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabOverlay" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabTracker" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabStream" Style="{StaticResource Tab}" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" Checked="OnSettingsTab" />
@@ -419,8 +429,11 @@
                                 </WrapPanel>
                             </Border>
 
-                            <!-- ===== General: language, theme, app ===== -->
+                            <!-- ===== General: language, app ===== -->
                             <st:GeneralSettings x:Name="SettingsGeneral" />
+
+                            <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
+                            <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" />
 
                             <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
                             <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" />
@@ -439,6 +452,7 @@
 
                             <!-- ===== About: version, updates, licences ===== -->
                             <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" />
+                            </StackPanel>
 
                         </StackPanel>
                     </ScrollViewer>

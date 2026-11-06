@@ -11,15 +11,20 @@
              xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
              xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
-             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+             xmlns:core="clr-namespace:Hearthpulse.Core;assembly=Hearthpulse.Core">
     <!-- Settings, Stream: streamer mode and the OBS windows. Same tree as the Avalonia StreamSettings.axaml. -->
     <UserControl.Resources>
-        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+        <ResourceDictionary Source="/Hearthpulse;component/Main/SettingsTabs/SettingsLook.xaml" />
     </UserControl.Resources>
     <StackPanel>
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Stream.Mode.Title}" Icon="&#xF05E9;" Size="13" Margin="0,0,0,14" />
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Stream.Mode.Title}" Icon="&#xF05E9;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" CommandParameter="{x:Static core:SettingsGroups.Stream}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                            Command="{Binding DataContext.ResetSettingsGroup, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
                 <TextBlock Text="{i:Loc Stream.Mode.Note}" Style="{StaticResource CardNote}" />
                 <CheckBox x:Name="StreamerModeSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Mode.Switch}" IsChecked="{Binding StreamerMode}" Margin="0,0,0,12"
                           ToolTip="{i:Loc Stream.Mode.SwitchTip}" />

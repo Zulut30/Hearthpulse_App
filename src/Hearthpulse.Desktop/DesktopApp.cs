@@ -317,6 +317,7 @@ internal sealed class DesktopApp : HearthpulseApp
     private MainWindow CreateMain(MainPlace? place)
     {
         var main = new MainWindow(_host!);
+        ThemeEngine.Dress(main);
         main.HiddenToTray += () =>
         {
             // No collection of its own: the one after the release takes the pages and the rest.

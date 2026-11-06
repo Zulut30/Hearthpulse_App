@@ -258,6 +258,11 @@
         </Style>
     </UserControl.Styles>
 
+    <!-- Settings → Appearance → Interface size (90-120 %) -->
+    <LayoutTransformControl Name="ScaleHost">
+    <LayoutTransformControl.LayoutTransform>
+        <ScaleTransform ScaleX="{Binding InterfaceScale}" ScaleY="{Binding InterfaceScale}" />
+    </LayoutTransformControl.LayoutTransform>
     <Grid Name="Frame" ColumnDefinitions="250,*">
 
         <!-- ================= Navigation ================= -->
@@ -391,7 +396,8 @@
                             </Grid.ColumnDefinitions>
                             <Border Name="PageHeroArt" Grid.Column="1" Classes="wide" Height="{Binding $self.Bounds.Width}" VerticalAlignment="Top"
                                     Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapInterpolationMode="HighQuality"
+                                        Opacity="{Binding BackgroundIntensity}" />
                             </Border>
                         </Grid>
                         <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />
@@ -479,7 +485,7 @@
                     <mt:MatchView Name="MatchDetails" DataContext="{Binding MatchPage}" />
                 </ScrollViewer>
 
-                <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
+                <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal">
@@ -488,9 +494,14 @@
                         </StackPanel>
                         <c:Wave Classes="pageRule" />
 
+                        <!-- Search over every tab; while a query is typed its matches replace the tabs -->
+                        <st:SettingsSearchBox Name="SettingsSearchBar" />
+
+                        <StackPanel Name="SettingsTabsArea" IsVisible="{Binding !SettingsSearching}">
                         <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,20">
                             <WrapPanel>
                                 <RadioButton Name="SettingsTabGeneral" Classes="segment" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" />
+                                <RadioButton Name="SettingsTabAppearance" Classes="segment" Content="{i:Loc Settings.Tab.Appearance}" GroupName="SettingsTab" Tag="Appearance" />
                                 <RadioButton Name="SettingsTabOverlay" Classes="segment" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" />
                                 <RadioButton Name="SettingsTabTracker" Classes="segment" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" />
                                 <RadioButton Name="SettingsTabStream" Classes="segment" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" />
@@ -502,6 +513,9 @@
 
                         <!-- ===== General: language, theme, app ===== -->
                         <st:GeneralSettings Name="SettingsGeneral" />
+
+                        <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
+                        <st:AppearanceSettings Name="SettingsAppearance" IsVisible="False" />
 
                         <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
                         <st:OverlaySettings Name="SettingsOverlay" IsVisible="False" />
@@ -520,6 +534,7 @@
 
                         <!-- ===== About: version, updates, licences ===== -->
                         <st:AboutSettings Name="SettingsAbout" IsVisible="False" />
+                        </StackPanel>
 
                     </StackPanel>
                 </ScrollViewer>
@@ -533,4 +548,5 @@
         <!-- Card preview on hover (deck page card tiles): top layer, never takes the mouse -->
         <c:CardPreviewHost Grid.ColumnSpan="2" />
     </Grid>
+    </LayoutTransformControl>
 </UserControl>

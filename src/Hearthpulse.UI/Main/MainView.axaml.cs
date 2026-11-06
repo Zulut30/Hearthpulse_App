@@ -100,7 +100,7 @@ public partial class MainView : UserControl
         }
     }
 
-    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
+    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabAppearance, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
 
     /// <summary>Raised after any setting changes from the UI.</summary>
     public event Action? SettingsChanged;
@@ -246,6 +246,7 @@ public partial class MainView : UserControl
             _viewModel.HistoryRequested -= ShowHistoryGame;
             _viewModel.ThemeChanged -= OnThemeChanged;
             _viewModel.PanelToggled -= OnPanelToggled;
+            ReleaseSettingsTools(_viewModel);
             StopMenuListeners();
         }
 
@@ -259,6 +260,7 @@ public partial class MainView : UserControl
         _viewModel.HistoryRequested += ShowHistoryGame;
         _viewModel.ThemeChanged += OnThemeChanged;
         _viewModel.PanelToggled += OnPanelToggled;
+        InitSettingsTools(_viewModel);
         BuildPanelsMenu(_viewModel);
         ApplyTheme();
         SyncOverlaySwitch();
@@ -307,6 +309,8 @@ public partial class MainView : UserControl
         try
         {
             ThemeEngine.Apply(app, _viewModel.CurrentTheme);
+            ThemeEngine.ApplyLook(app, _viewModel.CurrentLook);
+            ThemeEngine.Dress(this);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -348,6 +352,7 @@ public partial class MainView : UserControl
     private void UpdateSettingsTab()
     {
         SettingsGeneral.IsVisible = SettingsTabGeneral.IsChecked == true;
+        SettingsAppearance.IsVisible = SettingsTabAppearance.IsChecked == true;
         SettingsOverlay.IsVisible = SettingsTabOverlay.IsChecked == true;
         SettingsTracker.IsVisible = SettingsTabTracker.IsChecked == true;
         SettingsStream.IsVisible = SettingsTabStream.IsChecked == true;

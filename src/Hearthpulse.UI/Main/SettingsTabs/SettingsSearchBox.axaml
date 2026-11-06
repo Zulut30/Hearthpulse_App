@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.SettingsTabs.SettingsSearchBox"
+             x:DataType="m:MainViewModel">
+    <!-- Settings search over every tab: the box, and while a query is typed the matches in place of the tabs (Enter or a
+         click jumps to the first / the clicked one, Esc clears). Same tree as the WPF SettingsSearchBox.xaml. -->
+    <StackPanel>
+        <Panel Width="420" HorizontalAlignment="Left" Margin="0,0,0,16">
+            <TextBox Name="Query" Text="{Binding SettingsQuery}" Padding="40,8,40,8" PlaceholderText="{i:Loc Settings.Search.Placeholder}"
+                     AutomationProperties.Name="{i:Loc Settings.Search.Name}" KeyDown="OnQueryKey" />
+            <TextBlock Text="&#xF0349;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Muted}"
+                       Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" />
+            <Button Classes="icon" Width="28" Height="28" Content="&#xF0156;" HorizontalAlignment="Right" Margin="0,0,4,0"
+                    Command="{Binding ClearSettingsQuery}" ToolTip.Tip="{i:Loc Settings.Search.Clear}" AutomationProperties.Name="{i:Loc Settings.Search.Clear}"
+                    IsVisible="{Binding SettingsSearching}" />
+        </Panel>
+
+        <Border Classes="card" IsVisible="{Binding SettingsSearching}" MinWidth="420" HorizontalAlignment="Left" Margin="0,0,0,24">
+            <StackPanel>
+                <ItemsControl Name="Hits" ItemsSource="{Binding SettingsHits}" AutomationProperties.Name="{i:Loc Settings.Search.Results}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:SettingsEntry">
+                            <Button Classes="bare" Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).JumpToSetting}"
+                                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Path}" HorizontalAlignment="Stretch">
+                                <Border Classes="row" Padding="16,8" Margin="0,0,0,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TabTitle}" Classes="caption" VerticalAlignment="Center" />
+                                        <TextBlock Text="&#xF0142;" Classes="icon" Foreground="{StaticResource Muted}" Margin="4,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{i:Loc Settings.Search.None}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding SettingsNoHits}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>
