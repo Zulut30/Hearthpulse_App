@@ -6,6 +6,7 @@ using Hearthpulse.UI.Infrastructure;
 using System.Runtime.CompilerServices;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main.Match;
@@ -14,7 +15,7 @@ namespace Hearthpulse.UI.Main.Match;
 #endif
 
 /// <summary>A chip of the turn strip; <see cref="Selected"/> holds the step on screen.</summary>
-public sealed record MatchTurnRow(int FirstFrame, string Label, string Tooltip, bool Local, bool Mulligan, bool Selected);
+public sealed record MatchTurnRow(int FirstFrame, string Label, string Tooltip, bool Local, bool Mulligan, bool Selected) : IImmutableView;
 
 /// <summary>
 /// The match page (opened from History): header, the step-by-step replay seen from either side (Constructed) or the
@@ -310,6 +311,7 @@ public sealed partial class MatchViewModel : Observable
         ClearPlayer();
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
+        Raise(nameof(CanShareDeck));
         RaiseTabs();
     }
 
@@ -355,6 +357,7 @@ public sealed partial class MatchViewModel : Observable
         ShowPlayer(page);
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
+        Raise(nameof(CanShareDeck));
         Raise(nameof(ShowOpponent));
         Raise(nameof(Frame));
         Raise(nameof(FrameMax));

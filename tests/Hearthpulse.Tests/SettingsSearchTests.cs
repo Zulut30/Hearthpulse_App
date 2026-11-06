@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Hearthpulse.Core;
@@ -79,6 +80,13 @@ public sealed class SettingsSearchTests
 
             model.SettingsQuery = "accent";
             Assert.Contains(model.SettingsHits, h => h.Tab == "Appearance");
+            // The Stream tab's own cards (Twitch, the OBS session window) are found while they are shown; a card hidden by
+            // its state or a flag is not offered.
+            model.SettingsQuery = "session obs";
+            Assert.Contains(model.SettingsHits, h => h.Tab == "Stream" && h.Label == Loc.T("Stream.Window.Session"));
+            var twitch = view.GetLogicalDescendants().OfType<UI.Main.SettingsTabs.TwitchSettingsCard>().Single();
+            model.SettingsQuery = "twitch";
+            Assert.Equal(twitch.IsVisible, model.SettingsHits.Any(h => h.Tab == "Stream" && h.Label == Loc.T("Twitch.Switch")));
             model.SettingsQuery = "zzzz";
             Assert.True(model.SettingsNoHits);
         }

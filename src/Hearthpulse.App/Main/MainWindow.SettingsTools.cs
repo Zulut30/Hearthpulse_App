@@ -67,7 +67,7 @@ public partial class MainWindow
             Walk(tab, element =>
             {
                 var (label, target) = Option(element);
-                if (label is not null && target is not null && seen.Add(target))
+                if (label is not null && target is not null && !HiddenInTab(target, tab) && seen.Add(target))
                 {
                     entries.Add(new SettingsEntry((string)radio.Tag, title, label, SettingsSearch.Haystack(label), target));
                 }
@@ -86,6 +86,23 @@ public partial class MainWindow
         TextBlock { Text.Length: > 0 } block when IsRowLabel(block) => (block.Text, block.Parent as FrameworkElement ?? block),
         _ => (null, null),
     };
+
+    /// <summary>
+    /// Hidden by its state (a switch that is off, a feature flag) rather than by its tab or a closed "Advanced" group: the
+    /// search does not offer what it cannot show.
+    /// </summary>
+    private static bool HiddenInTab(FrameworkElement target, FrameworkElement tab)
+    {
+        for (DependencyObject? e = target; e is not null && !ReferenceEquals(e, tab); e = LogicalTreeHelper.GetParent(e))
+        {
+            if (e is FrameworkElement { Visibility: not Visibility.Visible } hidden && hidden.Tag is not ToggleButton)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private IEnumerable<(RadioButton Radio, FrameworkElement Tab)> SettingsTabs() =>
     [

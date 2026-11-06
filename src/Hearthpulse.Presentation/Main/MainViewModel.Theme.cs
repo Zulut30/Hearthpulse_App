@@ -23,7 +23,7 @@ namespace Hearthpulse.UI.Main;
 /// (<see cref="Hero"/>, a card id), an overlay panel (<see cref="Panel"/>) and the plates' edge.
 /// </summary>
 public sealed record ThemeChoice(string Key, string Name, Brush Background, Brush Card, Brush Surface, Brush Accent, Brush Text,
-    Brush Muted, Brush Secondary, Geometry? Motif, bool Selected)
+    Brush Muted, Brush Secondary, Geometry? Motif, bool Selected) : IImmutableView
 {
     public string Hero { get; init; } = ThemePalette.DefaultHero;
 

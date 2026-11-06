@@ -11,7 +11,7 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>One row of the "Likely deck" panel: "2", "1/2", "★" or nothing; <see cref="Done"/> dims it (all played).</summary>
-public sealed record LikelyDeckTile(string CardId, string Name, int Cost, string Rarity, string Mark, bool Done);
+public sealed record LikelyDeckTile(string CardId, string Name, int Cost, string Rarity, string Mark, bool Done) : IImmutableView;
 
 /// <summary>
 /// The "Likely deck" panel (<c>docs/opponent-deck.md</c>): the opponent's likely meta list, the copies it played face up

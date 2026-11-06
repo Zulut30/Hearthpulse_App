@@ -882,6 +882,10 @@
                     <Button Style="{StaticResource IconButton}" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip="{i:Loc Library.Share}"
                             AutomationProperties.Name="{i:Loc Library.Share}" />
                 </StackPanel>
+                <!-- The player's deck of the game as a picture (proposal C1): a list or a 16:9 cover -->
+                <Button x:Name="DeckImageButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0638;" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Click="OnDeckImage" ToolTip="{i:Loc Growth.Deck.ButtonTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Button}"
+                        Visibility="{Binding CanShareDeck, Converter={StaticResource Vis}}" />
                 <!-- The step on screen as a PNG picture (plan R4): either mode's table card, as the page shows it -->
                 <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0100;" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnExportStep"
                         ToolTip="{i:Loc Match.Export.Tip}" AutomationProperties.Name="{i:Loc Match.Export.Tip}"

@@ -8,6 +8,7 @@ using Hearthpulse.Core.Arena;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -16,10 +17,10 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>A card of the Arena page's deck score: its name and ArenaSmith score.</summary>
-public sealed record ArenaCardLine(string CardId, string Name, string Score, string Tier);
+public sealed record ArenaCardLine(string CardId, string Name, string Score, string Tier) : IImmutableView;
 
 /// <summary>One bar of a deck's mana curve on the Arena page.</summary>
-public sealed record ArenaCurveColumn(string Label, int Count, double Height);
+public sealed record ArenaCurveColumn(string Label, int Count, double Height) : IImmutableView;
 
 /// <summary>
 /// Arena page additions (docs/arena-draft.md): the score of the latest run's deck (ArenaSmith average, curve, strongest

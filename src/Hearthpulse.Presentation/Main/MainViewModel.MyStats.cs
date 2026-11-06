@@ -23,7 +23,7 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>A minion of the final board in the rating chart's hover card.</summary>
-public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden);
+public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden) : IImmutableView;
 
 /// <summary>A Battlegrounds game on the rating chart, with what its hover card shows.</summary>
 public sealed record BgGamePoint(
@@ -36,7 +36,7 @@ public sealed record BgGamePoint(
     string Delta,
     int DeltaValue,
     string When,
-    IReadOnlyList<BoardMinionRow> Board) : IChartValue;
+    IReadOnlyList<BoardMinionRow> Board) : IImmutableView, IChartValue;
 
 /// <summary>A ranked game on the rank chart, with what its hover card shows (<see cref="Result"/> is the saved "Win"/"Loss" for its colour).</summary>
 public sealed record CtGamePoint(
@@ -47,7 +47,7 @@ public sealed record CtGamePoint(
     string Result,
     string ResultText,
     string Detail,
-    string When) : IChartValue;
+    string When) : IImmutableView, IChartValue;
 
 /// <summary>One hero in "Hero performance": your numbers, the community's (when known) and the difference.</summary>
 public sealed record BgHeroPerfRow(
@@ -65,13 +65,13 @@ public sealed record BgHeroPerfRow(
     VsGlobal AverageVs,
     string PickRate,
     double PickFraction,
-    VsGlobal PickVs);
+    VsGlobal PickVs) : IImmutableView;
 
 /// <summary>
 /// A "vs Global" difference: the text (e.g. "0.42"), an arrow for its direction and whether it is good for the
 /// player (+1), bad (-1) or neutral (0). <see cref="Shown"/> is false when there is no community number.
 /// </summary>
-public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
+public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign) : IImmutableView
 {
     public static VsGlobal None { get; } = new(false, string.Empty, string.Empty, 0);
 
@@ -96,7 +96,7 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 }
 
 /// <summary>A group in a My Stats table (class, opponent class, archetype, game length).</summary>
-public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0)
+public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0) : IImmutableView
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
     public int WinSign => WinRate == "—" ? 0 : MetaTiers.WinRateSign(WinFraction);
@@ -128,7 +128,7 @@ public sealed record StatGroupRow(string Label, string CardId, string Games, str
 /// A final place in "Where you finish": "1st", its share of the games, the bar against the most common place and
 /// whether it counts as a top finish (top 4, top 2 in Duos) for the bar's colour.
 /// </summary>
-public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip)
+public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip) : IImmutableView
 {
     /// <summary>No game ended on this place: the row sinks back and shows no "0 %" (D3, A06).</summary>
     public bool Empty => Fraction <= 0;
@@ -142,7 +142,7 @@ public sealed record BgPlaceRow(string Place, string Share, double Fraction, boo
 
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
-public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "")
+public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "") : IImmutableView
 {
     /// <summary>The run's key (<see cref="ArenaRun.Key"/>): its rewards are kept under it.</summary>
     public string Key { get; init; } = string.Empty;
@@ -397,233 +397,6 @@ public sealed partial class MainViewModel
     }
 
     private static StatsPeriod ParsePeriod(object? p) => Enum.TryParse<StatsPeriod>(p as string, out var period) ? period : StatsPeriod.All;
-
-    private void RebuildBattlegroundsStats()
-    {
-        var (all, mode, period, sort, minGames, cards, meta, metaFailed) = (_allGames, BgMode, _bgPeriod, _bgSort, _bgMinGames, _cards, _meta, _bgMetaFailed);
-        _statsBgMode = mode;
-        _statsCards = cards;
-        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed));
-    }
-
-    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed)
-    {
-        var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
-        var summary = BattlegroundsStats.Summary(games, duos);
-        var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
-        IReadOnlyList<StatTile> tiles =
-        [
-            new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
-            new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
-            new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
-            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),
-        ];
-        var total = Math.Max(1, summary.PlacementCounts.Sum());
-        var shares = summary.PlacementCounts.Select(c => c / (double)total).ToList();
-        var common = Math.Max(1, summary.PlacementCounts.DefaultIfEmpty(0).Max());
-        var topPlaces = duos ? 2 : 4;
-        List<BgPlaceRow> placeRows = summary.Games == 0
-            ? []
-            : summary.PlacementCounts.Select((count, i) => new BgPlaceRow(
-                    Ordinal(i + 1),
-                    shares[i].ToString("P0", CultureInfo.CurrentCulture),
-                    count / (double)common,
-                    i < topPlaces,
-                    Loc.F("Stats.Bg.PlaceTip", Ordinal(i + 1), shares[i].ToString("P0", CultureInfo.CurrentCulture), count)))
-                .ToList();
-
-        var chart = BattlegroundsStats.RatingTimeline(games)
-            .Select(p => (IChartValue)new BgGamePoint(
-                p.Rating,
-                p.Rating.ToString("N0", CultureInfo.CurrentCulture),
-                p.Game.HeroCardId,
-                cards.NameOf(p.Game.HeroCardId),
-                Ordinal(p.Game.Placement),
-                p.Game.Placement <= (duos ? 2 : 4) ? "Win" : "Loss",
-                p.Delta is { } d ? Signed(d) : string.Empty,
-                p.Delta ?? 0,
-                When(p.Game.StartedAt),
-                BattlegroundsStats.FinalBoard(p.Game)
-                    .Select(m => new BoardMinionRow(m.CardId, cards.NameOf(m.CardId), m.Attack, m.Health, m.Golden))
-                    .ToList()))
-            .ToList();
-
-        var heroes = BattlegroundsStats.Heroes(games, cards.BaseHeroId, duos,
-            meta is null ? null : id => BattlegroundsStats.GlobalOf(meta.Hero(id, meta.WidestBracket)));
-        var shown = BattlegroundsStats.Sort(heroes, sort, minGames);
-        var maxPick = Math.Max(0.01, shown.Select(h => Math.Max(h.PickRate ?? 0, h.Global?.PickRate ?? 0)).DefaultIfEmpty(0).Max());
-        var places = duos ? 4 : 8;
-        var rows = shown.Select(h =>
-            {
-                var turns = Math.Max(h.CombatWinRate.Keys.DefaultIfEmpty(0).Max(), h.Global?.CombatWinRate?.Keys.DefaultIfEmpty(0).Max() ?? 0);
-                turns = Math.Min(turns, 16);
-                var counted = Math.Max(1, h.PlacementCounts.Sum());
-                return new BgHeroPerfRow(
-                    h.HeroCardId,
-                    cards.NameOf(h.HeroCardId),
-                    Loc.P("Stats.Games", h.Games),
-                    h.NetRating is { } n ? Signed(n) : "—",
-                    h.NetRating ?? 0,
-                    Enumerable.Range(1, turns).Select(t => h.CombatWinRate.TryGetValue(t, out var v) ? v : (double?)null).ToList(),
-                    h.Global?.CombatWinRate is { } gc ? Enumerable.Range(1, turns).Select(t => gc.TryGetValue(t, out var v) ? v : (double?)null).ToList() : null,
-                    h.PlacementCounts.Select(c => c / (double)counted).ToList(),
-                    h.Global?.PlacementShares,
-                    h.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
-                    1 - ((h.AveragePlacement - 1) / (places - 1)),
-                    VsGlobal.Of(h.AveragePlacement, h.Global?.AveragePlacement, lowerIsBetter: true, "0.00"),
-                    h.PickRate is { } pick ? pick.ToString("P0", CultureInfo.CurrentCulture) : "—",
-                    (h.PickRate ?? 0) / maxPick,
-                    VsGlobal.Of(h.PickRate, h.Global?.PickRate, lowerIsBetter: false, "0", percent: true));
-            })
-            .ToList();
-        var note = duos
-            ? Loc.T("Stats.Bg.NoteDuos")
-            : meta is null
-                ? Loc.T(metaFailed ? "Main.Bg.CommunityUnavailable" : "Stats.Bg.NoteLoading")
-                : string.Empty;
-        return () =>
-        {
-            BgStatTiles = tiles;
-            BgPlaces = placeRows;
-            BgRatingChart = chart;
-            BgHeroPerf = rows;
-            BgStatsNote = note;
-        };
-    }
-
-    private void RebuildConstructedStats()
-    {
-        var (all, format, period, cards) = (_allGames, _ctFormat, _ctPeriod, _cards);
-        var meta = ConstructedMetaFor(format);
-        _statsCards = cards;
-        RunStatsBuild(1, () => BuildConstructedStats(all, format, period, cards, meta));
-    }
-
-    private Action BuildConstructedStats(IReadOnlyList<GameRecord> all, string format, StatsPeriod period, CardDb cards, ConstructedMeta? meta)
-    {
-        var games = StatsFilter.Apply(all.Where(g => StatsFilter.IsConstructed(g, format)), period, DateTime.Now);
-        var summary = ConstructedStats.Summary(games);
-        IReadOnlyList<StatTile> tiles =
-        [
-            new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
-            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : Loc.T("Stats.Ct.RankHidden")),
-            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed),
-                summary.AverageDuration is { } avg ? Loc.F("Stats.Ct.AverageGame", avg.TotalMinutes, summary.AverageTurns) : "—"),
-            new StatTile(Loc.T("Stats.Ct.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Stats.Ct.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
-            new StatTile(Loc.T("Stats.Ct.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Stats.Ct.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
-        ];
-
-        var chart = ConstructedStats.RankTimeline(games)
-            .Select(r => (IChartValue)new CtGamePoint(
-                r.StarLevel + (r.LegendRank is { } l ? 1 - Math.Min(1, l / 10000.0) : 0),
-                r.Label,
-                r.Game.HeroCardId,
-                r.Game.DeckName is { Length: > 0 } deck ? DeckName.Display(deck) : OverlayViewModel.ClassName(r.Game.PlayerClass),
-                r.Game.Result,
-                ResultText(r.Game.Result),
-                string.IsNullOrEmpty(r.Game.OpponentClass)
-                    ? Loc.P("Stats.Turns", r.Game.Turns)
-                    : Loc.F("Stats.Ct.VsOpponent", OverlayViewModel.ClassName(r.Game.OpponentClass), Loc.P("Stats.Turns", r.Game.Turns)),
-                When(r.Game.StartedAt)))
-            .ToList();
-
-        var classes = ConstructedStats.ByPlayerClass(games, meta).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
-        var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
-        var archetypes = ConstructedStats.ByArchetype(games, g => ConstructedStats.ArchetypeOf(g.DeckCode, g.PlayerClass, meta, cards))
-            .Select(g => Group(g, string.Empty, g.Label)).ToList();
-        IReadOnlyList<StatGroupRow> lengths = games.Count == 0
-            ? []
-            : ConstructedStats.ByLength(games).Select(b => Group(new GroupStats(b.Label, Loc.F("Stats.Ct.LengthTurns", b.Label), b.Record), string.Empty, Loc.F("Stats.Ct.LengthTurns", b.Label))).ToList();
-        var note = ConstructedNote(meta);
-        return () =>
-        {
-            CtStatTiles = [.. tiles.Take(HeadlineTiles)];
-            CtMoreTiles = [.. tiles.Skip(HeadlineTiles)];
-            CtRankChart = chart;
-            CtClasses = CtClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
-            CtOpponents = CtOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
-            CtArchetypes = CtArchetypesSort.Apply(StatGroupRow.Marked(archetypes), (r, c) => r.SortValue(c));
-            CtLengths = lengths;
-            CtStatsNote = note;
-        };
-    }
-
-    private void RebuildArenaStats()
-    {
-        var (all, period, cards, arena) = (_allGames, _arenaPeriod, _cards, _arenaMeta);
-        RunStatsBuild(2, () => BuildArenaStats(all, period, cards, arena));
-    }
-
-    private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena)
-    {
-        var now = DateTime.Now;
-        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, now);
-        // Runs from every Arena game, then the ones with a game in the period: a run across the period's start stays
-        // whole, so its key (by its first game when it has no deck id) and its rewards are the same in every period.
-        var start = StatsFilter.Start(period, now);
-        var runs = ArenaStats.Runs(StatsFilter.Apply(all.Where(StatsFilter.IsArena), StatsPeriod.All, now))
-            .Where(r => start is null || r.Ended >= start)
-            .ToList();
-        var summary = ArenaStats.Summary(runs);
-        var rewards = _history.ArenaRewards();
-        IReadOnlyList<StatTile> tiles =
-        [
-            new StatTile(Loc.T("Stats.Arena.Runs"), summary.Runs.ToString("N0", CultureInfo.CurrentCulture), Loc.F("Stats.Arena.Finished", runs.Count(r => r.Finished))),
-            new StatTile(Loc.T("Stats.Arena.AvgWins"), summary.AverageWins is { } avg ? avg.ToString("0.0", CultureInfo.CurrentCulture) : "—", Loc.T("Stats.Arena.PerFinishedRun")),
-            new StatTile(Loc.T("Stats.Arena.BestRun"), runs.Count > 0 ? Loc.P("Stats.Arena.Wins", summary.BestWins) : "—", Loc.T("Stats.Arena.MostWins")),
-            new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), Loc.P("Stats.Games", summary.Record.Games)),
-            RewardsTile(runs, rewards),
-        ];
-        var runRows = runs.AsEnumerable().Reverse().Select(r =>
-            {
-                var (deckScore, deckTier) = RunDeckScore(r, cards, arena);
-                return new ArenaRunRow(
-                    OverlayViewModel.ClassName(r.PlayerClass),
-                    ClassHero(r.PlayerClass),
-                    $"{r.Wins}–{r.Losses}",
-                    r.Wins / (double)ArenaStats.MaxWins,
-                    When(r.Started),
-                    r.Finished ? Loc.P("Stats.Games", r.Games.Count) : Loc.F("Stats.Arena.InProgress", Loc.P("Stats.Games", r.Games.Count)),
-                    r.Finished,
-                    deckScore,
-                    deckTier)
-                {
-                    Key = r.Key,
-                    Rewards = rewards.GetValueOrDefault(r.Key),
-                    RewardParts = RewardParts(rewards.GetValueOrDefault(r.Key)),
-                    RewardsTip = rewards.GetValueOrDefault(r.Key) is { } given
-                        ? Loc.F("Stats.Arena.Rewards.EditTip", RewardsText(given))
-                        : Loc.T("Stats.Arena.Rewards.AddTip"),
-                    EditRewards = EditArenaRewards,
-                };
-            })
-            .ToList();
-        var applyDeck = BuildArenaDeck(runs, cards, arena);
-        var classes = ArenaStats.ByClass(runs)
-            .Select(c => new StatGroupRow(
-                OverlayViewModel.ClassName(c.PlayerClass),
-                ClassHero(c.PlayerClass),
-                Loc.P("Stats.Arena.RunCount", c.Runs) + (c.AverageWins is { } w ? Loc.F("Stats.Arena.AvgWinsSuffix", w) : Loc.T("Stats.Arena.NoneFinished")),
-                $"{c.Record.Wins}–{c.Record.Losses}",
-                Percent(c.Record.WinRate),
-                c.Record.WinRate ?? 0,
-                VsGlobal.None,
-                c.Record.Games))
-            .ToList();
-        var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
-        return () =>
-        {
-            ArenaStatTiles = [.. tiles.Take(HeadlineTiles)];
-            ArenaMoreTiles = [.. tiles.Skip(HeadlineTiles)];
-            ArenaRuns = RebuiltArenaRuns(runRows);
-            ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
-            ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
-            applyDeck(this);
-        };
-    }
 
     /// <summary>The loaded Constructed meta when it is the tab's format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>

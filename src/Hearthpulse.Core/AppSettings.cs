@@ -27,7 +27,7 @@ public enum CompMode
     Auto,
 }
 
-public sealed class AppSettings
+public sealed partial class AppSettings
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
     private string? _unpreservedFile;
@@ -286,6 +286,18 @@ public sealed class AppSettings
     /// <summary>The Discord status (<c>docs/discord.md</c>): off until turned on.</summary>
     public bool DiscordStatus { get; set; }
 
+    /// <summary>
+    /// The Twitch extension (docs/streaming.md): while on and signed in, the deck's remaining cards go to hearthpulse.net,
+    /// which hands them to the Hearthpulse extension on the player's channel. Off until turned on.
+    /// </summary>
+    public bool TwitchExtension { get; set; }
+
+    /// <summary>How many seconds the extension's deck lags behind the game, to match the stream's delay in OBS (0–600).</summary>
+    public int TwitchDelaySeconds { get; set; }
+
+    /// <summary>The longest <see cref="TwitchDelaySeconds"/>: ten minutes.</summary>
+    public const int MaxTwitchDelaySeconds = 600;
+
     /// <summary>The OBS capture window "Hearthpulse — Deck" (the deck panel, every mode but Battlegrounds) is open.</summary>
     public bool StreamDeckWindow { get; set; }
 
@@ -378,153 +390,8 @@ public sealed class AppSettings
     /// </summary>
     public bool HistoryCardsFilled { get; set; }
 
-    /// <summary>Colour theme: a preset name, or "Custom" with the three values below.</summary>
-    public string Theme { get; set; } = "Tavern";
-
-    public double ThemeAccentHue { get; set; } = 42;
-
-    public double ThemeBaseHue { get; set; } = 28;
-
-    public double ThemeBaseTint { get; set; } = 1.0;
-
-    /// <summary>A swatch of <see cref="ThemePalette.Accents"/> over the theme's own accent; empty keeps the theme's.</summary>
-    public string ThemeAccent { get; set; } = "";
-
-    /// <summary>A hero's art behind each main-window page ("Background characters"), from the card art cache.</summary>
-    public bool PageHeroes { get; set; } = true;
-
-    /// <summary>One hero's art (a card id) behind every page instead of the one picked by page and mode; empty picks by page.</summary>
-    public string BackgroundHero { get; set; } = "";
-
-    public const double MinBackgroundIntensity = 0.25;
-
-    /// <summary>
-    /// How strongly the page art shows, as a share of its built-in opacity: the contrast tests are run at full strength,
-    /// so lowering it can only make text easier to read.
-    /// </summary>
-    public double BackgroundIntensity { get; set; } = 1.0;
-
-    /// <summary>Card and button corners: <see cref="ThemeLook.Rounded"/> or <see cref="ThemeLook.Sharp"/>.</summary>
-    public string CornerStyle { get; set; } = ThemeLook.Rounded;
-
-    /// <summary>Room inside cards: <see cref="ThemeLook.Comfortable"/> or <see cref="ThemeLook.Compact"/>.</summary>
-    public string Density { get; set; } = ThemeLook.Comfortable;
-
-    public const double MinInterfaceScale = 0.9;
-    public const double MaxInterfaceScale = 1.2;
-
-    /// <summary>The main window's text and controls drawn larger or smaller (0.9-1.2; the overlay has its own size).</summary>
-    public double InterfaceScale { get; set; } = 1.0;
-
-    [JsonIgnore]
-    public bool CornersRounded { get => CornerStyle != ThemeLook.Sharp; set => SetIf(value, () => CornerStyle = ThemeLook.Rounded); }
-
-    [JsonIgnore]
-    public bool CornersSharp { get => CornerStyle == ThemeLook.Sharp; set => SetIf(value, () => CornerStyle = ThemeLook.Sharp); }
-
-    [JsonIgnore]
-    public bool DensityComfortable { get => Density != ThemeLook.Compact; set => SetIf(value, () => Density = ThemeLook.Comfortable); }
-
-    [JsonIgnore]
-    public bool DensityCompact { get => Density == ThemeLook.Compact; set => SetIf(value, () => Density = ThemeLook.Compact); }
-
     /// <summary>The setup wizard was finished or skipped: it no longer opens by itself for a player with no games.</summary>
     public bool SetupDone { get; set; }
-
-    public static AppSettings Load() => Load(AppPaths.Settings);
-
-    /// <summary>Reads a specific file without changing the process-wide data folder.</summary>
-    internal static AppSettings Load(string path) => Load(path, RetryPause);
-
-    /// <summary>
-    /// <see cref="Load(string)"/> with the pause between read attempts given: tests release a held file there instead
-    /// of racing a timer.
-    /// </summary>
-    internal static AppSettings Load(string path, Action retryPause)
-    {
-        string? unpreserved = null;
-        try
-        {
-            if (File.Exists(path))
-            {
-                return FromJson(ReadWithRetry(path, retryPause));
-            }
-        }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
-        {
-            Diag.Error("Settings unreadable, using defaults", ex);
-            if (!PreserveUnreadable(path))
-            {
-                unpreserved = path;
-            }
-            else if (ex is JsonException && Salvage(path) is { } salvaged)
-            {
-                return salvaged;
-            }
-        }
-
-        var fresh = new AppSettings { _unpreservedFile = unpreserved };
-        fresh.Migrate();
-        return fresh;
-    }
-
-    /// <summary>
-    /// The file's text. A file another program holds for a moment (an antivirus scan, a cloud sync) is read again for up
-    /// to a second before it counts as unreadable: defaults would otherwise be saved over it later.
-    /// </summary>
-    private static string ReadWithRetry(string path, Action retryPause)
-    {
-        for (var attempt = 1; ; attempt++)
-        {
-            try
-            {
-                return File.ReadAllText(path);
-            }
-            catch (IOException) when (attempt < 10 && File.Exists(path))
-            {
-                retryPause();
-            }
-        }
-    }
-
-    private static void RetryPause() => Thread.Sleep(100);
-
-    /// <summary>
-    /// Keeps every setting of a file that failed to load except the values that cannot be read (a null number, an enum
-    /// name from another version...): one bad value must not reset the overlay layout, the pool id and the rest. Null
-    /// when the file is not a JSON object at all.
-    /// </summary>
-    private static AppSettings? Salvage(string path)
-    {
-        try
-        {
-            if (JsonNode.Parse(File.ReadAllText(path)) is not JsonObject file)
-            {
-                return null;
-            }
-
-            var kept = new JsonObject();
-            foreach (var (name, value) in file)
-            {
-                var one = new JsonObject { [name] = value?.DeepClone() };
-                try
-                {
-                    JsonSerializer.Deserialize<AppSettings>(one.ToJsonString(), Json);
-                    kept[name] = value?.DeepClone();
-                }
-                catch (JsonException)
-                {
-                    Diag.Info($"Setting {name} unreadable, using its default");
-                }
-            }
-
-            return FromJson(kept.ToJsonString());
-        }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
 
     /// <summary>Reads settings saved by this or an older version and brings them up to date.</summary>
     public static AppSettings FromJson(string json)
@@ -608,6 +475,7 @@ public sealed class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
+        TwitchDelaySeconds = Math.Clamp(TwitchDelaySeconds, 0, MaxTwitchDelaySeconds);
         OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
         CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, MinCardPoolBrowserWidth, MaxCardPoolBrowserWidth, DefaultCardPoolBrowserWidth);
@@ -618,12 +486,8 @@ public sealed class AppSettings
         ThemeAccentHue = double.IsFinite(ThemeAccentHue) ? ThemeAccentHue : 42;
         ThemeBaseHue = double.IsFinite(ThemeBaseHue) ? ThemeBaseHue : 28;
         ThemeBaseTint = Bounded(ThemeBaseTint, 0, 1.5, 1);
-        ThemeAccent ??= "";
-        BackgroundHero ??= "";
-        BackgroundIntensity = Bounded(BackgroundIntensity, MinBackgroundIntensity, 1, 1);
-        InterfaceScale = Bounded(InterfaceScale, MinInterfaceScale, MaxInterfaceScale, 1);
-        if (CornerStyle is not (ThemeLook.Rounded or ThemeLook.Sharp)) CornerStyle = ThemeLook.Rounded;
-        if (Density is not (ThemeLook.Comfortable or ThemeLook.Compact)) Density = ThemeLook.Comfortable;
+        NormalizeAppearance();
+        NormalizeGrowth();
     }
 
     private static string DefaultIfBlank(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
@@ -657,122 +521,4 @@ public sealed class AppSettings
         // a placement always pins a position, so its scale cannot move over alone. The stale entry goes.
         Panels.Remove("mulligan-strip");
     }
-
-    public void Save() => Save(AppPaths.Settings);
-
-    internal void Save(string path)
-    {
-        // If recovery could not make a diagnostic copy (for example the disk was full), do not silently replace the
-        // original on shutdown. Retry copying first, so normal saving resumes when the storage problem is resolved.
-        if (_unpreservedFile is { } unreadable)
-        {
-            if (!PreserveUnreadable(unreadable)) return;
-            _unpreservedFile = null;
-        }
-
-        try
-        {
-            var temp = path + ".tmp";
-            File.WriteAllText(temp, ToJson());
-            File.Move(temp, path, overwrite: true);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Diag.Error("Settings not saved", ex);
-        }
-    }
-
-    private static bool PreserveUnreadable(string path)
-    {
-        try
-        {
-            var backup = path + ".invalid";
-            if (File.Exists(backup)) backup += "." + Guid.NewGuid().ToString("N");
-            File.Copy(path, backup, overwrite: false);
-            Diag.Info($"Unreadable settings preserved at {backup}");
-            return true;
-        }
-        catch (FileNotFoundException)
-        {
-            // The original was removed since the read failed; there is no longer anything to overwrite.
-            return true;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Diag.Error("Unreadable settings could not be preserved; saving is paused", ex);
-            return false;
-        }
-    }
-}
-
-/// <summary>How the player wants one overlay panel to look: see-through, or lists without card art and shorter rows.</summary>
-public sealed class PanelLook
-{
-    /// <summary>The faintest a panel can be made: below this it can no longer be found on a bright board.</summary>
-    public const double MinOpacity = 0.3;
-
-    public double Opacity { get; set; } = 1.0;
-
-    /// <summary>Card lists in the panel use short rows without art.</summary>
-    public bool Compact { get; set; }
-
-    /// <summary>Nothing differs from a panel without an entry.</summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    public bool IsDefault => !Compact && (Opacity >= 0.999 || !double.IsFinite(Opacity));
-}
-
-/// <summary>The counts of a finished move from another tracker (<see cref="AppSettings.LastMigration"/>).</summary>
-public sealed class MigrationRecord
-{
-    public DateTime At { get; set; }
-
-    public int Added { get; set; }
-
-    public int Already { get; set; }
-
-    public int Skipped { get; set; }
-
-    public int Decks { get; set; }
-
-    public int Replays { get; set; }
-}
-
-/// <summary>The choices of <see cref="AppSettings.StreamWindowBackground"/>.</summary>
-public static class StreamBackgrounds
-{
-    public const string Theme = "Theme";
-
-    public const string Green = "Green";
-
-    public const string Magenta = "Magenta";
-
-    public static readonly IReadOnlyList<string> All = [Theme, Green, Magenta];
-}
-
-/// <summary>An OBS capture window's bounds in device-independent pixels (pixels at 100 %), top-left corner first.</summary>
-public sealed class StreamWindowPlacement
-{
-    /// <summary>Saved coordinates beyond this are clamped (no desktop reaches that far).</summary>
-    public const double MaxCoordinate = 100_000;
-
-    /// <summary>Saved sizes beyond this are clamped; there is no other maximum.</summary>
-    public const double MaxSize = 20_000;
-
-    public double X { get; set; }
-
-    public double Y { get; set; }
-
-    public double Width { get; set; }
-
-    public double Height { get; set; }
-}
-
-/// <summary>Top-left corner as fractions of the overlay surface, plus a per-panel size multiplier.</summary>
-public sealed class PanelPlacement
-{
-    public double X { get; set; }
-
-    public double Y { get; set; }
-
-    public double Scale { get; set; } = 1.0;
 }

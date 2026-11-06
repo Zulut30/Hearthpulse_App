@@ -489,6 +489,9 @@ public sealed record LiveSnapshot(
     /// <summary>Ranked games of the current play session, Standard and Wild apart.</summary>
     public Stats.LadderSessions Ladder { get; init; } = Stats.LadderSessions.None;
 
+    /// <summary>The OBS window "Session": progress since the stream started; null while the window is off.</summary>
+    public Share.StreamSessionView? StreamSession { get; init; }
+
     public static LiveSnapshot Empty { get; } = new(
         "UNKNOWN", false, false, "Idle", null, false, null, null, null,
         new SessionSummary(null, null, 0, Array.Empty<int>(), 0, 0), Array.Empty<string>());

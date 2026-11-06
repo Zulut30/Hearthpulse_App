@@ -7,8 +7,9 @@ namespace Hearthpulse.Core;
 /// <summary>
 /// The player's preferences in groups, as Settings shows them: each group can be reset to its defaults, and every group
 /// together is what a settings file carries. What is not in a group stays as it is on reset and import: the history
-/// and migration flags, the stats-pool key and consent, game and HDT folders, the open tab and page filters, and the
-/// panels' positions (they have their own "reset positions" button).
+/// and migration flags, the stats-pool key and consent, the Twitch extension switch (it sends the deck to the site, so it
+/// is only ever turned on by hand), game and HDT folders, the open tab and page filters, and the panels' positions
+/// (they have their own "reset positions" button).
 /// </summary>
 public static class SettingsGroups
 {
@@ -62,7 +63,8 @@ public static class SettingsGroups
         [
             nameof(AppSettings.StreamerMode), nameof(AppSettings.DiscordStatus), nameof(AppSettings.StreamDeckWindow),
             nameof(AppSettings.StreamLobbyWindow), nameof(AppSettings.StreamOddsWindow), nameof(AppSettings.StreamWindowBackground),
-            nameof(AppSettings.StreamWindowsOnTop),
+            nameof(AppSettings.StreamWindowsOnTop), nameof(AppSettings.StreamSessionWindow), nameof(AppSettings.TwitchDelaySeconds),
+            nameof(AppSettings.TimestampLeadInSeconds), nameof(AppSettings.ShareShowBattleTag),
         ],
     };
 

@@ -30,7 +30,12 @@
                 </StackPanel>
                 <c:Wave Classes="pageRule" Margin="2,0,0,0" />
             </StackPanel>
-            <Border Classes="segmentBar headFilter" ToolTip.Tip="{i:Loc Main.History.FilterTip}">
+            <Border Classes="headFilter">
+            <StackPanel Orientation="Horizontal">
+            <Button Name="TimestampsButton" Classes="ghost" Content="{i:Loc Growth.Timestamps.Button}" Padding="12,6" Margin="0,0,16,0"
+                    FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" Click="OnTimestamps" ToolTip.Tip="{i:Loc Growth.Timestamps.ButtonTip}"
+                    AutomationProperties.Name="{i:Loc Growth.Timestamps.Button}" />
+            <Border Classes="segmentBar" ToolTip.Tip="{i:Loc Main.History.FilterTip}">
                 <WrapPanel>
                     <RadioButton Name="HistoryAll" Classes="segment" Content="{i:Loc Main.History.All}" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
                     <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Battlegrounds}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
@@ -38,6 +43,8 @@
                     <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Ranked}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
                     <RadioButton Classes="segment" Content="{i:Loc Main.History.Other}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
                 </WrapPanel>
+            </Border>
+            </StackPanel>
             </Border>
         </Grid>
         <!-- Tabs Recent / Saved / Imported, status, game cards (Main/Match/ReplayLibraryView) -->

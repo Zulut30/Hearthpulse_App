@@ -931,6 +931,9 @@
                     <Button Classes="icon" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip.Tip="{i:Loc Library.Share}"
                             AutomationProperties.Name="{i:Loc Library.Share}" />
                 </StackPanel>
+                <!-- The player's deck of the game as a picture (proposal C1): a list or a 16:9 cover -->
+                <Button Name="DeckImageButton" DockPanel.Dock="Right" Classes="icon" Content="&#xF0638;" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnDeckImage"
+                        ToolTip.Tip="{i:Loc Growth.Deck.ButtonTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Button}" IsVisible="{Binding CanShareDeck}" />
                 <!-- The step on screen as a PNG picture (plan R4): either mode's table card, as the page shows it -->
                 <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0100;" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnExportStep"
                         ToolTip.Tip="{i:Loc Match.Export.Tip}" AutomationProperties.Name="{i:Loc Match.Export.Tip}" IsVisible="{Binding CanExportStep}" />

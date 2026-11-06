@@ -1,0 +1,79 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Share.SessionRecapView"
+             x:DataType="s:ShareViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:s="using:Hearthpulse.UI.Main.Share"
+             Width="640">
+    <!-- The session recap picture (proposal A1), as WPF's Main/Share/SessionRecapView.xaml. Opaque on Bg: the clipboard
+         keeps no transparency. Only the player's own numbers; the BattleTag only when the player turns it on. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Share/ShareLook.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Share/ShareStyles.axaml" />
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource Bg}" Padding="16">
+        <Border Classes="card" Padding="32,24">
+            <StackPanel>
+                <DockPanel>
+                    <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
+                    <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <TextBlock Text="{i:Loc Growth.Recap.Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding Recap.When}" Classes="caption" HorizontalAlignment="Right" />
+                    </StackPanel>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Hearthpulse" Classes="wordmark" FontSize="{StaticResource FontSizeSubhead}" />
+                        <TextBlock Text="{i:Loc Growth.Share.Tagline}" Classes="caption" />
+                    </StackPanel>
+                </DockPanel>
+                <c:Wave Width="168" HorizontalAlignment="Left" IsHitTestVisible="False" Margin="2,12,0,0" />
+
+                <ItemsControl ItemsSource="{Binding Recap.Sections}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="s:RecapSection">
+                            <StackPanel Margin="0,16,0,0">
+                                <DockPanel Margin="0,0,0,12">
+                                    <Border Width="40" Height="40" Margin="0,0,12,0" Classes="sharePortrait" i:CardArt.Portrait="{Binding HeroCardId}"
+                                            IsVisible="{Binding HeroCardId, Converter={StaticResource Truthy}}" />
+                                    <TextBlock Text="{Binding Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Stats}" ItemTemplate="{StaticResource ShareStatTile}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="3" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0" IsVisible="{Binding HasPlaces}">
+                                    <TextBlock Text="{i:Loc Growth.Recap.Places}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ItemsControl ItemsSource="{Binding Places}" ItemTemplate="{StaticResource SharePlaceChip}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{Binding Recap.Empty}" Classes="caption" FontSize="{StaticResource FontSizeLead}" Margin="0,24" HorizontalAlignment="Center"
+                           IsVisible="{Binding Recap.IsEmpty}" />
+
+                <DockPanel Margin="0,16,0,0">
+                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Border>
+</UserControl>

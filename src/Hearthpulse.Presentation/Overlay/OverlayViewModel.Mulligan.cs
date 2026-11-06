@@ -51,7 +51,7 @@ public sealed record MulliganPlate(
     bool Kept,
     string Tooltip,
     string PickTier = "",
-    bool Soft = false)
+    bool Soft = false) : IImmutableView
 {
     /// <summary>Neither keep nor replace: no numbers for the card.</summary>
     public bool NoCall => !KeepCall && !MulliganCall;

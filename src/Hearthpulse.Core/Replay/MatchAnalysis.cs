@@ -7,7 +7,7 @@ using Hearthpulse.Core.Localization;
 namespace Hearthpulse.Core.Replay;
 
 /// <summary>A number on the analysis tab.</summary>
-public sealed record AnalysisTile(string Label, string Value, string Detail);
+public sealed record AnalysisTile(string Label, string Value, string Detail) : IImmutableView;
 
 /// <summary>The table at the end of one game turn.</summary>
 public sealed record AnalysisTurnRow(
@@ -19,17 +19,17 @@ public sealed record AnalysisTurnRow(
     string LocalBoard,
     string OpponentBoard,
     string Mana,
-    string Played);
+    string Played) : IImmutableView;
 
 /// <summary>A card that swung the game, with why.</summary>
-public sealed record KeyCardRow(string CardId, string Name, bool Local, string Reason, double Score)
+public sealed record KeyCardRow(string CardId, string Name, bool Local, string Reason, double Score) : IImmutableView
 {
     /// <summary>The replay frame of the card's biggest swing (the match page marks that action).</summary>
     public int Frame { get; init; } = -1;
 }
 
 /// <summary>One opening card: what the player did and what the archetype's players usually do.</summary>
-public sealed record MulliganCardRow(string CardId, string Name, bool Kept, string Choice, string MetaKeep, string MetaWinRate, int Agreement)
+public sealed record MulliganCardRow(string CardId, string Name, bool Kept, string Choice, string MetaKeep, string MetaWinRate, int Agreement) : IImmutableView
 {
     /// <summary>The choice matches what most of the archetype's players do.</summary>
     public bool Agrees => Agreement > 0;

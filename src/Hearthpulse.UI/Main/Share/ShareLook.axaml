@@ -1,0 +1,78 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="using:Hearthpulse.UI.Controls"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure"
+                    xmlns:d="using:Hearthpulse.UI.Main.Decks"
+                    xmlns:s="using:Hearthpulse.UI.Main.Share">
+    <!-- What the share pictures have in common (TASK-2026-11-07-growth-app): number tiles, place chips, deck rows and the
+         curve; the classes they use are in ShareStyles.axaml. Theme tokens only, as WPF's Main/Share/ShareLook.xaml. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+        <ResourceInclude Source="avares://Hearthpulse.UI/Main/Logo.axaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- A number: label, value (coloured by its sign), a line under it -->
+    <DataTemplate x:Key="ShareStatTile" x:DataType="s:ShareStat">
+        <Border Classes="shareTile" Padding="16,12" Margin="0,0,8,8">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" Classes="label" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Value}" Classes="stat" FontSize="{StaticResource FontSizeHeadline}" Margin="0,4,0,0" TextWrapping="Wrap"
+                           Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasDetail}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- A Battlegrounds place: gold-edged in the top half -->
+    <DataTemplate x:Key="SharePlaceChip" x:DataType="s:SharePlace">
+        <Border Classes="placeChip" Classes.top="{Binding Top}" MinWidth="28" Height="28" Padding="8,0" Margin="0,0,4,0">
+            <TextBlock Text="{Binding Text}" Classes="place" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+    </DataTemplate>
+
+    <!-- A deck card as the tracker lists it: cost gem, name over the art, copies or the legendary star, rarity edge -->
+    <DataTemplate x:Key="ShareDeckRow" x:DataType="d:DeckListRow">
+        <Grid Height="28" Margin="0,0,0,2">
+            <Border Background="{StaticResource Row}" CornerRadius="{StaticResource RadiusPill}" ClipToBounds="True">
+                <Panel>
+                    <Panel Width="180" HorizontalAlignment="Right">
+                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Fill="{StaticResource TileFade}" />
+                    </Panel>
+                    <DockPanel Margin="1,0,4,0">
+                        <c:ManaCost Width="26" Height="26" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <Border DockPanel.Dock="Right" MinWidth="24" Height="20" CornerRadius="{StaticResource RadiusPill}" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
+                                Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
+                            <TextBlock Text="{Binding Count}" Classes="shareCopies" Classes.legendary="{Binding Legendary}"
+                                       FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding Name}" Classes="shareCardName" Classes.legendary="{Binding Legendary}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Panel>
+            </Border>
+            <Border CornerRadius="{StaticResource RadiusPill}" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
+        </Grid>
+    </DataTemplate>
+
+    <!-- One cost of the mana curve: count, bar (share of the tallest), the cost in a gem -->
+    <DataTemplate x:Key="ShareCurveBar" x:DataType="d:ManaCurveBar">
+        <StackPanel Margin="2,0" VerticalAlignment="Bottom" Classes.none="{Binding Empty}">
+            <TextBlock Text="{Binding Count}" Classes="caption shareCurveCount" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
+            <Panel Height="64">
+                <Border Classes="shareCurveBar" VerticalAlignment="Bottom" MinHeight="2" CornerRadius="2,2,1,1"
+                        Height="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
+            </Panel>
+            <Border Height="1" Background="{StaticResource Outline}" />
+            <c:ManaCost Width="20" Height="20" Text="{Binding Label}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Dims the cover's class art under the text and fades it into the background: alpha only, so it follows every theme -->
+    <LinearGradientBrush x:Key="ShareArtMask" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#59000000" Offset="0" />
+        <GradientStop Color="#80000000" Offset="0.4" />
+        <GradientStop Color="#FF000000" Offset="1" />
+    </LinearGradientBrush>
+</ResourceDictionary>

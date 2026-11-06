@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -10,14 +11,14 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>A bar of a deck banner's mana curve: its height in pixels (of <see cref="HomeDeck.CurveHeight"/>) and what it counts.</summary>
-public sealed record HomeDeckBar(double Height, string Tip);
+public sealed record HomeDeckBar(double Height, string Tip) : IImmutableView;
 
 /// <summary>
 /// A deck banner on the home page: its key card's art in a square at its own proportions (the deck's priciest
 /// legendary, else its priciest card, never the one an earlier banner shows), the class hero as a small round icon, the
 /// deck's name, "56 % · 41 games" and its mana curve.
 /// </summary>
-public sealed record HomeDeck(string Key, string Name, string HeroCardId, string ArtCardId, string Line, IReadOnlyList<HomeDeckBar> Curve)
+public sealed record HomeDeck(string Key, string Name, string HeroCardId, string ArtCardId, string Line, IReadOnlyList<HomeDeckBar> Curve) : IImmutableView
 {
     /// <summary>The tallest bar of the curve, in pixels.</summary>
     public const double CurveHeight = 24;

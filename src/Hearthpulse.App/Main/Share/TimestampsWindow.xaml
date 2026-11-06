@@ -1,0 +1,83 @@
+<Window x:Class="Hearthpulse.App.Main.Share.TimestampsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+        Title="{i:Loc Growth.Timestamps.Title}" Width="720" Height="640" MinWidth="520" MinHeight="460"
+        Background="{StaticResource Bg}" Icon="/Hearthpulse;component/Assets/hearthpulse.ico"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True" Style="{StaticResource AppWindow}">
+    <!-- YouTube timestamps (proposal C2): the range, the recording's start, the text to paste. DataContext: TimestampsViewModel. -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="{i:Loc Growth.Timestamps.Title}" Style="{StaticResource H2}" FontSize="{StaticResource FontSizeSubhead}" Margin="0,0,0,16" />
+
+        <DockPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="{i:Loc Growth.Timestamps.Range}" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" />
+            <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="RangeSession" Style="{StaticResource Tab}" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeSession}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeSession}" IsChecked="{Binding RangeSession}" />
+                    <RadioButton x:Name="RangeToday" Style="{StaticResource Tab}" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeToday}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeToday}" IsChecked="{Binding RangeToday}" />
+                    <RadioButton x:Name="RangeYesterday" Style="{StaticResource Tab}" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeYesterday}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeYesterday}" IsChecked="{Binding RangeYesterday}" />
+                </StackPanel>
+            </Border>
+        </DockPanel>
+
+        <DockPanel Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="{i:Loc Growth.Timestamps.Start}" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" />
+            <TextBox x:Name="StartBox" Width="120" Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
+                     ToolTip="{i:Loc Growth.Timestamps.StartTip}" AutomationProperties.Name="{i:Loc Growth.Timestamps.Start}" />
+            <Button x:Name="FromFirstButton" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Timestamps.FromFirst}" Command="{Binding FromFirst}"
+                    Margin="8,0,0,0" Padding="12,4" HorizontalAlignment="Left" ToolTip="{i:Loc Growth.Timestamps.FromFirstTip}"
+                    AutomationProperties.Name="{i:Loc Growth.Timestamps.FromFirst}" />
+        </DockPanel>
+
+        <StackPanel Grid.Row="3" Margin="0,0,0,12">
+            <DockPanel>
+                <TextBlock Text="{i:Loc Growth.Timestamps.LeadIn}" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" />
+                <TextBox x:Name="LeadInBox" Width="80" HorizontalAlignment="Left" Text="{Binding LeadInText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="{i:Loc Growth.Timestamps.LeadInTip}" AutomationProperties.Name="{i:Loc Growth.Timestamps.LeadIn}" />
+            </DockPanel>
+            <TextBlock Text="{Binding Error}" Style="{StaticResource Caption}" Foreground="{StaticResource Negative}" Margin="200,4,0,0"
+                       Visibility="{Binding Error, Converter={StaticResource Vis}}" AutomationProperties.LiveSetting="Assertive" />
+        </StackPanel>
+
+        <Grid Grid.Row="4">
+            <TextBox x:Name="StampsBox" Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="12,8"
+                     AutomationProperties.Name="{i:Loc Growth.Timestamps.Text}" />
+            <TextBlock Text="{i:Loc Growth.Timestamps.Empty}" Style="{StaticResource Caption}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Margin="24" IsHitTestVisible="False" Visibility="{Binding HasText, Converter={StaticResource Vis}, ConverterParameter=!}" />
+        </Grid>
+
+        <TextBlock Grid.Row="5" Text="{i:Loc Growth.Timestamps.Note}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <DockPanel Grid.Row="6" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="CopyButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Growth.Timestamps.Copy}" Click="OnCopy" IsDefault="True"
+                        IsEnabled="{Binding HasText}" AutomationProperties.Name="{i:Loc Growth.Timestamps.Copy}" />
+                <Button x:Name="CloseButton" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True" Margin="8,0,0,0"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+        </DockPanel>
+    </Grid>
+</Window>

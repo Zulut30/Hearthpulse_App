@@ -63,6 +63,7 @@ public partial class StreamView : UserControl
     {
         "deck" => new DeckPanel(),
         "lobby" => new LobbyPanel(),
+        "session" => new StreamSessionPanel(),
         _ => new OddsPanel(),
     };
 

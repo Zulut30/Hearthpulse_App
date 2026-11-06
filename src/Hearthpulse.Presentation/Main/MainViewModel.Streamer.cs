@@ -112,6 +112,8 @@ public sealed partial class MainViewModel
         Raise(nameof(StreamDeckWindow));
         Raise(nameof(StreamLobbyWindow));
         Raise(nameof(StreamOddsWindow));
+        Raise(nameof(StreamSessionWindow));
+        Raise(nameof(StreamSessionStartText));
         Raise(nameof(StreamWindowsOnTop));
         Raise(nameof(StreamBackgroundTheme));
         Raise(nameof(StreamBackgroundGreen));
@@ -119,6 +121,7 @@ public sealed partial class MainViewModel
         Raise(nameof(StreamKeyNote));
         ShowDiscord(_lastSnapshot);
         RaiseDiscord();
+        RaiseTwitch();
     }
 
     private void SetIfChosen(bool value, string background)

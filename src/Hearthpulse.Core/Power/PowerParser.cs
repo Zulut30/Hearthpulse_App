@@ -4,39 +4,6 @@ using Hearthpulse.Core.Logs;
 
 namespace Hearthpulse.Core.Power;
 
-/// <summary>Receives semantic events while Power.log is replayed into a <see cref="GameState"/>.</summary>
-public interface IPowerListener
-{
-    void OnGameStarted(GameState game) { }
-
-    void OnEntityCreated(GameState game, Entity entity) { }
-
-    void OnEntityRevealed(GameState game, Entity entity) { }
-
-    /// <summary>
-    /// HIDE_ENTITY: the client stopped showing the card (a shown card shuffled back, a card returned to a hand). The
-    /// entity keeps its last known card id, which the player may remember but which no longer says what it is later.
-    /// </summary>
-    void OnEntityHidden(GameState game, Entity entity) { }
-
-    void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value) { }
-
-    void OnBlockStart(GameState game, string blockType, Entity? source) { }
-
-    void OnBlockEnd(GameState game) { }
-
-    /// <param name="source">The card that offers the choice (hero power, spell, triple reward…), when known.</param>
-    void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options) { }
-
-    /// <summary>The local player picked from the open choice.</summary>
-    void OnChoiceMade(GameState game) { }
-
-    /// <summary>One card the local player picked in the choice that just ended.</summary>
-    void OnChosen(GameState game, Entity chosen) { }
-
-    void OnGameEnded(GameState game) { }
-}
-
 /// <summary>
 /// Streaming parser for the GameState.DebugPrint* lines of Power.log. Feed lines in order;
 /// it rebuilds the full entity graph and notifies listeners.
@@ -529,87 +496,6 @@ public sealed partial class PowerParser
                 }
 
                 break;
-        }
-    }
-
-    private void HandleChoices(string body)
-    {
-        if (Game is not { } game)
-        {
-            return;
-        }
-
-        var header = ChoicesHeaderRegex().Match(body);
-        if (header.Success)
-        {
-            FlushChoices();
-            var player = header.Groups["player"].Value;
-            game.SetLocalPlayerByName(player);
-            _choiceType = header.Groups["type"].Value;
-            _choiceIsLocal = game.LocalPlayer?.Name == player;
-            _choiceSource = null;
-            return;
-        }
-
-        if (_choiceType is not null && body.StartsWith("Source=", StringComparison.Ordinal))
-        {
-            _choiceSource = Resolve(body["Source=".Length..].Trim());
-            return;
-        }
-
-        var option = ChoiceEntityRegex().Match(body);
-        if (option.Success && _choiceType is not null && Resolve(option.Groups["entity"].Value) is { } entity)
-        {
-            _choiceOptions.Add(entity);
-        }
-    }
-
-    private void FlushChoices()
-    {
-        if (_choiceType is null || Game is not { } game)
-        {
-            _choiceType = null;
-            _choiceOptions.Clear();
-            return;
-        }
-
-        var type = _choiceType;
-        var options = _choiceOptions.ToArray();
-        var local = _choiceIsLocal;
-        var source = _choiceSource;
-        _choiceType = null;
-        _choiceSource = null;
-        _choiceOptions.Clear();
-        if (local)
-        {
-            foreach (var listener in _listeners) listener.OnChoices(game, type, source, options);
-        }
-    }
-
-    private void HandleChosen(string body)
-    {
-        if (Game is not { } game)
-        {
-            return;
-        }
-
-        var header = ChosenHeaderRegex().Match(body);
-        if (header.Success)
-        {
-            _chosenIsLocal = game.LocalPlayer?.Name == header.Groups["player"].Value;
-            if (_chosenIsLocal)
-            {
-                foreach (var listener in _listeners) listener.OnChoiceMade(game);
-            }
-
-            return;
-        }
-
-        // The picked cards follow the header, one Entities[n]= line each.
-        var picked = ChoiceEntityRegex().Match(body);
-        if (_chosenIsLocal && picked.Success && Resolve(picked.Groups["entity"].Value) is { } entity)
-        {
-            foreach (var listener in _listeners) listener.OnChosen(game, entity);
         }
     }
 

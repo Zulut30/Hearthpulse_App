@@ -37,6 +37,11 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("share"))
+        {
+            await RenderShareAsync(folder);
+        }
+
         if (RenderOnly("home"))
         {
             // The whole home page: the recent games and the deck banners sit below the fold.

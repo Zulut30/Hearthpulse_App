@@ -1,0 +1,17 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Share.YearReviewBanner"
+             x:DataType="m:MainViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- Home: "your year is ready" (proposal A3), as the WPF Main/Share/YearReviewBanner.xaml. Opens the year page. -->
+    <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="{StaticResource RadiusLarge}"
+            Padding="16,12" Margin="0,0,0,16" IsVisible="{Binding ShowYearReview}">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Text="&#xF0538;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding YearReviewBanner}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" VerticalAlignment="Center" />
+            <Button Name="OpenYearButton" Grid.Column="2" Classes="primary" Content="{i:Loc Growth.Year.Open}" Margin="16,0,0,0" Click="OnOpen"
+                    AutomationProperties.Name="{i:Loc Growth.Year.Open}" />
+        </Grid>
+    </Border>
+</UserControl>

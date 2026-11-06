@@ -32,21 +32,21 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="Caption">"Best pick", "No score yet", the class's place and 7+ wins share, or empty for a plain score.</param>
 /// <param name="FitCost">Where the card sits on the curve: "3 mana · 4 in deck"; empty for a hero.</param>
 /// <param name="FitType">Its type in the deck ("Spell · 5 in deck") or the package it brings ("+2 cards"); empty for a hero.</param>
-public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "");
+public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "") : IImmutableView;
 
 /// <summary>One bar of the draft's mana curve.</summary>
 /// <param name="Offered">An offered card costs this much: the bar is highlighted.</param>
-public sealed record ArenaCurveBar(string Label, int Count, double Height, bool Offered = false);
+public sealed record ArenaCurveBar(string Label, int Count, double Height, bool Offered = false) : IImmutableView;
 
 /// <summary>One distinct card of the deck so far.</summary>
-public sealed record ArenaDeckRow(string CardId, string Cost, string Name, string Copies, string Score, string Tier);
+public sealed record ArenaDeckRow(string CardId, string Cost, string Name, string Copies, string Score, string Tier) : IImmutableView;
 
 /// <summary>One figure of the run's class under the panel title: "55.2%" over "win rate".</summary>
 /// <param name="Tier">Tier letter for the value's colour, or empty for plain text.</param>
-public sealed record ArenaStat(string Value, string Label, string Tier);
+public sealed record ArenaStat(string Value, string Label, string Tier) : IImmutableView;
 
 /// <summary>A class in the hero-pick list: its community win rate and 7+ share.</summary>
-public sealed record ArenaClassRow(string Name, string WinRate, string SevenPlus, string Tier, bool Offered);
+public sealed record ArenaClassRow(string Name, string WinRate, string SevenPlus, string Tier, bool Offered) : IImmutableView;
 
 /// <summary>
 /// The Arena draft helper (ArenaPicksPanel, ArenaDraftPanel): a badge over each offered card with its ArenaSmith score

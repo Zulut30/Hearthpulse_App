@@ -1,0 +1,55 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Share.DeckListView"
+             x:DataType="s:ShareViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:s="using:Hearthpulse.UI.Main.Share"
+             Width="420">
+    <!-- The deck picture, vertical list (proposal C1), as WPF's Main/Share/DeckListView.xaml. Art from the card art cache, free. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Share/ShareLook.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Share/ShareStyles.axaml" />
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource Bg}" Padding="16">
+        <Border Classes="card" Padding="24,20">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,16">
+                    <Border Width="56" Height="56" Margin="0,0,12,0" Classes="sharePortrait" i:CardArt.Portrait="{Binding Deck.HeroCardId}" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Deck.Name}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Deck.Facts}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </DockPanel>
+
+                <ItemsControl ItemsSource="{Binding Deck.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" />
+
+                <TextBlock Text="{i:Loc Growth.Deck.Curve}" Classes="label" Margin="0,16,0,8" />
+                <ItemsControl ItemsSource="{Binding Deck.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <TextBlock Text="{Binding Deck.Code}" Classes="caption" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}"
+                           TextWrapping="Wrap" Margin="0,16,0,0" />
+                <c:Wave Width="168" HorizontalAlignment="Left" IsHitTestVisible="False" Margin="2,12,0,12" />
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" />
+                    <Image Source="{StaticResource HearthpulseLogo}" Width="24" Height="24" VerticalAlignment="Center" />
+                    <TextBlock Text="Hearthpulse" Classes="wordmark" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Border>
+</UserControl>

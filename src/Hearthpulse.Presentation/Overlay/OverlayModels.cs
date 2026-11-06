@@ -1,3 +1,4 @@
+using Hearthpulse.Core;
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Overlay;
 #else
@@ -5,25 +6,25 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <param name="Changed">The card's count moved in the latest deck change (drawn, returned, shuffled in): the row flashes once.</param>
-public sealed record DeckTile(string CardId, string Name, int Cost, string Count, bool ShowCount, bool Empty, string Rarity, string Chance, bool Created, bool Changed = false)
+public sealed record DeckTile(string CardId, string Name, int Cost, string Count, bool ShowCount, bool Empty, string Rarity, string Chance, bool Created, bool Changed = false) : IImmutableView
 {
     /// <summary>Legendary rows draw the name and the star in the legendary colour.</summary>
     public bool Legendary => Rarity == "LEGENDARY";
 }
 
-public sealed record PlayedTile(string CardId, string Name, int Cost, string Count, string Turn, bool Created);
+public sealed record PlayedTile(string CardId, string Name, int Cost, string Count, string Turn, bool Created) : IImmutableView;
 
 /// <param name="Highlight">The card is known (or the Coin): drawn in full text colour.</param>
 /// <param name="Unknown">Nothing is known about the card: drawn faint so the cards with a hint stand out.</param>
-public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown)
+public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown) : IImmutableView
 {
     /// <summary>The card shown on hover: the card itself once revealed, else the card that created it; null when neither is known.</summary>
     public string? PreviewCardId { get; init; }
 }
 
-public sealed record TierButton(int Tier, bool IsCurrent, bool IsSelected, bool Locked);
+public sealed record TierButton(int Tier, bool IsCurrent, bool IsSelected, bool Locked) : IImmutableView;
 
-public sealed record CombatDot(string Result, string Tooltip);
+public sealed record CombatDot(string Result, string Tooltip) : IImmutableView;
 
 /// <summary>Compact stats badge drawn above one hero portrait during hero selection.</summary>
 public sealed record HeroPickCard(
@@ -38,14 +39,14 @@ public sealed record HeroPickCard(
     string Personal,
     string Comps,
     bool Recommended,
-    bool HasMeta)
+    bool HasMeta) : IImmutableView
 {
     /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
     public string TierTip { get; init; } = string.Empty;
 }
 
 /// <summary>Compact stats badge drawn above one trinket during a trinket choice.</summary>
-public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta)
+public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta) : IImmutableView
 {
     /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
     public string TierTip { get; init; } = string.Empty;
@@ -56,22 +57,22 @@ public sealed record TrinketBadge(string CardId, string Name, string Tier, strin
 /// turn, the advisor's reasons and the Dark Gift it carries. <see cref="Rank"/> is 0 when pick suggestions are not
 /// "Mark the best" (no ranking is shown then); <see cref="Tier"/> is the option's tavern tier (0 when it has none).
 /// </summary>
-public sealed record DiscoverBadge(int Rank, string Label, string Gift, string Placement, string PlacementNote, bool Best, bool HasData, int Tier = 0);
+public sealed record DiscoverBadge(int Rank, string Label, string Gift, string Placement, string PlacementNote, bool Best, bool HasData, int Tier = 0) : IImmutableView;
 
 /// <summary>Buy hint drawn above one tavern minion; <see cref="Left"/> is in overlay units inside the shop row.</summary>
-public sealed record ShopBadge(double Left, string Label, bool Best, string Placement);
+public sealed record ShopBadge(double Left, string Label, bool Best, string Placement) : IImmutableView;
 
-public sealed record BrowserGroup(string Title, IReadOnlyList<BrowserCard> Cards);
+public sealed record BrowserGroup(string Title, IReadOnlyList<BrowserCard> Cards) : IImmutableView;
 
-public sealed record BrowserCard(string CardId, string Name);
+public sealed record BrowserCard(string CardId, string Name) : IImmutableView;
 
-public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords);
+public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords) : IImmutableView;
 
 /// <summary>A lobby tribe on the tavern bar; <see cref="Selected"/> when the tier list shows only this tribe.</summary>
-public sealed record TribeChip(string Key, string Name, bool Selected);
+public sealed record TribeChip(string Key, string Name, bool Selected) : IImmutableView;
 
 /// <summary>A minion tribe with its Material Design Icons glyph (the lobby panel's tribes and main tribes).</summary>
-public sealed record TribeIcon(string Key, string Name, string Glyph);
+public sealed record TribeIcon(string Key, string Name, string Glyph) : IImmutableView;
 
 public sealed record LobbyPopup(
     string HeroCardId,
@@ -85,7 +86,7 @@ public sealed record LobbyPopup(
     string LastSeen,
     bool NextOpponent,
     bool Dead,
-    IReadOnlyList<LobbyMinion> Board)
+    IReadOnlyList<LobbyMinion> Board) : IImmutableView
 {
     /// <summary>The last fight with this opponent: Win, Loss or Tie, colouring its plate; empty before the first one.</summary>
     public string ResultKey { get; init; } = string.Empty;
@@ -120,7 +121,7 @@ public sealed record LobbyRow(
     string LastKey,
     bool Next,
     bool Dead,
-    bool You)
+    bool You) : IImmutableView
 {
     /// <summary>The tribe most of the last seen board has (see <c>OverlayViewModel.MainTribe</c>); null before a board was seen.</summary>
     public TribeIcon? Tribe { get; init; }
@@ -134,12 +135,12 @@ public sealed record LobbyRow(
 /// that player's <see cref="LobbyRow"/>. <see cref="Left"/>, <see cref="Top"/> and <see cref="Height"/> are the strip
 /// beside the tile in overlay units (<see cref="LeaderboardGeometry"/>); the badge centres on it.
 /// </summary>
-public sealed record BgBadge(int Place, double Left, double Top, double Height, int Tier, TribeIcon? Tribe, int TribeCount, bool Dead);
+public sealed record BgBadge(int Place, double Left, double Top, double Height, int Tier, TribeIcon? Tribe, int TribeCount, bool Dead) : IImmutableView;
 
-public sealed record PlaceChip(int Place, bool Top);
+public sealed record PlaceChip(int Place, bool Top) : IImmutableView;
 
 /// <summary>One counter chip in the overlay: value, optional progress toward a goal, and the cards for its tooltip.</summary>
-public sealed record CounterChip(string Id, string Title, string Value, double Progress, bool HasProgress, string? IconCardId, string Tooltip, bool Expanded, IReadOnlyList<string> Details)
+public sealed record CounterChip(string Id, string Title, string Value, double Progress, bool HasProgress, string? IconCardId, string Tooltip, bool Expanded, IReadOnlyList<string> Details) : IImmutableView
 {
     /// <summary>Goals of up to this many steps are drawn as segments; longer ones as a bar.</summary>
     private const int MaxSegments = 10;
@@ -218,5 +219,5 @@ public sealed record CounterChip(string Id, string Title, string Value, double P
 }
 
 /// <summary>A card strip in a counter's tooltip: art, name, count, and for a part of the goal whether it is done.</summary>
-public sealed record CounterTipCard(string CardId, string Name, string Count, bool IsPart, bool Done);
+public sealed record CounterTipCard(string CardId, string Name, string Count, bool IsPart, bool Done) : IImmutableView;
 

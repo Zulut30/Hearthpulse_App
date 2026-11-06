@@ -15,6 +15,7 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
 | Hearthpulse — Deck | `deck` | `DeckPanel` | 268 × 720 | 168 × 200 | a game other than Battlegrounds with its deck known | such a game, deck not recognised | no game, a Battlegrounds game, the Arena draft |
 | Hearthpulse — Lobby | `lobby` | `LobbyPanel` | 246 × 306 | 156 × 120 | Battlegrounds (Duos too), hero picked, opponents seen | hero pick | no game or not Battlegrounds |
 | Hearthpulse — Combat odds | `odds` | `OddsPanel` | 266 × 140 | 166 × 84 | a Battlegrounds fight with its odds | between fights, hero pick | no game or not Battlegrounds |
+| Hearthpulse — Session | `session` | `StreamSessionPanel` (window only) | 266 × 184 | 166 × 104 | while it is on: the rank or rating since the stream started, the change, the record (Ranked) or the last places (Battlegrounds); "No games yet" before the first | — | window off |
 
 - **One model.** The windows show the overlay's own panel controls (`Overlay/DeckPanel`, `LobbyPanel`, `OddsPanel` in
   both UIs, also used by the overlay's `deck`, `lobby` and `odds` panels) on the same `OverlayViewModel`. A window can
@@ -44,8 +45,13 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
   finds it again by its title. The windows are in the taskbar (OBS lists no tool windows) and are not minimized by the
   app; a minimized window gives OBS an empty frame, so the help in Settings says not to minimize them. WPF rebuilds them
   with a theme change (the title stays, OBS picks the window up again in about a second); Avalonia recolours them in place.
+- **Session window** (`TASK-2026-11-07-growth-app`): counts from the player's "Start a new session" (Settings → Stream,
+  or the window's menu; `AppSettings.StreamSessionStart`) when that is later than the ladder session's start, else from
+  the ladder session's start (Hearthstone's start or a break longer than the setting). Ranked or Battlegrounds, whichever
+  was played last (the game being played decides first). Built in `GameSession.StreamSession.cs` only while the window
+  is on (`LiveSnapshot.StreamSession`), shown by `OverlayViewModel.StreamSession.cs`. The player's own numbers only.
 - **Not done:** hiding the overlay itself from capture (`WDA_EXCLUDEFROMCAPTURE`, an idea for later), a browser source,
-  a Twitch extension, a show delay against stream sniping.
+  a show delay against stream sniping (the Twitch extension has its own delay, below).
 
 ### Adding a window in OBS
 
@@ -63,6 +69,44 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
   desktop portal's dialog each time OBS starts (an OBS / portal limit).
 - **macOS:** *macOS Screen Capture* → *Window*; *Always on top* works.
 - **Scaling:** windows are in DIP and OBS captures pixels: at 150 % the 268-DIP deck window is a 402-px source.
+
+## Twitch extension
+
+Viewers of the player's Twitch channel see the deck in the Hearthpulse extension (panel and video overlay, the front
+end in `twitch-extension/`): the cards left, a card large on hover (`TASK-2026-11-07-twitch-extension`). The path:
+app → `POST /api/v1/twitch/state` on hearthpulse.net (our server, the EBS) → Twitch Extension PubSub → the extension.
+No Twitch secret is in the app: it signs in with the account's own token (device flow, scope `tracker.write`).
+
+- **Settings → Stream → Twitch extension** (both UIs): the switch `AppSettings.TwitchExtension` (off by default), the
+  delay `TwitchDelaySeconds` (0–600 s, a slider, whole seconds), a status line with a dot (green while the site takes
+  the deck) and *Link Twitch*, shown while the account has no Twitch linked; it opens the status's `linkUrl`
+  (else `<site>/account/twitch`) in the browser.
+- **Status line:** off — none; *Checking the Twitch link…*; *Sign in to your Hearthpulse account*; *No Twitch account is
+  linked*; *The extension is not set up on the site yet* (`503 twitch_not_configured`); *Connected as @login*; *The deck
+  is not being sent: <reason>* (offline, the site has no extension yet, Twitch unavailable, the site refused the data).
+  The login is the channel's own name, so it stays in streamer mode.
+- **What is sent** (`Core/Twitch/TwitchState.cs`): exactly the OBS deck window's rule — a game other than Battlegrounds
+  with its deck known gives `mode: "constructed"` with the deck's name and hero (or `null`), `format` (`standard`,
+  `wild`, `twist`, `classic` by the log's format in Ranked, Friendly and Practice; `casual` for Casual; `other` for
+  Arena, Brawl and the rest), the cards left in the deck and the rows of the deck panel in its order (cost, name — not
+  the game's deck order) with `id`, `dbf`, `cost`, `name` (interface language), `left`, `total`, and `game.turn`.
+  Anything else (no game, Battlegrounds, the Arena draft, a Brawl whose deck is unknown) is `{"mode":"none"}`. Never
+  the hand, the deck order or anything about the opponent.
+- **When** (`Core/Twitch/TwitchPublisher.cs`, built in `Core/Hosting/AppServices.cs` on every live snapshot): only with
+  the switch on and signed in. Each new state waits *delay* seconds in a queue (at least OBS's Stream Delay: the
+  extension only holds back what it shows, the data reaches viewers before the video, so this delay is the only
+  guard against stream sniping; a shorter delay lets the newest state replace older ones still waiting), then goes out only if it differs from the
+  last one sent, at most once a second (the last of a burst). An unchanged deck is sent again every 15 s, so the site
+  keeps a fresh copy for viewers who join; `none` goes once. `seq` starts at the Unix time in milliseconds when the app
+  starts and grows by one per send, so it also grows across restarts. Switching off clears the channel with one
+  `none`, at once.
+- **When it stops:** before the first send and after every stop the app asks `GET twitch/status`. Signed out (`401`),
+  not linked (`404 twitch_not_linked` or the status), not configured (`503 twitch_not_configured`), any other refusal
+  (`400`, `413`, `5xx`) or offline: nothing is sent and the next try is a minute later (or the site's longer
+  `Retry-After`), so linking on the site is picked up within a minute. `429` waits its `Retry-After` (5 s without one).
+  Signing in or turning the switch on tries at once. The app never throws or loops on an error.
+- **Site and front end** are separate packages of the task: the site (`/api/v1/twitch/*`, compression, the 5 KB limit,
+  Helix PubSub, `GET twitch/ext/snapshot` for a viewer's cold start) and the extension (`twitch-extension/README.md`).
 
 ## Streamer mode
 
@@ -99,7 +143,8 @@ is never on the overlay or in the OBS windows: viewers see those.
 | Owner | `Overlay/StreamWindows.cs`, host lines in `App.Stream.cs` | `Desktop/StreamWindows.cs`, host lines in `DesktopApp.cs` |
 | Settings → Stream, sidebar overlay card | `Main/MainWindow.xaml` | `Main/MainView.axaml` |
 | Shared | `Presentation/Overlay/OverlayViewModel.Streamer.cs`, `StreamWindowSpec.cs`; `Presentation/Main/MainViewModel.Streamer.cs`, `Main/Match/MatchViewModel.Streamer.cs` | same |
-| Texts | `Core/Localization/Strings/{en,ru}/stream.json` | same |
+| Texts | `Core/Localization/Strings/{en,ru}/stream.json`, `twitch.json` | same |
+| Twitch extension | `Main/SettingsTabs/StreamSettings.xaml`; `Core/Twitch/*`, `Presentation/Main/MainViewModel.Twitch.cs` | `Main/SettingsTabs/StreamSettings.axaml`; same |
 | Renders | `DevRender.Stream.cs` | `OffscreenRenderer.Stream.cs` (+ `main-settings-stream-compact.png`) |
 
 Render scenes: `stream-deck.png`, `stream-deck-green.png`, `stream-lobby.png`, `stream-odds.png`,

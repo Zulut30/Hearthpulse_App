@@ -1,0 +1,32 @@
+<Window x:Class="Hearthpulse.UI.Main.Share.YearReviewWindow"
+        x:DataType="s:ShareViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Hearthpulse.UI.Controls"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure"
+        xmlns:s="using:Hearthpulse.UI.Main.Share"
+        Title="{Binding Title}" Width="900" Height="900" MinWidth="560" MinHeight="480"
+        Background="{StaticResource Bg}" WindowStartupLocation="CenterOwner">
+    <!-- The year in review page (proposal A3), as the WPF Main/Share/YearReviewWindow.xaml: the year's picture at full size
+         and "Share as a picture". Built from the history on this PC only. -->
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="40,24,40,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,8,0,0" Spacing="8">
+                <Button Name="ShareButton" Classes="primary" Content="{i:Loc Growth.Year.Share}" Click="OnShare"
+                        ToolTip.Tip="{i:Loc Growth.Year.ShareTip}" AutomationProperties.Name="{i:Loc Growth.Year.Share}" />
+                <Button Name="CloseButton" Classes="ghost" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{Binding Year.Title}" Classes="display" FontSize="{StaticResource FontSizeDisplay}" TextWrapping="Wrap" />
+                <c:Wave Width="168" HorizontalAlignment="Left" IsHitTestVisible="False" Margin="2,0,0,22" />
+                <TextBlock Text="{Binding Year.Subtitle}" Classes="caption" TextWrapping="Wrap" Margin="2,0,0,16" />
+            </StackPanel>
+        </DockPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="40,0,40,40">
+                <s:YearCardView Name="Page" />
+            </Viewbox>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

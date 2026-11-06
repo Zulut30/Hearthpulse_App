@@ -51,7 +51,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
   `/api/db/archetypes*` decks/mulligan/matchups); Russian archetype names come from `Constructed/ArchetypeNames.cs`.
   Firestone is not used anywhere.
 - Ranks (per format): Bronze, Silver, Gold, Platinum, Diamond, each 10 -> 1, then Legend with a number.
-  `RankInfo` in `Memory/HearthstoneMemory.cs`: star level 1-50 -> league/rank, >= 51 or a legend rank -> Legend;
+  `RankInfo` in `Memory/MemoryReadings.cs`: star level 1-50 -> league/rank, >= 51 or a legend rank -> Legend;
   `MatchPlayerInfo` has Standard/Wild/Classic/Twist ranks read from memory.
 - Deck code (deckstring): base64 of varints - reserved 0, version 1, format (1 Wild, 2 Standard, 3 Classic, 4 Twist),
   hero dbfIds, then lists of cards with 1 copy, 2 copies, and N copies (dbfId + count). `Cards/DeckString.cs`

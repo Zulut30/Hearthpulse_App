@@ -8,6 +8,7 @@ using System.Globalization;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -15,7 +16,7 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-public sealed record MetaChoice(string Key, string Label, bool Selected);
+public sealed record MetaChoice(string Key, string Label, bool Selected) : IImmutableView;
 
 /// <summary>
 /// One archetype of the Standard/Wild tier list, as hearthpulse.net shows it: tier, class portrait, name (the English
@@ -38,7 +39,7 @@ public sealed record MetaArchetypeRow(
     double PopularityFraction,
     string Games,
     string First,
-    string Coin) : INotifyPropertyChanged
+    string Coin) : IImmutableView, INotifyPropertyChanged
 {
     private bool _isSelected;
 
@@ -63,30 +64,30 @@ public sealed record MetaArchetypeRow(
 }
 
 /// <summary>One tier of the tier list: "Tier S", its bound ("from 53 % · 3 archetypes") and its rows (none is a valid tier).</summary>
-public sealed record MetaTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaArchetypeRow> Rows)
+public sealed record MetaTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaArchetypeRow> Rows) : IImmutableView
 {
     public bool IsEmpty => Rows.Count == 0;
 }
 
 /// <summary>The sort arrow of each sortable column ("▼", "▲" or empty), so a header shows how the table is ordered.</summary>
-public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games);
+public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games) : IImmutableView;
 
-public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code);
+public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code) : IImmutableView;
 
 /// <summary>One card of the mulligan guide; <see cref="Seen"/> is its tooltip ("Seen in 1,234 opening hands").</summary>
-public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen);
+public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen) : IImmutableView;
 
 /// <summary>A column of the matchup heat map: the opponent archetype's portrait, short name and full name as tooltip.</summary>
-public sealed record MatchupHead(string Name, string HeroId, string Tip);
+public sealed record MatchupHead(string Name, string HeroId, string Tip) : IImmutableView;
 
 /// <summary>
 /// One cell of the heat map: the win rate as a number, <see cref="Edge"/> (win rate − 50 %) for the colour and
 /// <see cref="Heat"/> for the tint's opacity (up to 0.6, so the number stays readable); no games leaves it blank.
 /// </summary>
-public sealed record MatchupCellView(string Text, double Edge, double Heat, string Tip);
+public sealed record MatchupCellView(string Text, double Edge, double Heat, string Tip) : IImmutableView;
 
 /// <summary>One archetype of the heat map against every column.</summary>
-public sealed record MatchupMatrixRow(string Name, string HeroId, string WinRate, double Edge, IReadOnlyList<MatchupCellView> Cells);
+public sealed record MatchupMatrixRow(string Name, string HeroId, string WinRate, double Edge, IReadOnlyList<MatchupCellView> Cells) : IImmutableView;
 
 public sealed partial class MainViewModel
 {
@@ -534,124 +535,5 @@ public sealed partial class MainViewModel
             a.Games.ToString("N0", CultureInfo.CurrentCulture),
             a.FirstGames > 0 ? a.FirstWinRate.ToString("P0", CultureInfo.CurrentCulture) : "—",
             a.CoinGames > 0 ? a.CoinWinRate.ToString("P0", CultureInfo.CurrentCulture) : "—");
-    }
-
-    /// <summary>The heat map: every archetype of the matrix against every other, rows and columns in the same order.</summary>
-    private void RebuildMatchupMatrix(MetaMatchups matchups)
-    {
-        var archetypes = matchups.Archetypes;
-        MatchupHeads = archetypes
-            .Select(a => new MatchupHead(Short(a.Name), ClassHero(a.Class), a.Name))
-            .ToList();
-        MatchupMatrix = archetypes
-            .Select(a => new MatchupMatrixRow(
-                a.Name,
-                ClassHero(a.Class),
-                a.WinRate.ToString("P1", CultureInfo.CurrentCulture),
-                a.WinRate - 0.5,
-                archetypes.Select(o => CellOf(a, o, matchups.Cell(a.Key, o.Key))).ToList()))
-            .ToList();
-    }
-
-    private static MatchupCellView CellOf(MatchupArchetype archetype, MatchupArchetype opponent, MatchupCell? cell)
-    {
-        if (cell is null || cell.Games <= 0)
-        {
-            return new MatchupCellView("—", 0, 0, Loc.F("Main.Meta.MatchupNoGames", archetype.Name, opponent.Name));
-        }
-
-        var edge = cell.WinRate - 0.5;
-        return new MatchupCellView(
-            (cell.WinRate * 100).ToString("0", CultureInfo.CurrentCulture),
-            edge,
-            // Even a mirror (50 %) gets a faint tint so the grid reads as one; 15 points off even is the full tint.
-            Math.Clamp(Math.Abs(edge) / 0.15, 0.1, 1) * 0.6,
-            Loc.P("Main.Meta.MatchupTip", cell.Games, archetype.Name, opponent.Name, cell.WinRate.ToString("P1", CultureInfo.CurrentCulture)));
-    }
-
-    /// <summary>A column head fits about ten characters: longer names are cut, the tooltip has the whole one.</summary>
-    private static string Short(string name) => name.Length <= 11 ? name : name[..10].TrimEnd() + "…";
-
-    private void RebuildArchetypeDetail()
-    {
-        var archetype = PageMeta?.Archetypes.FirstOrDefault(a => a.Id == _selectedArchetype?.Id);
-        if (archetype is null)
-        {
-            ArchetypeSummary = string.Empty;
-            ArchetypeDecks = [];
-            _mulliganLoad?.Cancel();
-            Mulligan = [];
-            MulliganSource = string.Empty;
-            return;
-        }
-
-        // A source without play-rate data reports a 0 % share: that is left out rather than shown as "0.0 % of the meta".
-        ArchetypeSummary = Loc.P(archetype.Share > 0 ? "Main.Meta.Summary" : "Main.Meta.SummaryNoShare", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
-            archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture));
-
-        ArchetypeDecks = PageMeta!.Decks
-            .Where(d => d.ArchetypeId == archetype.Id)
-            .OrderByDescending(d => d.Games >= 200 ? 1 : 0)
-            .ThenByDescending(d => d.WinRate)
-            .Take(5)
-            .Select(DeckRowOf)
-            .ToList();
-
-        // At a rank other than Legend the list is HSGuru's slice of that rank (MainViewModel.MulliganRank.cs).
-        if (ShowRankMulligan(archetype))
-        {
-            return;
-        }
-
-        // Best cards to keep first, by the win rate of games where the card stayed in the opening hand.
-        Mulligan = archetype.Mulligan
-            .Take(12)
-            .Select(c => new MulliganRow(
-                c.CardId,
-                _cards.NameOf(c.CardId),
-                c.InHandWinRate.ToString("P0", CultureInfo.CurrentCulture),
-                c.InHandWinRate - (archetype.MulliganBaseline ?? archetype.WinRate),
-                Loc.F("Main.Meta.Kept", c.KeepRate.ToString("P0", CultureInfo.CurrentCulture)),
-                Loc.P("Main.Meta.SeenIn", c.InHand)))
-            .ToList();
-    }
-
-    private MetaDeckRow DeckRowOf(MetaDeck d) => new(
-        d.Archetype,
-        ConstructedMeta.ClassName(d.Class),
-        ClassHero(d.Class),
-        d.WinRate.ToString("P1", CultureInfo.CurrentCulture),
-        d.WinRate - 0.5,
-        d.Games.ToString("N0", CultureInfo.CurrentCulture),
-        DustOf(d.DeckString) is var dust and > 0 ? dust.ToString("N0", CultureInfo.CurrentCulture) : "—",
-        d.DeckString);
-
-    /// <summary>Dust to craft every card of the deck; Core set cards are free for everyone.</summary>
-    private int DustOf(string deckCode)
-    {
-        if (Hearthpulse.Core.Cards.DeckString.TryDecode(deckCode) is not { } deck)
-        {
-            return 0;
-        }
-
-        var dust = 0;
-        foreach (var (dbf, count) in deck.Cards)
-        {
-            if (_cards.Get(dbf) is not { } card || card.Set == "CORE")
-            {
-                continue;
-            }
-
-            dust += count * card.Rarity switch
-            {
-                "COMMON" => 40,
-                "RARE" => 100,
-                "EPIC" => 400,
-                "LEGENDARY" => 1600,
-                _ => 0,
-            };
-        }
-
-        return dust;
     }
 }

@@ -16,10 +16,10 @@ namespace Hearthpulse.UI.Overlay;
 
 /// <summary>One Secret on the Secrets panel: still possible, crossed out by hand, or ruled out by the game.</summary>
 /// <param name="Count">"×2" when two of three active Secrets can be this card; empty when one or all of them can.</param>
-public sealed record SecretTile(string Key, string CardId, string Name, int Cost, string Count, bool Open, bool Crossed, bool RuledOut, bool Known);
+public sealed record SecretTile(string Key, string CardId, string Name, int Cost, string Count, bool Open, bool Crossed, bool RuledOut, bool Known) : IImmutableView;
 
 /// <summary>One active Secret: "turn 3 · 3 mana · 4 left" (the class is in the pool line).</summary>
-public sealed record SecretSlotLine(string Text);
+public sealed record SecretSlotLine(string Text) : IImmutableView;
 
 /// <summary>The opponent's Secrets panel next to their hero.</summary>
 public sealed partial class OverlayViewModel

@@ -48,7 +48,7 @@ public sealed partial class LocBindingTests
         string[] cards =
         [
             "Settings.Gallery.Hint", "Overlay.Move.SettingsWindows", "Settings.Leaderboard.CaptionCrossPlatform", "Stream.Mode.Note", "Discord.Note",
-            "Stream.Windows.Note", "Migration.Settings.Note", "Settings.File.Caption",
+            "Twitch.Note", "Stream.Windows.Note", "Migration.Settings.Note", "Settings.File.Caption",
         ];
         var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()
             .Where(t => t.Classes.Contains("cardNote")).ToList();

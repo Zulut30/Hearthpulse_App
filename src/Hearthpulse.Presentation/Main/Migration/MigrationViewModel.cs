@@ -17,7 +17,7 @@ namespace Hearthpulse.UI.Main.Migration;
 #endif
 
 /// <summary>One tracker of the migration card: its name, what was found, where.</summary>
-public sealed record MigrationSourceRow(string Name, string CountsText, string StatusText, string Folder, bool IsFound, bool IsMissing, bool IsServerOnly, bool IsBroken);
+public sealed record MigrationSourceRow(string Name, string CountsText, string StatusText, string Folder, bool IsFound, bool IsMissing, bool IsServerOnly, bool IsBroken) : IImmutableView;
 
 /// <summary>
 /// Moving over from HDT / Firestone (<c>docs/migration.md</c>): one model for the card on the home page (first start) and in

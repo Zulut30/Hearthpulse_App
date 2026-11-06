@@ -1,0 +1,62 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Classes of the share pictures (ShareLook.axaml templates and the Main/Share views); WPF sets the same in triggers. -->
+    <Style Selector="Border.shareTile">
+        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+    </Style>
+    <Style Selector="Border.sharePortrait">
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+        <Setter Property="Background" Value="{StaticResource Surface4}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.placeChip">
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.placeChip TextBlock.place">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="Border.placeChip.top">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Border.placeChip.top TextBlock.place">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.shareCopies">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.shareCopies.legendary, TextBlock.shareCardName.legendary">
+        <Setter Property="Foreground" Value="{StaticResource RarityLegendary}" />
+    </Style>
+    <Style Selector="Border.shareCurveBar">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="StackPanel.none Border.shareCurveBar">
+        <Setter Property="Background" Value="{StaticResource Outline}" />
+    </Style>
+    <Style Selector="StackPanel.none TextBlock.shareCurveCount">
+        <Setter Property="Foreground" Value="{StaticResource Faint}" />
+    </Style>
+    <Style Selector="TextBlock.shareStatus.error">
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="TextBlock.wordmark">
+        <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource GildedText}" />
+    </Style>
+    <Style Selector="TextBlock.site">
+        <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+</Styles>
