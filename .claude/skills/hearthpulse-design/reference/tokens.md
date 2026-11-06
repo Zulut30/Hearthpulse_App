@@ -142,7 +142,7 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 | implicit `Slider`, `ScrollBar`, `TextBox`, `ToolTip` | `TextBox`, `ToolTip`, Fluent slider/scrollbar overrides | |
 | - | `Border.row`, `ListBox.plain`, `ListBox.selectable` | Avalonia list rows |
 
-States match in both UIs: hover fades a layer in over 0.12 s (WPF fades it out over 0.22 s), a press darkens with
+States match in both UIs: hover fades a layer in over 0.12 s (`MotionFast`; out over 0.18 s, `MotionSettle`), a press darkens with
 `Pressed` and shrinks buttons to 0.96 (icon buttons 0.9), a selected chip is a raised `SelectedFill` plate with an
 `EdgeLight` top hairline, text boxes take an `AccentLine` rim on hover and `Accent` on focus. No transition in the
 themes is longer than 0.25 s and none repeats (`ThemeFileTests`).

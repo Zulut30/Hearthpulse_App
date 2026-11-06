@@ -351,6 +351,9 @@ public sealed class AppSettings
 
     public bool MinimizeToTray { get; set; } = true;
 
+    /// <summary>The app's own "reduce motion": no slides, scales or fades in either UI, whatever Windows says (Motion).</summary>
+    public bool ReduceMotion { get; set; }
+
     public bool StartMinimized { get; set; }
 
     public bool StartWithWindows { get; set; }

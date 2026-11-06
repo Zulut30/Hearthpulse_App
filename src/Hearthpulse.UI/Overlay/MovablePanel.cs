@@ -277,7 +277,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     {
         // Entering or leaving layout mode switches every panel at once: no fades there, only for a panel the game shows.
         // Off with the Windows animation setting (and elsewhere), like the card pool's reveal.
-        var animate = IsEditing == _lastEditing && !IsEditing && TopLevel.GetTopLevel(this) is not null && PoolInput.AnimationsOn();
+        var animate = IsEditing == _lastEditing && !IsEditing && TopLevel.GetTopLevel(this) is not null && Infrastructure.Motion.On;
         _lastEditing = IsEditing;
         SetVisible(Shown || IsEditing, animate);
         Classes.Set("editing", IsEditing);

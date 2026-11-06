@@ -120,6 +120,7 @@ internal sealed class DesktopApp : HearthpulseApp
         _crashReporter.Activity = _host.Account.Activity; // the account center's journal of report sends
         // Before any window: started minimized there is no dashboard to apply it, and the overlay comes first.
         ThemeEngine.ApplySaved(this, settings);
+        Motion.Apply(settings.ReduceMotion);
         _releaseMain = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the dashboard is built the first time it is opened from the tray. A notification with no

@@ -24,8 +24,8 @@ Storyboards in `Themes/Theme.xaml` are covered already: with the setting off, `T
 every `Duration` and `BeginTime` at zero. A storyboard in a view's XAML (`EventTrigger` + `BeginStoryboard`) or one
 started from code is not, so it starts from code behind the guard or moves into a theme style.
 
-Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
-with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision.
+Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press), switched off
+by `Motion.Apply` with motion off. Any other Avalonia motion is a `hearthpulse-design` decision.
 
 | Remove under the setting off | Replace | Keep |
 | --- | --- | --- |

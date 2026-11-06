@@ -21,7 +21,7 @@ public partial class StreamView : UserControl
         InitializeComponent();
         _themeBackground = Root.Background;
         // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, as on the overlay.
-        Classes.Set("motion", PoolInput.AnimationsOn());
+        Classes.Set("motion", Infrastructure.Motion.On);
         PanelHost.Content = Panel(_spec);
     }
 

@@ -768,6 +768,7 @@ public partial class App : Application
     {
         try
         {
+            Motion.Reduced = _settings.ReduceMotion;
             ThemeEngine.Apply(this, CurrentTheme());
             return true;
         }
@@ -821,6 +822,12 @@ public partial class App : Application
         _session.ApplySettings(_settings);
         _services.LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
+        // The theme's storyboards take their timings when it is built: "reduce motion" rebuilds it like a theme change.
+        if (_settings.ReduceMotion != Motion.Reduced)
+        {
+            OnThemeChanged();
+        }
+
         if (_renderDir is null)
         {
             Autostart.Apply(_settings.StartWithWindows);

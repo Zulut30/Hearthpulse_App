@@ -199,7 +199,7 @@
             <Setter Property="Background" Value="{StaticResource Row}" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="Background" Duration="{StaticResource MotionFast}" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>

@@ -27,8 +27,8 @@ else
 
 The theme's hover and press feedback (0.25 s or less, no loop) is state feedback and stays; with the setting off,
 `ThemeEngine` rebuilds Theme.xaml with every `Duration` and `BeginTime` at zero, so only storyboards in views and
-animations started from code need the guard. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
-with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision.
+animations started from code need the guard. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press), switched off
+by `Motion.Apply` with motion off. Any other Avalonia motion is a `hearthpulse-design` decision.
 
 ## Animations that reverse
 
@@ -70,14 +70,14 @@ layout. Use `RenderTransform` (`ScaleTransform`, `TranslateTransform`) and `Opac
 
 ## Press
 
-The theme's button templates already press: `ScaleTransform` to `0.96` (icon buttons `0.9`) over `80 ms`, `CubicEase`
+The theme's button templates already press: `ScaleTransform` to `0.96` (icon buttons `0.9`) over `120 ms` (`MotionFast`), `CubicEase`
 `EaseOut`, and back on release. A new button style is `BasedOn` an existing one or copies that template. The press
 applies only while `IsEnabled` is true. Give a button an opt-out style where the motion would distract, such as a large
 card that acts as a button.
 
 ## Entrances and exits
 
-**Entrances** are for rare moments: a page's first load (the house page reveal: 280 ms rise + 220 ms fade,
+**Entrances** are for rare moments: a page's first load (the house page reveal, `Motion.Reveal`: 10 DIP rise and fade over 220 ms,
 `CubicEase`), a match result, an empty state appearing.
 
 1. Split into title, body and actions.

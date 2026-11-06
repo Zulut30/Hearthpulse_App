@@ -148,7 +148,7 @@ public partial class CardPoolBrowser : UserControl
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
         // Same rule as the WPF app: animate only when the system's animation setting is on.
-        if (!PoolInput.AnimationsOn())
+        if (!Infrastructure.Motion.On)
         {
             return;
         }

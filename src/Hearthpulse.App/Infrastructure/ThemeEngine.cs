@@ -33,15 +33,19 @@ public static partial class ThemeEngine
     [GeneratedRegex("(Duration|BeginTime)=\"0:0:[0-9.]+\"")]
     private static partial Regex Timing();
 
+    /// <summary>The motion tokens at the top of Theme.xaml (<c>&lt;Duration x:Key="MotionFast"&gt;</c>), see <see cref="Motion"/>.</summary>
+    [GeneratedRegex("(<Duration x:Key=\"Motion[A-Za-z]+\">)0:0:[0-9.]+(</Duration>)")]
+    private static partial Regex MotionToken();
+
     /// <summary>Uses of the built-in motif (the backdrop and MotifBrush draw MotifTavern and MotifTavernAlt).</summary>
     [GeneratedRegex("\\{StaticResource Motif" + ThemePalette.DefaultName + "(Alt)?\\}")]
     private static partial Regex MotifUse();
 
     public static void Apply(Application app, ThemeSpec theme)
     {
-        // With Windows' animation setting off, the theme is rebuilt with every control animation made instant.
+        // With motion off (Windows' animation setting or the app's reduce-motion setting), the theme is rebuilt with every control animation made instant.
         // An isolated run builds the theme from its source too: its text font is the one every Windows has (TextFont).
-        var dictionary = ThemePalette.IsDefault(theme) && SystemParameters.ClientAreaAnimation && !Isolation.On
+        var dictionary = ThemePalette.IsDefault(theme) && Motion.On && !Isolation.On
             ? new ResourceDictionary { Source = BuiltIn }
             : Build(theme);
         Freeze(dictionary);
@@ -68,9 +72,10 @@ public static partial class ThemeEngine
         var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"")
             .Replace(TextFont.Families, TextFont.Name, StringComparison.Ordinal);
         xaml = MotifUse().Replace(xaml, m => "{StaticResource Motif" + theme.Motif + m.Groups[1].Value + "}");
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!Motion.On)
         {
             xaml = Timing().Replace(xaml, "$1=\"0:0:0\"");
+            xaml = MotionToken().Replace(xaml, "${1}0:0:0$2");
         }
 
         return xaml;
