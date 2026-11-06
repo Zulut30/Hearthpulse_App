@@ -13,6 +13,23 @@ namespace Hearthpulse.UI.Overlay;
 /// </summary>
 public sealed partial class OverlayViewModel
 {
+    /// <summary>
+    /// What the panels' looks come to (each panel's opacity and compact rows): the overlay views compare it on their
+    /// size check and re-apply the looks when Settings changed them (a density preset, D5) without a resize.
+    /// </summary>
+    public static int LooksSignature(AppSettings settings)
+    {
+        var hash = new HashCode();
+        foreach (var (id, look) in settings.PanelLooks.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            hash.Add(id, StringComparer.Ordinal);
+            hash.Add(look.Opacity);
+            hash.Add(look.Compact);
+        }
+
+        return hash.ToHashCode();
+    }
+
     /// <summary>How long the end-of-game toast and the one-time move tip stay up.</summary>
     public static readonly TimeSpan ToastTime = TimeSpan.FromSeconds(9);
 

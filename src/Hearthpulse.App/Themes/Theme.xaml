@@ -167,6 +167,12 @@
         <GradientStop Color="#00E9B949" Offset="1" />
     </LinearGradientBrush>
 
+    <!-- Section label rule inside an overlay panel: gold at the label, fading out to the right (D5) -->
+    <LinearGradientBrush x:Key="OverlaySectionRule" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#8CE9B949" Offset="0" />
+        <GradientStop Color="#00E9B949" Offset="1" />
+    </LinearGradientBrush>
+
     <!-- ===== Character of the theme: a second accent, soft glows and a backdrop motif ===== -->
     <!-- The second accent (patina teal here) takes each preset's own hue (ThemePalette). It decorates; it never
          carries meaning, so results, tiers and rarities keep their own tokens. -->
@@ -556,6 +562,10 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+    <!-- The same card with a denser fill, for panels over a busy part of the board (card pool, odds, toasts, picks) -->
+    <Style x:Key="OverlayCardSolid" TargetType="Border" BasedOn="{StaticResource OverlayCard}">
+        <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
     </Style>
     <Style x:Key="Pill" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource Surface4}" />

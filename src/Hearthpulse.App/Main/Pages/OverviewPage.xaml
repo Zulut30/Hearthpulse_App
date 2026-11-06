@@ -134,7 +134,8 @@
                         <ItemsControl ItemsSource="{Binding Placements}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type m:PlacementBar}">
-                                    <Grid Height="25">
+                                    <!-- A place nobody finished on sinks back, with no "0 · 0 %" -->
+                                    <Grid Height="25" Opacity="{Binding Dim}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="22" />
                                             <ColumnDefinition Width="*" />
@@ -145,7 +146,8 @@
                                             <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Negative}" Opacity="0.85"
                                                     Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
                                         </Border>
-                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12">
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
+                                                   Visibility="{Binding Empty, Converter={StaticResource Vis}, ConverterParameter=!}">
                                             <Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" />
                                         </TextBlock>
                                     </Grid>

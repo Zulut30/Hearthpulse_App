@@ -359,7 +359,7 @@
         <Grid Width="340">
             <Border x:Name="Halo" Width="268" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -417,7 +417,7 @@
         <Grid Width="277">
             <Border x:Name="Halo" Width="232" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
                     Width="196" Padding="9,7" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -503,7 +503,7 @@
     <!-- Discover-style choice (hero power, spell, triple reward, Dark Gift…): one badge above each option (slot = 340 units) -->
     <DataTemplate x:Key="DiscoverBadgeTemplate" DataType="{x:Type o:DiscoverBadge}">
         <Grid Width="340">
-            <Border x:Name="Card" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
                     MinWidth="150" MaxWidth="236" Padding="9,7,12,7" Margin="0,9,0,0" Opacity="0.85">
                 <Grid>
                     <Grid.ColumnDefinitions>

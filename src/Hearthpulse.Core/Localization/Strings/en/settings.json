@@ -75,6 +75,13 @@
   "Settings.Overlay.SizeTip": "Scales every overlay panel",
   "Settings.Overlay.Opacity": "Panel background opacity",
   "Settings.Overlay.OpacityTip": "How solid the panels' backgrounds are. Text, numbers and icons always stay fully visible.",
+  "Settings.Overlay.Density": "Density",
+  "Settings.Overlay.DensityTip": "Panel size and short card rows in one choice. Each panel can still be adjusted on its own afterwards.",
+  "Settings.Overlay.Density.Compact": "Compact",
+  "Settings.Overlay.Density.Normal": "Normal",
+  "Settings.Overlay.Density.Large": "Large",
+  "Settings.Overlay.Preview": "How the overlay looks in a game",
+  "Settings.Overlay.PreviewDeck": "Sample deck",
 
   "Settings.Layout.Title": "Panel layout",
   "Settings.Layout.Caption": "Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut: Ctrl+Shift+L.",
