@@ -1,0 +1,65 @@
+<Window x:Class="Hearthpulse.UI.Main.Share.TimestampsWindow"
+        x:DataType="s:TimestampsViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure"
+        xmlns:s="using:Hearthpulse.UI.Main.Share"
+        Title="{i:Loc Growth.Timestamps.Title}" Width="720" Height="640" MinWidth="520" MinHeight="460"
+        Background="{StaticResource Bg}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <!-- YouTube timestamps (proposal C2), as WPF's Main/Share/TimestampsWindow.xaml: the range, the recording's start, the text. -->
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
+        <TextBlock Text="{i:Loc Growth.Timestamps.Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" Margin="0,0,0,16" />
+
+        <DockPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="{i:Loc Growth.Timestamps.Range}" Classes="label" Width="200" VerticalAlignment="Center" />
+            <Border Classes="segmentBar" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Name="RangeSession" Classes="segment" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeSession}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeSession}" IsChecked="{Binding RangeSession}" />
+                    <RadioButton Name="RangeToday" Classes="segment" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeToday}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeToday}" IsChecked="{Binding RangeToday}" />
+                    <RadioButton Name="RangeYesterday" Classes="segment" GroupName="StampRange" Content="{i:Loc Growth.Timestamps.RangeYesterday}"
+                                 AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeYesterday}" IsChecked="{Binding RangeYesterday}" />
+                </StackPanel>
+            </Border>
+        </DockPanel>
+
+        <DockPanel Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="{i:Loc Growth.Timestamps.Start}" Classes="label" Width="200" VerticalAlignment="Center" />
+            <TextBox Name="StartBox" Width="120" Text="{Binding StartText}" VerticalAlignment="Center"
+                     ToolTip.Tip="{i:Loc Growth.Timestamps.StartTip}" AutomationProperties.Name="{i:Loc Growth.Timestamps.Start}" />
+            <Button Name="FromFirstButton" Classes="ghost" Content="{i:Loc Growth.Timestamps.FromFirst}" Command="{Binding FromFirst}"
+                    Margin="8,0,0,0" Padding="12,4" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Growth.Timestamps.FromFirstTip}"
+                    AutomationProperties.Name="{i:Loc Growth.Timestamps.FromFirst}" />
+        </DockPanel>
+
+        <StackPanel Grid.Row="3" Margin="0,0,0,12">
+            <DockPanel>
+                <TextBlock Text="{i:Loc Growth.Timestamps.LeadIn}" Classes="label" Width="200" VerticalAlignment="Center" />
+                <TextBox Name="LeadInBox" Width="80" HorizontalAlignment="Left" Text="{Binding LeadInText}"
+                         ToolTip.Tip="{i:Loc Growth.Timestamps.LeadInTip}" AutomationProperties.Name="{i:Loc Growth.Timestamps.LeadIn}" />
+            </DockPanel>
+            <TextBlock Text="{Binding Error}" Classes="caption" Foreground="{StaticResource Negative}" Margin="200,4,0,0"
+                       IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" AutomationProperties.LiveSetting="Assertive" />
+        </StackPanel>
+
+        <Panel Grid.Row="4">
+            <TextBox Name="StampsBox" Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="NoWrap" AcceptsReturn="True"
+                     VerticalContentAlignment="Top" Padding="12,8" AutomationProperties.Name="{i:Loc Growth.Timestamps.Text}" />
+            <TextBlock Text="{i:Loc Growth.Timestamps.Empty}" Classes="caption" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Margin="24" IsHitTestVisible="False" IsVisible="{Binding !HasText}" />
+        </Panel>
+
+        <TextBlock Grid.Row="5" Text="{i:Loc Growth.Timestamps.Note}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <DockPanel Grid.Row="6" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                <Button Name="CopyButton" Classes="primary" Content="{i:Loc Growth.Timestamps.Copy}" Click="OnCopy" IsDefault="True"
+                        IsEnabled="{Binding HasText}" AutomationProperties.Name="{i:Loc Growth.Timestamps.Copy}" />
+                <Button Name="CloseButton" Classes="ghost" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Status}" Classes="caption" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+        </DockPanel>
+    </Grid>
+</Window>
