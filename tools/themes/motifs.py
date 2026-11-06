@@ -160,7 +160,94 @@ def shadow():
     alt = [sparkle(x, y, rr) for x, y, rr in ((780, 220, 30), (850, 380, 16), (700, 120, 14), (180, 200, 20), (130, 620, 12), (760, 760, 22), (300, 860, 14))]
     return main, alt
 
-MOTIFS = [("Tavern", tavern), ("Frost", frost), ("Fel", fel), ("Arcane", arcane), ("Ember", ember), ("Tide", tide), ("Shadow", shadow)]
+def rot(p, deg, c=(C, C)):
+    a = math.radians(deg)
+    x, y = p[0] - c[0], p[1] - c[1]
+    return c[0] + x * math.cos(a) - y * math.sin(a), c[1] + x * math.sin(a) + y * math.cos(a)
+
+def leaf(base, tip, left, right):
+    return f"M{pt(*base)} Q{pt(*left)} {pt(*tip)} Q{pt(*right)} {pt(*base)} Z"
+
+def grove():
+    """Druid's grove: a ring of twelve leaves with their veins round an inner wreath of six."""
+    main = [circle(C, C, 470), circle(C, C, 180)]
+    for i in range(12):
+        a = 30 * i
+        base = rot((500, 300), a)
+        main.append(leaf(base, rot((500, 90), a), rot((420, 190), a), rot((580, 190), a)))
+        main.append(line(base, rot((500, 140), a)))
+    for i in range(6):
+        a = 60 * i + 30
+        main.append(leaf(rot((500, 360), a), rot((500, 250), a), rot((455, 305), a), rot((545, 305), a)))
+    alt = [circle(C, C, 10)] + [circle(*rot((500, 40), 30 * i + 15), 6) for i in range(12)]
+    return main, alt
+
+def void():
+    """The void: three spiral arms pulling into a double ring."""
+    main = [circle(C, C, 470)]
+    for arm in range(3):
+        pts = []
+        for k in range(90):
+            t = k / 89
+            ang = arm * 2 * math.pi / 3 + t * 3.4 * math.pi
+            r = 40 + 400 * t
+            pts.append((C + r * math.cos(ang), C + r * math.sin(ang)))
+        main.append(poly(pts, close=False))
+    main += [circle(C, C, 60), circle(C, C, 28)]
+    alt = [sparkle(x, y, r, 0.18) for x, y, r in ((170, 190, 22), (820, 160, 16), (880, 640, 24), (150, 760, 14), (640, 880, 18), (300, 420, 10), (720, 330, 12))]
+    return main, alt
+
+def bloodsteel():
+    """Blood and steel: a warrior's shield behind two crossed blades."""
+    main = ["M500,150 L780,240 C780,560 690,760 500,870 C310,760 220,560 220,240 Z",
+            "M500,200 L735,276 C735,550 655,720 500,815 C345,720 265,550 265,276 Z"]
+    for deg in (218, 142):
+        main.append(poly([rot(p, deg) for p in ((486, 120), (514, 120), (514, 700), (500, 740), (486, 700))]))
+        main.append(poly([rot(p, deg) for p in ((430, 690), (570, 690), (570, 712), (430, 712))]))
+        main.append(poly([rot(p, deg) for p in ((492, 712), (508, 712), (508, 820), (492, 820))]))
+        main.append(circle(*rot((500, 840), deg), 18))
+    main.append(circle(C, C, 470))
+    alt = [circle(500, 470, 14)] + [diamond(*rot((500, 30), 45 * i + 22.5), 10, 10) for i in range(8)]
+    return main, alt
+
+def sands():
+    """Ancient lands: a stepped pyramid under a rayed sun, dunes below."""
+    main = [poly([(500, 330), (800, 800), (200, 800)])]
+    for y in (470, 590, 700):
+        t = (y - 330) / 470
+        main.append(line((500 - 300 * t, y), (500 + 300 * t, y)))
+    main += [line((500, 330), (560, 800)), circle(500, 220, 70)]
+    for i in range(12):
+        a = 30 * i
+        main.append(line(polar(90, a, 500, 220), polar(130, a, 500, 220)))
+    main += ["M40,860 C200,820 330,820 500,860 C670,900 800,900 960,860",
+             "M80,930 C230,900 360,900 500,930 C640,960 770,960 920,930"]
+    alt = [diamond(x, y, 9, 9) for x, y in ((140, 300), (860, 300), (200, 520), (800, 520), (110, 700), (890, 700))]
+    return main, alt
+
+def midnight():
+    """Midnight: a dial of hour ticks round a constellation."""
+    main = [circle(C, C, 470)]
+    for i in range(24):
+        a = 15 * i
+        main.append(line(polar(410 if i % 6 == 0 else 440, a), polar(455, a)))
+    stars = [(300, 300), (420, 250), (560, 330), (650, 260), (720, 420), (600, 560), (430, 600), (330, 520)]
+    main.append(poly(stars, close=False))
+    alt = [sparkle(x, y, 26, 0.18) for x, y in stars] + [sparkle(x, y, 12, 0.18) for x, y in ((200, 700), (780, 720), (520, 800), (830, 200))]
+    return main, alt
+
+def mech():
+    """Battlegrounds mechs: a twelve-tooth cog with spokes and bolts."""
+    pts = [polar(400 if k % 4 in (1, 2) else 340, 360 * k / 48) for k in range(48)]
+    main = [poly(pts), circle(C, C, 250), circle(C, C, 110)]
+    for i in range(6):
+        a = 60 * i
+        main.append(line(polar(110, a), polar(250, a)))
+    alt = [circle(*polar(180, 60 * i + 30), 14) for i in range(6)] + [circle(C, C, 30)]
+    return main, alt
+
+MOTIFS = [("Tavern", tavern), ("Frost", frost), ("Fel", fel), ("Arcane", arcane), ("Ember", ember), ("Tide", tide), ("Shadow", shadow),
+          ("Grove", grove), ("Void", void), ("Bloodsteel", bloodsteel), ("Sands", sands), ("Midnight", midnight), ("Mech", mech)]
 
 THEMES = [("src/Hearthpulse.App/Themes/Theme.xaml", "Geometry", "    "),
           ("src/Hearthpulse.UI/Themes/Theme.axaml", "StreamGeometry", "            ")]

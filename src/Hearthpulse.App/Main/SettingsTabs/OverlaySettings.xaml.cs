@@ -79,6 +79,9 @@ public partial class OverlaySettings : UserControl
     /// <summary>The window's <c>OnSliderChanged</c> for this tab's ValueChanged.</summary>
     public event Action<RoutedPropertyChangedEventArgs<double>>? SliderChanged;
 
+    /// <summary>Opening "Advanced" is not a setting: the page's OnSettingChanged must not see it.</summary>
+    private void OnDisclosure(object sender, RoutedEventArgs e) => e.Handled = true;
+
     private void RaiseSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         (DataContext as MainViewModel)?.RefreshOverlayLook();

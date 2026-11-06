@@ -37,7 +37,8 @@ public static class ThemeEngine
     {
         try
         {
-            return Apply(app, ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint));
+            Look = ThemeLook.FromSettings(settings);
+            return Apply(app, ThemePalette.FromSettings(settings));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -117,6 +118,32 @@ public static class ThemeEngine
 
             Recolor(value, theme, tavern is null ? null : (tavern, motif ?? tavern), tavernAlt is null ? null : (tavernAlt, motifAlt ?? tavernAlt));
         }
+    }
+
+    /// <summary>The corner style and density of the open windows and of those opened next (<see cref="Dress"/>).</summary>
+    public static ThemeLook Look { get; private set; } = ThemeLook.Default;
+
+    /// <summary>
+    /// Settings → Appearance: corners and density are the classes <c>sharp</c> and <c>dense</c> on every window (styles
+    /// at the end of Theme.axaml); the WPF engine rewrites the same tokens in its theme source instead.
+    /// </summary>
+    public static void ApplyLook(Application app, ThemeLook look)
+    {
+        Look = look;
+        if (app.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            foreach (var window in desktop.Windows)
+            {
+                Dress(window);
+            }
+        }
+    }
+
+    /// <summary>Gives a new window (or a render's root) the current <see cref="Look"/>.</summary>
+    public static void Dress(StyledElement root)
+    {
+        root.Classes.Set("sharp", Look.SharpCorners);
+        root.Classes.Set("dense", Look.Dense);
     }
 
     /// <summary>One theme colour as a brush, for previews.</summary>

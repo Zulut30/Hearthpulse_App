@@ -11,10 +11,11 @@
              xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
              xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
-             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
-    <!-- Settings, General: language, theme, app. Same tree as the Avalonia GeneralSettings.axaml. -->
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+             xmlns:core="clr-namespace:Hearthpulse.Core;assembly=Hearthpulse.Core">
+    <!-- Settings, General: language, app, shortcuts. Same tree as the Avalonia GeneralSettings.axaml. The theme is on the Appearance tab. -->
     <UserControl.Resources>
-        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+        <ResourceDictionary Source="/Hearthpulse;component/Main/SettingsTabs/SettingsLook.xaml" />
     </UserControl.Resources>
     <StackPanel>
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
@@ -39,80 +40,18 @@
             </StackPanel>
         </Border>
 
-        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-            <StackPanel>
-                <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Theme.Presets}" Style="{StaticResource SettingGroup}" Margin="0,0,0,10" />
-                <ItemsControl ItemsSource="{Binding Themes}" Focusable="False" Margin="0,0,-10,0">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type m:ThemeChoice}">
-                            <!-- The preset's key, not its localized name: the settings keep the key -->
-                            <Button Style="{StaticResource ThemeSwatch}" Content="{Binding}" ContentTemplate="{StaticResource ThemeTile}" ToolTip="{Binding Name}"
-                                    AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding Key}"
-                                    Command="{Binding DataContext.SelectTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <TextBlock Text="{i:Loc Settings.Theme.MakeOwn}" Style="{StaticResource SettingGroup}" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
-                    <StackPanel Grid.Column="1" Margin="20,0,0,0">
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{i:Loc Settings.Theme.Accent}" Style="{StaticResource SettingLabel}" />
-                            <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="10,0,10,-24" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
-                            <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding AccentHue}" SmallChange="5" LargeChange="30"
-                                    AutomationProperties.Name="{i:Loc Settings.Theme.Accent}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{i:Loc Settings.Theme.Background}" Style="{StaticResource SettingLabel}" />
-                            <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="10,0,10,-24" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
-                            <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding BaseHue}" SmallChange="5" LargeChange="30"
-                                    AutomationProperties.Name="{i:Loc Settings.Theme.Background}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{i:Loc Settings.Theme.Tint}" Style="{StaticResource SettingLabel}" />
-                            <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding BaseTint}" SmallChange="0.05" LargeChange="0.25"
-                                    AutomationProperties.Name="{i:Loc Settings.Theme.Tint}" ToolTip="{i:Loc Settings.Theme.TintTip}" />
-                        </Grid>
-                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
-                    </StackPanel>
-                </Grid>
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding Settings.PageHeroes}" Margin="0,24,0,0"
-                          ToolTip="{i:Loc Settings.Theme.PageHeroesTip}" />
-            </StackPanel>
-        </Border>
-
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.ReduceMotion}" IsChecked="{Binding Settings.ReduceMotion}" ToolTip="{i:Loc Settings.App.ReduceMotionTip}" Margin="0,0,0,14" />
+                <Grid Margin="0,0,0,12">
+                    <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" />
+                    <Button Style="{StaticResource ResetButton}" Command="{Binding ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.General}"
+                            AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}" />
+                </Grid>
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Click="RaiseSettingClicked"
-                          ToolTip="{i:Loc Settings.App.AutoUpdateTip}" Margin="0,0,0,14" />
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartWithWindows}" IsChecked="{Binding Settings.StartWithWindows}" Click="RaiseSettingClicked" Margin="0,0,0,14" />
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
+                          ToolTip="{i:Loc Settings.App.AutoUpdateTip}" Margin="0,0,0,12" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartWithWindows}" IsChecked="{Binding Settings.StartWithWindows}" Click="RaiseSettingClicked" Margin="0,0,0,12" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" Margin="0,0,0,12" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" />
                 <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Open}" Command="{Binding OpenSetup}" ToolTip="{i:Loc Setup.OpenTip}"
                         HorizontalAlignment="Left" Margin="0,16,0,0" />
             </StackPanel>

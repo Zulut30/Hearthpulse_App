@@ -58,9 +58,9 @@ npx wrangler deploy
 
 Checklist (the owner deploys; nothing here is deployed from a development session):
 
-1. `node --test server/pool/test/validation.test.mjs` passes.
+1. `node --test server/pool/test/validation.test.mjs server/pool/test/events.test.mjs` passes.
 2. `wrangler d1 create`, `database_id` in `wrangler.toml`, `schema.sql` on the new database (an existing pool: the
-   files in `migrations/` it lacks, in order; plan 2.1 adds `0006_quota.sql`, the daily write counter).
+   files in `migrations/` it lacks, in order; plan 2.1 adds `0006_quota.sql`, the daily write counter; game records add `0007_events.sql`).
 3. `npx wrangler deploy`; then `GET <address>/v1/stats?mode=solo` answers `{"games":0,…}` (empty until the first cron
    run after games come in) and `POST /v1/games` with a bad body answers 400.
 4. Before a release, try the app against it without rebuilding: `"PoolEndpoint": "https://…"` in `settings.json` of a
@@ -114,6 +114,11 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 3
   times are left out. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
+- Game records of every mode (`src/events.js`, [docs/game-stats.md](../../docs/game-stats.md), ADR 0011; needs
+  `migrations/0007_events.sql` on an existing pool): `POST /v1/events` with `{"v":1,"iid":"<32 hex>","games":[...]}`
+  (1 to 20 records, each rebuilt from known fields only, at most 24 KB; 8,000 a day), `POST /v1/events/forget` with
+  `{"iid":...}` deletes every record of that install, `GET /v1/events/summary` returns games per day, the most picked
+  Discover options and the mulligan keep rate per card (10 games or more a card). Records are kept 180 days.
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
 
@@ -122,7 +127,7 @@ For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled
 From the repository root, with Node.js 24 or later:
 
 ```
-node --test server/pool/test/validation.test.mjs
+node --test server/pool/test/validation.test.mjs server/pool/test/events.test.mjs
 ```
 
 The built-in runner needs no npm packages. Tests exercise the validators and `POST /v1/games` with an in-memory

@@ -57,7 +57,8 @@ public sealed partial class UxPolishContractTests
     /// </summary>
     private static readonly string[] CardNotes =
     [
-        "Overlay.Move.Settings", "Settings.Leaderboard.Caption", "Stream.Mode.Note", "Discord.Note", "Twitch.Note", "Stream.Windows.Note", "Migration.Settings.Note",
+        "Settings.Gallery.Hint", "Overlay.Move.Settings", "Settings.Leaderboard.Caption", "Stream.Mode.Note", "Discord.Note", "Twitch.Note",
+        "Stream.Windows.Note", "Migration.Settings.Note", "Settings.File.Caption",
     ];
 
     [Fact]
@@ -154,6 +155,11 @@ public sealed partial class UxPolishContractTests
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Overlay");
+        // The calibration is an expert option: it sits under "Advanced", closed until opened.
+        var advanced = Named<System.Windows.Controls.Primitives.ToggleButton>(window, "AdvancedToggle");
+        Assert.False(advanced.IsChecked);
+        advanced.IsChecked = true;
+        Settle(root);
         foreach (var name in new[] { "LeaderboardTopSlider", "LeaderboardSlotSlider", "LeaderboardWidthSlider" })
         {
             var slider = Named<Slider>(window, name);

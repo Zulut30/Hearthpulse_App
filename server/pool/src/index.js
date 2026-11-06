@@ -9,6 +9,8 @@
 // - the totals are worked out by a cron job at most every 6 hours, and only when new games came in, then kept
 //   as one ready-made JSON row that every read returns (one row read, cached at the edge for 30 minutes).
 
+import { eventsSummary, forgetEvents, pruneEvents, rebuildEvents, submitEvents } from "./events.js";
+
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
 const GAME_ID = /^[0-9a-f]{32}$/;
@@ -43,12 +45,21 @@ export default {
     if (request.method === "GET" && (url.pathname === "/v1/stats" || url.pathname === "/v1/heroes")) return stats(request, env, ctx, url);
     if (request.method === "GET" && url.pathname === "/v1/choices") return choices(request, env, ctx, url);
     if (request.method === "GET" && url.pathname === "/v1/meta") return meta(request, env, ctx);
+    // Game records of every mode (src/events.js).
+    if (request.method === "POST" && (url.pathname === "/v1/events" || url.pathname === "/v1/events/forget")) {
+      const { body, error } = await readBody(request, env);
+      if (error) return error;
+      return url.pathname === "/v1/events" ? submitEvents(body, env, reply) : forgetEvents(body, env, reply);
+    }
+    if (request.method === "GET" && url.pathname === "/v1/events/summary") return eventsSummary(request, env, ctx, reply);
     return reply({ error: "not found" }, 404);
   },
 
   async scheduled(event, env, ctx) {
     ctx.waitUntil(Promise.all([
       prune(env),
+      pruneEvents(env),
+      rebuildEvents(env, false),
       ...["solo", "duos"].map((mode) => rebuild(env, mode, false)),
       ...[...FORMATS].map((format) => rebuildChoices(env, format, false)),
     ]));

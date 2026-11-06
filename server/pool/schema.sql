@@ -58,3 +58,25 @@ CREATE TABLE IF NOT EXISTS quota (
   day INTEGER PRIMARY KEY, -- days since 1970-01-01
   n INTEGER NOT NULL       -- games stored that day, both kinds
 );
+
+-- Game records (migrations/0007_events.sql, docs/game-stats.md): every finished game a player agreed to send, all
+-- modes, one validated JSON record per row. No name, BattleTag or account: only the random id of the install that sent
+-- it, so the player can have their records deleted. Kept 180 days.
+CREATE TABLE IF NOT EXISTS e (
+  id TEXT PRIMARY KEY,        -- keyed hash of the game from the app, so a record sent twice is stored once
+  iid TEXT NOT NULL,          -- random install id (never shown, never linked to an account)
+  day INTEGER NOT NULL,       -- day the game was played (days since 1970-01-01)
+  mode TEXT NOT NULL,         -- ranked, casual, arena, brawl, bg, duos
+  fmt TEXT,                   -- standard, wild, classic, twist; null for Battlegrounds and Arena
+  v INTEGER NOT NULL,         -- record version
+  body TEXT NOT NULL          -- the record as validated by src/events.js
+) WITHOUT ROWID;
+
+CREATE INDEX IF NOT EXISTS e_by_day ON e (day, mode);
+CREATE INDEX IF NOT EXISTS e_by_iid ON e (iid);
+
+-- Daily count of game records stored, against their own write budget.
+CREATE TABLE IF NOT EXISTS equota (
+  day INTEGER PRIMARY KEY,
+  n INTEGER NOT NULL
+);

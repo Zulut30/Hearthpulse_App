@@ -42,7 +42,7 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Grouping, spacing, compact, room for long Russian | `better-layout` |
 | Interface text ru/en, errors, empty states | `better-writing` |
 | Type ramp, wrapping, trimming, numbers, punctuation | `better-typography` |
-| Colour roles, meaning colours, contrast in 7 themes | `better-colors` |
+| Colour roles, meaning colours, contrast in 13 themes | `better-colors` |
 | Polish: radii, depth, MDI glyphs, animation values | `better-ui` |
 | One component under hostile data, PNGs (owner-invoked) | `ui-break` |
 | Every state of one component, PNGs (owner-invoked) | `ui-states` |

@@ -59,6 +59,11 @@ public partial class App
             }
         }
 
+        if (RenderOnly("settings"))
+        {
+            await RenderSettingsToolsAsync(folder);
+        }
+
         if (RenderOnly("overlay"))
         {
             await RenderOverlayCheckAsync(folder);

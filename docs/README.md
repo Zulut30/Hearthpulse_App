@@ -40,13 +40,14 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
 | [usage-limits.md](usage-limits.md) | Daily free limits of our own analytics (stats pool in the BG overlay), soft mode |
 | [crash-reports.md](crash-reports.md) | Crash reports on the player's consent: what is sent, what is cut out, the queue |
+| [game-stats.md](game-stats.md) | Game records of every mode for our own statistics: the record, consent, queue, server, deletion |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits |
 
 ## Project records
 
 | Doc | What it covers |
 |---|---|
-| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid, Mercenaries not tracked |
+| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid, Mercenaries not tracked, game records in the stats pool |
 | [GLOSSARY.md](GLOSSARY.md) | The project's terms: snapshot, panel, card pool vs stats pool, replay, match page, data folder… (Hearthstone terms: skill `hearthstone-context`) |
 | [upstream-sync.md](upstream-sync.md) | What was ported from HeartLens upstream and how to repeat the sync |
 | [mutation-testing.md](mutation-testing.md) | Stryker mutation tests of the sanitizers, crash report, likely deck and combat simulator: scores, what was closed, what to close next |

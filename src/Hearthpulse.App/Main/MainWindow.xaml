@@ -32,6 +32,10 @@
 
     <Border x:Name="Frame">
         <Grid>
+            <!-- Settings → Appearance → Interface size (90-120 %) -->
+            <Grid.LayoutTransform>
+                <ScaleTransform ScaleX="{Binding InterfaceScale}" ScaleY="{Binding InterfaceScale}" />
+            </Grid.LayoutTransform>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250" />
                 <ColumnDefinition Width="*" />
@@ -290,7 +294,8 @@
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
                                         Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality"
+                                            Opacity="{Binding BackgroundIntensity}" />
                                 </Border>
                             </Grid>
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
@@ -408,7 +413,7 @@
                         <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
                     </ScrollViewer>
 
-                    <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
+                    <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
                             <StackPanel Orientation="Horizontal">
@@ -417,9 +422,14 @@
                             </StackPanel>
                             <c:Wave Style="{StaticResource PageRule}" />
 
+                            <!-- Search over every tab; while a query is typed its matches replace the tabs -->
+                            <st:SettingsSearchBox x:Name="SettingsSearchBar" />
+
+                            <StackPanel x:Name="SettingsTabsArea" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
                                 <WrapPanel>
                                     <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnSettingsTab" />
+                                    <RadioButton x:Name="SettingsTabAppearance" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Appearance}" GroupName="SettingsTab" Tag="Appearance" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabOverlay" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabTracker" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabStream" Style="{StaticResource Tab}" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" Checked="OnSettingsTab" />
@@ -429,8 +439,11 @@
                                 </WrapPanel>
                             </Border>
 
-                            <!-- ===== General: language, theme, app ===== -->
+                            <!-- ===== General: language, app ===== -->
                             <st:GeneralSettings x:Name="SettingsGeneral" />
+
+                            <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
+                            <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" />
 
                             <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
                             <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" />
@@ -449,6 +462,7 @@
 
                             <!-- ===== About: version, updates, licences ===== -->
                             <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" />
+                            </StackPanel>
 
                         </StackPanel>
                     </ScrollViewer>
@@ -483,6 +497,38 @@
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.Pool.No}" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />
                                 <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.Pool.Yes}" Command="{Binding AnswerPool}" CommandParameter="yes" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ===== Once: game records are on by default (docs/game-stats.md); a notice, not a consent question ===== -->
+                    <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,4,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"
+                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
+                            Visibility="{Binding ShowGameStatsNotice, Converter={StaticResource Vis}}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="46" Height="46">
+                                <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="&#xF0128;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="16,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Text="{i:Loc Main.GameStats.Title}" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}"
+                                           Text="{i:Loc Main.GameStats.What}" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Text="{i:Loc Main.GameStats.Never}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.More}" Command="{Binding AnswerGameStats}" CommandParameter="more" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.Off}" Command="{Binding AnswerGameStats}" CommandParameter="off" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.GameStats.Ok}" Command="{Binding AnswerGameStats}" CommandParameter="ok" />
                             </StackPanel>
                         </Grid>
                     </Border>

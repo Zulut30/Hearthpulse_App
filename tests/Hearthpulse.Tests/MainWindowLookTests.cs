@@ -196,18 +196,26 @@ public sealed class MainWindowLookTests
         }
     }
 
-    /// <summary>"Background characters" (Settings > General > Theme) writes AppSettings.PageHeroes, and the page hero's art sits in a layer shown only with a hero, in both UIs.</summary>
+    /// <summary>
+    /// "Page background" (Settings > Appearance: by page, one hero, none) writes AppSettings.PageHeroes and BackgroundHero,
+    /// and the page hero's art sits in a layer shown only with a hero, at the chosen strength, in both UIs.
+    /// </summary>
     [Fact]
     public void Background_characters_switch_and_backdrop_are_bound_in_both_UIs()
     {
         foreach (var (settings, window) in new[]
                  {
-                     ("src/Hearthpulse.App/Main/SettingsTabs/GeneralSettings.xaml", "src/Hearthpulse.App/Main/MainWindow.xaml"),
-                     ("src/Hearthpulse.UI/Main/SettingsTabs/GeneralSettings.axaml", "src/Hearthpulse.UI/Main/MainView.axaml"),
+                     ("src/Hearthpulse.App/Main/SettingsTabs/AppearanceSettings.xaml", "src/Hearthpulse.App/Main/MainWindow.xaml"),
+                     ("src/Hearthpulse.UI/Main/SettingsTabs/AppearanceSettings.axaml", "src/Hearthpulse.UI/Main/MainView.axaml"),
                  })
         {
-            Assert.Contains(Load(settings).Descendants(), e => e.Name.LocalName == "CheckBox" && (string?)e.Attribute("IsChecked") == "{Binding Settings.PageHeroes}");
+            foreach (var choice in new[] { "BackgroundAuto", "BackgroundChosen", "BackgroundOff" })
+            {
+                Assert.Contains(Load(settings).Descendants(), e => e.Name.LocalName == "RadioButton" && ((string?)e.Attribute("IsChecked"))?.StartsWith("{Binding " + choice, StringComparison.Ordinal) == true);
+            }
+
             var art = Load(window).Descendants().Single(e => e.Attributes().Any(a => a.Name.LocalName == "CardArt.Splash" && a.Value == "{Binding PageHero}"));
+            Assert.Equal("{Binding BackgroundIntensity}", (string?)art.Attribute("Opacity"));
             Assert.Contains(art.Ancestors(), a => a.Attributes().Any(x => x.Name.LocalName is "Visibility" or "IsVisible" && x.Value.Contains("Binding PageHero", StringComparison.Ordinal)));
         }
     }

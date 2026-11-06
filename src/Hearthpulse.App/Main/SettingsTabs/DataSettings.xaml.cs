@@ -21,4 +21,14 @@ public partial class DataSettings : UserControl
     public event Action<RoutedEventArgs>? OpenDataClicked;
 
     private void RaiseOpenDataClicked(object sender, RoutedEventArgs e) => OpenDataClicked?.Invoke(e);
+
+    /// <summary>The window's save dialog for the settings file.</summary>
+    public event Action? ExportSettingsClicked;
+
+    private void RaiseExportSettingsClicked(object sender, RoutedEventArgs e) => ExportSettingsClicked?.Invoke();
+
+    /// <summary>The window's open dialog for a settings file.</summary>
+    public event Action? ImportSettingsClicked;
+
+    private void RaiseImportSettingsClicked(object sender, RoutedEventArgs e) => ImportSettingsClicked?.Invoke();
 }

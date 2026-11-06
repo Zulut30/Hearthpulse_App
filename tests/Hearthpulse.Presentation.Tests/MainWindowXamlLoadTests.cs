@@ -60,7 +60,7 @@ public sealed class MainWindowXamlLoadTests
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = new WpfWindow(model);
         window.ShowPage("Settings");
-        window.ShowSettingsTab("General");
+        window.ShowSettingsTab("Appearance");
         var root = (FrameworkElement)window.Content;
         root.Measure(new Size(1260, 840));
         root.Arrange(new Rect(0, 0, 1260, 840));
@@ -70,8 +70,8 @@ public sealed class MainWindowXamlLoadTests
         root.UpdateLayout();
 
         var swatch = window.FindResource("ThemeSwatch");
-        // The settings page's tiles (the setup wizard's look step has the same ones)
-        var tiles = Descendants<Button>((DependencyObject)window.FindName("SettingsGeneral")).Where(b => ReferenceEquals(b.Style, swatch)).ToList();
+        // The settings page's gallery tiles (the setup wizard's look step has the same presets)
+        var tiles = Descendants<Button>((DependencyObject)window.FindName("SettingsAppearance")).Where(b => ReferenceEquals(b.Style, swatch)).ToList();
         Assert.Equal(ThemePalette.Presets.Count, tiles.Count);
         Assert.Equal(ThemePalette.Presets.Select(p => p.Name), tiles.Select(t => (string)t.CommandParameter));
         Assert.All(tiles, t => Assert.True(t.ActualWidth > 0));

@@ -5,6 +5,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.GameStats;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
@@ -27,7 +28,7 @@ public sealed class AppServices
     /// <param name="cards">The card data the host has loaded so far (empty until the cards are in).</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept in Http and lives as long as the app.")]
     public AppServices(AppSettings settings, string version, Func<CardDb> cards)
-        : this(settings, CreateHttp(version), cards, AppData.FromAppPaths(), AppPaths.Database, UsageGate.DefaultPath)
+        : this(settings, CreateHttp(version), cards, AppData.FromAppPaths(), AppPaths.Database, UsageGate.DefaultPath, version)
     {
     }
 
@@ -35,7 +36,7 @@ public sealed class AppServices
     /// With a client, a data folder, a history file and a usage record of the test's own (no network, not the shared
     /// data folder's).
     /// </summary>
-    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, AppData data, string historyPath, string usagePath)
+    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, AppData data, string historyPath, string usagePath, string? version = null)
     {
         Settings = settings;
         Http = http;
@@ -65,6 +66,10 @@ public sealed class AppServices
         Account.CheckRequested += () => Usage.RefreshLimitsAsync(force: true).Forget("Usage limits");
         Session.Advisor.Usage = Usage;
         Session.GameFinished += _ => Usage.GameFinished();
+        // Every finished game the player agreed to share, as a game record for Hearthpulse's statistics (docs/game-stats.md).
+        GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
+            new GameStatsQueue(Path.Combine(data.Root, "game-stats")));
+        Session.GameFinished += GameStats.OnGameFinished;
 
         // The Twitch extension (docs/streaming.md): the deck of every snapshot, sent while the switch is on and signed in.
         Twitch = new TwitchPublisher(new TwitchClient(http, accountClient.BaseUri), Account.GetAccessTokenAsync, settings, cards);
@@ -80,7 +85,16 @@ public sealed class AppServices
                 Twitch.Kick();
             }
         };
+
+        CardDb? TryCards()
+        {
+            var db = cards();
+            return db.Count > 0 ? db : null;
+        }
     }
+
+    /// <summary>Game records for Hearthpulse's own statistics; the live host starts it with the log watcher.</summary>
+    public GameStatsUploader GameStats { get; }
 
     public AppSettings Settings { get; }
 

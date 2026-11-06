@@ -25,6 +25,12 @@
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.PoolSharing}" IsChecked="{Binding PoolSharing}"
                           Visibility="{Binding PoolAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,18"
                           ToolTip="{i:Loc Settings.Data.PoolSharingTip}" />
+                <!-- Game records of every mode for Hearthpulse's statistics (docs/game-stats.md); off until the player agrees -->
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.GameStats}" IsChecked="{Binding GameStatsSharing}"
+                          Visibility="{Binding GameStatsAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,4"
+                          ToolTip="{i:Loc Settings.Data.GameStatsTip}" />
+                <TextBlock Text="{i:Loc Settings.Data.GameStatsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,16"
+                           Visibility="{Binding GameStatsAvailable, Converter={StaticResource Vis}}" />
                 <!-- Plan 0.5: crash reports without asking; off by default -->
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.CrashReports}" IsChecked="{Binding CrashReports}" Margin="0,0,0,4" />
                 <TextBlock Text="{i:Loc Settings.Data.CrashReportsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,18" />
@@ -36,6 +42,30 @@
                 <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
                 <!-- The replay rule was only in the folder path's tip: it decides what is deleted, so it is a visible line -->
                 <TextBlock x:Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- The settings file (export / import) and "reset everything", which asks first in place -->
+        <Border x:Name="SettingsFileCard" Style="{StaticResource Card}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.File.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.File.Caption}" Style="{StaticResource CardNote}" />
+                <WrapPanel>
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.File.Export}" Click="RaiseExportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.File.Import}" Click="RaiseImportSettingsClicked" Margin="0,0,8,8" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Reset.All}" Command="{Binding AskResetAll}" Margin="0,0,0,8" />
+                </WrapPanel>
+                <Border Style="{StaticResource RowBorder}" Padding="16,12" Margin="0,4,0,0" Visibility="{Binding ResetAllPending, Converter={StaticResource Vis}}">
+                    <StackPanel>
+                        <TextBlock Text="{i:Loc Settings.Reset.Ask}" Style="{StaticResource Base}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Reset.Confirm}" Command="{Binding ConfirmResetAll}" Margin="0,0,8,0" />
+                            <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Reset.Cancel}" Command="{Binding CancelResetAll}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding SettingsFileNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0"
+                           Visibility="{Binding SettingsFileNote, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
     </StackPanel>

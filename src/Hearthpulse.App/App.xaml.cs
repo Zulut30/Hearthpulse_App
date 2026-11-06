@@ -260,6 +260,12 @@ public partial class App : Application
             _mulliganGuide.Rank = _settings.MulliganRank;
             _settingsDebounce.Kick();
         };
+        _mainViewModel.GameStatsChanged += on =>
+        {
+            _settingsDebounce.Kick();
+            if (on) _services.GameStats.Kick();
+            else _services.GameStats.Withdraw();
+        };
         _mainViewModel.PoolConsentChanged += () =>
         {
             _settingsDebounce.Kick();
@@ -342,6 +348,7 @@ public partial class App : Application
         _uiProbe?.Dispose();
         _watcher?.Dispose();
         _uploader?.Dispose();
+        _services?.GameStats.Dispose();
         _hotkeys?.Dispose();
 
         if (_tray is not null)
@@ -427,6 +434,7 @@ public partial class App : Application
             _watcher = new LogWatcher(_session, () => _installDir);
             _watcher.Start();
             _uploader.Start();
+            _services.GameStats.Start();
             _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
@@ -762,7 +770,7 @@ public partial class App : Application
     {
         // Off-screen renders can preview a theme without touching the saved settings.
         var name = _renderDir is not null && Environment.GetEnvironmentVariable("HEARTHPULSE_THEME") is { Length: > 0 } forced ? forced : _settings.Theme;
-        return ThemePalette.Resolve(name, _settings.ThemeAccentHue, _settings.ThemeBaseHue, _settings.ThemeBaseTint);
+        return ThemePalette.FromSettings(_settings, name);
     }
 
     private bool ApplyTheme()
@@ -770,7 +778,7 @@ public partial class App : Application
         try
         {
             Motion.Reduced = _settings.ReduceMotion;
-            ThemeEngine.Apply(this, CurrentTheme());
+            ThemeEngine.Apply(this, CurrentTheme(), ThemeLook.FromSettings(_settings));
             return true;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
