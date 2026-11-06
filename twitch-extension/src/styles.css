@@ -247,6 +247,24 @@ body.view-video_overlay {
   filter: drop-shadow(0 6px 14px #000000a6);
 }
 
+.disclaimer {
+  flex: none;
+  padding: 4px 12px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.overlay-card .disclaimer {
+  font-size: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.config .disclaimer {
+  padding: 8px 0 0;
+  font-size: 11px;
+}
+
 .empty-state {
   padding: 16px 12px;
   text-align: center;

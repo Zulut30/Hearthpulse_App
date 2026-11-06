@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { strings } from './i18n';
+import { Disclaimer } from './ui/Deck';
 import { useExtension } from './ui/useExtension';
 import './styles.css';
 
@@ -17,6 +18,7 @@ function Config() {
         ))}
       </ol>
       <p class="config-note">{t.configNote}</p>
+      <Disclaimer t={t} />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { strings } from './i18n';
-import { CardPreview, DeckHeader, DeckRows, EmptyState, type Hover } from './ui/Deck';
+import { CardPreview, DeckHeader, Disclaimer, DeckRows, EmptyState, type Hover } from './ui/Deck';
 import { useExtension } from './ui/useExtension';
 import './styles.css';
 
@@ -23,6 +23,7 @@ function Panel() {
       ) : (
         <EmptyState t={t} loading={view.status === 'loading'} />
       )}
+      <Disclaimer t={t} />
       <CardPreview hover={hover} lang={view.lang} side="center" />
     </main>
   );

@@ -90,6 +90,11 @@ export function CardPreview({ hover, lang, side }: { hover: Hover | null; lang: 
   );
 }
 
+/** Legal line (LEGAL-HeartLens-twitch-extension.md, L-m2): no affiliation, where the card art comes from. */
+export function Disclaimer({ t }: { t: Strings }) {
+  return <footer class="disclaimer">{t.disclaimer}</footer>;
+}
+
 export function EmptyState({ t, loading }: { t: Strings; loading: boolean }) {
   return (
     <div class="empty-state" role="status">

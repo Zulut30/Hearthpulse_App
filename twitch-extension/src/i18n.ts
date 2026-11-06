@@ -38,6 +38,7 @@ const ru = {
     'Активируйте расширение на канале как оверлей или панель. Колода появится у зрителей, когда начнётся игра.',
   ],
   configNote: 'Зрителям ничего устанавливать не нужно. Карты и их изображения — HearthstoneJSON.',
+  disclaimer: 'Hearthpulse не связан с Blizzard Entertainment и Twitch. Арт карт: HearthstoneJSON, © Blizzard',
 };
 
 const en: typeof ru = {
@@ -61,6 +62,7 @@ const en: typeof ru = {
     'Activate the extension on your channel as an overlay or a panel. Viewers see the deck once a game starts.',
   ],
   configNote: 'Viewers do not need to install anything. Card data and images: HearthstoneJSON.',
+  disclaimer: 'Hearthpulse is not affiliated with Blizzard Entertainment or Twitch. Card art: HearthstoneJSON, © Blizzard',
 };
 
 export type Strings = typeof ru;
