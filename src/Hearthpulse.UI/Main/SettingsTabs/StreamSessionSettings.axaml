@@ -6,7 +6,7 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure">
     <!-- Settings → Stream, in the windows' group: the "Session" window (proposal B1) and "Start a new session", as WPF's
          StreamSessionSettings.xaml. A file of its own so the Settings rework does not touch it. -->
-    <StackPanel Margin="0,0,0,14">
+    <StackPanel Margin="0,0,0,16">
         <CheckBox Name="StreamSessionSetting" Classes="switch" Content="{i:Loc Stream.Window.Session}" IsChecked="{Binding StreamSessionWindow}"
                   ToolTip.Tip="{i:Loc Stream.Window.SessionTip}" />
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding StreamSessionWindow}">

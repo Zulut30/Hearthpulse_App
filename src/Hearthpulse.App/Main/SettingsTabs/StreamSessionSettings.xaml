@@ -7,7 +7,7 @@
     <UserControl.Resources>
         <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
     </UserControl.Resources>
-    <StackPanel Margin="0,0,0,14">
+    <StackPanel Margin="0,0,0,16">
         <CheckBox x:Name="StreamSessionSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Session}" IsChecked="{Binding StreamSessionWindow}"
                   ToolTip="{i:Loc Stream.Window.SessionTip}" />
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding StreamSessionWindow, Converter={StaticResource Vis}}">
