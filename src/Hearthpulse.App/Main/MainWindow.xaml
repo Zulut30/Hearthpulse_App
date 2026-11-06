@@ -65,11 +65,11 @@
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                        <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
+                        <Image Source="{StaticResource HearthpulseLogo}" Width="36" Height="36" />
                         <!-- The wordmark and the BETA pill on its line: a solid accent pill with dark capitals, centred on the
                              wordmark's lower-case letters (the box also holds the descender), a single TextBlock -->
-                        <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="Wordmark" Text="Hearthpulse" Style="{StaticResource H2}" FontSize="20" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
+                        <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="Wordmark" Text="Hearthpulse" Style="{StaticResource H2}" FontSize="18" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
                                        VerticalAlignment="Center" />
                             <Border x:Name="BetaBadge" Background="{StaticResource Accent}" CornerRadius="{StaticResource RadiusPill}" Height="16" Padding="8,0" Margin="8,0,0,2"
                                     VerticalAlignment="Center" SnapsToDevicePixels="True" UseLayoutRounding="True"
