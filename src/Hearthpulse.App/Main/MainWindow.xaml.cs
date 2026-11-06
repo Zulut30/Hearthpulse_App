@@ -26,8 +26,6 @@ public partial class MainWindow : Window
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
-        PageBattlegrounds.TabChanged += OnBgTab;
-        PageConstructed.TabChanged += OnCtTab;
         // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
         BindingOperations.SetBinding(SettingsTracker, global::Hearthpulse.App.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
             new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsOverlay.OverlaySetting });
@@ -105,6 +103,68 @@ public partial class MainWindow : Window
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
+
+    private Pages.BattlegroundsPage? _battlegrounds;
+    private Pages.ConstructedPageView? _constructed;
+    private Pages.HistoryPage? _history;
+
+    /// <summary>A tab asked for before its page was built: the page opens on it.</summary>
+    private string? _pendingBattlegroundsTab;
+    private string? _pendingConstructedTab;
+
+    /// <summary>The Battlegrounds page, built on first use (a visit, a tab, a render) rather than with the window.</summary>
+    public Pages.BattlegroundsPage PageBattlegrounds => _battlegrounds ?? BuildBattlegrounds();
+
+    /// <summary>The Standard/Wild page, built on first use.</summary>
+    public Pages.ConstructedPageView PageConstructed => _constructed ?? BuildConstructed();
+
+    /// <summary>The History page, built on first use.</summary>
+    public Pages.HistoryPage PageHistory => _history ??= Build(SlotHistory, new Pages.HistoryPage { Name = nameof(PageHistory) });
+
+    private Pages.BattlegroundsPage BuildBattlegrounds()
+    {
+        _battlegrounds = Build(SlotBattlegrounds, new Pages.BattlegroundsPage { Name = nameof(PageBattlegrounds) });
+        _battlegrounds.TabChanged += OnBgTab;
+        if (_pendingBattlegroundsTab is { } tab)
+        {
+            _pendingBattlegroundsTab = null;
+            BattlegroundsTab = tab;
+        }
+
+        return _battlegrounds;
+    }
+
+    private Pages.ConstructedPageView BuildConstructed()
+    {
+        _constructed = Build(SlotConstructed, new Pages.ConstructedPageView { Name = nameof(PageConstructed) });
+        _constructed.TabChanged += OnCtTab;
+        if (_pendingConstructedTab is { } tab)
+        {
+            _pendingConstructedTab = null;
+            ShowConstructedTab(tab);
+        }
+
+        return _constructed;
+    }
+
+    /// <summary>Puts a page built late into its slot, hidden until the navigation shows it.</summary>
+    private static T Build<T>(ContentControl slot, T page) where T : FrameworkElement
+    {
+        page.Visibility = Visibility.Collapsed;
+        slot.Content = page;
+        return page;
+    }
+
+    /// <summary>Shows or hides a lazily built page; a hidden page that was never built stays unbuilt.</summary>
+    private static void Show(FrameworkElement? built, Func<FrameworkElement> build, bool visible)
+    {
+        if (built is null && !visible)
+        {
+            return;
+        }
+
+        (built ?? build()).Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
     private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
@@ -264,9 +324,14 @@ public partial class MainWindow : Window
         _viewModel.PageShown(MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)));
 
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        Show(_battlegrounds, () => PageBattlegrounds, NavBattlegrounds.IsChecked == true);
         // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
-        PageConstructed.Visibility = ConstructedShown && !_viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
+        Show(_constructed, () => PageConstructed, ConstructedShown && !_viewModel.DeckOpen);
+        if (ConstructedShown && _viewModel.DeckOpen)
+        {
+            _ = DeckDetailsPage;
+        }
+
         PageDeck.Visibility = ConstructedShown && _viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
         if (PageDeck.Visibility == Visibility.Visible)
         {
@@ -276,7 +341,12 @@ public partial class MainWindow : Window
         PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBrawl.Visibility = NavBrawl.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         // The match page stands in for the History list while a game is open.
-        PageHistory.Visibility = NavHistory.IsChecked == true && !_viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
+        Show(_history, () => PageHistory, NavHistory.IsChecked == true && !_viewModel.MatchOpen);
+        if (NavHistory.IsChecked == true && _viewModel.MatchOpen)
+        {
+            _ = MatchDetailsPage;
+        }
+
         PageMatch.Visibility = NavHistory.IsChecked == true && _viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
         if (PageMatch.Visibility == Visibility.Visible)
         {
@@ -284,14 +354,14 @@ public partial class MainWindow : Window
         }
 
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings }
+        Reveal(new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageArena, PageBrawl, _history, PageMatch, PageSettings }.OfType<FrameworkElement>()
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }
 
     private void OnSidebarSize(object sender, SizeChangedEventArgs e) => PlacePill(animate: false);
 
-    /// <summary>Moves the selection pill behind the checked sidebar item, with a light spring when animated.</summary>
+    /// <summary>Moves the selection pill behind the checked sidebar item.</summary>
     private void PlacePill(bool animate)
     {
         var nav = new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
@@ -302,37 +372,13 @@ public partial class MainWindow : Window
 
         var y = nav.TranslatePoint(new Point(0, 2), Sidebar).Y;
         NavPill.Height = nav.ActualHeight - 4;
-        if (!animate || !SystemParameters.ClientAreaAnimation || NavPill.Opacity == 0)
-        {
-            NavPillShift.BeginAnimation(TranslateTransform.YProperty, null);
-            NavPillShift.Y = y;
-            NavPill.Opacity = 1;
-            return;
-        }
-
-        NavPillShift.BeginAnimation(TranslateTransform.YProperty,
-            new System.Windows.Media.Animation.DoubleAnimation(y, TimeSpan.FromMilliseconds(340))
-            {
-                EasingFunction = new System.Windows.Media.Animation.BackEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut, Amplitude = 0.25 },
-            });
+        // Glides over Motion.Settle with a quintic ease-out (no overshoot); the first placement is instant.
+        Motion.Glide(NavPillShift, y, animate && NavPill.Opacity > 0);
+        NavPill.Opacity = 1;
     }
 
-    /// <summary>The page that opens rises a few pixels and fades in; skipped when Windows animations are off.</summary>
-    private static void Reveal(FrameworkElement page, double rise = 12)
-    {
-        if (!SystemParameters.ClientAreaAnimation)
-        {
-            return;
-        }
-
-        var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
-        var shift = new TranslateTransform(0, rise);
-        page.RenderTransform = shift;
-        shift.BeginAnimation(TranslateTransform.YProperty,
-            new System.Windows.Media.Animation.DoubleAnimation(rise, 0, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease });
-        page.BeginAnimation(UIElement.OpacityProperty,
-            new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
-    }
+    /// <summary>The page that opens fades in with a short rise (Motion.Reveal); instant with motion off.</summary>
+    private static void Reveal(FrameworkElement page, double rise = Motion.Rise) => Motion.Reveal(page, rise);
 
     /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
     private void OnBgTab(bool chosen)
@@ -370,7 +416,22 @@ public partial class MainWindow : Window
     }
 
     /// <summary>The deck page view (used by the UI render check).</summary>
-    public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
+    public Decks.DeckDetailsView DeckDetailsPage => _deck ??= Fill(PageDeck, new Decks.DeckDetailsView(), nameof(MainViewModel.DeckPage));
+
+    /// <summary>The match page's view, built on the first open.</summary>
+    public Match.MatchView MatchDetailsPage => _match ??= Fill(PageMatch, new Match.MatchView(), nameof(MainViewModel.MatchPage));
+
+    private Decks.DeckDetailsView? _deck;
+    private Match.MatchView? _match;
+
+    /// <summary>A page view built late, bound to its view model and placed in its scrolling page.</summary>
+    private static T Fill<T>(ScrollViewer page, T view, string path) where T : FrameworkElement
+    {
+        view.Margin = new Thickness(40, 0, 40, 120);
+        view.SetBinding(DataContextProperty, new Binding(path));
+        page.Content = view;
+        return view;
+    }
 
     /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
     public void ShowConstructedTab(string tab) =>
@@ -403,15 +464,37 @@ public partial class MainWindow : Window
     /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
     public string BattlegroundsTab
     {
-        get => MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
-        set => BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
+        get => _battlegrounds is null
+            ? _pendingBattlegroundsTab ?? MainViewModel.BattlegroundsTabs[0]
+            : MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
+        set
+        {
+            if (_battlegrounds is null)
+            {
+                _pendingBattlegroundsTab = value;
+                return;
+            }
+
+            BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
+        }
     }
 
     /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
     public string ConstructedTab
     {
-        get => MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
-        set => ShowConstructedTab(value);
+        get => _constructed is null
+            ? _pendingConstructedTab ?? MainViewModel.ConstructedTabs[0]
+            : MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
+        set
+        {
+            if (_constructed is null)
+            {
+                _pendingConstructedTab = value;
+                return;
+            }
+
+            ShowConstructedTab(value);
+        }
     }
 
     /// <summary>

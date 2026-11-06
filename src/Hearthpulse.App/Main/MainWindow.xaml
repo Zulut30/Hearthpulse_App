@@ -6,8 +6,6 @@
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
         xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
         xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
-        xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
-        xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
         xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
         xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
         xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
@@ -356,15 +354,15 @@
                     <pg:OverviewPage x:Name="PageOverview" Grid.Row="1" />
 
                     <!-- ===== Battlegrounds ===== -->
-                    <pg:BattlegroundsPage x:Name="PageBattlegrounds" Grid.Row="1" Visibility="Collapsed" />
+                    <!-- Built on the first visit (MainWindow.PageBattlegrounds), so the start-up window builds only the page it shows. -->
+                    <ContentControl x:Name="SlotBattlegrounds" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Constructed ===== -->
-                    <pg:ConstructedPageView x:Name="PageConstructed" Grid.Row="1" Visibility="Collapsed" />
+                    <ContentControl x:Name="SlotConstructed" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
-                    <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <dk:DeckDetailsView x:Name="DeckDetails" DataContext="{Binding DeckPage}" Margin="40,0,40,120" />
-                    </ScrollViewer>
+                    <!-- Its DeckDetailsView is built on the first open (MainWindow.DeckDetailsPage). -->
+                    <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
@@ -391,12 +389,11 @@
                     </ScrollViewer>
 
                     <!-- ===== History ===== -->
-                    <pg:HistoryPage x:Name="PageHistory" Grid.Row="1" Visibility="Collapsed" />
+                    <ContentControl x:Name="SlotHistory" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
-                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
-                    </ScrollViewer>
+                    <!-- Its MatchView is built on the first open (MainWindow.MatchDetailsPage). -->
+                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
