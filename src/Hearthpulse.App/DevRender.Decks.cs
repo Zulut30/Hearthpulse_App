@@ -41,11 +41,13 @@ public partial class App
         var chart = _main.DeckDetailsPage.Chart;
         if (_mainViewModel.DeckPage.Chart.Count > 0)
         {
+            _main.DeckDetailsPage.ShowMore(true);
             chart.HoverIndex = _mainViewModel.DeckPage.Chart.Count / 2;
             await Task.Delay(1500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, "main-deck-hover.png"));
             chart.HoverIndex = -1;
+            _main.DeckDetailsPage.ShowMore(false);
         }
 
         // The most played matchup as the filter.
