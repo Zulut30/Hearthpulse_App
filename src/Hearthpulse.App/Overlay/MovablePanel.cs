@@ -245,6 +245,13 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         Hook("PART_Reset", Reset);
         Hook("PART_Lock", () => LockToggled?.Invoke(this));
         _chrome = GetTemplateChild("PART_Chrome") as FrameworkElement;
+        _tagRow = GetTemplateChild("PART_TagRow") as FrameworkElement;
+        _strip = _chrome?.Parent as PanelTagStrip;
+        if (_chrome is not null)
+        {
+            _chrome.IsVisibleChanged += (_, _) => FollowTag();
+        }
+
         _grip = GetTemplateChild("PART_Grip") as FrameworkElement;
         if (_grip is not null)
         {
@@ -272,6 +279,79 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
 
     // The corner marker that resizes the panel.
     private FrameworkElement? _grip;
+
+    // The strip holding the tag, which places it, and the tag's row of buttons, at the strip's top or bottom.
+    private PanelTagStrip? _strip;
+    private FrameworkElement? _tagRow;
+    private bool _followingTag;
+
+    /// <summary>
+    /// While the tag shows, places it after every layout pass (the panel moved, grew or changed size; the tag changed
+    /// width), and stops when it is hidden: the panel's own spot alone does not say where it is on the screen.
+    /// </summary>
+    private void FollowTag()
+    {
+        var follow = _chrome is { IsVisible: true };
+        if (follow == _followingTag)
+        {
+            return;
+        }
+
+        _followingTag = follow;
+        if (follow)
+        {
+            LayoutUpdated += OnLayoutUpdated;
+            PlaceTag();
+        }
+        else
+        {
+            LayoutUpdated -= OnLayoutUpdated;
+        }
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e) => PlaceTag();
+
+    /// <summary>
+    /// Puts the tag above the panel, or under it at the top of the screen, and lines it up with the panel's right side
+    /// at the right edge (<see cref="PanelLayout.TagSpot"/>). The panel's scale applies to the tag too: the rule works
+    /// in surface units and the offset goes back in the panel's own.
+    /// </summary>
+    private void PlaceTag()
+    {
+        if (_strip is null || _chrome is null || Surface is not { ActualWidth: > 0, ActualHeight: > 0 } surface || _scale.ScaleX <= 0)
+        {
+            return;
+        }
+
+        var scale = _scale.ScaleX;
+        if (_chrome.HorizontalAlignment != HorizontalAlignment.Left)
+        {
+            // A wide row's placeholder: the tag goes with it to its end of the row, above as always.
+            _strip.Offset = new Point(0, -PanelLayout.TagHeight);
+            SetTagRow(below: false);
+            return;
+        }
+
+        var origin = TopLeft();
+        var (x, y, below) = PanelLayout.TagSpot(origin.X, origin.Y, ActualWidth * scale, ActualHeight * scale,
+            _chrome.DesiredSize.Width * scale, PanelLayout.TagHeight * scale, PanelLayout.TagInset * scale, surface.ActualWidth, surface.ActualHeight);
+        var offset = new Point(Math.Round(x / scale, 1), Math.Round(y / scale, 1));
+        if (_strip.Offset != offset)
+        {
+            _strip.Offset = offset;
+        }
+
+        SetTagRow(below);
+    }
+
+    private void SetTagRow(bool below)
+    {
+        var alignment = below ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+        if (_tagRow is not null && _tagRow.VerticalAlignment != alignment)
+        {
+            _tagRow.VerticalAlignment = alignment;
+        }
+    }
 
     /// <summary>Back to the XAML spot and size, opaque with full rows.</summary>
     private void Reset()
@@ -709,10 +789,28 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
 /// Holds a movable panel's name tag and buttons (<c>PART_Chrome</c>) without taking part in the panel's size. With the
 /// move hint and the buttons the tag is wider than most panels: as a plain template child it widened the panel when
 /// Ctrl armed it, so the deck jumped about 190 units left with its content, and a drag saved the wider panel's spot.
-/// Each child gets the strip's width, or its own when wider, and places itself in it by its alignment.
+/// Each child gets the strip's width, or its own when wider, and places itself in it by its alignment, moved by
+/// <see cref="Offset"/>: the panel puts the tag under itself or lines it up with its right side at the screen's edges
+/// (<see cref="PanelLayout.TagSpot"/>).
 /// </summary>
 public sealed class PanelTagStrip : Panel
 {
+    private Point _offset = new(-PanelLayout.TagInset, -PanelLayout.TagHeight);
+
+    /// <summary>Where the tag goes from the panel's top-left corner, in the strip's own units; above it at its left edge by default.</summary>
+    public Point Offset
+    {
+        get => _offset;
+        set
+        {
+            if (_offset != value)
+            {
+                _offset = value;
+                InvalidateArrange();
+            }
+        }
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var height = 0.0;
@@ -729,7 +827,7 @@ public sealed class PanelTagStrip : Panel
     {
         foreach (UIElement child in InternalChildren)
         {
-            child.Arrange(new Rect(0, 0, Math.Max(finalSize.Width, child.DesiredSize.Width), Math.Max(finalSize.Height, child.DesiredSize.Height)));
+            child.Arrange(new Rect(_offset.X, _offset.Y, Math.Max(finalSize.Width, child.DesiredSize.Width), child.DesiredSize.Height));
         }
 
         return finalSize;

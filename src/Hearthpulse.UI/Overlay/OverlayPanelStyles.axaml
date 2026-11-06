@@ -249,8 +249,9 @@
                          can travel from the panel to the buttons without leaving it. -->
                     <!-- The strip keeps the tag out of the panel's size: wider than the panel, it widened and moved it when armed -->
                     <o:PanelTagStrip>
-                        <Panel Name="PART_Chrome" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                        <Panel Name="PART_Chrome" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Height="26">
+                            <!-- Above the panel the buttons keep to the strip's top, under it (no room at the top of the screen) to its bottom -->
+                            <StackPanel Name="PART_TagRow" Orientation="Horizontal" VerticalAlignment="Top">
                                 <!-- The panels' lock, first so it stays under the pointer when the tag and tools appear beside it; on a
                                      locked panel the only part that takes the mouse -->
                                 <Button Name="PART_Lock" Classes="lockButton" IsVisible="False" Margin="0,0,4,0" o:OverlayHit.Interactive="True"

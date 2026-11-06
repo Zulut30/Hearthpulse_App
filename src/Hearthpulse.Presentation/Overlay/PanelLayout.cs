@@ -60,6 +60,35 @@ public static class PanelLayout
         (Math.Clamp(PanelSnap.Snap(startX + dx, width, surfaceWidth, across), 0, Math.Max(0, surfaceWidth - width)),
          Math.Clamp(PanelSnap.Snap(startY + dy, height, surfaceHeight, down), 0, Math.Max(0, surfaceHeight - height)));
 
+    /// <summary>How far the name tag reaches past the panel's left edge, in line with the layout frame.</summary>
+    public const double TagInset = 4;
+
+    /// <summary>The height of the strip with the name tag and the panel's buttons.</summary>
+    public const double TagHeight = 26;
+
+    /// <summary>
+    /// Where a panel's name tag with its buttons goes, as an offset from the panel's top-left corner; every size and
+    /// spot in surface units. Above the panel, starting at its left edge, as long as it fits: under the panel when
+    /// there is less than <paramref name="tagHeight"/> above it (a panel at the top of the screen), and lined up with the
+    /// panel's right edge when it would run past the right side of the screen. No part of the tag leaves the surface.
+    /// </summary>
+    public static (double X, double Y, bool Below) TagSpot(
+        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double tagHeight, double inset,
+        double surfaceWidth, double surfaceHeight)
+    {
+        var x = -inset;
+        if (panelX + x + tagWidth > surfaceWidth)
+        {
+            x = panelWidth + inset - tagWidth;
+        }
+
+        x = Math.Clamp(panelX + x, 0, Math.Max(0, surfaceWidth - tagWidth)) - panelX;
+        var below = panelY < tagHeight;
+        var y = below ? panelHeight : -tagHeight;
+        y = Math.Clamp(panelY + y, 0, Math.Max(0, surfaceHeight - tagHeight)) - panelY;
+        return (x, y, below);
+    }
+
     /// <summary>The placement saved for a panel whose top-left corner is at (<paramref name="x"/>, <paramref name="y"/>).</summary>
     public static PanelPlacement Placement(double x, double y, double surfaceWidth, double surfaceHeight, double scale) => new()
     {
