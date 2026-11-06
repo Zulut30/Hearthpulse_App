@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 24
       - name: Pool API validation
-        run: node --test server/pool/test/validation.test.mjs
+        run: node --test server/pool/test/validation.test.mjs server/pool/test/events.test.mjs
       - name: Twitch extension (tests, build, zip under 1 MB)
         working-directory: twitch-extension
         run: npm ci && npm test && npm run build && npm run zip

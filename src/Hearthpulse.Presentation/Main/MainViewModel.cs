@@ -59,7 +59,11 @@ public sealed partial class MainViewModel : Observable
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
 #if HEARTHPULSE_WPF
-        AnswerPool = new RelayCommand(p => PoolSharing = p as string == "yes");
+        AnswerPool = new RelayCommand(p =>
+        {
+            PoolSharing = p as string == "yes";
+            Raise(nameof(ShowGameStatsNotice));
+        });
 #endif
     }
 

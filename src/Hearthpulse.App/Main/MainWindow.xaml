@@ -512,6 +512,38 @@
                         </Grid>
                     </Border>
 
+                    <!-- ===== Once: game records are on by default (docs/game-stats.md); a notice, not a consent question ===== -->
+                    <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,4,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"
+                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
+                            Visibility="{Binding ShowGameStatsNotice, Converter={StaticResource Vis}}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="46" Height="46">
+                                <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="&#xF0128;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="16,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Text="{i:Loc Main.GameStats.Title}" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}"
+                                           Text="{i:Loc Main.GameStats.What}" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Text="{i:Loc Main.GameStats.Never}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.More}" Command="{Binding AnswerGameStats}" CommandParameter="more" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.Off}" Command="{Binding AnswerGameStats}" CommandParameter="off" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.GameStats.Ok}" Command="{Binding AnswerGameStats}" CommandParameter="ok" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
                 </Grid>
             </Border>
 

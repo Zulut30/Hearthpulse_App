@@ -204,6 +204,18 @@ public sealed partial class AppSettings
     /// <summary>Earlier games were shared once, after the player agreed.</summary>
     public bool PoolHistoryShared { get; set; }
 
+    /// <summary>
+    /// The player turned game records off (docs/game-stats.md): they are on by default (the owner's decision,
+    /// 2026-11-06), with this opt-out switch in Settings → Data. Turning it on deletes what this install sent.
+    /// </summary>
+    public bool GameStatsOff { get; set; }
+
+    /// <summary>
+    /// The one-time notice about game records was shown in the main window (LEGAL-game-stats-default-on L-M1): nothing
+    /// is sent before, so a player who updated silently learns of it first.
+    /// </summary>
+    public bool GameStatsNoticeShown { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 

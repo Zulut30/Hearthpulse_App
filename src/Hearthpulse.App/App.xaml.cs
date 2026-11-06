@@ -260,6 +260,12 @@ public partial class App : Application
             _mulliganGuide.Rank = _settings.MulliganRank;
             _settingsDebounce.Kick();
         };
+        _mainViewModel.GameStatsChanged += on =>
+        {
+            _settingsDebounce.Kick();
+            if (on) _services.GameStats.Kick();
+            else _services.GameStats.Withdraw();
+        };
         _mainViewModel.PoolConsentChanged += () =>
         {
             _settingsDebounce.Kick();
@@ -342,6 +348,7 @@ public partial class App : Application
         _uiProbe?.Dispose();
         _watcher?.Dispose();
         _uploader?.Dispose();
+        _services?.GameStats.Dispose();
         _hotkeys?.Dispose();
 
         if (_tray is not null)
@@ -427,6 +434,7 @@ public partial class App : Application
             _watcher = new LogWatcher(_session, () => _installDir);
             _watcher.Start();
             _uploader.Start();
+            _services.GameStats.Start();
             _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();

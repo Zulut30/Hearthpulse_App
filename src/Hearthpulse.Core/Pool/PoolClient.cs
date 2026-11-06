@@ -64,7 +64,10 @@ public static partial class PoolClient
     /// <summary>Picks, plays and earlier games were added in version 3.</summary>
     public static bool SharingAll(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 3;
 
-    /// <summary>The Discover-style picks of Ranked and Casual Constructed games were added in version 4.</summary>
+    /// <summary>
+    /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Game records of every
+    /// mode (docs/game-stats.md) are another purpose with their own opt-out switch (<see cref="AppSettings.GameStatsOff"/>).
+    /// </summary>
     public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
 
     /// <summary>The install's secret for game ids, made on first use. Callers save the settings afterwards.</summary>
@@ -82,9 +85,10 @@ public static partial class PoolClient
     public static PoolGame Limit(PoolGame game, AppSettings settings) =>
         game.Details is { } d && !SharingAll(settings) ? game with { Details = d with { Choices = [], Plays = [] } } : game;
 
-    internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Game).ToList() };
+    internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Row).ToList() };
 
-    private static Dictionary<string, object?> Game(PoolGame game)
+    /// <summary>One game as the pool's <c>POST /v1/games</c> takes it (game records reuse the Battlegrounds part).</summary>
+    internal static Dictionary<string, object?> Row(PoolGame game)
     {
         var row = new Dictionary<string, object?>
         {

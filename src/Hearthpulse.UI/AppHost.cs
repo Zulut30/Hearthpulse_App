@@ -96,6 +96,12 @@ public sealed partial class AppHost : IDisposable
         {
             _settingsDebounce.Kick();
         };
+        Main.GameStatsChanged += on =>
+        {
+            _settingsDebounce.Kick();
+            if (on) _services.GameStats.Kick();
+            else _services.GameStats.Withdraw();
+        };
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -251,6 +257,7 @@ public sealed partial class AppHost : IDisposable
             _watcher = new LogWatcher(Session, () => InstallDirectory);
             _watcher.Start();
             Uploader.Start();
+            _services.GameStats.Start();
             Main.ShowBusy(InstallDirectory is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
@@ -474,6 +481,7 @@ public sealed partial class AppHost : IDisposable
         Loc.Instance.LanguageChanged -= OnLanguageChanged;
         _watcher?.Dispose();
         Uploader.Dispose();
+        _services.GameStats.Dispose();
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();

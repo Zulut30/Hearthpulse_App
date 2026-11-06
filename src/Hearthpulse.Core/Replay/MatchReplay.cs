@@ -32,6 +32,11 @@ public sealed class MatchReplay
     /// <summary>Cards the local player drew after the mulligan, with the turn.</summary>
     public IReadOnlyList<ShownCard> LocalDrawn { get; private set; } = [];
 
+    /// <summary>
+    /// Every card that came into the local hand after the mulligan (drawn or created), with its player turn, in order.
+    /// </summary>
+    public IReadOnlyList<(string CardId, int Turn)> LocalHandEntries { get; private set; } = [];
+
     /// <summary>Every non-mulligan choice of the local player (Discover and the like).</summary>
     public IReadOnlyList<ReplayAction> Choices { get; private set; } = [];
 
@@ -49,6 +54,25 @@ public sealed class MatchReplay
 
     /// <summary>Reads a Constructed replay file's text; null for another kind or an unreadable file.</summary>
     public static MatchReplay? Parse(string text) => Parse(text, reference: false);
+
+    /// <summary>
+    /// Reads a Constructed replay as the local player saw it during the game: the post-game part (what the log revealed
+    /// by the end about the opponent's card backs) is left out, so no card back has a name (ADR 0005). Game records
+    /// (docs/game-stats.md) are built from this.
+    /// </summary>
+    public static MatchReplay? ParseSeen(string text)
+    {
+        if (ReplayFile.Read(text) is not { } file || file.Header.Kind != ReplayFile.Constructed)
+        {
+            return null;
+        }
+
+        var replay = new MatchReplay(file.Header);
+        new Folder(replay, reference: false).Run(file.Body.Where(line => !IsPostGame(line)).ToList());
+        return replay;
+    }
+
+    private static bool IsPostGame(string line) => line.Length > 2 && line[0] is 'N' or 'K' && line[1] == ' ';
 
     /// <summary>
     /// <paramref name="reference"/>: every frame walks all the game's cards and builds each card anew, as before the
@@ -146,6 +170,7 @@ public sealed class MatchReplay
             replay.OpponentPlayed = Shown(_opponentPlayed);
             replay.LocalPlayed = Shown(_localPlayed);
             replay.LocalDrawn = Shown(_localDrawn);
+            replay.LocalHandEntries = _localDrawn.ToList();
             if (_offered.Count > 0)
             {
                 // What went back is what left the hand while the new cards were dealt (the Coin cannot go back).
