@@ -302,5 +302,8 @@
   "Main.Bg.HeroTierUnder": "average place under {1} · {0:N0} hero|average place under {1} · {0:N0} heroes",
   "Main.Bg.HeroTierFrom": "average place from {1} · {0:N0} hero|average place from {1} · {0:N0} heroes",
   "Main.Bg.TrinketTierUnder": "average place under {1} · {0:N0} trinket|average place under {1} · {0:N0} trinkets",
-  "Main.Bg.TrinketTierFrom": "average place from {1} · {0:N0} trinket|average place from {1} · {0:N0} trinkets"
+  "Main.Bg.TrinketTierFrom": "average place from {1} · {0:N0} trinket|average place from {1} · {0:N0} trinkets",
+  "Main.Mode.Underground": "Underground Arena",
+  "Main.History.Underground": "Underground",
+  "Main.History.UndergroundTip": "Underground Arena games"
 }

@@ -75,16 +75,17 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>No class rows yet and neither numbers nor a failure came from the host.</summary>
-    public bool ArenaCommunityLoading => _arenaCommunity.Count == 0 && !ArenaCommunityUnavailable;
+    public bool ArenaCommunityLoading => _arenaCommunity.Count == 0 && !ArenaCommunityUnavailable && !ArenaCommunityNoSplit;
 
     /// <summary>No class rows: the load failed, or the numbers came without classes.</summary>
-    public bool ArenaCommunityUnavailable => _arenaCommunity.Count == 0 && (_arenaMetaFailed || _arenaMeta is { Classes.Count: 0 });
+    public bool ArenaCommunityUnavailable => _arenaCommunity.Count == 0 && !ArenaCommunityNoSplit && (_arenaMetaFailed || _arenaMeta is { Classes.Count: 0 });
 
     /// <summary>The Arena numbers the host loaded; the Arena page is rebuilt with them.</summary>
     public void SetArenaMeta(ArenaMeta? meta)
     {
         _arenaMeta = meta;
         _arenaMetaFailed = false;
+        Raise(nameof(ArenaDeckEmptyText));
         RaiseArenaCommunityStates();
         RebuildArenaStats();
     }

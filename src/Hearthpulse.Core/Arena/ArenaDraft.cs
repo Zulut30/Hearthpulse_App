@@ -119,6 +119,14 @@ public static class ArenaDraft
     public static ArenaDraftView Build(ArenaDraftState state, ArenaDraftOffer? offer, ArenaMeta? meta, CardDb cards, bool? underground = null)
     {
         meta ??= ArenaMeta.Empty;
+        var mode = offer?.Underground ?? underground;
+        // The community class numbers have no Underground split: an Underground run shows none rather than the regular
+        // Arena's (the card scores keep their own slice and say when it is the other Arena's).
+        if (mode == true)
+        {
+            meta = meta.WithoutClasses();
+        }
+
         var playerClass = ClassOfHero(state.HeroCardId, cards);
         // A hero power logged as a choice is no card of the deck.
         var deckIds = state.Cards.Where(id => ArenaDraftTracker.KindOf(id, cards) == ArenaChoiceKind.Card).ToList();
@@ -137,7 +145,6 @@ public static class ArenaDraft
         var runStat = heroPick ? null : meta.Class(playerClass);
         var runClass = runStat is null ? null
             : new ArenaRunClass(runStat.PlayerClass, runStat.WinRate, runStat.SevenPlus, IndexOf(meta.Classes, runStat) + 1, meta.Classes.Count);
-        var mode = offer?.Underground ?? underground;
         return new ArenaDraftView(
             playerClass,
             state.HeroCardId,

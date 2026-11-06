@@ -69,28 +69,17 @@
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                        <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
-                        <!-- The wordmark and under it the BETA pill, at its left edge: beside it the 250 px column has no room;
-                             together they are the logo's height, so the header does not grow -->
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}" />
-                            <!-- BETA: a small pill in the accent's soft fill and line; the letters are spaced one by one (WPF has no
-                                 letter spacing) -->
-                            <Border x:Name="BetaBadge" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1"
-                                    CornerRadius="{StaticResource RadiusPill}" Padding="8,0" HorizontalAlignment="Left"
+                        <Image Source="{StaticResource HearthpulseLogo}" Width="36" Height="36" />
+                        <!-- The wordmark and the BETA pill on its line: a solid accent pill with dark capitals, centred on the
+                             wordmark's lower-case letters (the box also holds the descender), a single TextBlock -->
+                        <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="Wordmark" Text="Hearthpulse" Style="{StaticResource H2}" FontSize="18" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
+                                       VerticalAlignment="Center" />
+                            <Border x:Name="BetaBadge" Background="{StaticResource Accent}" CornerRadius="{StaticResource RadiusPill}" Height="16" Padding="8,0" Margin="8,0,0,2"
+                                    VerticalAlignment="Center" SnapsToDevicePixels="True" UseLayoutRounding="True"
                                     ToolTip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}" Focusable="False">
-                                <ItemsControl ItemsSource="{i:Loc Main.Beta}" Focusable="False" IsTabStop="False">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,1,0" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <TextBlock Text="{i:Loc Main.Beta}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeMicro}" FontWeight="Bold"
+                                           Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" TextOptions.TextFormattingMode="Display" />
                             </Border>
                         </StackPanel>
                     </StackPanel>

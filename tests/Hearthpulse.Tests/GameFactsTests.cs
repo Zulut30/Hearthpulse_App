@@ -120,6 +120,31 @@ public sealed class GameFactsTests
     }
 
     [Theory]
+    [InlineData("GT_UNDERGROUND_ARENA", ArenaKind.Underground)]
+    [InlineData("GT_ARENA", ArenaKind.Arena)]
+    public void An_arena_row_keeps_which_arena_the_log_named(string gameType, ArenaKind kind)
+    {
+        var parser = new PowerParser(new DateOnly(2026, 11, 7));
+        var battlegrounds = new BattlegroundsTracker { Cards = Cards };
+        parser.AddListener(battlegrounds);
+        Feed(parser,
+        [
+            .. Setup(gameType, 30, 40, opponentIsDummy: false),
+            .. Entity(30, "HERO_08", Me, "PLAY", "HERO"),
+            .. Entity(40, "HERO_09", Them, "PLAY", "HERO"),
+            .. Entity(60, "CORE_CS2_029", Me, "HAND", "SPELL"),
+            "DebugPrintPower() - TAG_CHANGE Entity=2 tag=FIRST_PLAYER value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYSTATE value=WON ",
+        ]);
+
+        var record = GameRecords.Build(parser.Game!, battlegrounds, Cards, null, "test")!;
+
+        Assert.Equal("Arena", record.Mode);
+        Assert.Equal(gameType, record.GameType);
+        Assert.Equal(kind, ArenaStats.KindOf(record));
+    }
+
+    [Theory]
     [InlineData(Me, true)]
     [InlineData(Them, false)]
     public void Constructed_row_says_who_went_first(int first, bool expected)

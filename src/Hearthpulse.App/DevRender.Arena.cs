@@ -45,13 +45,20 @@ public partial class App
 
         (_settings.OverlayScale, _settings.ShowArenaDraft) = (scale, shown);
         _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+        await RenderArenaPageAsync(folder);
+    }
+
+    /// <summary>The Arena page with its made-up runs: the regular tab, its rewards editor, then the Underground tab.</summary>
+    private async Task RenderArenaPageAsync(string folder)
+    {
+        await LoadArenaMetaAsync();
 
         // Two made-up runs, one with rewards on its chip (docs/arena-rewards.md). They go into the history only when it is
         // a copy (HEARTHPULSE_DATA, as render.py sets it), never the player's own.
         var sample = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA"));
         if (sample)
         {
-            foreach (var game in ArenaRunsScene.Games())
+            foreach (var game in ArenaRunsScene.Games().Concat(ArenaRunsScene.UndergroundGames()))
             {
                 _history.Add(game);
             }
@@ -82,5 +89,12 @@ public partial class App
         _main.UpdateLayout();
         SaveFull(content, Path.Combine(folder, "main-arena-rewards.png"));
         _mainViewModel.ArenaRuns.FirstOrDefault(r => r.Edit is not null)?.Edit?.Cancel.Execute(null);
+
+        // The Underground tab: its own run, no community class numbers.
+        _mainViewModel.ArenaTabUnderground = true;
+        await Task.Delay(1500);
+        _main.UpdateLayout();
+        SaveFull(content, Path.Combine(folder, "main-arena-underground.png"));
+        _mainViewModel.ArenaTabRegular = true;
     }
 }

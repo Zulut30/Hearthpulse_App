@@ -178,18 +178,19 @@ public sealed partial class MainViewModel
 
     private void RebuildArenaStats()
     {
-        var (all, period, cards, arena) = (_allGames, _arenaPeriod, _cards, _arenaMeta);
-        RunStatsBuild(2, () => BuildArenaStats(all, period, cards, arena));
+        var (all, period, cards, kind) = (_allGames, _arenaPeriod, _cards, _arenaKind);
+        var arena = ArenaMetaFor(_arenaMeta, kind);
+        RunStatsBuild(2, () => BuildArenaStats(all, period, cards, arena, kind));
     }
 
-    private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena)
+    private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena, ArenaKind kind)
     {
         var now = DateTime.Now;
-        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, now);
+        var games = StatsFilter.Apply(all.Where(g => ArenaStats.Is(g, kind)), period, now);
         // Runs from every Arena game, then the ones with a game in the period: a run across the period's start stays
         // whole, so its key (by its first game when it has no deck id) and its rewards are the same in every period.
         var start = StatsFilter.Start(period, now);
-        var runs = ArenaStats.Runs(StatsFilter.Apply(all.Where(StatsFilter.IsArena), StatsPeriod.All, now))
+        var runs = ArenaStats.Runs(StatsFilter.Apply(all.Where(g => ArenaStats.Is(g, kind)), StatsPeriod.All, now))
             .Where(r => start is null || r.Ended >= start)
             .ToList();
         var summary = ArenaStats.Summary(runs);

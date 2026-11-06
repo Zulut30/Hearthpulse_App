@@ -71,7 +71,7 @@
             </StackPanel>
         </Border>
 
-        <st:TwitchSettingsCard Margin="0,0,0,16" />
+        <st:TwitchSettingsCard Margin="0,0,0,16" IsVisible="{Binding ShowTwitchCard}" />
         <Border Classes="card">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />

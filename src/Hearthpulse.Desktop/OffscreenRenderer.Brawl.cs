@@ -46,6 +46,11 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("arenapage"))
+        {
+            await RenderArenaPageAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("settings"))
         {
             await RenderSettingsToolsAsync(main, view, folder);

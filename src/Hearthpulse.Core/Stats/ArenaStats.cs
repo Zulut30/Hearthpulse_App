@@ -14,6 +14,16 @@ public sealed record ArenaRun(string PlayerClass, long? DeckId, DateTime Started
     public string Key => DeckId is > 0
         ? "deck:" + DeckId.Value.ToString(CultureInfo.InvariantCulture)
         : PlayerClass + ":" + Started.ToString("O", CultureInfo.InvariantCulture);
+
+    /// <summary>Which Arena the run was played in (a run never mixes the two).</summary>
+    public ArenaKind Kind => Games.Count > 0 ? ArenaStats.KindOf(Games[0]) : ArenaKind.Arena;
+}
+
+/// <summary>The two Arenas of Hearthstone: the regular one and Underground Arena (2025, five losses).</summary>
+public enum ArenaKind
+{
+    Arena,
+    Underground,
 }
 
 /// <summary>Header numbers of the Arena page.</summary>
@@ -29,10 +39,24 @@ public static class ArenaStats
     public const int MaxWins = 12;
 
     /// <summary>
-    /// Losses that end a run: 3 in Arena. The log does not say which Arena variant a game belongs to beyond its game
-    /// type, so a game type naming "UNDERGROUND" is given the 5 losses of Underground Arena (unverified on real logs).
+    /// Losses that end a run: 3 in Arena, 5 in Underground Arena. The log tells the two apart only by the game type
+    /// (<see cref="KindOf"/>; unverified on real logs, none had an Underground game yet).
     /// </summary>
-    public static int MaxLosses(GameRecord game) => game.GameType.Contains("UNDERGROUND", StringComparison.Ordinal) ? 5 : 3;
+    public static int MaxLosses(GameRecord game) => KindOf(game) == ArenaKind.Underground ? 5 : 3;
+
+    /// <summary>
+    /// The Arena a game belongs to, from its saved game type: Underground when the type names it
+    /// (<c>GT_UNDERGROUND_ARENA</c>), else the regular Arena; games saved before the split keep their logged type, so an
+    /// old <c>GT_ARENA</c> game stays regular.
+    /// </summary>
+    public static ArenaKind KindOf(GameRecord game)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        return game.GameType.Contains("UNDERGROUND", StringComparison.Ordinal) ? ArenaKind.Underground : ArenaKind.Arena;
+    }
+
+    /// <summary>An Arena game of that Arena.</summary>
+    public static bool Is(GameRecord game, ArenaKind kind) => StatsFilter.IsArena(game) && KindOf(game) == kind;
 
     /// <summary>
     /// Splits Arena games into runs. Two different deck ids (Decks.log names the Arena deck) are always two runs, the same
@@ -85,6 +109,11 @@ public static class ArenaStats
     private static bool SameRun(List<GameRecord> run, GameRecord game)
     {
         var last = run[^1];
+        if (KindOf(last) != KindOf(game))
+        {
+            return false;
+        }
+
         var runDeck = RunDeck(run);
         if (runDeck is not null && game.DeckId is > 0)
         {

@@ -155,6 +155,15 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <StackPanel>
+        <!-- The two Arenas apart (owner, 2026-11-07): everything below follows the tab -->
+        <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,16" AutomationProperties.Name="{i:Loc Arena.Page.Tabs}">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="ArenaTabRegular" Style="{StaticResource Tab}" GroupName="ArenaKind" Content="{i:Loc Arena.Page.TabArena}" IsChecked="{Binding ArenaTabRegular}"
+                             ToolTip="{i:Loc Arena.Page.TabArenaTip}" AutomationProperties.Name="{i:Loc Arena.Page.TabArena}" />
+                <RadioButton x:Name="ArenaTabUnderground" Style="{StaticResource Tab}" GroupName="ArenaKind" Content="{i:Loc Arena.Page.TabUnderground}" IsChecked="{Binding ArenaTabUnderground}"
+                             ToolTip="{i:Loc Arena.Page.TabUndergroundTip}" AutomationProperties.Name="{i:Loc Arena.Page.TabUnderground}" />
+            </StackPanel>
+        </Border>
         <Grid Margin="0,0,0,12">
             <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
             <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}">
@@ -341,7 +350,7 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                        <TextBlock Text="{Binding ArenaDeckEmptyText}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                                    Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
@@ -354,6 +363,8 @@
                                         Visibility="{Binding ArenaCommunityLoading, Converter={StaticResource Vis}}" />
                         <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
                                         Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
+                        <ContentControl x:Name="ArenaCommunityNoSplit" Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityNoSplit}"
+                                        Visibility="{Binding ArenaCommunityNoSplit, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

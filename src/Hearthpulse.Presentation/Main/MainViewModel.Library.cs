@@ -198,8 +198,8 @@ public sealed partial class MainViewModel
                 // The hero portrait and the board already say "Battlegrounds": only Duos (and any other mode) names itself,
                 // so the tier and the turns fit the caption.
                 Caption = g.Mode == "Battlegrounds" ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
-                    : $"{Mode(g.Mode)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
-                ModeText = Mode(g.Mode),
+                    : $"{ModeOf(g)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
+                ModeText = ModeOf(g),
                 Result = g.IsAbandoned ? ResultText(g.Result) : Ordinal(g.Placement),
                 ResultKey = resultKey,
                 Rating = rating,
@@ -215,17 +215,17 @@ public sealed partial class MainViewModel
         return new LibraryCard(shelf, fileName, historyKey, battlegrounds: false)
         {
             HeroCardId = g.HeroCardId,
-            Title = deck ?? (playerClass.Length > 0 ? playerClass : Mode(g.Mode)),
+            Title = deck ?? (playerClass.Length > 0 ? playerClass : ModeOf(g)),
             // The rank goes last: a narrow row trims it first (it is in the tooltip and on the match page), not the turns.
             Caption = string.Join(" · ", new[]
             {
                 deck is null ? null : playerClass,
-                Mode(g.Mode),
+                ModeOf(g),
                 format,
                 g.Turns > 0 ? Loc.P("Main.Game.Turns", g.Turns) : null,
                 RankInfo.Localize(g.Rank),
             }.Where(x => !string.IsNullOrEmpty(x))),
-            ModeText = Mode(g.Mode),
+            ModeText = ModeOf(g),
             OpponentHeroCardId = g.OpponentHeroCardId,
             Opponent = g.OpponentClass is { Length: > 0 } opponent ? Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(opponent)) : string.Empty,
             OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeNames.Display(archetype) ?? archetype : string.Empty,

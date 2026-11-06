@@ -126,6 +126,15 @@
         </Style>
     </UserControl.Styles>
     <StackPanel>
+        <!-- The two Arenas apart (owner, 2026-11-07): everything below follows the tab -->
+        <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" AutomationProperties.Name="{i:Loc Arena.Page.Tabs}">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Name="ArenaTabRegular" Classes="segment" GroupName="ArenaKind" Content="{i:Loc Arena.Page.TabArena}" IsChecked="{Binding ArenaTabRegular}"
+                             ToolTip.Tip="{i:Loc Arena.Page.TabArenaTip}" AutomationProperties.Name="{i:Loc Arena.Page.TabArena}" />
+                <RadioButton Name="ArenaTabUnderground" Classes="segment" GroupName="ArenaKind" Content="{i:Loc Arena.Page.TabUnderground}" IsChecked="{Binding ArenaTabUnderground}"
+                             ToolTip.Tip="{i:Loc Arena.Page.TabUndergroundTip}" AutomationProperties.Name="{i:Loc Arena.Page.TabUnderground}" />
+            </StackPanel>
+        </Border>
         <Grid Classes="statsHead" Margin="0,0,0,12" RowDefinitions="Auto,Auto">
             <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
             <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
@@ -292,7 +301,7 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasArenaDeck}" />
+                        <TextBlock Text="{Binding ArenaDeckEmptyText}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasArenaDeck}" />
                     </StackPanel>
                 </Border>
                 <Border Classes="card">
@@ -302,6 +311,7 @@
                         <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}" IsVisible="{Binding ArenaCommunityLoading}" />
                         <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}" IsVisible="{Binding ArenaCommunityUnavailable}" />
+                        <ContentControl Name="ArenaCommunityNoSplit" Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityNoSplit}" IsVisible="{Binding ArenaCommunityNoSplit}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

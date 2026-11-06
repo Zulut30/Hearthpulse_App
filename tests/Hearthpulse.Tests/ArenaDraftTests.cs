@@ -530,6 +530,20 @@ public sealed class ArenaDraftTests : IDisposable
         "D 21:00:05.0000000 Client chooses: Ящик Пандоры (BE_085)",
     ];
 
+    [Fact]
+    public void An_underground_draft_shows_no_class_numbers_of_the_regular_arena()
+    {
+        var regular = ArenaDraft.Build(ArenaDraftState.Empty, ["HERO_07", "HERO_08", "HERO_10"], Meta(), Cards, underground: false);
+        var underground = ArenaDraft.Build(ArenaDraftState.Empty, ["HERO_07", "HERO_08", "HERO_10"], Meta(), Cards, underground: true);
+
+        Assert.NotEmpty(regular.Classes);
+        Assert.Contains(regular.Options, o => o.WinRate is not null);
+        Assert.True(underground.HeroPick);
+        Assert.Empty(underground.Classes);
+        Assert.All(underground.Options, o => Assert.Null(o.WinRate));
+        Assert.True(underground.Underground);
+    }
+
     private static ArenaDraftState State(IReadOnlyList<string> cards) => new("HERO_07", 0, cards, "DRAFTING");
 
     private static ArenaMeta Meta()

@@ -30,6 +30,16 @@ public static class ArenaRunsScene
             .ToList();
     }
 
+    /// <summary>An Underground Arena run in progress (Warrior, 3–2): the Arena page's second tab.</summary>
+    public static IReadOnlyList<GameRecord> UndergroundGames()
+    {
+        var start = new DateTime(2026, 10, 3, 18, 0, 0, DateTimeKind.Local);
+        string[] warrior = ["Win", "Loss", "Win", "Win", "Loss"];
+        return warrior.Select((r, i) => Game(r, "WARRIOR", UndergroundDeckId, start.AddMinutes(12 * i)) with { GameType = "GT_UNDERGROUND_ARENA", OpponentClass = "PRIEST" }).ToList();
+    }
+
+    private const long UndergroundDeckId = 3_300_003;
+
     private static GameRecord Game(string result, string playerClass, long deckId, DateTime started) => new()
     {
         Key = $"render-arena-{deckId}-{started.Ticks}",
