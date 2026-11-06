@@ -49,8 +49,13 @@ server rebuilds every record from known fields only, so anything else is dropped
   180 days, that the statistics may be used in paid features, how to turn it off and that this deletes the sent games.
   Shown only once the pool is set up (`PoolClient.Available`); nothing is sent before. Stored as
   `AppSettings.GameStatsOff` (false = sending).
-- The stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4) is unrelated
-  and unchanged.
+- **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»: what is
+  sent, what never, 180 days, how to turn off; buttons «Понятно» / «Выключить» / «Подробнее» → the policy). Not a
+  consent question: it tells players who updated silently and never saw the installer. Nothing is sent before it was
+  shown (`AppSettings.GameStatsNoticeShown`); in WPF it waits until the stats pool's question is answered. The install
+  secret is made when the notice is answered or the switch goes on, not before.
+- The stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4) is a separate
+  purpose; its text now says it is about the pool only and where game records are turned off.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
   waits in the queue (`game-stats/forget`) until the pool answers.

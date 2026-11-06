@@ -23,6 +23,7 @@ public sealed partial class MainViewModel
             if (Set(ref _poolAvailable, value))
             {
                 Raise(nameof(AskPoolConsent));
+                Raise(nameof(ShowGameStatsNotice));
             }
         }
     }

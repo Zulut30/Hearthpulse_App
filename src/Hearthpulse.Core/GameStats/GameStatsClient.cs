@@ -29,8 +29,11 @@ public static class GameStatsClient
     /// <summary>Records sent in one request (the server takes up to 20).</summary>
     public const int MaxBatch = 20;
 
-    /// <summary>Game records go out: on by default, unless the player turned them off, once the pool is set up.</summary>
-    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && PoolClient.Available(settings);
+    /// <summary>
+    /// Game records go out: on by default, unless the player turned them off, once the pool is set up and the player
+    /// has seen the one-time notice in the main window.
+    /// </summary>
+    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && settings.GameStatsNoticeShown && PoolClient.Available(settings);
 
     /// <summary>
     /// The install's id for its records: a keyed hash of the pool secret, never shown and never linked to an account.

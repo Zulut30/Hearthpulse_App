@@ -210,6 +210,12 @@ public sealed class AppSettings
     /// </summary>
     public bool GameStatsOff { get; set; }
 
+    /// <summary>
+    /// The one-time notice about game records was shown in the main window (LEGAL-game-stats-default-on L-M1): nothing
+    /// is sent before, so a player who updated silently learns of it first.
+    /// </summary>
+    public bool GameStatsNoticeShown { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 

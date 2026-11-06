@@ -58,7 +58,7 @@ public sealed class GameStatsUploader : IDisposable
     {
         // The install id comes from the pool secret: make and save it before the first record, so a crash before exit
         // cannot leave sent records that turning the switch off later no longer finds (LEGAL-game-stats L-m2).
-        if (_settings.PoolSecret is not { Length: 64 })
+        if (GameStatsClient.Sharing(_settings) && _settings.PoolSecret is not { Length: 64 })
         {
             PoolClient.Secret(_settings);
             try

@@ -1,3 +1,9 @@
+#if HEARTHPULSE_WPF
+using Hearthpulse.App.Infrastructure;
+#else
+using Hearthpulse.UI.Infrastructure;
+#endif
+using Hearthpulse.Core.GameStats;
 using Hearthpulse.Core.Pool;
 
 #if HEARTHPULSE_WPF
@@ -24,13 +30,58 @@ public sealed partial class MainViewModel
             }
 
             Settings.GameStatsOff = !value;
+            // Turned on in Settings: the player has seen what it sends there.
+            Settings.GameStatsNoticeShown = true;
+            if (value)
+            {
+                GameStatsClient.InstallId(Settings);
+            }
+
             Raise();
+            Raise(nameof(ShowGameStatsNotice));
             GameStatsChanged?.Invoke(value);
         }
     }
 
     /// <summary>The switch shows only once the stats pool is set up.</summary>
     public bool GameStatsAvailable => PoolClient.Available(Settings);
+
+    /// <summary>
+    /// The one-time notice in the main window: game records are on by default, what they hold and how to turn them off
+    /// (not a consent question). Nothing is sent before it was shown; in WPF it waits for the stats pool's question.
+    /// </summary>
+    public bool ShowGameStatsNotice => GameStatsAvailable && !Settings.GameStatsNoticeShown
+#if HEARTHPULSE_WPF
+        && !AskPoolConsent
+#endif
+        ;
+
+    private RelayCommand? _answerGameStats;
+
+    /// <summary>The notice's buttons: "ok" keeps sending, "off" turns it off, "more" opens the privacy policy.</summary>
+    public RelayCommand AnswerGameStats => _answerGameStats ??= new RelayCommand(p =>
+    {
+        if (p as string == "more")
+        {
+            OpenPrivacy.Execute(null);
+            return;
+        }
+
+        Settings.GameStatsNoticeShown = true;
+        if (p as string == "off")
+        {
+            Settings.GameStatsOff = true;
+        }
+        else
+        {
+            // The install id comes from the pool secret: made now, saved with this answer.
+            GameStatsClient.InstallId(Settings);
+        }
+
+        Raise(nameof(ShowGameStatsNotice));
+        Raise(nameof(GameStatsSharing));
+        GameStatsChanged?.Invoke(GameStatsSharing);
+    });
 
     /// <summary>The game records switch changed (true = on): the host saves the settings and tells the sender.</summary>
     public event Action<bool>? GameStatsChanged;

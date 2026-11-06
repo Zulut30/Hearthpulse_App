@@ -45,3 +45,21 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
 - Deploying needs the owner's Cloudflare login (`wrangler login`); until the pool is deployed the app keeps the switch
   hidden (`PoolClient.Available`).
 - Hidden information (ADR 0005): records are built from the replay as the player saw it, without its post-game part.
+
+## Legal basis: legitimate interest, balancing test (LEGAL-game-stats-default-on)
+
+| Question | Answer |
+|---|---|
+| Interest | Hearthpulse's own statistics of the game (picks, mulligans, decks, Battlegrounds), the basis of the app's hints and of paid analytics (ADR 0009) |
+| Necessary? | Yes: the statistics are built from many players' games; there is no less intrusive source of our own data |
+| Data | Gameplay only: no name, BattleTag, account, deck name, legend number or time of day; rating capped at 10,000; opponent cards only once shown |
+| Linkability | Pseudonymous: a random install id, never shown and never joined to a site account; one install's records are never published, sold or shown in a paid feature |
+| Expectation | Players of a tracker expect it to read their games; told in the installer, in a one-time notice in the main window (nothing is sent before it), in Settings and in section 9 of the site's policy |
+| Safeguards | Opt-out at any time, which deletes the install's records on the server; 180 days; totals only from 10 games and 5 installs; Workers logs off |
+| Children | Hearthstone's own age rules apply; no data that identifies a player is kept |
+
+**Accepted risk (owner, 2026-11-06).** EDPB Guidelines 2/2023 read ePrivacy Art. 5(3) as needing consent for information sent
+from a device for a purpose the user did not ask for. The owner chose default-on with an opt-out; the risk is
+accepted and narrowed: nothing is sent before the one-time notice is shown, the install secret is made only once
+sending is on, and turning off deletes. Russian 152-FZ (data of Russian citizens in a foreign database, RKN
+notifications) is an open item for the owner (`reference/reviews/LEGAL-game-stats-default-on.md`, L-M5).
