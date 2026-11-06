@@ -28,13 +28,13 @@ public sealed class OpponentPlayedFoldTests
         var played = Played(20);
         var model = Update(played, handRows: 2);
 
-        // 16 rows in all: 2 in hand, 13 played and the "played earlier" line.
+        // The budget in all: 2 in hand, the "played earlier" line and the newest played.
         Assert.Equal(OverlayViewModel.OpponentRowBudget - 2 - 1, model.Played.Count);
         var listed = model.Played.Select(p => p.CardId).ToList();
         Assert.Equal(played.Select(p => p.CardId).Where(listed.Contains), listed);
         Assert.All(played.Where(p => p.FirstTurn > 7), p => Assert.Contains(p.CardId, listed));
-        // Card 0 was played twice: the line counts copies.
-        Assert.Equal(Loc.F("Overlay.Opponent.PlayedEarlier", 8), model.PlayedEarlier);
+        // Card 0, the oldest, was played twice: the line counts copies.
+        Assert.Equal(Loc.F("Overlay.Opponent.PlayedEarlier", played.Count - model.Played.Count + 1), model.PlayedEarlier);
         Assert.StartsWith("Card 0 ×2", model.PlayedEarlierTip, StringComparison.Ordinal);
     }
 

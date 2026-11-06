@@ -116,7 +116,7 @@ public sealed partial class OverlayViewModel : Observable
     /// Card rows the opponent panel lists, played and in hand together, before its oldest played cards fold into one
     /// line (D3, A10): at the default spots a panel this long still ends above the counters panel under it.
     /// </summary>
-    public const int OpponentRowBudget = 16;
+    public const int OpponentRowBudget = 18;
 
     /// <summary>Played rows always listed, however full the hand.</summary>
     public const int PlayedRowsAtLeast = 4;
