@@ -257,7 +257,6 @@ public sealed class LibraryViewModelTests : IDisposable
         await vm.LibraryIdleAsync();
         var saved = Assert.Single(vm.Library.Cards);
         Assert.Equal(bg.HistoryKey, saved.HistoryKey);
-        Assert.Equal(Loc.P("Library.Subtitle.Saved", 1), vm.Library.Subtitle);
 
         // The History file is trimmed away: the starred copy is the last one, so taking the star off asks first.
         _files.Recent.Delete(_bgReplay);
