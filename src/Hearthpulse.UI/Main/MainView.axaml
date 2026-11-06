@@ -70,19 +70,21 @@
         <Style Selector="m|MainView.compact RadioButton.nav /template/ ContentPresenter#Presenter">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- The BETA pill beside the logo: the accent's soft fill and line, 10 px semibold, spaced capitals -->
+        <!-- The BETA pill on the wordmark's line: a solid accent pill, 16 high, dark bold capitals spaced a little -->
         <Style Selector="Border.beta">
-            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{StaticResource Accent}" />
             <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+            <Setter Property="Height" Value="16" />
             <Setter Property="Padding" Value="8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.beta > TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
             <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="LetterSpacing" Value="1" />
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="LetterSpacing" Value="0.8" />
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="m|MainView.compact :is(Control).wide">
             <Setter Property="IsVisible" Value="False" />
@@ -269,18 +271,18 @@
         <DockPanel>
             <StackPanel DockPanel.Dock="Top">
                 <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                    <!-- In compact the wordmark hides: the BETA pill sits on the icon's lower edge -->
+                    <!-- In compact the wordmark hides: the BETA pill sits at the icon's lower right corner -->
                     <Panel>
                         <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
-                        <Border Classes="beta narrow" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-8"
+                        <Border Classes="beta narrow" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-8,-4"
                                 ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
                             <TextBlock Text="{i:Loc Main.Beta}" />
                         </Border>
                     </Panel>
-                    <!-- The wordmark and under it the BETA pill, at its left edge (no room beside it in 250 px) -->
-                    <StackPanel Classes="wide" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Classes="h2" Text="Hearthpulse" FontSize="20" />
-                        <Border Name="BetaBadge" Classes="beta" HorizontalAlignment="Left"
+                    <!-- The wordmark and the BETA pill on its line, centred on its lower-case letters (the box also holds the descender) -->
+                    <StackPanel Classes="wide" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Name="Wordmark" Classes="h2" Text="Hearthpulse" FontSize="20" VerticalAlignment="Center" />
+                        <Border Name="BetaBadge" Classes="beta" Margin="8,0,0,2"
                                 ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
                             <TextBlock Text="{i:Loc Main.Beta}" />
                         </Border>
