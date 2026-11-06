@@ -66,8 +66,29 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                         <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
-                        <TextBlock Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
-                                   Margin="12,0,0,0" VerticalAlignment="Center" />
+                        <!-- The wordmark and under it the BETA pill, at its left edge: beside it the 250 px column has no room;
+                             together they are the logo's height, so the header does not grow -->
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}" />
+                            <!-- BETA: a small pill in the accent's soft fill and line; the letters are spaced one by one (WPF has no
+                                 letter spacing) -->
+                            <Border x:Name="BetaBadge" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1"
+                                    CornerRadius="{StaticResource RadiusPill}" Padding="8,0" HorizontalAlignment="Left"
+                                    ToolTip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}" Focusable="False">
+                                <ItemsControl ItemsSource="{i:Loc Main.Beta}" Focusable="False" IsTabStop="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,1,0" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live

@@ -55,15 +55,6 @@
         <Style Selector="ScrollViewer.page">
             <Setter Property="Padding" Value="40,0,40,120" />
         </Style>
-        <Style Selector="Border.placeBar">
-            <Setter Property="Background" Value="{StaticResource Negative}" />
-        </Style>
-        <Style Selector="Border.placeBar.top">
-            <Setter Property="Background" Value="{StaticResource Positive}" />
-        </Style>
-        <Style Selector="Border.placeBar.first">
-            <Setter Property="Background" Value="{StaticResource TierS}" />
-        </Style>
         <!-- Settings rows with a segmented choice: label and a muted line left, segments right; dimmed while disabled. -->
         <Style Selector="Grid.choiceRow:disabled">
             <Setter Property="Opacity" Value="0.5" />
@@ -78,6 +69,20 @@
         <!-- Narrow windows and phones: icon-only navigation and tighter pages. -->
         <Style Selector="m|MainView.compact RadioButton.nav /template/ ContentPresenter#Presenter">
             <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- The BETA pill beside the logo: the accent's soft fill and line, 10 px semibold, spaced capitals -->
+        <Style Selector="Border.beta">
+            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+            <Setter Property="Padding" Value="8,0" />
+        </Style>
+        <Style Selector="Border.beta > TextBlock">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LetterSpacing" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
         <Style Selector="m|MainView.compact :is(Control).wide">
             <Setter Property="IsVisible" Value="False" />
@@ -264,8 +269,22 @@
         <DockPanel>
             <StackPanel DockPanel.Dock="Top">
                 <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                    <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
-                    <TextBlock Classes="h2 wide" Text="Hearthpulse" FontSize="20" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    <!-- In compact the wordmark hides: the BETA pill sits on the icon's lower edge -->
+                    <Panel>
+                        <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
+                        <Border Classes="beta narrow" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-8"
+                                ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
+                            <TextBlock Text="{i:Loc Main.Beta}" />
+                        </Border>
+                    </Panel>
+                    <!-- The wordmark and under it the BETA pill, at its left edge (no room beside it in 250 px) -->
+                    <StackPanel Classes="wide" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Classes="h2" Text="Hearthpulse" FontSize="20" />
+                        <Border Name="BetaBadge" Classes="beta" HorizontalAlignment="Left"
+                                ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
+                            <TextBlock Text="{i:Loc Main.Beta}" />
+                        </Border>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live

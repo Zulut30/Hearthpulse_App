@@ -46,6 +46,9 @@ public sealed class ArenaRewardsPageTests : IDisposable
     {
         var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
+        // Four numbers at the top of the page; time played and the rewards wait under «Подробнее».
+        Assert.Equal(MainViewModel.HeadlineTiles, vm.ArenaStatTiles.Count);
+        Assert.Equal(2, vm.ArenaMoreTiles.Count);
 
         vm.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
         var edit = Row(vm).Edit!;
@@ -87,7 +90,7 @@ public sealed class ArenaRewardsPageTests : IDisposable
         Assert.Null(Row(vm).Edit);
         Assert.True(vm.TakeArenaRewardsFocus(ArenaRunsScene.FinishedKey));
         Assert.False(vm.TakeArenaRewardsFocus(ArenaRunsScene.FinishedKey));
-        Assert.Equal("150", vm.ArenaStatTiles[^1].Value);
+        Assert.Equal("150", vm.ArenaMoreTiles[^1].Value);
 
         // Cancel gives the focus back at once.
         vm.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);

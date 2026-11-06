@@ -7,13 +7,12 @@ public partial class BattlegroundsTiersView : UserControl
 {
     public BattlegroundsTiersView() => InitializeComponent();
 
-    /// <summary>"Heroes", "Comps", "Trinkets", "Cards" or "Mine".</summary>
+    /// <summary>"Heroes", "Comps", "Trinkets" or "Cards" (anything else: heroes).</summary>
     public void ShowTab(string tab)
     {
-        HeroTierCard.IsVisible = tab is not ("Comps" or "Trinkets" or "Cards" or "Mine");
+        HeroTierCard.IsVisible = tab is not ("Comps" or "Trinkets" or "Cards");
         CompTierCard.IsVisible = tab == "Comps";
         TrinketTierCard.IsVisible = tab == "Trinkets";
         CardStatsCard.IsVisible = tab == "Cards";
-        MyHeroesCard.IsVisible = tab == "Mine";
     }
 }

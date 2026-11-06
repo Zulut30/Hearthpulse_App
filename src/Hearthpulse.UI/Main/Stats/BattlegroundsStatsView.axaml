@@ -17,19 +17,7 @@
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
     </UserControl.Styles>
     <StackPanel>
-        <Grid Classes="statsHead" Margin="0,0,0,12" RowDefinitions="Auto,Auto">
-            <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.ThisMonth}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
-                                 ToolTip.Tip="{i:Loc Stats.Period.ThisMonthBgTip}" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
+        <!-- The period bar sits in the page's tab row (BattlegroundsPage) -->
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
@@ -64,7 +52,12 @@
 
         <Border Classes="card" Margin="0,0,0,24">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
+                <!-- The essential columns; the switch adds the combat win rate and the pick rate -->
+                <Grid>
+                    <c:Ornament Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <CheckBox Classes="switch" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding BgHeroAllColumns}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" />
+                </Grid>
                 <Grid Margin="0,8,0,12">
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
                         <TextBlock Text="{i:Loc Stats.Bg.MinGames}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -95,14 +88,14 @@
                         <ColumnDefinition Width="54" />
                         <ColumnDefinition Width="*" MinWidth="100" />
                         <ColumnDefinition Width="70" />
-                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
                         <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="1" Text="{i:Loc Stats.Bg.Hero}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="{i:Loc Stats.Bg.NetMmr}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Stats.Bg.NetMmrTip}" />
-                    <StackPanel Grid.Column="3" Margin="16,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.CombatTip}">
+                    <StackPanel Grid.Column="3" Margin="16,0,0,0" Width="128" IsVisible="{Binding BgHeroAllColumns}" ToolTip.Tip="{i:Loc Stats.Bg.CombatTip}">
                         <TextBlock Text="{i:Loc Stats.Bg.CombatWinrate}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                         <TextBlock Classes="caption" FontSize="{StaticResource FontSizeSmall}">
                             <Run Text="{i:Loc Stats.You}" Foreground="{StaticResource Accent}" /><Run Text="{i:Loc Stats.VsSeparator}" /><Run Text="{i:Loc Stats.Global}" />
@@ -115,7 +108,7 @@
                         </TextBlock>
                     </StackPanel>
                     <TextBlock Grid.Column="5" Text="{i:Loc Stats.Bg.AvgPlacement}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="6" Text="{i:Loc Stats.Bg.PickRate}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" HorizontalAlignment="Right"
+                    <TextBlock Grid.Column="6" Width="110" TextAlignment="Right" IsVisible="{Binding BgHeroAllColumns}" Text="{i:Loc Stats.Bg.PickRate}" Classes="label" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" HorizontalAlignment="Right"
                                ToolTip.Tip="{i:Loc Stats.Bg.PickRateTip}" />
                 </Grid>
                 </Panel>
@@ -128,10 +121,10 @@
                                         <ColumnDefinition Width="54" />
                                         <ColumnDefinition Width="*" MinWidth="100" />
                                         <ColumnDefinition Width="70" />
-                                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
                                         <ColumnDefinition Width="120" />
-                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" ClipToBounds="True" VerticalAlignment="Center" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -140,7 +133,7 @@
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
                                                Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
-                                    <c:Sparkline Grid.Column="3" Height="32" Margin="16,0,0,0" Values="{Binding CombatYou}" Compare="{Binding CombatGlobal}" />
+                                    <c:Sparkline Grid.Column="3" Height="32" Margin="16,0,0,0" Width="128" IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).BgHeroAllColumns}" Values="{Binding CombatYou}" Compare="{Binding CombatGlobal}" />
                                     <c:MiniBars Grid.Column="4" Height="32" Margin="16,0,0,0" Values="{Binding PlacesYou}" Compare="{Binding PlacesGlobal}" />
                                     <StackPanel Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -152,7 +145,7 @@
                                         </StackPanel>
                                         <ContentControl Content="{Binding AverageVs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <StackPanel Grid.Column="6" Width="110" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).BgHeroAllColumns}">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                             <Border Width="48" Height="6" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
                                                 <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"

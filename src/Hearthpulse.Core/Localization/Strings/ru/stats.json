@@ -1,5 +1,7 @@
 {
   "Stats.Title": "Моя статистика",
+  "Stats.More": "Подробнее",
+  "Stats.Less": "Свернуть",
   "Stats.Period.Tip": "Период",
   "Stats.Period.All": "Всё время",
   "Stats.Period.Week": "7 дней",

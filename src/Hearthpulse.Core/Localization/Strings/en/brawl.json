@@ -8,7 +8,7 @@
   "Brawl.Classes.Unclassed": "Not in the table: {0} with decks whose class can't be told.",
   "Brawl.Mine": "Your games in this Tavern Brawl",
   "Brawl.Mine.Note": "The Tavern Brawl you played last: games since {0:MMMM d}.",
-  "Brawl.Mine.Empty": "No Tavern Brawl games yet. Play one and your classes, record and win rate show up here.",
+  "Brawl.Mine.Empty": "No games in this Tavern Brawl yet.",
   "Brawl.Mine.EmptyOld": "Tavern Brawl games recorded before this Hearthpulse version aren't counted: they don't say which brawl they were.",
   "Brawl.Article.Title": "About this Brawl",
   "Brawl.Article.Meta": "{0:MMMM d} · {1}",

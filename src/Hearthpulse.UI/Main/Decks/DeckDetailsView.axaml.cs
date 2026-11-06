@@ -10,7 +10,12 @@ public partial class DeckDetailsView : UserControl
     public DeckDetailsView() => InitializeComponent();
 
     /// <summary>Shows the hover card of one chart point (the UI render check uses it; -1 hides it).</summary>
-    public void HoverGame(int index) => WinRateChart.HoverIndex = index;
+    public void HoverGame(int index)
+    {
+        // The chart sits under «Подробнее»: a hover opens it, the end of a hover (-1) closes it again.
+        DeckMore.IsChecked = index >= 0;
+        WinRateChart.HoverIndex = index;
+    }
 
     /// <summary>The Versions card, so the UI render check can crop it.</summary>
     public Control Versions => VersionsCard;

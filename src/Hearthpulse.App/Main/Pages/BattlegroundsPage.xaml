@@ -33,14 +33,14 @@
                 </Border>
             </Grid>
 
-            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
-            <s:BattlegroundsStatsView x:Name="BgStats" />
-
-            <c:Ornament Text="{i:Loc Main.Bg.TierLists}" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
+            <!-- One tab row: My stats first (as Standard and Wild), then the community tier lists; on its right the period
+                 (My stats) or the bracket (the tier lists, only when the stats have a choice) -->
             <Grid Margin="0,0,0,14">
                 <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True" Checked="OnTab"
+                        <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="{i:Loc Stats.Title}" GroupName="BgTab" IsChecked="True" Checked="OnTab"
+                                     ToolTip="{i:Loc Main.Bg.MyHeroesTip}" />
+                        <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" Checked="OnTab"
                                      ToolTip="{i:Loc Main.Bg.HeroesTip}" />
                         <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnTab"
                                      ToolTip="{Binding CompCaption}" />
@@ -48,14 +48,21 @@
                                      ToolTip="{i:Loc Main.Bg.TrinketsTip}" />
                         <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab" Checked="OnTab"
                                      ToolTip="{i:Loc Main.Bg.CardsCaption}" />
-                        <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab" Checked="OnTab"
-                                     ToolTip="{i:Loc Main.Bg.MyHeroesTip}" />
                     </StackPanel>
                 </Border>
-                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
+                <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}"
+                        Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.All}" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Week}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Month}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.ThisMonth}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
+                                     ToolTip="{i:Loc Stats.Period.ThisMonthBgTip}" />
+                    </StackPanel>
+                </Border>
+                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice; the window shows it on the tier list tabs -->
                 <Grid HorizontalAlignment="Right" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
-                    <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}"
-                            ToolTip="{i:Loc Main.Bg.BracketTip}">
+                    <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.BracketTip}" Visibility="Collapsed">
                         <ItemsControl ItemsSource="{Binding BracketOptions}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -73,8 +80,11 @@
                 </Grid>
             </Grid>
 
-            <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards, your heroes -->
-            <mm:BattlegroundsTiersView x:Name="BgTiers" />
+            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
+            <s:BattlegroundsStatsView x:Name="BgStats" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}}" />
+
+            <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards -->
+            <mm:BattlegroundsTiersView x:Name="BgTiers" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

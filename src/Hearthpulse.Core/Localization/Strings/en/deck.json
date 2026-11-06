@@ -88,6 +88,7 @@
   "Deck.Versions.NoMatch": "No deck matches “{0}”.",
 
   "Deck.Mulligan.Title": "Your mulligan",
+  "Deck.AllColumns": "All columns",
   "Deck.Mulligan.Card": "Card",
   "Deck.Mulligan.CardTip": "By cost, then name. Click any column head to sort by it, again for the other way round",
   "Deck.Mulligan.Offered": "In opening hand",
