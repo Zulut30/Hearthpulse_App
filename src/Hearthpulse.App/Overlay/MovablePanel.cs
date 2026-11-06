@@ -313,7 +313,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     {
         // Entering or leaving layout mode switches every panel at once: no fades there, only for a panel the game shows.
         // Off with the Windows animation setting, like the main window's motion.
-        var animate = IsEditing == _lastEditing && !IsEditing && IsLoaded && SystemParameters.ClientAreaAnimation;
+        var animate = IsEditing == _lastEditing && !IsEditing && IsLoaded && Infrastructure.Motion.On;
         _lastEditing = IsEditing;
         SetVisible(Shown || IsEditing, animate);
         ShowPlaceholder = IsEditing && !Shown;

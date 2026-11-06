@@ -130,8 +130,8 @@ leave the colours alone unless asked.
 
 WPF animates only when `SystemParameters.ClientAreaAnimation` is on, and every new animation takes the same guard
 (`hearthpulse-design`); the theme's own storyboards are made instant by `ThemeEngine`. Under the setting off, a slide
-or scale becomes an instant change or an opacity fade. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
-with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision. See
+or scale becomes an instant change or an opacity fade. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press), switched off
+by `Motion.Apply` with motion off. Any other Avalonia motion is a `hearthpulse-design` decision. See
 [motion-and-scale.md](motion-and-scale.md).
 
 ## Nothing the player needs runs on a timer

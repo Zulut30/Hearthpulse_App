@@ -124,7 +124,7 @@ public partial class CardPoolPanel : UserControl
     private void Reveal()
     {
         _revealKey = RevealKey();
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!Infrastructure.Motion.On)
         {
             Card.BeginAnimation(OpacityProperty, null);
             return;

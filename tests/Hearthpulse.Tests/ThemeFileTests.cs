@@ -105,9 +105,73 @@ public sealed class ThemeFileTests
         Assert.DoesNotContain(all, e => e.Name.LocalName.EndsWith("Effect", StringComparison.Ordinal));
         Assert.DoesNotContain(all.Attributes("RepeatBehavior"), a => a.Value == "Forever");
         Assert.DoesNotContain(all.Attributes("IterationCount"), a => a.Value == "Infinite");
-        var durations = all.Attributes("Duration").Select(a => TimeSpan.Parse(a.Value, System.Globalization.CultureInfo.InvariantCulture));
+        var durations = MotionTokens(all).Values.Concat(all.Attributes("Duration").Where(a => !a.Value.StartsWith('{'))
+            .Select(a => TimeSpan.Parse(a.Value, System.Globalization.CultureInfo.InvariantCulture)));
         Assert.All(durations, d => Assert.True(d <= TimeSpan.FromMilliseconds(250), $"{d} is longer than a state change should take"));
     }
+
+    /// <summary>
+    /// One motion system: both themes define the tokens of <c>Motion</c> (shared Presentation code) with its values, every
+    /// timing in them is one of the tokens, and no easing overshoots or bounces.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Themes/Theme.xaml")]
+    [InlineData("src/Hearthpulse.UI/Themes/Theme.axaml")]
+    public void Theme_motion_uses_the_shared_tokens(string file)
+    {
+        var all = XDocument.Load(RepoFile(file)).Root!.Descendants().ToList();
+        var tokens = MotionTokens(all);
+        Assert.Equal(UI.Infrastructure.Motion.Fast, tokens["MotionFast"]);
+        Assert.Equal(UI.Infrastructure.Motion.Settle, tokens["MotionSettle"]);
+        Assert.Equal(UI.Infrastructure.Motion.Enter, tokens["MotionEnter"]);
+        Assert.All(all.Attributes("Duration"), a => Assert.Matches("^\\{StaticResource Motion(Fast|Settle|Enter)\\}$", a.Value));
+        Assert.DoesNotContain(all, e => e.Name.LocalName is "BackEase" or "BounceEase" or "ElasticEase");
+        Assert.DoesNotContain(all.Attributes("Easing"), a => a.Value.Contains("Back", StringComparison.Ordinal) || a.Value.Contains("Bounce", StringComparison.Ordinal)
+            || a.Value.Contains("Elastic", StringComparison.Ordinal));
+        // Every transition and animation eases: nothing moves linearly.
+        Assert.All(all.Where(e => e.Name.LocalName.EndsWith("Transition", StringComparison.Ordinal)), e => Assert.NotNull(e.Attribute("Easing")));
+        Assert.All(all.Where(e => e.Name.LocalName == "DoubleAnimation"), e => Assert.NotNull(e.Attribute("EasingFunction")));
+    }
+
+    /// <summary>The app's "reduce motion" in Avalonia: one style turns the theme's transitions off, and goes again.</summary>
+    [Fact]
+    public void Reduced_motion_turns_the_avalonia_transitions_off_and_back_on() => LocBindingTests.Headless.Run(() =>
+    {
+        var app = Avalonia.Application.Current!;
+        // The switch template comes from the theme (other headless tests may have added it already).
+        var theme = new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://Hearthpulse.UI/")) { Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml") };
+        app.Styles.Add(theme);
+        var before = app.Styles.Count;
+        try
+        {
+            UI.Infrastructure.Motion.Apply(reduced: true);
+            Assert.False(UI.Infrastructure.Motion.On);
+            Assert.Equal(before + 1, app.Styles.Count);
+            // The switch's knob slides with a transition set in its template: the style outranks it.
+            var toggle = new Avalonia.Controls.CheckBox { Classes = { "switch" } };
+            var window = new Avalonia.Controls.Window { Content = toggle };
+            window.Show();
+            window.UpdateLayout();
+            var thumb = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(toggle).OfType<Avalonia.Controls.Panel>().Single(p => p.Name == "Thumb");
+            Assert.Null(thumb.Transitions);
+            window.Close();
+            UI.Infrastructure.Motion.Apply(reduced: true);
+            Assert.Equal(before + 1, app.Styles.Count);
+        }
+        finally
+        {
+            UI.Infrastructure.Motion.Apply(reduced: false);
+        }
+
+        app.Styles.Remove(theme);
+        Assert.False(UI.Infrastructure.Motion.Reduced);
+        // Motion back on removes the style only when Windows animates as well (headless runs may not).
+        Assert.Equal(UI.Infrastructure.Motion.On ? before - 1 : before, app.Styles.Count);
+    });
+
+    private static Dictionary<string, TimeSpan> MotionTokens(List<XElement> all) =>
+        all.Where(e => e.Name.LocalName is "Duration" or "TimeSpan" && e.Attribute(X + "Key")?.Value.StartsWith("Motion", StringComparison.Ordinal) == true)
+            .ToDictionary(e => e.Attribute(X + "Key")!.Value, e => TimeSpan.Parse(e.Value, System.Globalization.CultureInfo.InvariantCulture));
 
     /// <summary>
     /// Parses Theme.xaml with WPF's XamlReader, as ThemeEngine does at start-up (the test project is cross-platform,

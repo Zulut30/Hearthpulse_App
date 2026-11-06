@@ -39,7 +39,7 @@ public partial class OverlayView : UserControl
     {
         InitializeComponent();
         // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, like the panel fades.
-        Classes.Set("motion", PoolInput.AnimationsOn());
+        Classes.Set("motion", Infrastructure.Motion.On);
         // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
         _toastTimer = new DispatcherTimer { Interval = OverlayViewModel.ToastTime };
         _toastTimer.Tick += (_, _) =>

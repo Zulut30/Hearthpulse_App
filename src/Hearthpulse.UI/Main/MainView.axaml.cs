@@ -492,6 +492,16 @@ public partial class MainView : UserControl
         PageHistory.IsVisible = NavHistory.IsChecked == true && !matchOpen;
         PageMatch.IsVisible = NavHistory.IsChecked == true && matchOpen;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
+        if (shown is not null)
+        {
+            // The page that opens fades in with a short rise, as in the WPF app (Motion.Reveal; instant with motion off).
+            Control[] pages = [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings];
+            if (pages.FirstOrDefault(p => p.IsVisible) is { } page)
+            {
+                Motion.Reveal(page);
+            }
+        }
+
         // Panels of a page that was hidden are created on its first layout.
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
     }

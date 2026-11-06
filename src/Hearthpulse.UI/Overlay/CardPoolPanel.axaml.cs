@@ -131,7 +131,7 @@ public partial class CardPoolPanel : UserControl
     private void Reveal()
     {
         _revealKey = RevealKey();
-        if (!Motion || !PoolInput.AnimationsOn())
+        if (!Motion || !Infrastructure.Motion.On)
         {
             _reveal.Stop();
             Card.Opacity = 1;

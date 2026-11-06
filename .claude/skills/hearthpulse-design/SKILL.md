@@ -170,11 +170,13 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 
 ## Motion
 
-WPF only animates when Windows' animation setting is on: `MainWindow.xaml.cs` checks
-`SystemParameters.ClientAreaAnimation` before the nav pill slide (340 ms, BackEase) and page reveal (280 ms rise +
-220 ms fade, CubicEase). Hover layers fade in 0.12 s / out 0.22 s. Any new animation must take the same guard; the
-theme's own storyboards are made instant by `ThemeEngine` when the setting is off. Avalonia's Theme.axaml has
-`Transitions` of 0.25 s or less (hover, press) with no guard yet; anything beyond them is a design decision here.
+One token set for both UIs: `Motion` (Presentation `Infrastructure/Motion.cs`) — `Fast` 120 ms (hover in, press),
+`Settle` 180 ms (hover out, release, switch knob, tab underline, nav pill), `Enter` 220 ms (page reveal, 10 DIP
+rise), ease-out only (cubic for state, quintic for travel), opacity and render transforms only. The themes repeat them
+as `MotionFast` / `MotionSettle` / `MotionEnter`, and `ThemeFileTests` refuses a literal timing. Animate only when
+`Motion.On` (Windows' animation setting and the app's "reduce motion", `AppSettings.ReduceMotion`): WPF `ThemeEngine`
+zeroes the tokens, Avalonia `Motion.Apply` switches the theme's transitions off. Code-started motion goes through
+`Motion.Reveal` / `Motion.Glide`.
 
 ## Adding a page, panel or setting
 

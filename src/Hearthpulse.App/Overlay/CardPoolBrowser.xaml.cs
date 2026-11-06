@@ -99,7 +99,7 @@ public partial class CardPoolBrowser : UserControl
 
     private void OnWheel(object sender, MouseWheelEventArgs e)
     {
-        if (sender is not ScrollViewer scroller || !SystemParameters.ClientAreaAnimation)
+        if (sender is not ScrollViewer scroller || !Infrastructure.Motion.On)
         {
             return;
         }

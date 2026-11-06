@@ -25,6 +25,8 @@
 
   "Settings.App.Title": "App",
   "Settings.App.Tray": "Keep running in the tray when closed",
+  "Settings.App.ReduceMotion": "Reduce motion",
+  "Settings.App.ReduceMotionTip": "Pages and panels appear without sliding, switches and tabs change at once. Windows’ own animation setting is followed either way.",
   "Settings.App.AutoUpdate": "Install updates automatically",
   "Settings.App.AutoUpdateTip": "Hearthpulse checks GitHub for a newer version and installs it when you close the app",
   "Settings.App.StartWithWindows": "Start with Windows",

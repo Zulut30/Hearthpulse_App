@@ -379,6 +379,7 @@ public sealed partial class AppHost : IDisposable
         Session.ApplySettings(Settings);
         _services.LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
+        Motion.Apply(Settings.ReduceMotion);
         if (!_rendering)
         {
             ApplyAutostart?.Invoke(Settings.StartWithWindows);

@@ -104,6 +104,7 @@
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.App.ReduceMotion}" IsChecked="{Binding Settings.ReduceMotion}" ToolTip.Tip="{i:Loc Settings.App.ReduceMotionTip}" Margin="0,0,0,14" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartWithSignIn}" IsChecked="{Binding Settings.StartWithWindows}" Margin="0,0,0,14" />

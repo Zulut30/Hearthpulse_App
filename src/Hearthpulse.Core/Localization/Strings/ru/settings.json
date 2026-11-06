@@ -25,6 +25,8 @@
 
   "Settings.App.Title": "Приложение",
   "Settings.App.Tray": "Сворачивать в трей при закрытии",
+  "Settings.App.ReduceMotion": "Меньше движения",
+  "Settings.App.ReduceMotionTip": "Страницы и панели появляются без сдвига, переключатели и вкладки меняются сразу. Настройка анимации Windows учитывается в любом случае.",
   "Settings.App.AutoUpdate": "Устанавливать обновления автоматически",
   "Settings.App.AutoUpdateTip": "Hearthpulse проверяет новую версию на GitHub и устанавливает её, когда вы закрываете приложение",
   "Settings.App.StartWithWindows": "Запускать вместе с Windows",
