@@ -22,7 +22,7 @@ public static partial class PoolClient
     /// Raised whenever the list of shared fields grows. Players who agreed to an older list are asked again;
     /// until they answer, only the fields they agreed to are sent.
     /// </summary>
-    public const int ConsentVersion = 4;
+    public const int ConsentVersion = 5;
 
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
@@ -64,7 +64,10 @@ public static partial class PoolClient
     /// <summary>Picks, plays and earlier games were added in version 3.</summary>
     public static bool SharingAll(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 3;
 
-    /// <summary>The Discover-style picks of Ranked and Casual Constructed games were added in version 4.</summary>
+    /// <summary>
+    /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Version 5 adds game
+    /// records of every mode (docs/game-stats.md), which have their own switch (<see cref="AppSettings.GameStatsConsent"/>).
+    /// </summary>
     public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
 
     /// <summary>The install's secret for game ids, made on first use. Callers save the settings afterwards.</summary>
@@ -82,9 +85,10 @@ public static partial class PoolClient
     public static PoolGame Limit(PoolGame game, AppSettings settings) =>
         game.Details is { } d && !SharingAll(settings) ? game with { Details = d with { Choices = [], Plays = [] } } : game;
 
-    internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Game).ToList() };
+    internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Row).ToList() };
 
-    private static Dictionary<string, object?> Game(PoolGame game)
+    /// <summary>One game as the pool's <c>POST /v1/games</c> takes it (game records reuse the Battlegrounds part).</summary>
+    internal static Dictionary<string, object?> Row(PoolGame game)
     {
         var row = new Dictionary<string, object?>
         {

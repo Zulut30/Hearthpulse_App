@@ -204,6 +204,12 @@ public sealed class AppSettings
     /// <summary>Earlier games were shared once, after the player agreed.</summary>
     public bool PoolHistoryShared { get; set; }
 
+    /// <summary>
+    /// Which list of game record fields the player agreed to send (docs/game-stats.md); 0 = not agreed. Sending runs only
+    /// at <see cref="GameStats.GameStatsClient.ConsentVersion"/> or above. Plan game-stats, one switch in Settings → Data.
+    /// </summary>
+    public int GameStatsConsent { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 
