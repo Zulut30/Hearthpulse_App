@@ -33,6 +33,13 @@ public partial class MainWindow : Window
             new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsOverlay.OverlaySetting });
         SettingsGeneral.SettingClicked += e => OnSettingChanged(SettingsGeneral, e);
         SettingsOverlay.SliderChanged += e => OnSliderChanged(SettingsOverlay, e);
+        SettingsOverlay.DensityChanged += () =>
+        {
+            if (IsLoaded)
+            {
+                SettingsChanged?.Invoke();
+            }
+        };
         SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
         SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
         SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);

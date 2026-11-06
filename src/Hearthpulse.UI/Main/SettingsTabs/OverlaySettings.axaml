@@ -3,6 +3,7 @@
              xmlns:m="using:Hearthpulse.UI.Main"
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
              xmlns:core="using:Hearthpulse.Core"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
@@ -22,6 +23,10 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- The preview's deck panel takes the overlay's look, as the OBS window does -->
+        <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
+    </UserControl.Styles>
     <StackPanel>
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
@@ -38,17 +43,49 @@
                         <TextBlock Name="OverlayOffNote" Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
                     </Grid>
                 </Border>
-                <!-- Size and opacity act on the whole overlay: right under its switch, before the panels -->
-                <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
-                    <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
-                    <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
-                    <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
-                </Grid>
-                <Grid Margin="0,0,0,18" ColumnDefinitions="160,*,56">
-                    <!-- "Непрозрачность фона панелей" does not fit 160 on one line: it wraps, whole -->
-                    <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
-                    <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
-                    <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                <!-- How the overlay looks (D5): density, size and opacity on the left act on the whole overlay, right under its
+                     switch; on the right the real deck panel over a sample game follows them and the theme (not in compact,
+                     where the controls take the width). The preview sits on a card's art, as panels sit on the board. -->
+                <Grid Margin="0,0,0,18" ColumnDefinitions="*,24,272">
+                    <StackPanel Classes="overlayLookControls">
+                        <Grid Margin="0,0,0,14" ColumnDefinitions="160,*">
+                            <TextBlock Text="{i:Loc Settings.Overlay.Density}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.DensityTip}" />
+                            <Border Grid.Column="1" Name="DensityChoice" Classes="segmentBar" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Settings.Overlay.DensityTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Compact}" GroupName="OverlayDensity" Tag="Compact" Click="OnDensity"
+                                                 IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityCompact, Mode=OneWay}" />
+                                    <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Normal}" GroupName="OverlayDensity" Tag="Normal" Click="OnDensity"
+                                                 IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityNormal, Mode=OneWay}" />
+                                    <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Large}" GroupName="OverlayDensity" Tag="Large" Click="OnDensity"
+                                                 IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityLarge, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
+                            <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
+                            <Slider Name="SizeSlider" Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                            <TextBlock Grid.Column="2" Text="{Binding #SizeSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*,56">
+                            <!-- "Непрозрачность фона панелей" does not fit 160 on one line: it wraps, whole -->
+                            <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
+                            <Slider Name="OpacitySlider" Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                            <TextBlock Grid.Column="2" Text="{Binding #OpacitySlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Classes="wide">
+                        <TextBlock Text="{i:Loc Settings.Overlay.Preview}" Classes="caption" Margin="0,0,0,8" />
+                        <!-- The board under the panel: a card's art, so the panel's opacity shows; the panel at the overlay's size,
+                             cut at the box's edge like a panel at the screen's edge -->
+                        <Border Name="OverlayPreviewBox" Height="236" CornerRadius="{StaticResource RadiusMedium}" ClipToBounds="True" Background="{StaticResource Surface4}"
+                                i:CardArt.Splash="CS2_032" AutomationProperties.Name="{i:Loc Settings.Overlay.Preview}">
+                            <LayoutTransformControl Name="OverlayPreviewScale" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0" IsHitTestVisible="False">
+                                <Border Classes.compactRows="{Binding $parent[UserControl].((m:MainViewModel)DataContext).PreviewCompact}">
+                                    <o:DeckPanel Name="OverlayPreviewPanel" DataContext="{Binding $parent[UserControl].((m:MainViewModel)DataContext).OverlayPreviewModel}" Focusable="False" />
+                                </Border>
+                            </LayoutTransformControl>
+                        </Border>
+                    </StackPanel>
                 </Grid>
                 <StackPanel Name="OverlayPanelSwitches">
                 <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" />

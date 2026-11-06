@@ -146,17 +146,18 @@
     <Style Selector="Grid.cardRow.short">
         <Setter Property="Height" Value="22" />
     </Style>
-    <!-- Compact lists (the panel's tag button): short rows without art. After the full sizes, so these win. -->
-    <Style Selector="o|MovablePanel.compact Grid.cardRow">
+    <!-- Compact lists (the panel's tag button; Border.compactRows in the Settings preview): short rows without art. After the
+         full sizes, so these win. -->
+    <Style Selector="o|MovablePanel.compact Grid.cardRow, Border.compactRows Grid.cardRow">
         <Setter Property="Height" Value="18" />
     </Style>
-    <Style Selector="o|MovablePanel.compact Image.tileArt">
+    <Style Selector="o|MovablePanel.compact Image.tileArt, Border.compactRows Image.tileArt">
         <Setter Property="IsVisible" Value="False" />
     </Style>
-    <Style Selector="o|MovablePanel.compact Rectangle.tileFade">
+    <Style Selector="o|MovablePanel.compact Rectangle.tileFade, Border.compactRows Rectangle.tileFade">
         <Setter Property="IsVisible" Value="False" />
     </Style>
-    <Style Selector="o|MovablePanel.compact c|ManaCost.cost">
+    <Style Selector="o|MovablePanel.compact c|ManaCost.cost, Border.compactRows c|ManaCost.cost">
         <Setter Property="Width" Value="18" />
         <Setter Property="Height" Value="18" />
     </Style>

@@ -360,6 +360,7 @@ public sealed partial class MainViewModel : Observable
     {
         _cards = cards;
         _migration?.InputsChanged();
+        RebuildOverlayPreview();
         Raise(nameof(LanguageRestartHint));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
