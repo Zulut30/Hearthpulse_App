@@ -284,6 +284,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     private PanelTagStrip? _strip;
     private FrameworkElement? _tagRow;
     private bool _followingTag;
+    private bool _tagMirrored;
 
     /// <summary>
     /// While the tag shows, places it after every layout pass (the panel moved, grew or changed size; the tag changed
@@ -328,28 +329,52 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         {
             // A wide row's placeholder: the tag goes with it to its end of the row, above as always.
             _strip.Offset = new Point(0, -PanelLayout.TagHeight);
-            SetTagRow(below: false);
+            SetTagRow(below: false, right: false);
             return;
         }
 
         var origin = TopLeft();
-        var (x, y, below) = PanelLayout.TagSpot(origin.X, origin.Y, ActualWidth * scale, ActualHeight * scale,
-            _chrome.DesiredSize.Width * scale, PanelLayout.TagHeight * scale, PanelLayout.TagInset * scale, surface.ActualWidth, surface.ActualHeight);
+        var (x, y, below, right) = PanelLayout.TagSpot(origin.X, origin.Y, ActualWidth * scale, ActualHeight * scale,
+            _chrome.DesiredSize.Width * scale, scale, surface.ActualWidth, surface.ActualHeight);
         var offset = new Point(Math.Round(x / scale, 1), Math.Round(y / scale, 1));
         if (_strip.Offset != offset)
         {
             _strip.Offset = offset;
         }
 
-        SetTagRow(below);
+        SetTagRow(below, right);
     }
 
-    private void SetTagRow(bool below)
+    private void SetTagRow(bool below, bool right)
     {
         var alignment = below ? VerticalAlignment.Bottom : VerticalAlignment.Top;
-        if (_tagRow is not null && _tagRow.VerticalAlignment != alignment)
+        if (_tagRow is null)
+        {
+            return;
+        }
+
+        if (_tagRow.VerticalAlignment != alignment)
         {
             _tagRow.VerticalAlignment = alignment;
+        }
+
+        // Lined up with the panel's right side the parts go in mirrored order: the lock, which shows first, stays in the
+        // corner under the pointer while the tag and the buttons grow to its left. Not a right-to-left flow, which would
+        // mirror the glyphs too.
+        if (right != _tagMirrored && _tagRow is Panel row)
+        {
+            _tagMirrored = right;
+            var parts = row.Children.Cast<UIElement>().Reverse().ToList();
+            row.Children.Clear();
+            foreach (var part in parts)
+            {
+                if (part is FrameworkElement element)
+                {
+                    element.Margin = new Thickness(element.Margin.Right, element.Margin.Top, element.Margin.Left, element.Margin.Bottom);
+                }
+
+                row.Children.Add(part);
+            }
         }
     }
 

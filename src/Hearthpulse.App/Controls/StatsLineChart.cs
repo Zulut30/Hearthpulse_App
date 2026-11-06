@@ -87,9 +87,12 @@ public sealed class StatsLineChart : FrameworkElement
 
     protected override Visual GetVisualChild(int index) => _card;
 
+    /// <summary>The widest hover card: the rating chart's holds a final board of seven 62-unit columns.</summary>
+    private const double CardMaxWidth = 480;
+
     protected override Size MeasureOverride(Size availableSize)
     {
-        _card.Measure(new Size(340, double.PositiveInfinity));
+        _card.Measure(new Size(CardMaxWidth, double.PositiveInfinity));
         return new Size(double.IsInfinity(availableSize.Width) ? 400 : availableSize.Width, double.IsInfinity(availableSize.Height) ? 240 : availableSize.Height);
     }
 

@@ -29,12 +29,21 @@ public sealed class PanelLayoutTests
     [InlineData(500, false)]
     public void The_name_tag_goes_under_a_panel_with_no_room_above_it(double top, bool below)
     {
-        var (x, y, under) = PanelLayout.TagSpot(400, top, 300, 200, 250, 26, 4, 1920, 1080);
+        var (x, y, under, right) = PanelLayout.TagSpot(400, top, 300, 200, 250, 1, 1920, 1080);
         Assert.Equal(below, under);
-        Assert.Equal(below ? 200 : -26, y);
+        Assert.False(right);
+        // Under the panel the strip starts 1 below it: its 19-unit row keeps to the strip's bottom, 8 under the panel.
+        Assert.Equal(below ? 201 : -26, y);
         Assert.Equal(-4, x);
-        // Never past the top of the surface.
         Assert.True(top + y >= 0);
+    }
+
+    [Fact]
+    public void A_scaled_tag_keeps_its_gaps_at_its_scale()
+    {
+        // WPF scales the tag with the panel: at 150 % the strip is 39 high and reaches 6 past the left edge.
+        Assert.Equal((-6, -39, false, false), PanelLayout.TagSpot(400, 500, 300, 200, 250, 1.5, 1920, 1080));
+        Assert.Equal((-6, 201.5, true, false), PanelLayout.TagSpot(400, 30, 300, 200, 250, 1.5, 1920, 1080));
     }
 
     [Theory]
@@ -46,31 +55,34 @@ public sealed class PanelLayoutTests
         // The session panel's default spot: top right, 12 from the edge, 10 from the top.
         const double width = 220;
         var left = surfaceWidth - 12 - width;
-        var (x, y, below) = PanelLayout.TagSpot(left, 10, width, 120, 330, 26, 4, surfaceWidth, 1080);
+        var (x, y, below, right) = PanelLayout.TagSpot(left, 10, width, 120, 330, 1, surfaceWidth, 1080);
         Assert.True(below);
+        Assert.True(right);
         Assert.Equal(width + 4 - 330, x);
         Assert.InRange(left + x, 0, surfaceWidth - 330);
-        Assert.InRange(10 + y, 0, 1080 - 26);
-        Assert.Equal(120, y);
+        Assert.Equal(121, y);
 
         // In the middle of the screen it stays above the panel at its left edge, as before.
-        Assert.Equal((-4, -26, false), PanelLayout.TagSpot(surfaceWidth / 2, 500, width, 120, 330, 26, 4, surfaceWidth, 1080));
+        Assert.Equal((-4, -26, false, false), PanelLayout.TagSpot(surfaceWidth / 2, 500, width, 120, 330, 1, surfaceWidth, 1080));
     }
 
     [Fact]
     public void No_part_of_the_name_tag_leaves_the_surface()
     {
         // A tag wider than a narrow panel at the left edge: it would start left of the screen.
-        Assert.Equal(0, PanelLayout.TagSpot(0, 500, 60, 40, 330, 26, 4, 1920, 1080).X);
+        Assert.Equal(0, PanelLayout.TagSpot(0, 500, 60, 40, 330, 1, 1920, 1080).X);
         // A tag wider than the panel, the panel pinned to the right edge: lined up right, it still fits.
-        var (x, _, _) = PanelLayout.TagSpot(1900, 500, 20, 40, 330, 26, 4, 1920, 1080);
+        var (x, _, _, right) = PanelLayout.TagSpot(1900, 500, 20, 40, 330, 1, 1920, 1080);
+        Assert.True(right);
         Assert.Equal(1920 - 330, 1900 + x);
-        // A panel as tall as the screen at its top: under it would be off the bottom, so the tag stays on the surface.
-        var (_, y, below) = PanelLayout.TagSpot(400, 0, 300, 1080, 250, 26, 4, 1920, 1080);
-        Assert.True(below);
-        Assert.Equal(1080 - 26, y);
+        // A panel as tall as the screen at its top: no room above or under it, so the tag goes inside at its top.
+        var (_, y, below, _) = PanelLayout.TagSpot(400, 0, 300, 1080, 250, 1, 1920, 1080);
+        Assert.False(below);
+        Assert.Equal(4, y);
+        // Near the bottom with no room above either: inside too, never past the bottom.
+        Assert.Equal(4, PanelLayout.TagSpot(400, 10, 300, 1060, 250, 1, 1920, 1080).Y);
         // A tag wider than the whole surface starts at its left edge.
-        Assert.Equal(0, 10 + PanelLayout.TagSpot(10, 500, 60, 40, 3000, 26, 4, 1920, 1080).X);
+        Assert.Equal(0, 10 + PanelLayout.TagSpot(10, 500, 60, 40, 3000, 1, 1920, 1080).X);
     }
 
     [Fact]

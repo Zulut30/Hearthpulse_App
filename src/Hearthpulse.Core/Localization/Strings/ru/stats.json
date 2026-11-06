@@ -72,6 +72,8 @@
   "Stats.Bg.Place": "Место",
   "Stats.Bg.FinalBoard": "Итоговый стол",
   "Stats.Bg.NoBoard": "Стол этой игры не сохранён.",
+  "Stats.Bg.MinionTip": "{0}: атака {1}, здоровье {2}",
+  "Stats.Bg.Thousands": "{0}к",
 
   "Stats.Ct.RankTitle": "Ранг по времени",
   "Stats.Ct.RankHint": "Ранг в начале каждой рейтинговой игры",

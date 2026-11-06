@@ -63,30 +63,59 @@ public static class PanelLayout
     /// <summary>How far the name tag reaches past the panel's left edge, in line with the layout frame.</summary>
     public const double TagInset = 4;
 
-    /// <summary>The height of the strip with the name tag and the panel's buttons.</summary>
+    /// <summary>The height of the strip with the name tag and the panel's buttons; it reaches to the panel.</summary>
     public const double TagHeight = 26;
 
+    /// <summary>The height of the tag's row of buttons in the strip.</summary>
+    public const double TagRowHeight = 19;
+
+    /// <summary>How far under the panel the tag's row starts: clear of the corner marker, which reaches 6 below it.</summary>
+    public const double TagBelowGap = 8;
+
     /// <summary>
-    /// Where a panel's name tag with its buttons goes, as an offset from the panel's top-left corner; every size and
-    /// spot in surface units. Above the panel, starting at its left edge, as long as it fits: under the panel when
-    /// there is less than <paramref name="tagHeight"/> above it (a panel at the top of the screen), and lined up with the
-    /// panel's right edge when it would run past the right side of the screen. No part of the tag leaves the surface.
+    /// Where a panel's name tag with its buttons goes (<see cref="TagHeight"/> strip), as an offset from the panel's
+    /// top-left corner in surface units, the panel's at its <paramref name="scale"/> and the tag
+    /// <paramref name="tagWidth"/> wide on screen; <paramref name="scale"/> is the tag's own scale (1 when it does not
+    /// scale with the panel).
+    /// <list type="bullet">
+    /// <item>Above the panel when there is room for the strip above it; else under it, its row
+    /// <see cref="TagBelowGap"/> under the panel's bottom (<c>Below</c>: the row keeps to the strip's bottom); else, a
+    /// panel as tall as the screen, inside it at its top.</item>
+    /// <item>From the panel's left edge; lined up with its right edge (<c>Right</c>: the parts go in mirrored order, the
+    /// lock in the corner) when it would pass the screen's right side. Never outside the surface.</item>
+    /// </list>
     /// </summary>
-    public static (double X, double Y, bool Below) TagSpot(
-        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double tagHeight, double inset,
+    public static (double X, double Y, bool Below, bool Right) TagSpot(
+        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double scale,
         double surfaceWidth, double surfaceHeight)
     {
+        var inset = TagInset * scale;
         var x = -inset;
-        if (panelX + x + tagWidth > surfaceWidth)
+        var right = panelX + x + tagWidth > surfaceWidth;
+        if (right)
         {
             x = panelWidth + inset - tagWidth;
         }
 
         x = Math.Clamp(panelX + x, 0, Math.Max(0, surfaceWidth - tagWidth)) - panelX;
-        var below = panelY < tagHeight;
-        var y = below ? panelHeight : -tagHeight;
-        y = Math.Clamp(panelY + y, 0, Math.Max(0, surfaceHeight - tagHeight)) - panelY;
-        return (x, y, below);
+
+        double y;
+        var below = false;
+        if (panelY - (TagHeight * scale) >= 0)
+        {
+            y = -TagHeight * scale;
+        }
+        else if (panelY + panelHeight + ((TagBelowGap + TagRowHeight) * scale) <= surfaceHeight)
+        {
+            below = true;
+            y = panelHeight + ((TagBelowGap + TagRowHeight - TagHeight) * scale);
+        }
+        else
+        {
+            y = inset;
+        }
+
+        return (x, y, below, right);
     }
 
     /// <summary>The placement saved for a panel whose top-left corner is at (<paramref name="x"/>, <paramref name="y"/>).</summary>

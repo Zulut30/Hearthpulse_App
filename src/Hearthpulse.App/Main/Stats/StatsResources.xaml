@@ -257,7 +257,7 @@
 
     <!-- Hover card of the Battlegrounds rating chart -->
     <DataTemplate x:Key="BgHoverCard" DataType="{x:Type m:BgGamePoint}">
-        <Border Width="316" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
+        <Border Width="474" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
             <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -269,7 +269,8 @@
                             i:CardArt.Portrait="{Binding HeroCardId}" />
                     <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Stats.Bg.PlayedAs}" Style="{StaticResource Label}" FontSize="{StaticResource FontSizeSmall}" />
-                        <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                        <!-- Two lines hold a hero name of 40 letters whole (WPF has no line limit: no ellipsis either way) -->
+                        <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -292,19 +293,33 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
+                        <!-- A 64-unit column: the portrait with attack (gold, bottom left) and health (red, bottom right) on it, as in the
+                             game; each badge grows with its number up to 31, two of them and a gap of 2 in the column ("12,5к",
+                             "9999"); a still wider number shrinks to fit, so the two never meet -->
                         <DataTemplate DataType="{x:Type m:BoardMinionRow}">
-                            <StackPanel Margin="1,0" ToolTip="{Binding Name}">
-                                <Border x:Name="Ring" Width="36" Height="36" CornerRadius="18" BorderThickness="1.5" BorderBrush="{StaticResource Border}"
-                                        Background="{StaticResource Surface4}" HorizontalAlignment="Center">
-                                    <Border CornerRadius="17" i:CardArt.Portrait="{Binding CardId}" />
+                            <Grid Width="64" Height="62" HorizontalAlignment="Center" ToolTip="{Binding Tip}">
+                                <Border x:Name="Ring" Width="52" Height="52" CornerRadius="26" BorderThickness="1.5" BorderBrush="{StaticResource Border}"
+                                        Background="{StaticResource Surface4}" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                    <Border CornerRadius="25" i:CardArt.Portrait="{Binding CardId}" />
                                 </Border>
-                                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Margin="0,2,0,0">
-                                    <Run Text="{Binding Attack, Mode=OneWay}" /><Run Text="/" Foreground="{StaticResource Faint}" /><Run Text="{Binding Health, Mode=OneWay}" />
-                                </TextBlock>
-                            </StackPanel>
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" MinWidth="20" MaxWidth="31" Height="18" CornerRadius="9" Padding="3,0"
+                                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding AttackText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource TierS}"
+                                                   Typography.NumeralAlignment="Tabular" />
+                                    </Viewbox>
+                                </Border>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" MinWidth="20" MaxWidth="31" Height="18" CornerRadius="9" Padding="3,0"
+                                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding HealthText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Negative}"
+                                                   Typography.NumeralAlignment="Tabular" />
+                                    </Viewbox>
+                                </Border>
+                            </Grid>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Golden}" Value="True">
-                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource TierS}" />
                                     <Setter TargetName="Ring" Property="BorderThickness" Value="2.5" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>

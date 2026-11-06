@@ -104,14 +104,15 @@
 
     <!-- Hover card of the Battlegrounds rating chart -->
     <DataTemplate x:Key="BgHoverCard" x:DataType="m:BgGamePoint">
-        <Border Width="316" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
+        <Border Width="474" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
             <StackPanel>
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <Border Width="50" Height="50" CornerRadius="25" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
                     <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Stats.Bg.PlayedAs}" Classes="label" FontSize="{StaticResource FontSizeSmall}" />
-                        <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                        <!-- Two lines hold a hero name of 40 letters whole -->
+                        <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap" MaxLines="2" />
                         <TextBlock Text="{Binding When}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -134,17 +135,41 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
+                        <!-- A 64-unit column: the portrait with attack (gold, bottom left) and health (red, bottom right) on it, as in the
+                             game; each badge grows with its number up to 31, two of them and a gap of 2 in the column ("12,5к",
+                             "9999"); a still wider number shrinks to fit, so the two never meet -->
                         <DataTemplate x:DataType="m:BoardMinionRow">
-                            <StackPanel Margin="1,0" ToolTip.Tip="{Binding Name}">
-                                <Panel Width="36" Height="36" HorizontalAlignment="Center">
-                                    <Border CornerRadius="18" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1.5" />
-                                    <Border Margin="1" CornerRadius="17" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                                    <Border CornerRadius="18" BorderBrush="{StaticResource Accent}" BorderThickness="2.5" IsVisible="{Binding Golden}" />
+                            <Panel Width="64" Height="62" HorizontalAlignment="Center" ToolTip.Tip="{Binding Tip}">
+                                <Panel Width="52" Height="52" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                    <Border CornerRadius="26" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1.5" />
+                                    <Border Margin="1" CornerRadius="25" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
+                                    <Border CornerRadius="26" BorderBrush="{StaticResource TierS}" BorderThickness="2.5" IsVisible="{Binding Golden}" />
                                 </Panel>
-                                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Margin="0,2,0,0">
-                                    <Run Text="{Binding Attack, Mode=OneWay}" /><Run Text="/" Foreground="{StaticResource Faint}" /><Run Text="{Binding Health, Mode=OneWay}" />
-                                </TextBlock>
-                            </StackPanel>
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" MinWidth="20" MaxWidth="31" Height="18" CornerRadius="9" Padding="3,0"
+                                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding AttackText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource TierS}">
+                                            <TextBlock.FontFeatures>
+                                                <FontFeatureCollection>
+                                                    <FontFeature Tag="tnum" Value="1" />
+                                                </FontFeatureCollection>
+                                            </TextBlock.FontFeatures>
+                                        </TextBlock>
+                                    </Viewbox>
+                                </Border>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" MinWidth="20" MaxWidth="31" Height="18" CornerRadius="9" Padding="3,0"
+                                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding HealthText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Negative}">
+                                            <TextBlock.FontFeatures>
+                                                <FontFeatureCollection>
+                                                    <FontFeature Tag="tnum" Value="1" />
+                                                </FontFeatureCollection>
+                                            </TextBlock.FontFeatures>
+                                        </TextBlock>
+                                    </Viewbox>
+                                </Border>
+                            </Panel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
