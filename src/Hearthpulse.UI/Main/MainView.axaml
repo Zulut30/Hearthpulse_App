@@ -55,15 +55,6 @@
         <Style Selector="ScrollViewer.page">
             <Setter Property="Padding" Value="40,0,40,120" />
         </Style>
-        <Style Selector="Border.placeBar">
-            <Setter Property="Background" Value="{StaticResource Negative}" />
-        </Style>
-        <Style Selector="Border.placeBar.top">
-            <Setter Property="Background" Value="{StaticResource Positive}" />
-        </Style>
-        <Style Selector="Border.placeBar.first">
-            <Setter Property="Background" Value="{StaticResource TierS}" />
-        </Style>
         <!-- Settings rows with a segmented choice: label and a muted line left, segments right; dimmed while disabled. -->
         <Style Selector="Grid.choiceRow:disabled">
             <Setter Property="Opacity" Value="0.5" />

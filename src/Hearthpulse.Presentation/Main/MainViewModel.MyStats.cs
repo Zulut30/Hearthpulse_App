@@ -133,8 +133,11 @@ public sealed record BgPlaceRow(string Place, string Share, double Fraction, boo
     /// <summary>No game ended on this place: the row sinks back and shows no "0 %" (D3, A06).</summary>
     public bool Empty => Fraction <= 0;
 
-    /// <summary>The row's opacity: an empty place sinks back, as on Home.</summary>
-    public double Dim => Empty ? PlacementBar.EmptyRowOpacity : 1;
+    /// <summary>How far an empty place's row sinks back.</summary>
+    public const double EmptyRowOpacity = 0.4;
+
+    /// <summary>The row's opacity: an empty place sinks back.</summary>
+    public double Dim => Empty ? EmptyRowOpacity : 1;
 }
 
 /// <summary>One Arena run.</summary>

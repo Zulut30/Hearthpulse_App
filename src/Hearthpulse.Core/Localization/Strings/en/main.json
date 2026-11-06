@@ -103,7 +103,6 @@
   "Main.Setup.LoggingEnabled": "Hearthstone logging was just enabled ({0}). Restart Hearthstone once to start tracking.",
   "Main.Setup.ParseErrors": "Log reading: {0:N0} Power.log line(s) could not be read ({1}). The first of each kind is in hearthpulse.log.",
   "Main.Home.BgRating": "Battlegrounds rating",
-  "Main.Home.Placements": "Placements",
   "Main.Home.RecentGames": "Recent games",
   "Main.Home.YourDecks": "Your decks",
   "Main.Home.OpenDeckTip": "Open the deck",

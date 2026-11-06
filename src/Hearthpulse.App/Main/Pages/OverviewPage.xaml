@@ -116,56 +116,7 @@
                 </StackPanel>
             </Border>
 
-            <Grid Margin="0,0,0,16" Visibility="{Binding HasBgGames, Converter={StaticResource Vis}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="2*" />
-                </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource Card}">
-                    <DockPanel>
-                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                        <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
-                    </DockPanel>
-                </Border>
-                <Border Grid.Column="2" Style="{StaticResource Card}">
-                    <DockPanel>
-                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.Placements}" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
-                        <ItemsControl ItemsSource="{Binding Placements}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type m:PlacementBar}">
-                                    <!-- A place nobody finished on sinks back, with no "0 · 0 %" -->
-                                    <Grid Height="25" Opacity="{Binding Dim}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="22" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="70" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Place}" Style="{StaticResource Caption}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Negative}" Opacity="0.85"
-                                                    Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                        </Border>
-                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
-                                                   Visibility="{Binding Empty, Converter={StaticResource Vis}, ConverterParameter=!}">
-                                            <Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" />
-                                        </TextBlock>
-                                    </Grid>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding Top}" Value="True">
-                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource Positive}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Place}" Value="1">
-                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource TierS}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </DockPanel>
-                </Border>
-            </Grid>
-
+            <!-- The last games first: what a player opens Home for -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <Grid Margin="0,0,0,10">
@@ -234,6 +185,13 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+            </Border>
+            <!-- Battlegrounds rating over time; where you finish is on the Battlegrounds page (My stats) -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HasBgGames, Converter={StaticResource Vis}}">
+                <DockPanel>
+                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
+                </DockPanel>
             </Border>
         </StackPanel>
     </ScrollViewer>

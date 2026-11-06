@@ -406,15 +406,6 @@ public partial class MainView : UserControl
         Classes.Set("compact", compact);
         UpdateTilePanels();
         Frame.ColumnDefinitions[0].Width = new GridLength(compact ? 76 : 250);
-        // Side-by-side cards stack on narrow screens.
-        foreach (var (grid, right) in new[] { (PageOverview.HomeCharts, (Control)PageOverview.PlacementCard), (PageConstructed.DeckColumns, PageConstructed.MatchupCard) })
-        {
-            grid.ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("3*,16,2*");
-            grid.RowDefinitions = compact ? new RowDefinitions("Auto,16,Auto") : new RowDefinitions("Auto");
-            Grid.SetColumn(right, compact ? 0 : 2);
-            Grid.SetRow(right, compact ? 2 : 0);
-        }
-
         PageConstructed.CtMeta.Stack(compact);
     }
 

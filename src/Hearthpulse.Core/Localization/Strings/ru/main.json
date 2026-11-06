@@ -103,7 +103,6 @@
   "Main.Setup.LoggingEnabled": "Логи Hearthstone только что включены ({0}). Перезапустите Hearthstone один раз, чтобы начать отслеживание.",
   "Main.Setup.ParseErrors": "Чтение логов: не удалось прочитать строк Power.log: {0:N0} ({1}). Первая строка каждого вида записана в hearthpulse.log.",
   "Main.Home.BgRating": "Рейтинг на Полях сражений",
-  "Main.Home.Placements": "Места",
   "Main.Home.RecentGames": "Последние игры",
   "Main.Home.YourDecks": "Ваши колоды",
   "Main.Home.OpenDeckTip": "Открыть колоду",
