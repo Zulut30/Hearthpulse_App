@@ -1,0 +1,28 @@
+{
+  "mode": "constructed",
+  "deck": {
+    "name": "Pirate Warrior",
+    "nameRu": "Пират-воин",
+    "hero": "HERO_01",
+    "format": "standard",
+    "left": 22,
+    "cards": [
+      { "id": "CS2_146", "dbf": 1004, "cost": 1, "name": "Southsea Deckhand", "nameRu": "Матрос Южных морей", "left": 2, "total": 2 },
+      { "id": "CS2_106", "dbf": 401, "cost": 3, "name": "Fiery War Axe", "nameRu": "Огненный боевой топор", "left": 1, "total": 2 },
+      { "id": "EX1_603", "dbf": 1003, "cost": 2, "name": "Cruel Taskmaster", "nameRu": "Жестокий надсмотрщик", "left": 0, "total": 2 },
+      { "id": "NEW1_018", "dbf": 1001, "cost": 2, "name": "Bloodsail Raider", "nameRu": "Налётчик из братства Кровавого Паруса", "left": 2, "total": 2 },
+      { "id": "EX1_604", "dbf": 654, "cost": 3, "name": "Frothing Berserker", "nameRu": "Яростный берсерк", "left": 1, "total": 2 },
+      { "id": "NEW1_011", "dbf": 1666, "cost": 4, "name": "Kor'kron Elite", "nameRu": "Кор'кронский элитный воин", "left": 2, "total": 2 },
+      { "id": "EX1_402", "dbf": 1023, "cost": 2, "name": "Armorsmith", "nameRu": "Бронник", "left": 2, "total": 2 },
+      { "id": "NEW1_022", "dbf": 1117, "cost": 4, "name": "Dread Corsair", "nameRu": "Жуткий корсар", "left": 1, "total": 2 },
+      { "id": "EX1_407", "dbf": 75, "cost": 5, "name": "Brawl", "nameRu": "Потасовка", "left": 1, "total": 1 },
+      { "id": "EX1_116", "dbf": 559, "cost": 5, "name": "Leeroy Jenkins", "nameRu": "Лирой Дженкинс", "left": 1, "total": 1 },
+      { "id": "EX1_414", "dbf": 643, "cost": 8, "name": "Grommash Hellscream", "nameRu": "Громмаш Адский Крик", "left": 0, "total": 1 },
+      { "id": "CS2_108", "dbf": 785, "cost": 2, "name": "Execute", "nameRu": "Казнь", "left": 2, "total": 2 },
+      { "id": "EX1_400", "dbf": 636, "cost": 1, "name": "Whirlwind", "nameRu": "Вихрь", "left": 2, "total": 2 },
+      { "id": "CS2_105", "dbf": 1026, "cost": 2, "name": "Heroic Strike", "nameRu": "Героический удар", "left": 2, "total": 2 },
+      { "id": "EX1_084", "dbf": 193, "cost": 3, "name": "Warsong Commander", "nameRu": "Командир Песни Войны", "left": 1, "total": 2 }
+    ]
+  },
+  "game": { "turn": 5 }
+}
