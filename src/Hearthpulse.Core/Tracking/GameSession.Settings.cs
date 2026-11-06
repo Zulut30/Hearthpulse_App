@@ -15,6 +15,7 @@ public sealed partial class GameSession
         SetArenaDraftEnabled(settings.ShowArenaDraft);
         SetBgOpponentMmrEnabled(settings.ShowBgOpponentMmr);
         SetLadderBreak(TimeSpan.FromHours(Math.Clamp(settings.LadderSessionBreakHours, 1, 12)));
+        SetStreamSession(settings.StreamSessionWindow, settings.StreamSessionStart);
     }
 
     /// <summary>What <see cref="ApplySettings"/> set, for tests.</summary>

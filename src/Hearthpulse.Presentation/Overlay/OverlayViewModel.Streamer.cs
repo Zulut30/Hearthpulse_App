@@ -42,6 +42,7 @@ public sealed partial class OverlayViewModel
     {
         "deck" => DeckWindowState,
         "lobby" => LobbyWindowState,
+        "session" => SessionWindowState,
         _ => OddsWindowState,
     };
 
@@ -50,6 +51,7 @@ public sealed partial class OverlayViewModel
     {
         "deck" => nameof(DeckWindowState),
         "lobby" => nameof(LobbyWindowState),
+        "session" => nameof(SessionWindowState),
         _ => nameof(OddsWindowState),
     };
 
@@ -68,6 +70,7 @@ public sealed partial class OverlayViewModel
             : bg is { IsHeroSelection: false, Opponents.Count: > 0 } ? StreamWindowState.Shown : StreamWindowState.Waiting;
         OddsWindowState = bg is null ? StreamWindowState.Idle
             : bg is { InCombat: true, CombatOdds: not null } ? StreamWindowState.Shown : StreamWindowState.Waiting;
+        UpdateStreamSession(snapshot);
     }
 
     /// <summary>

@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.StreamSessionPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- The OBS window "Hearthpulse — Session" (proposal B1, docs/streaming.md), as the WPF Overlay/StreamSessionPanel.xaml.
+         Only the player's own numbers. DataContext: OverlayViewModel (inherited). Tokens only. -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+        <i:SignBrush x:Key="SignBrush" />
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border.placeChip">
+            <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+        </Style>
+        <Style Selector="Border.placeChip TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+        <Style Selector="Border.placeChip.top">
+            <Setter Property="Background" Value="{StaticResource PositiveSoft}" />
+        </Style>
+        <Style Selector="Border.placeChip.top TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="overlayCard solid" Padding="16,12" Width="250">
+        <StackPanel>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StreamSessionSince}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding StreamSessionTitle}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <DockPanel Margin="0,4,0,0">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StreamSessionChange}" FontFamily="{DynamicResource DisplayFont}" FontSize="{StaticResource FontSizeTitle}"
+                           FontWeight="Bold" Foreground="{Binding StreamSessionChangeValue, Converter={StaticResource SignBrush}}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding StreamSessionValue}" FontFamily="{DynamicResource DisplayFont}" FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
+                           Foreground="{StaticResource StatText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="{Binding StreamSessionFrom}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}"
+                       IsVisible="{Binding StreamSessionFrom, Converter={StaticResource Truthy}}" />
+            <TextBlock Text="{Binding StreamSessionRecord}" FontFamily="{DynamicResource DisplayFont}" FontSize="{StaticResource FontSizeTitle}" FontWeight="SemiBold"
+                       Margin="0,4,0,0" IsVisible="{Binding StreamSessionRecord, Converter={StaticResource Truthy}}" />
+            <ItemsControl ItemsSource="{Binding StreamSessionPlaces}" Margin="0,8,0,0" Focusable="False" IsVisible="{Binding HasStreamSessionPlaces}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="o:PlaceChip">
+                        <Border Classes="placeChip" Classes.top="{Binding Top}" Width="24" Height="24" CornerRadius="{StaticResource RadiusSmall}" Margin="0,0,4,0">
+                            <TextBlock Text="{Binding Place}" FontSize="{StaticResource FontSizeLabel}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

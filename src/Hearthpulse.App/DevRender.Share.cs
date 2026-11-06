@@ -1,7 +1,10 @@
 using System.IO;
 using System.Windows;
 using Hearthpulse.App.Main.Share;
+using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Share;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App;
 
@@ -25,6 +28,13 @@ public partial class App
             {
                 await RenderSharePictureAsync(year, folder, "share-year.png");
             }
+
+            // The OBS window "Session" over the latest session of the history.
+            var games = _history.Recent(400);
+            var since = SessionRecap.LastSession(games, TimeSpan.FromHours(_settings.LadderSessionBreakHours))?.Since ?? DateTime.Now;
+            _overlayViewModel.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, _cards, _settings, null, null);
+            await RenderStreamWindowAsync(StreamWindowSpec.Session, folder, "stream-session.png");
+            _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
         }
         catch (IOException ex)
         {

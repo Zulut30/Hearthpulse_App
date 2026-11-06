@@ -33,6 +33,11 @@
                     <TextBlock x:Name="OnTopCheck" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="15" />
                 </MenuItem.Icon>
             </MenuItem>
+            <MenuItem x:Name="ResetSessionItem" Header="{i:Loc Stream.Session.Reset}" Click="OnResetSession">
+                <MenuItem.Icon>
+                    <TextBlock />
+                </MenuItem.Icon>
+            </MenuItem>
             <Separator />
             <MenuItem x:Name="CloseItem" Header="{i:Loc Stream.Menu.Close}" Click="OnCloseWindow">
                 <MenuItem.Icon>
