@@ -192,6 +192,7 @@ public sealed partial class MainViewModel
 
     private StatsPeriod _arenaPeriod = StatsPeriod.All;
     private IReadOnlyList<StatTile> _arenaStatTiles = [];
+    private IReadOnlyList<StatTile> _arenaMoreTiles = [];
     private IReadOnlyList<ArenaRunRow> _arenaRuns = [];
     private IReadOnlyList<StatGroupRow> _arenaClasses = [];
     private IReadOnlyList<StatGroupRow> _arenaOpponents = [];
@@ -306,7 +307,11 @@ public sealed partial class MainViewModel
 
     public string CtStatsNote { get => _ctStatsNote; private set => Set(ref _ctStatsNote, value); }
 
+    /// <summary>The page's headline numbers: runs, average wins, best run, win rate.</summary>
     public IReadOnlyList<StatTile> ArenaStatTiles { get => _arenaStatTiles; private set => Set(ref _arenaStatTiles, value); }
+
+    /// <summary>The rest, under «Подробнее»: time played and the rewards' total.</summary>
+    public IReadOnlyList<StatTile> ArenaMoreTiles { get => _arenaMoreTiles; private set => Set(ref _arenaMoreTiles, value); }
 
     public IReadOnlyList<ArenaRunRow> ArenaRuns { get => _arenaRuns; private set => Set(ref _arenaRuns, value); }
 
@@ -607,7 +612,8 @@ public sealed partial class MainViewModel
         var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
         return () =>
         {
-            ArenaStatTiles = tiles;
+            ArenaStatTiles = [.. tiles.Take(HeadlineTiles)];
+            ArenaMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             ArenaRuns = RebuiltArenaRuns(runRows);
             ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
