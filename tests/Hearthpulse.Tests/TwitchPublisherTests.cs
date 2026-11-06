@@ -370,6 +370,30 @@ public sealed class TwitchPublisherTests : IDisposable
     }
 
     [Fact]
+    public async Task Insufficient_scope_asks_to_sign_in_again_and_waits_for_it()
+    {
+        var publisher = await StartedAsync();
+        _site.StateAnswer = (403, "insufficient_scope", null);
+
+        publisher.Update(Game(View(Rows(axes: 1))));
+        await AdvanceAsync(1);
+        Assert.Equal(TwitchLinkState.SignInAgain, publisher.Link.State);
+        var calls = _site.Calls.Count;
+
+        // The same token would be refused again: no tries, not even after minutes.
+        publisher.Update(Game(View(Rows(axes: 0))));
+        await AdvanceAsync(180);
+        Assert.Equal(calls, _site.Calls.Count);
+
+        // A new sign-in (the host kicks on it): the link is asked and the deck goes.
+        _site.StateAnswer = (204, null, null);
+        publisher.Kick();
+        await SettleAsync();
+        Assert.Equal(["GET twitch/status", "POST twitch/state"], _site.Calls.Skip(calls));
+        Assert.Equal(TwitchLinkState.Connected, publisher.Link.State);
+    }
+
+    [Fact]
     public async Task Offline_is_an_error_and_tried_again_after_a_minute()
     {
         _site.Offline = true;

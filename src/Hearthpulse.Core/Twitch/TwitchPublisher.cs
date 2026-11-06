@@ -16,6 +16,12 @@ public enum TwitchLinkState
     /// <summary>Not signed in to the Hearthpulse account (or the site ended the sign-in).</summary>
     SignedOut,
 
+    /// <summary>
+    /// The sign-in lacks the access the route needs (<c>403 insufficient_scope</c>): only signing in again helps, so
+    /// nothing is tried until the sign-in changes.
+    /// </summary>
+    SignInAgain,
+
     /// <summary>The account has no Twitch linked (<c>404 twitch_not_linked</c>, or the status says so).</summary>
     NotLinked,
 
@@ -296,7 +302,15 @@ public sealed class TwitchPublisher : IDisposable
     {
         if (now < _pausedUntil)
         {
-            Arm(_pausedUntil - now);
+            if (_pausedUntil == DateTimeOffset.MaxValue)
+            {
+                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
+            else
+            {
+                Arm(_pausedUntil - now);
+            }
+
             return null;
         }
 
@@ -486,7 +500,8 @@ public sealed class TwitchPublisher : IDisposable
         Diag.Info($"twitch: the site answered {answer.Status} {answer.Code}");
         var (state, code) = answer switch
         {
-            { Status: 401 or 403 } => (TwitchLinkState.SignedOut, (string?)null),
+            { Status: 403, Code: "INSUFFICIENT_SCOPE" } => (TwitchLinkState.SignInAgain, (string?)null),
+            { Status: 401 or 403 } => (TwitchLinkState.SignedOut, null),
             { Status: 404, Code: "TWITCH_NOT_LINKED" } => (TwitchLinkState.NotLinked, null),
             { Status: 503, Code: "TWITCH_NOT_CONFIGURED" } => (TwitchLinkState.NotConfigured, null),
             { Status: 0 } => (TwitchLinkState.Error, "OFFLINE"),
@@ -505,7 +520,8 @@ public sealed class TwitchPublisher : IDisposable
         lock (_gate)
         {
             var pause = retryAfter is { } wait && wait > RetryPause ? wait : RetryPause;
-            _pausedUntil = _time.GetUtcNow() + pause;
+            // The same token would be refused again: wait for a new sign-in (Kick) instead of a minute.
+            _pausedUntil = state == TwitchLinkState.SignInAgain ? DateTimeOffset.MaxValue : _time.GetUtcNow() + pause;
             _statusDue = true;
             changed = _settings.TwitchExtension
                 && SetLink(new TwitchLink(state, state == TwitchLinkState.Error ? _link.Login : null, code, linkUrl ?? _link.LinkUrl));

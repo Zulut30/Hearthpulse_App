@@ -69,12 +69,14 @@ public sealed class AppServices
         // The Twitch extension (docs/streaming.md): the deck of every snapshot, sent while the switch is on and signed in.
         Twitch = new TwitchPublisher(new TwitchClient(http, accountClient.BaseUri), Account.GetAccessTokenAsync, settings, cards);
         Session.SnapshotChanged += Twitch.Update;
-        var signedIn = Account.SignedIn;
+        // A sign-in, a sign-out or a new sign-in over the old one: the sender tries at once.
+        var signIn = (Account.SignedIn, Account.Session);
         Account.Changed += () =>
         {
-            if (Account.SignedIn != signedIn)
+            var now = (Account.SignedIn, Account.Session);
+            if (now != signIn)
             {
-                signedIn = Account.SignedIn;
+                signIn = now;
                 Twitch.Kick();
             }
         };

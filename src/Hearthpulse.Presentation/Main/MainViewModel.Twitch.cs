@@ -81,6 +81,7 @@ public sealed partial class MainViewModel
         : link.State switch
         {
             TwitchLinkState.SignedOut => Loc.T("Twitch.Status.SignedOut"),
+            TwitchLinkState.SignInAgain => Loc.T("Twitch.Status.SignInAgain"),
             TwitchLinkState.NotLinked => Loc.T("Twitch.Status.NotLinked"),
             TwitchLinkState.NotConfigured => Loc.T("Twitch.Status.NotConfigured"),
             TwitchLinkState.Connected => link.Login is { Length: > 0 } login ? Loc.F("Twitch.Status.Connected", login) : Loc.T("Twitch.Status.ConnectedNoLogin"),

@@ -74,41 +74,7 @@
             </StackPanel>
         </Border>
 
-        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-            <StackPanel>
-                <c:Ornament Text="{i:Loc Twitch.Title}" Icon="&#xF0543;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Twitch.Note}" Style="{StaticResource CardNote}" />
-                <CheckBox x:Name="TwitchSetting" Style="{StaticResource Switch}" Content="{i:Loc Twitch.Switch}" IsChecked="{Binding TwitchExtension}" Margin="0,0,0,12"
-                          ToolTip="{i:Loc Twitch.SwitchTip}" />
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="56" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="{i:Loc Twitch.Delay}" Style="{StaticResource SettingLabel}" ToolTip="{i:Loc Twitch.DelayTip}" />
-                    <Slider x:Name="TwitchDelaySetting" Grid.Column="1" Minimum="0" Maximum="600" Value="{Binding TwitchDelay}" SmallChange="1" LargeChange="10"
-                            IsSnapToTickEnabled="True" TickFrequency="1" AutomationProperties.Name="{i:Loc Twitch.Delay}" ToolTip="{i:Loc Twitch.DelayTip}" />
-                    <TextBlock Grid.Column="2" Text="{Binding TwitchDelayText}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
-                </Grid>
-                <!-- The link to the site and Twitch: green once the site takes the deck, faint otherwise -->
-                <Grid Margin="0,0,0,8" Visibility="{Binding TwitchStatusShown, Converter={StaticResource Vis}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid Margin="0,4,8,0" VerticalAlignment="Top">
-                        <Ellipse Width="8" Height="8" Fill="{StaticResource Faint}" />
-                        <Ellipse Width="8" Height="8" Fill="{StaticResource Positive}" Visibility="{Binding TwitchConnected, Converter={StaticResource Vis}}" />
-                    </Grid>
-                    <TextBlock x:Name="TwitchStatusLine" Grid.Column="1" Text="{Binding TwitchStatusText}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
-                </Grid>
-                <Button x:Name="TwitchLinkButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Twitch.Link}" Command="{Binding LinkTwitch}" HorizontalAlignment="Left" Margin="0,4,0,8"
-                        ToolTip="{i:Loc Twitch.LinkTip}" Visibility="{Binding TwitchLinkShown, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{i:Loc Twitch.Keeps}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
-            </StackPanel>
-        </Border>
-
+        <st:TwitchSettingsCard Margin="0,0,0,16" />
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />
