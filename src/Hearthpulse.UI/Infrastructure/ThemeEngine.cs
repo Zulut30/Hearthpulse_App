@@ -37,7 +37,7 @@ public static class ThemeEngine
     {
         try
         {
-            return Apply(app, ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint));
+            return Apply(app, ThemePalette.FromSettings(settings));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {

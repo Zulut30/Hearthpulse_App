@@ -47,7 +47,7 @@ public sealed partial class MainViewModel
     /// <summary>Raised when the player picks a theme; the host saves it and repaints the app in the new colours.</summary>
     public event Action? ThemeChanged;
 
-    public ThemeSpec CurrentTheme => ThemePalette.Resolve(Settings.Theme, Settings.ThemeAccentHue, Settings.ThemeBaseHue, Settings.ThemeBaseTint);
+    public ThemeSpec CurrentTheme => ThemePalette.FromSettings(Settings);
 
     public IReadOnlyList<ThemeChoice> Themes =>
         ThemePalette.Presets.Select(p => ThemeChoice.From(p, string.Equals(p.Name, Settings.Theme, StringComparison.OrdinalIgnoreCase))).ToList();

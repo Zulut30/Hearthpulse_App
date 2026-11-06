@@ -77,6 +77,57 @@ public sealed class ThemePaletteTests
         Assert.True(ThemePalette.IsDefault(ThemePalette.Resolve("mine", 42, 28, 1.0)));
     }
 
+    [Fact]
+    public void MidnightSinksTheWindowToNearBlackButLeavesLighterTonesAlone()
+    {
+        var midnight = Preset("Midnight");
+        var window = ThemePalette.Map(0xFF140D08u, midnight);
+        Assert.True(Lightness(window) < 0.02, $"expected near black, got {window:X8}");
+        var plain = midnight with { Depth = 0 };
+        Assert.Equal(ThemePalette.Map(0xFF8A7558u, plain), ThemePalette.Map(0xFF8A7558u, midnight));
+    }
+
+    [Fact]
+    public void EveryPresetHasItsOwnNameHeroAndMotif()
+    {
+        Assert.True(ThemePalette.Presets.Count >= 12);
+        Assert.Equal(ThemePalette.Presets.Count, ThemePalette.Presets.Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        foreach (var preset in ThemePalette.Presets)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(preset.Hero), preset.Name);
+            foreach (var language in Hearthpulse.Core.Localization.Loc.Languages)
+            {
+                Assert.True(Hearthpulse.Core.Localization.Loc.Table(language).ContainsKey("Main.Theme." + preset.Name), $"{language}: Main.Theme.{preset.Name}");
+            }
+        }
+    }
+
+    [Fact]
+    public void AnAccentSwatchTurnsOnlyTheAccentAndNeverGoesBelowThePresetsLift()
+    {
+        var arcane = Preset("Arcane");
+        var rose = ThemePalette.WithAccent(arcane, "rose");
+        Assert.Equal(336, rose.AccentHue);
+        Assert.Equal(arcane.BaseHue, rose.BaseHue);
+        Assert.Equal(arcane.SecondaryHue, rose.SecondaryHue);
+        Assert.True(rose.AccentLift >= arcane.AccentLift);
+        Assert.InRange(HueDistance(Hue(ThemePalette.Map(0xFFE9B949u, rose)), 336), 0, 4);
+        Assert.Same(arcane, ThemePalette.WithAccent(arcane, ""));
+        Assert.Same(arcane, ThemePalette.WithAccent(arcane, "no such swatch"));
+    }
+
+    [Fact]
+    public void TheSettingsThemeCarriesTheChosenAccent()
+    {
+        var settings = new AppSettings { Theme = "Mech", ThemeAccent = "Sky" };
+        var theme = ThemePalette.FromSettings(settings);
+        Assert.Equal("Mech", theme.Name);
+        Assert.Equal(196, theme.AccentHue);
+        Assert.Equal("Tavern", ThemePalette.FromSettings(settings, "Tavern").Name);
+        settings.ThemeAccent = "";
+        Assert.Equal(Preset("Mech"), ThemePalette.FromSettings(settings));
+    }
+
     private static double Hue(uint argb) => Hsl(argb).H;
 
     private static double Lightness(uint argb) => Hsl(argb).L;

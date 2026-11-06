@@ -761,7 +761,7 @@ public partial class App : Application
     {
         // Off-screen renders can preview a theme without touching the saved settings.
         var name = _renderDir is not null && Environment.GetEnvironmentVariable("HEARTHPULSE_THEME") is { Length: > 0 } forced ? forced : _settings.Theme;
-        return ThemePalette.Resolve(name, _settings.ThemeAccentHue, _settings.ThemeBaseHue, _settings.ThemeBaseTint);
+        return ThemePalette.FromSettings(_settings, name);
     }
 
     private bool ApplyTheme()
