@@ -96,8 +96,9 @@
                     </Border>
                 </o:MovablePanel>
 
-                <!-- ============ Battlegrounds: counters row (bottom-left) ============ -->
-                <o:MovablePanel Id="bg-counters" Title="{i:Loc Overlay.Panel.BgCounters}" Shown="{Binding ShowBgCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,250">
+                <!-- ============ Battlegrounds: counters row (bottom-left, under the leaderboard: its tiles end at 0.84 of the height, so
+                 the row clears them on 16:9, 16:10 and 4:3 screens; D5) ============ -->
+                <o:MovablePanel Id="bg-counters" Title="{i:Loc Overlay.Panel.BgCounters}" Shown="{Binding ShowBgCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,12">
                     <Border Classes="overlayCard" Padding="8,8,2,2" MaxWidth="560" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                         <StackPanel>
                             <ItemsControl ItemsSource="{Binding BgCounters}" ItemTemplate="{StaticResource BgCounterTemplate}">

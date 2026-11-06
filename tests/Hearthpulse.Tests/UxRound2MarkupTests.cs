@@ -248,7 +248,7 @@ public sealed class UxRound2MarkupTests
                 }
 
                 var card = content.DescendantsAndSelf().First(e => e.Name.LocalName == "Border"
-                    && ((string?)e.Attribute("Style") == "{StaticResource OverlayCard}" || Classes(e).Contains("overlayCard")));
+                    && ((string?)e.Attribute("Style") is "{StaticResource OverlayCard}" or "{StaticResource OverlayCardSolid}" || Classes(e).Contains("overlayCard")));
                 var header = card.Descendants().First(e => e.Name.LocalName == "Border");
                 Assert.True(IsHeader(header), $"{overlay} {id}: the first border in the card is not the header band");
 
