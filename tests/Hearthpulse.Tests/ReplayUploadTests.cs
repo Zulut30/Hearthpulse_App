@@ -20,10 +20,8 @@ public sealed class ReplayUploadTests : IDisposable
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        if (Directory.Exists(_dir))
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
+        // A background write can still land in the folder on macOS: the shared helper retries and never fails a test.
+        TestDataFolder.TryDelete(_dir);
     }
 
     [Fact]
