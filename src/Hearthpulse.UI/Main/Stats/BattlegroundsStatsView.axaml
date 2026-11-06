@@ -17,19 +17,7 @@
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
     </UserControl.Styles>
     <StackPanel>
-        <Grid Classes="statsHead" Margin="0,0,0,12" RowDefinitions="Auto,Auto">
-            <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.ThisMonth}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
-                                 ToolTip.Tip="{i:Loc Stats.Period.ThisMonthBgTip}" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
+        <!-- The period bar sits in the page's tab row (BattlegroundsPage) -->
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 

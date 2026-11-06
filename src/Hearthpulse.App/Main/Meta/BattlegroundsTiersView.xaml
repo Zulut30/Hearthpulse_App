@@ -323,59 +323,5 @@
                 <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
-
-        <!-- My heroes -->
-        <Border x:Name="MyHeroesCard" Style="{StaticResource Card}" Visibility="Collapsed">
-            <StackPanel>
-                <Grid Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="50" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="100" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="90" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Hero}" Style="{StaticResource TableHead}" />
-                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlace}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.AvgPlaceTip}" />
-                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Top4}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.Top4MineTip}" />
-                    <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Wins}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.WinsTip}" />
-                    <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.NetMmr}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.NetMmrTip}" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding MyHeroes}" ItemsPanel="{StaticResource PageRows}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type m:HeroRow}">
-                            <Border Style="{StaticResource RowBorder}" Padding="8,4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="50" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="90" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                            i:CardArt.Portrait="{Binding CardId}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="2" Text="{Binding Games}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
-                                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                    <TextBlock Grid.Column="4" Text="{Binding Top4}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="5" Text="{Binding Wins}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="6" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
-                                               Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Text="{i:Loc Main.Bg.MyHeroesEmpty}" Style="{StaticResource Caption}" Margin="0,8"
-                           Visibility="{Binding MyHeroes, Converter={StaticResource Vis}, ConverterParameter=!}" />
-            </StackPanel>
-        </Border>
     </Grid>
 </UserControl>

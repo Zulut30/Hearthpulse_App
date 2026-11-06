@@ -16,8 +16,8 @@ public sealed partial class MainViewModel
     public static IReadOnlyList<string> NavPages { get; } =
         ["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "Brawl", "History", "Settings"];
 
-    /// <summary>The Battlegrounds page's tabs in order, as the window's <c>BattlegroundsTab</c> takes them; the first is the default.</summary>
-    public static IReadOnlyList<string> BattlegroundsTabs { get; } = ["Heroes", "Comps", "Trinkets", "Cards", "Mine"];
+    /// <summary>The Battlegrounds page's tabs in order, as the window's <c>BattlegroundsTab</c> takes them; the first (My stats, as on Standard and Wild) is the default.</summary>
+    public static IReadOnlyList<string> BattlegroundsTabs { get; } = ["Mine", "Heroes", "Comps", "Trinkets", "Cards"];
 
     /// <summary>The Constructed page's tabs in order, as the window's <c>ConstructedTab</c> takes them; the first is the default.</summary>
     public static IReadOnlyList<string> ConstructedTabs { get; } = ["Decks", "Tiers", "Top", "Matchups"];
