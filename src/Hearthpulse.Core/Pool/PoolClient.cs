@@ -66,7 +66,7 @@ public static partial class PoolClient
 
     /// <summary>
     /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Game records of every
-    /// mode (docs/game-stats.md) are another purpose with their own consent (<see cref="AppSettings.GameStatsConsent"/>).
+    /// mode (docs/game-stats.md) are another purpose with their own opt-out switch (<see cref="AppSettings.GameStatsOff"/>).
     /// </summary>
     public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
 

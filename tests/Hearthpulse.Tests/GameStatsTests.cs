@@ -234,11 +234,12 @@ public sealed class GameStatsTests : IDisposable
     }
 
     [Fact]
-    public void Sharing_needs_the_consent_and_an_https_pool()
+    public void Sharing_is_on_by_default_until_turned_off_and_needs_an_https_pool()
     {
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = "http://pool.test", GameStatsConsent = 1 }));
-        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsConsent = 1 }));
+        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint }), "on by default");
+        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsOff = true }));
+        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = "http://pool.test" }));
+        Assert.False(GameStatsClient.Sharing(new AppSettings()), "nothing goes while the pool is not set up");
     }
 
     [Theory]
@@ -299,7 +300,7 @@ public sealed class GameStatsTests : IDisposable
     [Fact]
     public async Task The_uploader_sends_in_batches_and_keeps_what_the_pool_did_not_take()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsConsent = GameStatsClient.ConsentVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var queue = new GameStatsQueue(_folder);
         for (var i = 0; i < 25; i++)
         {
@@ -323,7 +324,7 @@ public sealed class GameStatsTests : IDisposable
     [Fact]
     public async Task Withdrawing_drops_the_queue_and_asks_the_pool_to_delete_until_it_answers()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsConsent = GameStatsClient.ConsentVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var queue = new GameStatsQueue(_folder);
         queue.Add(Record('a'));
         var pool = new FakePool(HttpStatusCode.ServiceUnavailable);
@@ -331,7 +332,7 @@ public sealed class GameStatsTests : IDisposable
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
         using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queue) { Delay = TimeSpan.Zero };
 
-        settings.GameStatsConsent = 0;
+        settings.GameStatsOff = true;
         uploader.Withdraw();
         Assert.Equal(0, queue.Count);
         Assert.False(await uploader.PassAsync(CancellationToken.None));
@@ -347,7 +348,7 @@ public sealed class GameStatsTests : IDisposable
     [Fact]
     public void A_game_ending_while_sharing_is_off_is_not_queued()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsOff = true };
         var queue = new GameStatsQueue(_folder);
         using var http = new HttpClient(new FakePool(HttpStatusCode.OK));
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
@@ -359,7 +360,7 @@ public sealed class GameStatsTests : IDisposable
     [Fact]
     public void The_uploader_builds_a_record_from_the_history_row_and_its_replay()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsConsent = GameStatsClient.ConsentVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var replays = new ReplayStore(Path.Combine(_folder, "replays"));
         var game = Ranked(null);
         var name = replays.Save(game.Key, Replay())!;

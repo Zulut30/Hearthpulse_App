@@ -30,6 +30,21 @@ HOW IT WORKS
   information such as your opponent's hand or deck.
 - Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
 
+GAME STATISTICS
+- On by default; turn it off in Settings > Data, "Send my games to Hearthpulse
+  statistics". Turning it off deletes the games waiting on this computer and
+  asks the stats server to delete the ones already sent.
+- After each Ranked, Casual, Arena, Brawl and Battlegrounds game the app sends
+  a record of it to the Hearthpulse stats server (Cloudflare): mode, format,
+  rank league, classes, deck code, result, mulligan, cards played and drawn,
+  your picks; in Battlegrounds the heroes, tavern tiers, buys and sells,
+  board and placement. Only what you saw in the game: opponent cards only
+  once shown. Never your name, BattleTag, account, deck name or Legend number.
+- Records carry a random number of this install (so they can be deleted), not
+  your account, and are kept for 180 days. Only totals over many players are
+  published. More: the privacy policy on hearthpulse.net, section 9.
+- Nothing is sent until the stats server is set up in the app.
+
 CRASH REPORTS
 - Off by default. A report of an unexpected error goes to hearthpulse.net only
   when you press "Send report" in the error window, or when you turn on

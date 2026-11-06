@@ -1,6 +1,6 @@
 # Game records for Hearthpulse's own statistics
 
-Every finished game a player agrees to send goes to the stats pool as one compact, versioned **game record**: all
+Every finished game goes to the stats pool as one compact, versioned **game record**: all
 modes we track (Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos), not only Battlegrounds. The records are
 the raw material for Hearthpulse's own statistics later (ADR 0009: only our own analytics may be paid). Where they are
 stored and why: [ADR 0011](adr/0011-game-records-in-the-stats-pool.md).
@@ -39,16 +39,18 @@ shown (a secret that did not trigger, a card left in hand) has no name in the re
 account id, deck name, legend number or exact rating. `GameStatsRealLogTests` checks this on the kept logs; the
 server rebuilds every record from known fields only, so anything else is dropped.
 
-## Consent and the switch
+## On by default, one opt-out switch
 
-- One switch, Settings → Data: «Отправлять все мои игры для статистики Hearthpulse» / "Send all my games to Hearthpulse
-  statistics", its tooltip lists every field, the line under it says what is never sent, the 180 days, that the
-  statistics may be used in paid features, and that switching off deletes the sent games. Shown only once the pool is
-  set up (`PoolClient.Available`). Stored as `AppSettings.GameStatsConsent` (the list version agreed to, 0 = no).
-- Its own consent: the stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4)
-  does not turn game records on, and players who agreed to the pool are not switched on silently: game records are
-  another purpose (their own statistics, paid features included), so GDPR wants a separate, unticked choice
-  (`reference/reviews/LEGAL-game-stats.md`, L-M2). The switch is off by default.
+- **On by default** (the owner's decision, 2026-11-06: no consent prompt). The legal minimum kept for pseudonymous
+  data: one opt-out switch, the notice in the installer (`installer/*/notice.txt`, README: GAME STATISTICS) and section
+  9 of the site's privacy policy, and deletion of an install's records (switching off).
+- The switch, Settings → Data: «Отправлять мои игры для статистики Hearthpulse» / "Send my games to Hearthpulse
+  statistics"; its tooltip lists every field, the line under it says it is on by default, what is never sent, the
+  180 days, that the statistics may be used in paid features, how to turn it off and that this deletes the sent games.
+  Shown only once the pool is set up (`PoolClient.Available`); nothing is sent before. Stored as
+  `AppSettings.GameStatsOff` (false = sending).
+- The stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4) is unrelated
+  and unchanged.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
   waits in the queue (`game-stats/forget`) until the pool answers.
@@ -76,7 +78,7 @@ server rebuilds every record from known fields only, so anything else is dropped
 
 ## Checking a build
 
-1. A copy of the data folder (`HEARTHPULSE_DATA`), `"PoolEndpoint": "https://<pool>"` and `"GameStatsConsent": 1` in
-   its `settings.json`.
+1. A copy of the data folder (`HEARTHPULSE_DATA`), `"PoolEndpoint": "https://<pool>"` in its `settings.json`
+   (game records are on by default).
 2. Play or finish a game; the log has `Game stats: sent 1 game(s)`.
 3. `GET <pool>/v1/events/summary` (after the next cron run, or `npx wrangler dev --test-scheduled`) counts it.

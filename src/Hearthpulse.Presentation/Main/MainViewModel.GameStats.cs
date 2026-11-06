@@ -1,4 +1,3 @@
-using Hearthpulse.Core.GameStats;
 using Hearthpulse.Core.Pool;
 
 #if HEARTHPULSE_WPF
@@ -11,13 +10,12 @@ public sealed partial class MainViewModel
 {
     /// <summary>
     /// Settings → Data: send every finished game (all modes) as a game record for Hearthpulse's statistics
-    /// (<see cref="Core.AppSettings.GameStatsConsent"/>, docs/game-stats.md). Off until the player turns it on here: its
-    /// own consent, apart from the stats pool's question (another purpose). Switching it off asks the pool to delete
-    /// what this PC sent.
+    /// (docs/game-stats.md). On by default; turning it off (<see cref="Core.AppSettings.GameStatsOff"/>) asks the pool
+    /// to delete what this PC sent.
     /// </summary>
     public bool GameStatsSharing
     {
-        get => Settings.GameStatsConsent >= GameStatsClient.ConsentVersion;
+        get => !Settings.GameStatsOff;
         set
         {
             if (GameStatsSharing == value)
@@ -25,14 +23,7 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            Settings.GameStatsConsent = value ? GameStatsClient.ConsentVersion : 0;
-            if (value)
-            {
-                // The install id comes from the pool secret: make it now, so the host saves it with this change and a
-                // crash before exit cannot leave sent records that a later "off" no longer finds.
-                GameStatsClient.InstallId(Settings);
-            }
-
+            Settings.GameStatsOff = !value;
             Raise();
             GameStatsChanged?.Invoke(value);
         }

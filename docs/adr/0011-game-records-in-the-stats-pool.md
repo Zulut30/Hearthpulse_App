@@ -1,6 +1,6 @@
 # Game records live in the stats pool (Cloudflare D1), not in the site's database
 
-Every finished game a player agrees to send (all modes: Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos) goes
+Every finished game (all modes: Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos) goes
 as one compact versioned record to the stats pool Worker, `POST /v1/events`, and is stored as one row of D1 table `e`
 (server/pool/src/events.js, [game-stats.md](../game-stats.md)). The site's SQLite (hearthpulse.net) does not hold them.
 
@@ -20,7 +20,7 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
   hash of the app's pool secret), needed so a player can have their records deleted.
 - **No logs.** The Worker runs with Workers logs off (`[observability] enabled = false`), so no IP address or body is
   kept; the site's nginx needs a per-route `access_log off` on the origin and on every edge for the same guarantee.
-- **One consent and one client.** The app already sends Battlegrounds games to the pool on the player's consent, with
+- **One client.** The app already sends Battlegrounds games to the pool on the player's consent, with
   a keyed game id, a rate limit and a daily budget; game records reuse the endpoint setting, the secret and the queue
   rules.
 
@@ -32,8 +32,10 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
   is capped at 10,000 ("10000+": the few players above are on Blizzard's public leaderboard), the rank is the league
   only. Deleted records stay in D1's Time Travel history for up to 30 days; the pool is never restored to a point
   before a deletion without sending the deletion again (`reference/reviews/LEGAL-game-stats.md`).
-- **Their own consent.** The stats pool's first-start question (public Battlegrounds totals) does not turn game
-  records on: they are another purpose, with their own switch in Settings → Data, off by default.
+- **On by default, with an opt-out** (the owner's decision, 2026-11-06). No consent prompt; the legal minimum for
+  pseudonymous data is kept: one opt-out switch in Settings → Data, the installer notice, section 9 of the site's
+  privacy policy, and deletion of the install's records when the switch goes off. The stats pool's first-start
+  question (public Battlegrounds totals) is a separate purpose and does not change game records.
 
 - Records are kept 180 days (the cron job deletes older ones); only a small aggregate is published
   (`/v1/events/summary`: games per day, most-picked Discover options and mulligan keep rate per card, each from 10

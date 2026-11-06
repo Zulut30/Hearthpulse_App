@@ -11,7 +11,7 @@ namespace Hearthpulse.Core.GameStats;
 /// docs/game-stats.md). A game is built from its history row and its saved replay off the log and UI threads, waits
 /// in <see cref="GameStatsQueue"/>, and goes out in batches of up to 20 with a growing pause after a failure. Turning
 /// sharing off drops what waits and asks the pool to delete what this install sent; that request is kept until the
-/// pool confirms it.
+/// pool confirms it. On by default (<see cref="AppSettings.GameStatsOff"/> is the opt-out).
 /// </summary>
 public sealed class GameStatsUploader : IDisposable
 {
@@ -56,6 +56,21 @@ public sealed class GameStatsUploader : IDisposable
     /// <summary>Starts the background sender (live hosts only; a render never starts it).</summary>
     public void Start()
     {
+        // The install id comes from the pool secret: make and save it before the first record, so a crash before exit
+        // cannot leave sent records that turning the switch off later no longer finds (LEGAL-game-stats L-m2).
+        if (_settings.PoolSecret is not { Length: 64 })
+        {
+            PoolClient.Secret(_settings);
+            try
+            {
+                _settings.Save();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Diag.Error("Game stats: saving the install secret failed", ex);
+            }
+        }
+
         _loop ??= Task.Run(() => LoopAsync(_stop.Token));
         Kick();
     }

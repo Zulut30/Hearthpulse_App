@@ -205,10 +205,10 @@ public sealed class AppSettings
     public bool PoolHistoryShared { get; set; }
 
     /// <summary>
-    /// Which list of game record fields the player agreed to send (docs/game-stats.md); 0 = not agreed. Sending runs only
-    /// at <see cref="GameStats.GameStatsClient.ConsentVersion"/> or above. Plan game-stats, one switch in Settings → Data.
+    /// The player turned game records off (docs/game-stats.md): they are on by default (the owner's decision,
+    /// 2026-11-06), with this opt-out switch in Settings → Data. Turning it on deletes what this install sent.
     /// </summary>
-    public int GameStatsConsent { get; set; }
+    public bool GameStatsOff { get; set; }
 
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }

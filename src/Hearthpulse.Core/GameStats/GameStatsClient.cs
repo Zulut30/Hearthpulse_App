@@ -26,14 +26,11 @@ public enum GameStatsAnswer
 /// </summary>
 public static class GameStatsClient
 {
-    /// <summary>Raised whenever what a record holds grows: the player is asked again (ADR 0011).</summary>
-    public const int ConsentVersion = 1;
-
     /// <summary>Records sent in one request (the server takes up to 20).</summary>
     public const int MaxBatch = 20;
 
-    /// <summary>The player agreed to send game records (this version of the list) and the pool is set up.</summary>
-    public static bool Sharing(AppSettings settings) => settings.GameStatsConsent >= ConsentVersion && PoolClient.Available(settings);
+    /// <summary>Game records go out: on by default, unless the player turned them off, once the pool is set up.</summary>
+    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && PoolClient.Available(settings);
 
     /// <summary>
     /// The install's id for its records: a keyed hash of the pool secret, never shown and never linked to an account.
