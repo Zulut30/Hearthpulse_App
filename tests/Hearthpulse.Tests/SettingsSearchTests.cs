@@ -30,20 +30,13 @@ public sealed class SettingsSearchTests
     [Fact]
     public void An_option_is_found_by_its_label_in_both_languages_and_by_keywords()
     {
-        Loc.Instance.SetLanguage(Loc.Russian);
-        try
-        {
-            var size = SettingsSearch.Haystack(Loc.T("Settings.Overlay.Size"));
-            Assert.True(SettingsSearch.Matches("размер", size));
-            Assert.True(SettingsSearch.Matches("size", size));
-            Assert.True(SettingsSearch.Matches("масштаб", size));
-            Assert.True(SettingsSearch.Matches("zoom", size));
-            Assert.False(SettingsSearch.Matches("discord", size));
-        }
-        finally
-        {
-            Loc.Instance.SetLanguage(Loc.English);
-        }
+        // By its key, without switching the shared interface language (other test classes run at the same time).
+        var size = SettingsSearch.Haystack(Loc.Table(Loc.Russian)["Settings.Overlay.Size"], "Settings.Overlay.Size");
+        Assert.True(SettingsSearch.Matches("размер", size));
+        Assert.True(SettingsSearch.Matches("size", size));
+        Assert.True(SettingsSearch.Matches("масштаб", size));
+        Assert.True(SettingsSearch.Matches("zoom", size));
+        Assert.False(SettingsSearch.Matches("discord", size));
     }
 
     [Fact]
