@@ -132,7 +132,7 @@ public sealed record LadderSessionLine(
     string Record,
     string WinRate,
     string Streak,
-    int StreakValue)
+    int StreakValue) : IImmutableView
 {
     public static IReadOnlyList<LadderSessionLine> Of(LadderSessions sessions) =>
         new[] { sessions.Standard, sessions.Wild }.OfType<LadderSessionView>().Select(From).ToList();

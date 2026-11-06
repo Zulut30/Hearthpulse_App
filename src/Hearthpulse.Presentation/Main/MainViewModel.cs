@@ -22,85 +22,6 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-public sealed record GameRow(
-    string When,
-    string Mode,
-    string HeroCardId,
-    string Hero,
-    string Result,
-    string ResultKey,
-    string Detail,
-    string Rating,
-    int RatingValue,
-    string Key = "")
-{
-    /// <summary>The mode and the game's details on one line: "Battlegrounds · Tier 5 · 11 turns".</summary>
-    public string Summary => Detail.Length > 0 ? Mode + " · " + Detail : Mode;
-}
-
-public sealed record HeroRow(string CardId, string Name, int Games, string AveragePlace, double AverageValue, string Top4, string Wins, string Net, int NetValue, string Tier);
-
-public sealed record MetaHeroRow(
-    int Rank,
-    string CardId,
-    string Name,
-    string Tier,
-    string AveragePlace,
-    double AverageValue,
-    string PickRate,
-    string DataPoints,
-    string Personal,
-    double BarFraction,
-    string Top4 = "",
-    string FirstPlace = "",
-    double Top4Value = 0,
-    double FirstValue = 0,
-    double PickValue = 0,
-    int Games = 0);
-
-public sealed record MetaCompRow(
-    int Rank,
-    string Name,
-    string Tribes,
-    string Power,
-    string Difficulty,
-    string Placement,
-    double BarFraction,
-    string Commit,
-    string KeyCards);
-
-/// <summary>A deck in "Your decks": a family of versions or a single one (<see cref="Key"/> is the family key).</summary>
-public sealed record DeckRow(
-    string Key,
-    string Name,
-    string Class,
-    int Games,
-    string Record,
-    string WinRate,
-    double WinFraction,
-    string LastPlayed,
-    string? DeckCode,
-#if HEARTHPULSE_WPF
-    string ClassKey = "",
-#endif
-    string Meta = "",
-    string Versions = "")
-{
-    /// <summary>Too few games to tell: the win bar is faded.</summary>
-    public bool Few => Games < Hearthpulse.Core.Stats.DeckDetails.SmallSample;
-}
-
-public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0);
-
-/// <summary>One trinket in the community tier list.</summary>
-public sealed record MetaTrinketRow(int Rank, string CardId, string Name, string Tier, string Placement, string PickRate, string DataPoints, double BarFraction);
-
-/// <summary>One minion or tavern spell in the community card list (compare cards of the same tier).</summary>
-public sealed record MetaCardRow(int Rank, string CardId, string Name, string Kind, string Tier, string Placement, string Games, double BarFraction);
-
-/// <summary>One MMR bracket the community stats have ("All", "Top 50%", "20%"...), for the tier lists' picker.</summary>
-public sealed record BracketOption(int Value, string Label, bool IsSelected, RelayCommand Select);
-
 public sealed partial class MainViewModel : Observable
 {
     private readonly HistoryStore _history;
@@ -202,7 +123,6 @@ public sealed partial class MainViewModel : Observable
     public string Version { get; } = "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
 
     public string DataFolder { get; }
-
 
     // ---- live status ----------------------------------------------------------------------
     private LiveSnapshot? _lastSnapshot;
@@ -310,7 +230,6 @@ public sealed partial class MainViewModel : Observable
 
     public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) OnCompTiersChanged(); } }
 
-
     private IReadOnlyList<BracketOption> _bracketOptions = Array.Empty<BracketOption>();
     private string _compEmptyText = string.Empty;
     private string _trinketEmptyText = string.Empty;
@@ -334,9 +253,7 @@ public sealed partial class MainViewModel : Observable
 
     public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) RebuildTrinketGroups(); } }
 
-
     public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set => Set(ref _cardTiers, value); }
-
 
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
     public int CardTier { get => _cardTier; private set => Set(ref _cardTier, value); }
@@ -511,128 +428,6 @@ public sealed partial class MainViewModel : Observable
         ];
 
         await RefreshMyStatsAsync();
-    }
-
-    private void RebuildMeta()
-    {
-        if (_meta is not { } meta || _cards.Count == 0)
-        {
-            return;
-        }
-
-        // Only the brackets the source has are offered (the API: top 50/20/5/1%, no all-ranks hero slice).
-        var brackets = meta.HeroBrackets;
-        if (!brackets.Contains(Bracket))
-        {
-            Bracket = meta.WidestBracket;
-        }
-
-        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? Loc.T("Main.Bracket.All") : i == 0 ? Loc.F("Main.Bracket.Top", b / 100.0) : (b / 100.0).ToString("P0", CultureInfo.CurrentCulture), b == Bracket, SetBracket)).ToList();
-
-        var personal = MyHeroes.ToDictionary(h => h.CardId);
-        var heroes = meta.HeroesByBracket.GetValueOrDefault(Bracket) ?? new Dictionary<string, MetaHero>();
-
-        var ranked = heroes.Values.Where(h => h.DataPoints == 0 || h.DataPoints >= meta.MinHeroGames).OrderBy(h => h.AveragePosition).ToList();
-        var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
-        var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
-        HeroTiers = ranked.Select((h, i) => new MetaHeroRow(
-                i + 1,
-                h.HeroCardId,
-                _cards.NameOf(h.HeroCardId),
-                BattlegroundsAdvisor.TierOf(h.AveragePosition),
-                h.AveragePosition.ToString("0.00", CultureInfo.CurrentCulture),
-                h.AveragePosition,
-                h.PickRate.ToString("P0", CultureInfo.CurrentCulture),
-                h.DataPoints > 0 ? h.DataPoints.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                personal.TryGetValue(h.HeroCardId, out var p) ? $"{p.Games} · {p.AveragePlace}" : string.Empty,
-                PlacementWidth(h.AveragePosition, best, worst),
-                h.Top4Rate > 0 ? h.Top4Rate.ToString("P0", CultureInfo.CurrentCulture) : "—",
-                h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : "—",
-                h.Top4Rate,
-                h.FirstRate,
-                h.PickRate,
-                h.DataPoints))
-            .ToList();
-
-        var tribeRows = UseTribeRows(meta);
-        if (tribeRows)
-        {
-            RebuildTribeRows(meta);
-        }
-        else
-        {
-            // Downloaded stats have real comps instead of tribes.
-            var comps = meta.Comps
-                .Select(c => (Comp: c, Placement: c.PlacementAtMmr.TryGetValue(Bracket, out var p) ? p : c.AveragePlacement))
-                .OrderBy(c => c.Placement)
-                .ToList();
-            var cBest = comps.Count > 0 ? comps[0].Placement : 3;
-            var cWorst = comps.Count > 0 ? comps[^1].Placement : 5;
-            CompTiers = comps.Select((c, i) => new MetaCompRow(
-                    i + 1,
-                    c.Comp.Name,
-                    string.Join(" · ", c.Comp.Tribes.Select(t => Races.Display(t, _cards.Locale))),
-                    string.IsNullOrEmpty(c.Comp.PowerLevel) ? "–" : c.Comp.PowerLevel,
-                    c.Comp.Difficulty,
-                    c.Placement.ToString("0.00", CultureInfo.CurrentCulture),
-                    PlacementWidth(c.Placement, cBest, cWorst),
-                    c.Comp.WhenToCommit ?? string.Empty,
-                    string.Join(", ", c.Comp.Cards.Where(x => x.Status == "CORE").Select(x => _cards.NameOf(x.CardId)))))
-                .ToList();
-        }
-
-        OnCompRowsRebuilt(tribeRows);
-
-        var trinkets = meta.Trinkets.Values
-            .Select(t => (Trinket: t, Stats: meta.Trinket(t.CardId, Bracket)))
-            .Where(t => t.Stats is not null)
-            .OrderBy(t => t.Stats!.Value.Placement)
-            .ToList();
-        var tBest = trinkets.Count > 0 ? trinkets[0].Stats!.Value.Placement : 3;
-        var tWorst = trinkets.Count > 0 ? trinkets[^1].Stats!.Value.Placement : 5;
-        TrinketTiers = trinkets.Select((t, i) => new MetaTrinketRow(
-                i + 1,
-                t.Trinket.CardId,
-                _cards.NameOf(t.Trinket.CardId) is { Length: > 0 } n ? n : t.Trinket.CardId,
-                BattlegroundsAdvisor.TierOf(t.Stats!.Value.Placement),
-                t.Stats.Value.Placement.ToString("0.00", CultureInfo.CurrentCulture),
-                t.Stats.Value.PickRate.ToString("P0", CultureInfo.CurrentCulture),
-                t.Stats.Value.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
-                PlacementWidth(t.Stats.Value.Placement, tBest, tWorst)))
-            .ToList();
-
-        CompEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Comps"));
-        TrinketEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Trinkets"));
-
-        // Cards are only comparable within one tavern tier: late, high-tier cards always look better overall.
-        var cardBracket = meta.CardsByBracket.ContainsKey(Bracket) ? Bracket : 100;
-        var cardStats = meta.CardsByBracket.GetValueOrDefault(cardBracket);
-        var cards = (cardStats?.Values ?? Enumerable.Empty<MetaCard>())
-            .Where(c => c.DataPoints >= BattlegroundsMeta.MinCardGames)
-            .Select(c => (Stats: c, Card: _cards.Get(c.CardId)))
-            .Where(c => c.Card is not null && (CardTier == 0
-                ? c.Card.Type == "BATTLEGROUND_SPELL" && c.Card.IsBattlegroundsPoolSpell
-                : c.Card.Type == "MINION" && c.Card.IsBattlegroundsPoolMinion && c.Card.TechLevel == CardTier))
-            .OrderBy(c => c.Stats.AveragePlacement)
-            .ToList();
-        var kBest = cards.Count > 0 ? cards[0].Stats.AveragePlacement : 3;
-        var kWorst = cards.Count > 0 ? cards[^1].Stats.AveragePlacement : 5;
-        CardTiers = cards.Select((c, i) => new MetaCardRow(
-                i + 1,
-                c.Stats.CardId,
-                c.Card!.Name,
-                c.Card.Type == "MINION" ? string.Join(" · ", c.Card.Races.Select(r => Races.Display(r, _cards.Locale))) : Loc.T("Main.Bg.TavernSpell"),
-                c.Card.TechLevel > 0 ? c.Card.TechLevel.ToString(CultureInfo.CurrentCulture) : "–",
-                c.Stats.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
-                c.Stats.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
-                PlacementWidth(c.Stats.AveragePlacement, kBest, kWorst)))
-            .ToList();
-
-        // The API publishes tavern spells nowhere and has fewer minion brackets than hero brackets: both are said, not hidden.
-        CardEmptyText = CardTier == 0 ? meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Spells")) : Loc.T("Main.Bg.NoCardData");
-        var bracketText = BattlegroundsMeta.BracketLabel(Bracket)
-            + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? Loc.F("Main.Bg.CardsBracket", BattlegroundsMeta.BracketLabel(cardBracket)) : string.Empty);
-        MetaUpdated = Loc.F("Main.Bg.MetaUpdated", bracketText, meta.Updated.ToLocalTime());
     }
 
     private GameRow Row(GameRecord g)

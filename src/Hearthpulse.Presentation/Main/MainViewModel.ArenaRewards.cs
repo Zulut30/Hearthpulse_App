@@ -17,7 +17,7 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>One reward of a run on its chip: an MDI glyph and the amount ("150").</summary>
-public sealed record ArenaRewardPart(string Glyph, string Amount);
+public sealed record ArenaRewardPart(string Glyph, string Amount) : IImmutableView;
 
 /// <summary>
 /// The rewards editor of one Arena run (<c>docs/arena-rewards.md</c>): five whole numbers, checked as they are typed;

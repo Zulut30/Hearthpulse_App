@@ -49,16 +49,16 @@ public enum MatchStepKind
 /// the Battlegrounds turn. With <see cref="IsEvent"/> the left/right keys stop here; Enter/Backspace go through every
 /// step.
 /// </summary>
-public sealed record MatchStepMark(int Frame, int Turn, MatchPhase Phase, MatchStepKind Kind, bool Local, bool IsEvent, string Caption);
+public sealed record MatchStepMark(int Frame, int Turn, MatchPhase Phase, MatchStepKind Kind, bool Local, bool IsEvent, string Caption) : IImmutableView;
 
 /// <summary>
 /// A stretch of the whole-game timeline: the mulligan, one game turn (Constructed), a recruit phase or a combat
 /// (Battlegrounds).
 /// </summary>
-public sealed record MatchTimelineSpan(int FirstFrame, int LastFrame, int Turn, MatchPhase Phase, bool Local, string Label, string Tooltip);
+public sealed record MatchTimelineSpan(int FirstFrame, int LastFrame, int Turn, MatchPhase Phase, bool Local, string Label, string Tooltip) : IImmutableView;
 
 /// <summary>A card on a Battlegrounds step: a minion, a tavern spell, a hero power or a trinket.</summary>
-public sealed record MatchBgCardView(string CardId, string Name)
+public sealed record MatchBgCardView(string CardId, string Name) : IImmutableView
 {
     public int Attack { get; init; }
 
@@ -106,7 +106,7 @@ public sealed record MatchBgCardView(string CardId, string Name)
 }
 
 /// <summary>A hero on a Battlegrounds step: portrait, health and armor, tavern tier, hero powers and trinkets.</summary>
-public sealed record MatchBgHeroView(string HeroCardId, string Name, int Health, int Armor, int Tier)
+public sealed record MatchBgHeroView(string HeroCardId, string Name, int Health, int Armor, int Tier) : IImmutableView
 {
     public IReadOnlyList<MatchBgCardView> HeroPowers { get; init; } = [];
 
@@ -128,10 +128,10 @@ public sealed record MatchBgHeroView(string HeroCardId, string Name, int Health,
 }
 
 /// <summary>A row of the leaderboard at a step, as the game showed it.</summary>
-public sealed record MatchBgLeaderRow(string HeroCardId, string Name, int Place, int Health, int Armor, int Tier, bool Local, bool Fighting, bool Dead);
+public sealed record MatchBgLeaderRow(string HeroCardId, string Name, int Place, int Health, int Armor, int Tier, bool Local, bool Fighting, bool Dead) : IImmutableView;
 
 /// <summary>One Battlegrounds step as shown: a recruit action or a combat block, the player's side at the bottom.</summary>
-public sealed record MatchBgStepView(int Index, int Count, int Turn, MatchPhase Phase, MatchStepKind Kind, string Title, string Action, string Detail)
+public sealed record MatchBgStepView(int Index, int Count, int Turn, MatchPhase Phase, MatchStepKind Kind, string Title, string Action, string Detail) : IImmutableView
 {
     public MatchBgHeroView? Hero { get; init; }
 

@@ -176,17 +176,26 @@ internal static class WindowBench
         // Every step once, laid out: what a step costs the UI thread whatever the speed.
         var page = vm.MatchPage;
         var steps = new List<double>();
+        var models = new List<double>();
         var stepAlloc = GC.GetAllocatedBytesForCurrentThread();
+        long modelAlloc = 0;
         for (var frame = 0; frame <= page.FrameMax; frame++)
         {
             var t = Stopwatch.GetTimestamp();
-            page.Frame = frame;
-            WpfBench.Pump(DispatcherPriority.Input);
+            MatchStep(page, frame, out var model, out var modelBytes);
+            models.Add(model);
+            modelAlloc += modelBytes;
             steps.Add(Stopwatch.GetElapsedTime(t).TotalMilliseconds);
         }
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"[match] {steps.Count} steps by hand: {Spread(steps)}; alloc {(GC.GetAllocatedBytesForCurrentThread() - stepAlloc) / 1024.0 / Math.Max(1, steps.Count):N1} KB/step"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[match]   of which the view model: {Spread(models)}; alloc {modelAlloc / 1024.0 / Math.Max(1, models.Count):N1} KB/step"));
+        if (Environment.GetEnvironmentVariable("HP_BENCH_VISUALS") == "match")
+        {
+            WpfBench.VisualsByBlock(main);
+        }
 
         page.Faster.Execute(null);
         page.Faster.Execute(null);
@@ -355,5 +364,16 @@ internal static class WindowBench
         Console.WriteLine($"[rest]   finalizer #{finalizer}, UI #{ui}");
         Console.WriteLine($"[rest]   busiest threads: {string.Join(", ", busiest.Select(t => string.Create(CultureInfo.InvariantCulture,
             $"#{t.Key} ({(t.Key == ui ? "UI" : t.Key == finalizer ? "finalizer" : StartModule(process, t.Key))}) {t.Ms / Seconds:N1} ms/s")))}");
+    }
+    /// <summary>One replay step set by hand, in its own frame so a trace can be cut to the steps (the view model's part is timed).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void MatchStep(Hearthpulse.App.Main.Match.MatchViewModel page, int frame, out double model, out long modelBytes)
+    {
+        var t = Stopwatch.GetTimestamp();
+        var a = GC.GetAllocatedBytesForCurrentThread();
+        page.Frame = frame;
+        model = Stopwatch.GetElapsedTime(t).TotalMilliseconds;
+        modelBytes = GC.GetAllocatedBytesForCurrentThread() - a;
+        WpfBench.Pump(DispatcherPriority.Input);
     }
 }

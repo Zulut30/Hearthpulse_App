@@ -19,11 +19,12 @@ public sealed partial class BattlegroundsTracker
         // If the client never sent the closing BOARD_VISUAL_STATE line (build-dependent), the latch is released
         // by the next round's shop or by the timeout so the overlay cannot stay stuck on Combat in the tavern.
         var combat = _inCombat || (game.CombatOnScreen && !CombatLatchStale(game));
+        var scan = TableScan.Of(game);
         var localHero = game.LocalHero;
         var heroChosen = localHero is not null && localHero.CardId != PlaceholderHero && !localHero.InHand;
         var options = heroChosen
             ? new List<BgHeroOption>()
-            : game.Controlled(game.LocalPlayerId, "HAND")
+            : scan.LocalHand
                 .Where(e => e.IsHero && e.CardId.Length > 0 && e.CardId != PlaceholderHero)
                 .OrderBy(e => e.ZonePosition)
                 .Select(e => new BgHeroOption(
@@ -46,7 +47,7 @@ public sealed partial class BattlegroundsTracker
         }
 
         var localBgId = localHero?.GetInt(GameTag.PlayerId) ?? 0;
-        var opponents = LeaderboardHeroes(game)
+        var opponents = LeaderboardHeroes(scan.Heroes, localHero)
             .Where(h => h.GetInt(GameTag.PlayerId) != localBgId)
             .Select(h =>
             {
@@ -73,16 +74,16 @@ public sealed partial class BattlegroundsTracker
             .ToList();
 
         var player = game.LocalPlayerEntity;
-        var darkGift = game.Controlled(game.LocalPlayerId, "PLAY").FirstOrDefault(e => e.CardId.Contains("DarkGift", StringComparison.Ordinal));
+        var darkGift = scan.LocalPlay.FirstOrDefault(e => e.CardId.Contains("DarkGift", StringComparison.Ordinal));
         var anomalyDbf = game.GameEntity?.GetInt(GameTag.BaconAnomaly) ?? 0;
         var maxTier = game.LocalPlayerEntity?.GetInt(GameTag.BaconMaxTechLevel) ?? 0;
 
         // During combat the tavern is gone and the boards are copies, so counters keep what was visible before the fight.
         if (!combat && heroChosen)
         {
-            _lastVisibleCards = ShopCards(game)
-                .Concat(game.Controlled(game.LocalPlayerId, "HAND"))
-                .Concat(game.Controlled(game.LocalPlayerId, "PLAY"))
+            _lastVisibleCards = scan.Shop
+                .Concat(scan.LocalHand)
+                .Concat(scan.LocalPlay)
                 .Where(e => e.CardId.Length > 0)
                 .Select(e => e.CardId)
                 .Distinct(StringComparer.Ordinal)
@@ -106,25 +107,25 @@ public sealed partial class BattlegroundsTracker
             opponents,
             _combats.ToList(),
             _tiers.ToList(),
-            _inCombat ? _lastOwnBoard : Minions(game, game.LocalPlayerId).Select(ToMinion).ToList(),
+            _inCombat ? _lastOwnBoard : scan.LocalMinions.Select(ToMinion).ToList(),
             anomalyDbf > 0 ? Cards.Get(anomalyDbf)?.Id : null,
             game.LocalPlayerEntity?.GetInt(GameTag.PlayerTriples) ?? 0,
             // Outside combat the opponent slot holds Bob's current offer (minions and tavern spells).
-            combat || !heroChosen ? Array.Empty<BgMinion>() : ShopCards(game).Select(ToMinion).ToList(),
-            game.Controlled(game.LocalPlayerId, "HAND").Where(e => e.IsMinion && e.CardId.Length > 0).Select(e => e.CardId).ToList())
+            combat || !heroChosen ? Array.Empty<BgMinion>() : scan.Shop.Select(ToMinion).ToList(),
+            scan.LocalHand.Where(e => e.IsMinion && e.CardId.Length > 0).Select(e => e.CardId).ToList())
         {
             // A choice offered while the fight is still on screen waits until the player can see it.
             TrinketOptions = heroChosen && !game.CombatOnScreen ? PendingTrinkets() : Array.Empty<BgTrinketOption>(),
             DiscoverOptions = heroChosen && !game.CombatOnScreen ? PendingDiscover(game) : Array.Empty<BgDiscoverOption>(),
             DiscoverSource = _discoverOffer.Count == 0 ? null : DiscoverSourceLabel(_discoverSource),
             CombatOdds = combat ? _combatOdds : null,
-            Trinkets = game.Controlled(game.LocalPlayerId, "PLAY").Where(IsTrinket).Select(e => e.CardId).Distinct().ToList(),
+            Trinkets = scan.LocalPlay.Where(IsTrinket).Select(e => e.CardId).Distinct().ToList(),
             DarkGiftReady = darkGift is not null && darkGift.GetInt("EXHAUSTED") == 0 && !combat,
             DarkGiftCost = darkGift?.GetInt(GameTag.Cost) ?? 0,
             Gold = player is null ? 0 : Math.Max(0, player.GetInt("RESOURCES") + player.GetInt("TEMP_RESOURCES") - player.GetInt("RESOURCES_USED")),
             TavernUpgradeCost = LiveButtonCosts?.Upgrade,
             ButtonCosts = LiveButtonCosts,
-            Counters = BattlegroundsCounters.Build(game, Counters, Cards, _lastVisibleCards),
+            Counters = BattlegroundsCounters.Build(game, Counters, Cards, _lastVisibleCards, scan.LocalPlay, scan.PlayerEnchantments),
             Choices = _choices.ToList(),
             Plays = _plays.ToList(),
         };
