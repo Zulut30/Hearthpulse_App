@@ -105,6 +105,21 @@ public sealed class ArenaPageKindTests : IDisposable
     }
 
     [Fact]
+    public void A_tab_without_its_card_scores_says_whose_scores_there_are()
+    {
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var card = new ArenaCardScore("CS2_029", 0, 60, 0.5, 0.1, 100);
+
+        vm.SetArenaMeta(new ArenaMeta([card], [], underground: true));
+        Assert.Equal(Core.Localization.Loc.T("Arena.Page.DeckOtherSliceUnderground"), vm.ArenaDeckEmptyText);
+        vm.ArenaTabUnderground = true;
+        Assert.Equal(Core.Localization.Loc.T("Arena.Page.DeckEmpty"), vm.ArenaDeckEmptyText);
+
+        vm.SetArenaMeta(new ArenaMeta([card], [], underground: false));
+        Assert.Equal(Core.Localization.Loc.T("Arena.Page.DeckOtherSliceRegular"), vm.ArenaDeckEmptyText);
+    }
+
+    [Fact]
     public void History_filters_tell_the_two_arenas_apart_and_other_holds_neither()
     {
         var regular = ArenaRunsScene.Games().First();

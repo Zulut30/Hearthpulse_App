@@ -301,7 +301,7 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasArenaDeck}" />
+                        <TextBlock Text="{Binding ArenaDeckEmptyText}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasArenaDeck}" />
                     </StackPanel>
                 </Border>
                 <Border Classes="card">

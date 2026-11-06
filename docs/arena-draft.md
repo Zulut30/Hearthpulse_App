@@ -32,6 +32,18 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   no clicks (`IsHitTestVisible="False"`, no `OverlayHit.Interactive`), so the cards stay clickable. Nothing is chosen
   or clicked for the player: the helper only shows numbers.
 
+## Two Arenas (owner, 2026-11-07)
+
+- A game's Arena is its logged game type: `GT_UNDERGROUND_ARENA` is Underground Arena (seen in a real game,
+  2026-10-28), anything else with ARENA the regular Arena (`ArenaStats.KindOf`). History's `game_type` column already
+  keeps it, so no new column: rows saved before the split keep what the log said. A run never mixes the two; Underground
+  ends at 5 losses, regular at 3.
+- The Arena page has the tabs "Arena" / "Underground Arena": stats, runs, the deck score and the class win rates per
+  Arena. Card scores of the other Arena's slice score no deck (the card says whose scores there are). The community class
+  win rates (`v1/arena/classes`) have no Underground split: the Underground tab says "no data", and an Underground draft
+  shows no class numbers at the hero pick (`ArenaDraft.Build`).
+- History filters "Arena" and "Underground" (Other holds neither); rows read "Underground Arena".
+
 ## Data (Hearthpulse data API, no token)
 
 | Call | Used for | Cache |

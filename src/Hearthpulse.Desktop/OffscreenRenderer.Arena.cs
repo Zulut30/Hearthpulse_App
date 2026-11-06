@@ -23,7 +23,7 @@ internal static partial class OffscreenRenderer
         var sample = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA"));
         if (sample)
         {
-            foreach (var game in ArenaRunsScene.Games())
+            foreach (var game in ArenaRunsScene.Games().Concat(ArenaRunsScene.UndergroundGames()))
             {
                 host.History.Add(game);
             }
@@ -44,6 +44,12 @@ internal static partial class OffscreenRenderer
             host.Main.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
             await Save(main, Path.Combine(folder, "main-arena-rewards.png"));
             host.Main.ArenaRuns.FirstOrDefault(r => r.Edit is not null)?.Edit?.Cancel.Execute(null);
+
+            // The Underground tab: its own run, no community class numbers.
+            host.Main.ArenaTabUnderground = true;
+            await Task.Delay(1500);
+            await Save(main, Path.Combine(folder, "main-arena-underground.png"));
+            host.Main.ArenaTabRegular = true;
         }
 
         main.Height = 840;

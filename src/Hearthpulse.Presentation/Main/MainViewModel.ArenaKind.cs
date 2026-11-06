@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Arena;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 #if HEARTHPULSE_WPF
@@ -24,6 +25,14 @@ public sealed partial class MainViewModel
 
     /// <summary>The community class win rates have no Underground split: the Underground tab says "no data" instead.</summary>
     public bool ArenaCommunityNoSplit => _arenaKind == ArenaKind.Underground;
+
+    /// <summary>
+    /// The deck score card's line without a score: the card scores the API has are of the other Arena (said, not hidden),
+    /// else how to get one.
+    /// </summary>
+    public string ArenaDeckEmptyText => _arenaMeta is { HasCards: true } meta && (meta.Underground ?? false) != (_arenaKind == ArenaKind.Underground)
+        ? Loc.T(meta.Underground == true ? "Arena.Page.DeckOtherSliceUnderground" : "Arena.Page.DeckOtherSliceRegular")
+        : Loc.T("Arena.Page.DeckEmpty");
 
     /// <summary>
     /// The Arena numbers that fit <paramref name="kind"/>: Underground never shows the class numbers (regular Arena only);
@@ -58,6 +67,7 @@ public sealed partial class MainViewModel
         Raise(nameof(ArenaTabUnderground));
         Raise(nameof(ArenaKindShown));
         Raise(nameof(ArenaCommunityNoSplit));
+        Raise(nameof(ArenaDeckEmptyText));
         RaiseArenaCommunityStates();
         RebuildArenaStats();
     }

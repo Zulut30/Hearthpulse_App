@@ -350,7 +350,7 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                        <TextBlock Text="{Binding ArenaDeckEmptyText}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                                    Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
