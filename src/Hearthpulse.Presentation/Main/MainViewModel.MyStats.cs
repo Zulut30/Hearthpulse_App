@@ -128,7 +128,14 @@ public sealed record StatGroupRow(string Label, string CardId, string Games, str
 /// A final place in "Where you finish": "1st", its share of the games, the bar against the most common place and
 /// whether it counts as a top finish (top 4, top 2 in Duos) for the bar's colour.
 /// </summary>
-public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip);
+public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip)
+{
+    /// <summary>No game ended on this place: the row sinks back and shows no "0 %" (D3, A06).</summary>
+    public bool Empty => Fraction <= 0;
+
+    /// <summary>The row's opacity: an empty place sinks back, as on Home.</summary>
+    public double Dim => Empty ? PlacementBar.EmptyRowOpacity : 1;
+}
 
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
