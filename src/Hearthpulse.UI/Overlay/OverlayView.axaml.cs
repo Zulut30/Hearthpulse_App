@@ -27,6 +27,9 @@ public partial class OverlayView : UserControl
     private readonly DispatcherTimer _toastTimer;
     private OverlayViewModel? _viewModel;
     private Size _layoutSize;
+
+    /// <summary>The panels' looks last applied (<see cref="OverlayViewModel.LooksSignature"/>).</summary>
+    private int _looks;
     private double _backdropOpacity = -1;
     private int _backdropColours;
     private double _scale = 1;
@@ -98,9 +101,11 @@ public partial class OverlayView : UserControl
         Surface.Width = width / _scale;
         Surface.Height = height / _scale;
         var size = new Size(Surface.Width, Surface.Height);
-        if (size != _layoutSize)
+        var looks = OverlayViewModel.LooksSignature(Settings);
+        if (size != _layoutSize || looks != _looks)
         {
             _layoutSize = size;
+            _looks = looks;
             ApplyLayout();
         }
 
@@ -165,7 +170,7 @@ public partial class OverlayView : UserControl
         }
     }
 
-    private static IBrush? Faded(IBrush? brush, double opacity) => brush switch
+    internal static IBrush? Faded(IBrush? brush, double opacity) => brush switch
     {
         ISolidColorBrush solid => new ImmutableSolidColorBrush(solid.Color, solid.Opacity * opacity),
         LinearGradientBrush gradient => new LinearGradientBrush

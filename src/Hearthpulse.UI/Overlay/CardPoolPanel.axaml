@@ -65,7 +65,7 @@
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; the host passes pointer and buttons.
          Its opacity (set in code) carries the short fade-in when it appears or its pool changes. -->
-    <Border x:Name="Card" Classes="overlayCard" Width="300" Background="{DynamicResource OverlayPanelSolid}">
+    <Border x:Name="Card" Classes="overlayCard solid" Width="300">
         <StackPanel>
             <!-- ===== Summary: pool size, the generator's words, classes · format · source, sections ===== -->
             <Border Classes="overlayHeader">

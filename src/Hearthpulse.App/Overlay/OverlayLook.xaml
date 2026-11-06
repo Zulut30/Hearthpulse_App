@@ -33,6 +33,28 @@
         <Setter Property="Margin" Value="0,1,0,0" />
     </Style>
 
+    <!-- Section label inside a panel (D5, one frame): the label, then a gold hairline fading to the right - the header's
+         rule, not an ornament -->
+    <Style x:Key="OverlaySection" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Height="1" Margin="8,1,0,0" VerticalAlignment="Center" Background="{StaticResource OverlaySectionRule}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Dark plate for a few key figures under a header -->
     <Style x:Key="OverlayStatPlate" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />

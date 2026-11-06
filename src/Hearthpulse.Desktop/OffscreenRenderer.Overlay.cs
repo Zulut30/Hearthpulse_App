@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
@@ -27,7 +28,27 @@ internal static partial class OffscreenRenderer
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;
         await Save(overlay, Path.Combine(folder, "overlay-layout.png"));
+        await SaveOtherScreensAsync(overlay, overlayView, folder, "overlay-layout");
         overlay.Close();
+    }
+
+    /// <summary>
+    /// <paramref name="name"/> again on the 16:10 and 4:3 game screens (<see cref="VisualBaseline.Screens"/>), so no
+    /// panel runs off a narrower screen or into another there (D5); the overlay is back at 1920 x 1080 after.
+    /// </summary>
+    private static async Task SaveOtherScreensAsync(Window overlay, OverlayView view, string folder, string name)
+    {
+        foreach (var (screen, width, height) in VisualBaseline.Screens.Skip(1))
+        {
+            overlay.Width = width;
+            overlay.Height = height;
+            view.Fit(width, height);
+            await Save(overlay, Path.Combine(folder, $"{name}-{screen}.png"));
+        }
+
+        overlay.Width = 1920;
+        overlay.Height = 1080;
+        view.Fit(1920, 1080);
     }
 
     /// <summary>The overlay on a game screen of <paramref name="width"/> x <paramref name="height"/>, over a stand-in for the game.</summary>
@@ -90,6 +111,10 @@ internal static partial class OffscreenRenderer
             overlayView.Fit(1920, 1080);
             overlayView.ShowLeaderboardSlot(hover);
             await Save(overlay, Path.Combine(folder, name + ".png"));
+            if (name == "overlay-game")
+            {
+                await SaveOtherScreensAsync(overlay, overlayView, folder, name);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.IO;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Tracking.Counters;
 
@@ -37,6 +38,19 @@ public partial class App
         _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
         _overlayViewModel.LayoutEditing = true;
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);
+        await RenderOtherScreensAsync(folder, "overlay-layout");
+    }
+
+    /// <summary>
+    /// <paramref name="name"/> again on the 16:10 and 4:3 game screens (<see cref="VisualBaseline.Screens"/>), so no
+    /// panel runs off a narrower screen or into another there (D5).
+    /// </summary>
+    private async Task RenderOtherScreensAsync(string folder, string name)
+    {
+        foreach (var (screen, width, height) in VisualBaseline.Screens.Skip(1))
+        {
+            await _overlay.RenderToFileAsync(Path.Combine(folder, $"{name}-{screen}.png"), width, height, 0);
+        }
     }
 
     /// <summary>
@@ -74,6 +88,10 @@ public partial class App
             };
             _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
+            if (name == "overlay-game")
+            {
+                await RenderOtherScreensAsync(folder, name);
+            }
         }
     }
 }

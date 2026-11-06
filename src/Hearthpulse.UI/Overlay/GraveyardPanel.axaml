@@ -51,11 +51,11 @@
                 </DockPanel>
             </Border>
             <StackPanel Margin="12,0,12,10">
-                <c:Ornament Text="{Binding GraveyardOpponentTitle}" Size="10.5" Margin="0,10,0,6" />
+                <ContentControl Classes="overlaySection" Content="{Binding GraveyardOpponentTitle}" Margin="0,10,0,6" />
                 <ItemsControl ItemsSource="{Binding GraveyardOpponent}" ItemTemplate="{StaticResource DeadRow}" />
                 <TextBlock Text="{Binding GraveyardOpponentMore}" Classes="sideNote" IsVisible="{Binding GraveyardOpponentMore, Converter={StaticResource Truthy}}" />
 
-                <c:Ornament Text="{Binding GraveyardLocalTitle}" Size="10.5" Margin="0,12,0,6" />
+                <ContentControl Classes="overlaySection" Content="{Binding GraveyardLocalTitle}" Margin="0,12,0,6" />
                 <ItemsControl ItemsSource="{Binding GraveyardLocal}" ItemTemplate="{StaticResource DeadRow}" />
                 <TextBlock Text="{Binding GraveyardLocalMore}" Classes="sideNote" IsVisible="{Binding GraveyardLocalMore, Converter={StaticResource Truthy}}" />
             </StackPanel>

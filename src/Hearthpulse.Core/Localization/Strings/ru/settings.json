@@ -77,6 +77,13 @@
   "Settings.Overlay.SizeTip": "Масштаб всех панелей оверлея",
   "Settings.Overlay.Opacity": "Непрозрачность фона панелей",
   "Settings.Overlay.OpacityTip": "Насколько плотный фон у панелей. Текст, числа и значки всегда остаются непрозрачными.",
+  "Settings.Overlay.Density": "Плотность",
+  "Settings.Overlay.DensityTip": "Размер панелей и короткие строки карт одним выбором. Каждую панель потом можно поправить отдельно.",
+  "Settings.Overlay.Density.Compact": "Компактно",
+  "Settings.Overlay.Density.Normal": "Обычно",
+  "Settings.Overlay.Density.Large": "Крупно",
+  "Settings.Overlay.Preview": "Так оверлей выглядит в игре",
+  "Settings.Overlay.PreviewDeck": "Пример колоды",
 
   "Settings.Layout.Title": "Расположение панелей",
   "Settings.Layout.Caption": "Перетащите каждую панель оверлея куда удобно. Прокрутка над панелью меняет размер, правый клик — сброс. Сочетание клавиш: Ctrl+Shift+L.",

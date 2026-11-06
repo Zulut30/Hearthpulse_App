@@ -53,6 +53,7 @@
   "Overlay.Opponent.Deck": "Колода",
   "Overlay.Opponent.Secrets": "Секреты",
   "Overlay.Opponent.Played": "Сыграно",
+  "Overlay.Opponent.PlayedEarlier": "Сыграны раньше: {0}",
   "Overlay.Opponent.CardsInHand": "Карты в руке",
   "Overlay.Opponent.Matchup": "{0}–{1}",
   "Overlay.Opponent.MatchupTip": "Ваш счёт этой колодой против класса «{1}»: {0} игра|Ваш счёт этой колодой против класса «{1}»: {0} игры|Ваш счёт этой колодой против класса «{1}»: {0} игр",

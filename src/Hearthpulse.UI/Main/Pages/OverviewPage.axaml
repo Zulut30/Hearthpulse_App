@@ -117,14 +117,15 @@
                         <ItemsControl ItemsSource="{Binding Placements}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="m:PlacementBar">
-                                    <Grid Height="25" ColumnDefinitions="22,*,70">
+                                    <!-- A place nobody finished on sinks back, with no "0 · 0 %" -->
+                                    <Grid Height="25" ColumnDefinitions="22,*,70" Opacity="{Binding Dim}">
                                         <TextBlock Text="{Binding Place}" Classes="caption" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
                                             <Border Classes="placeBar" Classes.top="{Binding Top}" Classes.first="{Binding First}"
                                                     HorizontalAlignment="Left" CornerRadius="3" Opacity="0.85"
                                                     Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
                                         </Border>
-                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" IsVisible="{Binding !Empty}"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

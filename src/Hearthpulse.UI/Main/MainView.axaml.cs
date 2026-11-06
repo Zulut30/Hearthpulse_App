@@ -39,6 +39,7 @@ public partial class MainView : UserControl
             SettingsOverlay.OverlaySetting.GetObservable(ToggleButton.IsCheckedProperty, on => on == true));
         SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
         SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
+        SettingsOverlay.DensityChanged += () => SettingsChanged?.Invoke();
         SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
         SettingsAccount.CopyAccountCodeClicked += e => OnCopyAccountCode(SettingsAccount, e);
         SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);

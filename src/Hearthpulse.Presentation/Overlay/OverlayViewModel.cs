@@ -84,6 +84,8 @@ public sealed partial class OverlayViewModel : Observable
     private int _opponentDeck;
     private int _opponentSecrets;
     private string _opponentMatchup = string.Empty;
+    private string _playedEarlier = string.Empty;
+    private string _playedEarlierTip = string.Empty;
     private string _opponentMatchupRate = string.Empty;
     private double _opponentMatchupEdge;
     private string _opponentMatchupTip = string.Empty;
@@ -109,6 +111,40 @@ public sealed partial class OverlayViewModel : Observable
     public string OpponentMatchupTip { get => _opponentMatchupTip; private set => Set(ref _opponentMatchupTip, value); }
     public IReadOnlyList<PlayedTile> Played => _played;
     public IReadOnlyList<HandTile> Hand => _hand;
+
+    /// <summary>
+    /// Card rows the opponent panel lists, played and in hand together, before its oldest played cards fold into one
+    /// line (D3, A10): at the default spots a panel this long still ends above the counters panel under it.
+    /// </summary>
+    public const int OpponentRowBudget = 18;
+
+    /// <summary>Played rows always listed, however full the hand.</summary>
+    public const int PlayedRowsAtLeast = 4;
+
+    /// <summary>"Played earlier: 5" under the played rows when the oldest folded; empty otherwise.</summary>
+    public string PlayedEarlier { get => _playedEarlier; private set => Set(ref _playedEarlier, value); }
+
+    /// <summary>The folded cards, one per line, oldest first.</summary>
+    public string PlayedEarlierTip { get => _playedEarlierTip; private set => Set(ref _playedEarlierTip, value); }
+
+    /// <summary>
+    /// The played cards the panel lists (the newest by the turn each was first played, in the view's order) and the ones
+    /// folded into the "played earlier" line, oldest first.
+    /// </summary>
+    internal static (IReadOnlyList<PlayedCard> Listed, IReadOnlyList<PlayedCard> Folded) FoldPlayed(IReadOnlyList<PlayedCard> played, int handRows)
+    {
+        var room = Math.Max(PlayedRowsAtLeast, OpponentRowBudget - handRows);
+        if (played.Count <= room)
+        {
+            return (played, []);
+        }
+
+        // Room for the "played earlier" line itself
+        var keep = played.Select((card, index) => (card, index)).OrderByDescending(p => p.card.FirstTurn).ThenByDescending(p => p.index).Take(room - 1)
+            .Select(p => p.index).ToHashSet();
+        return ([.. played.Where((_, i) => keep.Contains(i))],
+                [.. played.Where((_, i) => !keep.Contains(i)).OrderBy(p => p.FirstTurn)]);
+    }
 
     // ---- battlegrounds --------------------------------------------------------------------
     private int _turn;
@@ -391,7 +427,10 @@ public sealed partial class OverlayViewModel : Observable
         OpponentMatchupRate = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty;
         OpponentMatchupEdge = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate - 0.5 : 0;
         OpponentMatchupTip = hasMatchup ? Loc.P("Overlay.Opponent.MatchupTip", matchup!.Games, ClassName(view.OpponentClass)) : string.Empty;
-        Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), view.OpponentPlayed
+        var (listed, folded) = FoldPlayed(view.OpponentPlayed, view.OpponentHand.Count);
+        PlayedEarlier = folded.Count > 0 ? Loc.F("Overlay.Opponent.PlayedEarlier", folded.Sum(p => p.Count)) : string.Empty;
+        PlayedEarlierTip = string.Join('\n', folded.Select(p => p.Count > 1 ? $"{p.Name} ×{p.Count}" : p.Name));
+        Replace(nameof(Played), listed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), listed
             .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
             .ToList()));
         Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.CreatedById}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand

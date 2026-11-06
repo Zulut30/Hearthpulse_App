@@ -158,7 +158,8 @@
 
     <!-- A final place in "Where you finish": place, a bar against the most common place (green in the top), share -->
     <DataTemplate x:Key="BgPlaceRowTemplate" DataType="{x:Type m:BgPlaceRow}">
-        <Grid Margin="0,0,0,8" Background="Transparent" ToolTip="{Binding Tip}">
+        <!-- A place nobody finished on sinks back, with no "0 %" -->
+        <Grid Margin="0,0,0,8" Background="Transparent" ToolTip="{Binding Tip}" Opacity="{Binding Dim}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="44" />
                 <ColumnDefinition Width="*" />
@@ -167,7 +168,8 @@
             <TextBlock Text="{Binding Place}" FontWeight="SemiBold" VerticalAlignment="Center" />
             <ProgressBar x:Name="Bar" Grid.Column="1" Style="{StaticResource ShareBar}" Value="{Binding Fraction, Mode=OneWay}" Foreground="{StaticResource Negative}"
                          Opacity="0.75" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Visibility="{Binding Empty, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </Grid>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Top}" Value="True">

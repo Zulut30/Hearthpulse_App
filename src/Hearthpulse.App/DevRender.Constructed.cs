@@ -53,6 +53,7 @@ public partial class App
         };
         _overlayViewModel.Update(snapshot, _cards, _settings, deck, null);
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-constructed.png"), 1920, 1080, 0);
+        await RenderOtherScreensAsync(folder, "overlay-constructed");
 
         try
         {

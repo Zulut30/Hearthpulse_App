@@ -282,6 +282,12 @@
                 <GradientStop Color="#40E9B949" Offset="0.5" />
                 <GradientStop Color="#14E9B949" Offset="1" />
             </LinearGradientBrush>
+            <!-- Section label rule inside an overlay panel: gold at the label, fading out to the right (D5) -->
+            <LinearGradientBrush x:Key="OverlaySectionRule" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Color="#8CE9B949" Offset="0" />
+                <GradientStop Color="#00E9B949" Offset="1" />
+            </LinearGradientBrush>
+
             <LinearGradientBrush x:Key="OverlayCardFill" StartPoint="0%,0%" EndPoint="0%,100%">
                 <GradientStop Color="#F22E2015" Offset="0" />
                 <GradientStop Color="#F01B120B" Offset="1" />
@@ -567,6 +573,10 @@
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+    </Style>
+    <!-- The same card with a denser fill, for panels over a busy part of the board (card pool, odds, toasts, picks) -->
+    <Style Selector="Border.overlayCard.solid">
+        <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
     </Style>
     <Style Selector="Border.pill">
         <Setter Property="Background" Value="{StaticResource Surface4}" />

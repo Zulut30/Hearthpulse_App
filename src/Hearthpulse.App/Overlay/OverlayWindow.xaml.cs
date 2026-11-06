@@ -54,6 +54,9 @@ public partial class OverlayWindow : Window
     private string _guideKey = string.Empty;
     private readonly List<MovablePanel> _panels = new();
     private Size _layoutSize;
+
+    /// <summary>The panels' looks last applied (<see cref="OverlayViewModel.LooksSignature"/>).</summary>
+    private int _looks;
     private double _backdropOpacity = -1;
     private readonly HoveredHeroReader _hoverReader = new();
 
@@ -223,9 +226,11 @@ public partial class OverlayWindow : Window
         Surface.Width = widthDip / _scale;
         Surface.Height = heightDip / _scale;
         var size = new Size(Surface.Width, Surface.Height);
-        if (size != _layoutSize)
+        var looks = OverlayViewModel.LooksSignature(_settings);
+        if (size != _layoutSize || looks != _looks)
         {
             _layoutSize = size;
+            _looks = looks;
             ApplyLayout();
         }
 

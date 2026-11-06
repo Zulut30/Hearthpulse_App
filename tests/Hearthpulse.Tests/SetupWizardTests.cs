@@ -39,7 +39,9 @@ public sealed class SetupWizardTests : IDisposable
         };
         vm.PropertyChanged += handler;
         vm.FixLogs.Execute(null);
-        await noted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        // Two hops through the thread pool: on a busy CI runner (the suite runs its classes in parallel) they took over
+        // 10 s once. The bound only stops a hang; nothing here measures speed.
+        await noted.Task.WaitAsync(TimeSpan.FromSeconds(60));
         vm.PropertyChanged -= handler;
     }
 

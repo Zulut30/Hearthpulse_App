@@ -43,7 +43,7 @@
             <StackPanel Margin="12,7,12,10">
                 <TextBlock Text="{Binding ArchetypeDetail}" FontSize="11" Foreground="{StaticResource Muted}" />
 
-                <c:Ornament Text="{i:Loc Widgets.Archetype.Alternatives}" Size="10.5" Margin="0,10,0,6"
+                <ContentControl Classes="overlaySection" Content="{i:Loc Widgets.Archetype.Alternatives}" Margin="0,10,0,6"
                             IsVisible="{Binding ArchetypeAlternatives, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding ArchetypeAlternatives}">
                     <ItemsControl.ItemTemplate>
@@ -64,7 +64,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <c:Ornament Text="{i:Loc Widgets.Archetype.MayHold}" Size="10.5" Margin="0,8,0,6"
+                <ContentControl Classes="overlaySection" Content="{i:Loc Widgets.Archetype.MayHold}" Margin="0,8,0,6"
                             IsVisible="{Binding LikelyCards, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding LikelyCards}">
                     <ItemsControl.ItemTemplate>

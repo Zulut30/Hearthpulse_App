@@ -50,10 +50,11 @@
 
     <!-- A final place in "Where you finish": place, a bar against the most common place (green in the top), share -->
     <DataTemplate x:Key="BgPlaceRowTemplate" x:DataType="m:BgPlaceRow">
-        <Grid ColumnDefinitions="44,*,52" Margin="0,0,0,8" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+        <!-- A place nobody finished on sinks back, with no "0 %" -->
+        <Grid ColumnDefinitions="44,*,52" Margin="0,0,0,8" Background="Transparent" ToolTip.Tip="{Binding Tip}" Opacity="{Binding Dim}">
             <TextBlock Text="{Binding Place}" FontWeight="SemiBold" VerticalAlignment="Center" />
             <ProgressBar Grid.Column="1" Classes="shareBar" Classes.top="{Binding Top}" Value="{Binding Fraction, Mode=OneWay}" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding !Empty}" />
         </Grid>
     </DataTemplate>
 

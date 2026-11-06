@@ -60,7 +60,7 @@
                        IsVisible="{Binding LikelyDeckCoreNote, Converter={StaticResource Truthy}}" />
             <!-- Cards the opponent played that the list does not hold: always in sight under the list -->
             <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,10">
-                <c:Ornament Text="{Binding LikelyDeckOffTitle}" Size="10.5" Margin="0,10,0,6" IsVisible="{Binding LikelyDeckOffTitle, Converter={StaticResource Truthy}}" />
+                <ContentControl Classes="overlaySection" Content="{Binding LikelyDeckOffTitle}" Margin="0,10,0,6" IsVisible="{Binding LikelyDeckOffTitle, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding LikelyDeckOffList}" ItemTemplate="{StaticResource LikelyRow}" />
                 <TextBlock Text="{Binding LikelyDeckOffMore}" Classes="sideNote" Margin="0,1,0,0" IsVisible="{Binding LikelyDeckOffMore, Converter={StaticResource Truthy}}" />
             </StackPanel>

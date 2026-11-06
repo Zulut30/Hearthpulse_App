@@ -53,6 +53,7 @@
   "Overlay.Opponent.Deck": "Deck",
   "Overlay.Opponent.Secrets": "Secrets",
   "Overlay.Opponent.Played": "Played",
+  "Overlay.Opponent.PlayedEarlier": "Played earlier: {0}",
   "Overlay.Opponent.CardsInHand": "Cards in hand",
   "Overlay.Opponent.Matchup": "{0}–{1}",
   "Overlay.Opponent.MatchupTip": "Your record with this deck against {1}: {0} game|Your record with this deck against {1}: {0} games",
