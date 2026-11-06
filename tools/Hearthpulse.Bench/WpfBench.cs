@@ -188,6 +188,33 @@ internal static class WpfBench
         var prefetch = serial ? null : StartupPrefetch.Start(settings, http);
         var history = new HistoryStore(AppPaths.Database);
         Step("HistoryStore open");
+        if (Environment.GetEnvironmentVariable("HP_BENCH_PAGE_COST") == "1")
+        {
+            // Each page's view built on its own before the window (cold: its BAML, types and styles load here).
+            foreach (var (name, make) in new (string, Func<object>)[]
+            {
+                ("OverviewPage", () => new Hearthpulse.App.Main.Pages.OverviewPage()),
+                ("BattlegroundsPage", () => new Hearthpulse.App.Main.Pages.BattlegroundsPage()),
+                ("ConstructedPageView", () => new Hearthpulse.App.Main.Pages.ConstructedPageView()),
+                ("HistoryPage", () => new Hearthpulse.App.Main.Pages.HistoryPage()),
+                ("DeckDetailsView", () => new Hearthpulse.App.Main.Decks.DeckDetailsView()),
+                ("MatchView", () => new Hearthpulse.App.Main.Match.MatchView()),
+                ("ArenaStatsView", () => new Hearthpulse.App.Main.Stats.ArenaStatsView()),
+                ("BrawlView", () => new Hearthpulse.App.Main.Stats.BrawlView()),
+                ("GeneralSettings", () => new Hearthpulse.App.Main.SettingsTabs.GeneralSettings()),
+                ("OverlaySettings", () => new Hearthpulse.App.Main.SettingsTabs.OverlaySettings()),
+                ("TrackerSettings", () => new Hearthpulse.App.Main.SettingsTabs.TrackerSettings()),
+                ("StreamSettings", () => new Hearthpulse.App.Main.SettingsTabs.StreamSettings()),
+                ("AccountSettings", () => new Hearthpulse.App.Main.SettingsTabs.AccountSettings()),
+                ("DataSettings", () => new Hearthpulse.App.Main.SettingsTabs.DataSettings()),
+                ("AboutSettings", () => new Hearthpulse.App.Main.SettingsTabs.AboutSettings()),
+                ("SetupWizard", () => new Hearthpulse.App.Main.Setup.SetupWizard()),
+            })
+            {
+                GC.KeepAlive(make());
+                Step($"  new {name}");
+            }
+        }
         var main = OffScreen(new MainWindow(new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths())));
         Step("new MainWindow");
         var overlay = new OverlayWindow(new OverlayViewModel(), settings);
@@ -527,7 +554,7 @@ internal static class WpfBench
 
         foreach (var round in new[] { "first", "again" })
         {
-            foreach (var page in new[] { "Battlegrounds", "Constructed", "Arena", "History", "Settings", "Overview" })
+            foreach (var page in new[] { "Battlegrounds", "Constructed", "Arena", "Brawl", "History", "Settings", "Overview" })
             {
                 Time($"{round} {page}", () => main.ShowPage(page));
             }
@@ -641,6 +668,7 @@ internal static class WpfBench
 
         main.ShowPage("History");
         Pump();
+        HistoryWheel(main);
         if (vm.HistoryRows.FirstOrDefault() is { } game)
         {
             Time("match page", () =>
@@ -734,7 +762,9 @@ internal static class WpfBench
     /// </summary>
     private static void SettleArt(string what)
     {
-        var pending = (System.Collections.ICollection)typeof(CardArt).GetField("Pending", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+        // Loads in flight only: a finished task that stayed in the dictionary (fixed in CardArt.GetAsync) is not waited for.
+        var tasks = (System.Collections.IDictionary)typeof(CardArt).GetField("Pending", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+        var pending = new InFlight(tasks);
         if (pending.Count == 0)
         {
             return;
@@ -767,6 +797,12 @@ internal static class WpfBench
         timer.Stop();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"[art]   {what,-40} {sw.Elapsed.TotalMilliseconds,8:N0} ms to load {count} images  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB  gen0 {GC.CollectionCount(0) - gen0} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds:N0} ms  UI stall max {worst.TotalMilliseconds:N0} ms"));
+    }
+
+    /// <summary>The image loads of CardArt.Pending that have not finished.</summary>
+    private sealed class InFlight(System.Collections.IDictionary tasks)
+    {
+        public int Count => tasks.Values.Cast<Task>().ToList().Count(t => !t.IsCompleted);
     }
 
     /// <summary>A step named by HP_BENCH_TRACE_STEP: its own frame, so a trace can be cut to it.</summary>
@@ -805,6 +841,59 @@ internal static class WpfBench
     /// A named part of the window, also one inside a page or settings tab control (Main/Pages, Main/SettingsTabs):
     /// those keep their own namescope, where the window's FindName does not look.
     /// </summary>
+    /// <summary>
+    /// The History list (the replay library's virtualised ListBox) wheeled 48 px a notch to the end and back, 30 ms
+    /// between notches: the time each notch takes to be ready, and how many miss a 60 Hz frame (16.7 ms).
+    /// </summary>
+    private static void HistoryWheel(MainWindow main)
+    {
+        if (Part(main, "PageHistory") is not System.Windows.Media.Visual page || Descendant<System.Windows.Controls.ListBox>(page) is not { } list
+            || Descendant<System.Windows.Controls.ScrollViewer>(list) is not { } scroll)
+        {
+            Console.WriteLine("[pages] History wheel: no list");
+            return;
+        }
+
+        foreach (var direction in new[] { "down", "up" })
+        {
+            var notches = new List<double>();
+            var wheel = Stopwatch.StartNew();
+            bool More() => direction == "down" ? scroll.VerticalOffset + scroll.ViewportHeight < scroll.ExtentHeight - 1 : scroll.VerticalOffset > 0;
+            while (More() && notches.Count < 2000)
+            {
+                var step = Stopwatch.StartNew();
+                scroll.ScrollToVerticalOffset(scroll.VerticalOffset + (direction == "down" ? 48 : -48));
+                Pump(DispatcherPriority.Input);
+                notches.Add(step.Elapsed.TotalMilliseconds);
+                var gap = new DispatcherFrame();
+                var resume = new DispatcherTimer(TimeSpan.FromMilliseconds(30), DispatcherPriority.Normal, (sender, _) =>
+                {
+                    ((DispatcherTimer)sender!).Stop();
+                    gap.Continue = false;
+                }, Dispatcher.CurrentDispatcher);
+                resume.Start();
+                Dispatcher.PushFrame(gap);
+            }
+
+            var dropped = notches.Count(n => n > 16.7);
+            Console.WriteLine($"[pages] History wheel {direction}: {list.Items.Count} games, {notches.Count} notches in {wheel.Elapsed.TotalMilliseconds:N0} ms, {Spread(notches)}, over 16.7 ms {dropped}, visuals {Elements(main):N0}");
+        }
+    }
+
+    private static T? Descendant<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if ((child as T ?? Descendant<T>(child)) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private static DependencyObject? Part(MainWindow main, string name) => LogicalTreeHelper.FindLogicalNode(main, name);
 
     /// <summary>A page's scrolling area: a page control holds its ScrollViewer, the other pages are one.</summary>

@@ -213,7 +213,15 @@ public static class CardArt
         }
 
         TrimPending();
-        return Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
+        var load = Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
+        // A load that finished before it was added (no await on the way) removed its entry too early: drop it now, or
+        // the finished task keeps its image alive past the memory cache.
+        if (load.IsCompleted)
+        {
+            Pending.TryRemove(new KeyValuePair<string, Task<ImageSource?>>(key, load));
+        }
+
+        return load;
     }
 
     /// <summary>Keeps the task dictionary from growing for every card the session ever shows.</summary>

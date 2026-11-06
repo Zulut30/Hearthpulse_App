@@ -180,8 +180,18 @@ public static class CardArt
 
     private static string Key(ArtKind kind, string cardId) => CardImageFiles.Key(kind, cardId);
 
-    public static Task<Bitmap?> GetAsync(ArtKind kind, string cardId) =>
-        Pending.GetOrAdd(Key(kind, cardId), static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
+    public static Task<Bitmap?> GetAsync(ArtKind kind, string cardId)
+    {
+        var key = Key(kind, cardId);
+        var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
+        // A load that finished before it was added removed its entry too early: drop it now, or it stays for good.
+        if (load.IsCompleted)
+        {
+            Pending.TryRemove(new KeyValuePair<string, Task<Bitmap?>>(key, load));
+        }
+
+        return load;
+    }
 
     private static async Task<Bitmap?> LoadAsync(ArtKind kind, string cardId)
     {
