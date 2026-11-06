@@ -1,4 +1,7 @@
 {
+  "Main.Beta": "BETA",
+  "Main.BetaName": "Бета-версия",
+  "Main.BetaTip": "Бета-версия: возможны ошибки, пишите нам",
   "Main.Window.Close": "Закрыть (если включено, Hearthpulse останется в трее)",
   "Main.Window.CloseName": "Закрыть",
   "Main.Window.Maximize": "Развернуть",

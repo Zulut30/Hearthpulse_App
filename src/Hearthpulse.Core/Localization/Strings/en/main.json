@@ -1,4 +1,7 @@
 {
+  "Main.Beta": "BETA",
+  "Main.BetaName": "Beta version",
+  "Main.BetaTip": "Beta version: there may be bugs, please tell us",
   "Main.Window.Close": "Close (keeps running in the tray if enabled)",
   "Main.Window.CloseName": "Close",
   "Main.Window.Maximize": "Maximize",
