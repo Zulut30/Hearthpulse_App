@@ -26,9 +26,18 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
 
 ## Consequences
 
+- **Records are pseudonymous personal data** (GDPR recital 26), not anonymous: the install id links one install's
+  games for 180 days. So: one install's records are never published, sold, shown in a paid feature or joined to a
+  site account; only totals with at least 10 games from at least 5 installs leave the pool (free or paid). The rating
+  is capped at 10,000 ("10000+": the few players above are on Blizzard's public leaderboard), the rank is the league
+  only. Deleted records stay in D1's Time Travel history for up to 30 days; the pool is never restored to a point
+  before a deletion without sending the deletion again (`reference/reviews/LEGAL-game-stats.md`).
+- **Their own consent.** The stats pool's first-start question (public Battlegrounds totals) does not turn game
+  records on: they are another purpose, with their own switch in Settings → Data, off by default.
+
 - Records are kept 180 days (the cron job deletes older ones); only a small aggregate is published
   (`/v1/events/summary`: games per day, most-picked Discover options and mulligan keep rate per card, each from 10
-  games or more). Anything built on them later is Hearthpulse's own analytics and may be paid (ADR 0009).
+  games and 5 installs or more). Anything built on them later is Hearthpulse's own analytics and may be paid (ADR 0009).
 - Deleting: switching the setting off drops the queue and sends `POST /v1/events/forget` with the install id until the
   pool confirms it.
 - Deploying needs the owner's Cloudflare login (`wrangler login`); until the pool is deployed the app keeps the switch

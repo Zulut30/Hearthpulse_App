@@ -152,13 +152,7 @@ public sealed partial class MainViewModel : Observable
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
 #if HEARTHPULSE_WPF
-        AnswerPool = new RelayCommand(p =>
-        {
-            // The question lists the game records too (consent version 5): one answer covers both.
-            var yes = p as string == "yes";
-            PoolSharing = yes;
-            GameStatsSharing = yes;
-        });
+        AnswerPool = new RelayCommand(p => PoolSharing = p as string == "yes");
 #endif
     }
 

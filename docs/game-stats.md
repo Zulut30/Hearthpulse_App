@@ -27,7 +27,7 @@ Built from the game's history row and its saved replay, after the game, off the 
 | `choices` | `[turn, kind, source, [offered], [picked]]`, kind from the source's mechanics: `discover` `adapt` `chooseone` `dredge` `excavate` `choice` | replay |
 | `draws` | `[turn, card, created]`: every card that came into your hand after the mulligan | replay |
 | `exc` | `[turn, treasure]`: Excavate treasures that came into your hand | replay + `Excavate.Treasures` |
-| `bg` | Battlegrounds: `placement`, `mmr` (rounded down to 500), `offered`/`picked` heroes, `anomaly`, `tribes`, `tier`, `triples`, `tierups`, `trinkets` `{o, p}`, `quests`, `board`, `combats`, `choices`, `plays`, `buys`, `sells` | the pool view of the game (`PoolGame`) + the BG replay's buy/sell steps |
+| `bg` | Battlegrounds: `placement`, `mmr` (rounded down to 500, at most 10,000), `offered`/`picked` heroes, `anomaly`, `tribes`, `tier`, `triples`, `tierups`, `trinkets` `{o, p}`, `quests`, `board`, `combats`, `choices`, `plays`, `buys`, `sells` | the pool view of the game (`PoolGame`) + the BG replay's buy/sell steps |
 | `app` | app version | |
 
 Not sent: Friendly, Practice, Mercenaries and other modes; abandoned games and games without a result; games brought
@@ -45,9 +45,11 @@ server rebuilds every record from known fields only, so anything else is dropped
   statistics", its tooltip lists every field, the line under it says what is never sent, the 180 days, that the
   statistics may be used in paid features, and that switching off deletes the sent games. Shown only once the pool is
   set up (`PoolClient.Available`). Stored as `AppSettings.GameStatsConsent` (the list version agreed to, 0 = no).
-- The stats pool's first-start question (WPF) now covers game records too: `PoolClient.ConsentVersion` 5. Players who
-  had agreed to version 4 are asked again with the longer text; until they answer, only what they agreed to is sent,
-  and game records are not. "Share" turns on both; "No thanks" turns off both, as every earlier version bump did.
+- Its own consent: the stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4)
+  does not turn game records on, and players who agreed to the pool are not switched on silently: game records are
+  another purpose (their own statistics, paid features included), so GDPR wants a separate, unticked choice
+  (`reference/reviews/LEGAL-game-stats.md`, L-M2). The switch is off by default.
+- Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
   waits in the queue (`game-stats/forget`) until the pool answers.
 
@@ -58,7 +60,7 @@ server rebuilds every record from known fields only, so anything else is dropped
   `400`/`413`/`422` drop it for good; anything else (offline, `429`, `503` daily budget, `404` before the deploy) waits
   and retries after 30 s, doubling up to 30 min. Never on the UI or log thread; nothing waits for it.
 - The install id is a keyed hash of the pool secret (`GameStatsClient.InstallId`), never shown and never linked to an
-  account.
+  account. Turning the switch on makes the secret at once, so the settings saved with the change keep it.
 
 ## Server (`server/pool`)
 
@@ -66,7 +68,8 @@ server rebuilds every record from known fields only, so anything else is dropped
   after validation; 8,000 records a day in all (`EVENTS_DAILY`, then `503`), plus the Worker's rate limiter.
 - `POST /v1/events/forget` `{"iid":"…"}` → `{"ok":true,"deleted":n}`.
 - `GET /v1/events/summary` → `{window, updated, games, days:[{day, mode, fmt, games}], discover:[{kind, card, offered,
-  picked, rate}], mulligan:[{card, offered, kept, rate}]}` over the last 30 days, each card from 10 games or more;
+  picked, rate}], mulligan:[{card, offered, kept, rate}]}` over the last 30 days, each cell from 10 games and 5
+  installs or more;
   rebuilt by the 6-hourly cron job when new records came in, cached at the edge for 30 minutes.
 - Table `e` (`WITHOUT ROWID`, indexes by day and install), migration `migrations/0007_events.sql`; kept 180 days.
 - Tests: `node --test server/pool/test/events.test.mjs`.

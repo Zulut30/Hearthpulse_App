@@ -22,7 +22,7 @@ public static partial class PoolClient
     /// Raised whenever the list of shared fields grows. Players who agreed to an older list are asked again;
     /// until they answer, only the fields they agreed to are sent.
     /// </summary>
-    public const int ConsentVersion = 5;
+    public const int ConsentVersion = 4;
 
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
@@ -65,8 +65,8 @@ public static partial class PoolClient
     public static bool SharingAll(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 3;
 
     /// <summary>
-    /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Version 5 adds game
-    /// records of every mode (docs/game-stats.md), which have their own switch (<see cref="AppSettings.GameStatsConsent"/>).
+    /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Game records of every
+    /// mode (docs/game-stats.md) are another purpose with their own consent (<see cref="AppSettings.GameStatsConsent"/>).
     /// </summary>
     public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
 

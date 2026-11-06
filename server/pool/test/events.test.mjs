@@ -74,6 +74,7 @@ test("a Battlegrounds record keeps its lobby, buys, sells, picks and placement",
   assert.deepEqual(body.bg.sells, [[2, "MINION_B"]]);
   assert.deepEqual(body.bg.trinkets, { o: ["T_A", "T_B"], p: ["T_A"] });
   assert.deepEqual(body.bg.quests, ["QUEST_A"]);
+  assert.equal(JSON.parse(validateEvent(bg({ bg: { placement: 1, mmr: 14500 } }), TODAY).body).bg.mmr, 10_000, "10000+");
 });
 
 test("a record with a bad core field is rejected", () => {
@@ -164,10 +165,11 @@ test("the summary counts games per day and builds Discover and mulligan totals f
     mull: { o: ["CARD_A", "CARD_B"], k: i % 4 === 0 ? ["CARD_B"] : ["CARD_A", "CARD_B"], r: [], n: [] },
     choices: [[3, "discover", "CARD_S", ["CARD_X", "CARD_Y", "CARD_Z"], [i < 9 ? "CARD_X" : "CARD_Y"]]],
   }));
-  await post("/v1/events", { v: 1, iid: IID, games: games.slice(0, 10) }, env);
-  await post("/v1/events", { v: 1, iid: IID, games: [...games.slice(10), bg()] }, env);
+  // Twelve games from six installs, two each; the Battlegrounds game is one install's alone.
+  for (let i = 0; i < 12; i += 2) await post("/v1/events", { v: 1, iid: (i + 1).toString(16).padStart(32, "0"), games: games.slice(i, i + 2) }, env);
+  await post("/v1/events", { v: 1, iid: IID, games: [bg()] }, env);
   const summary = JSON.parse(await rebuildEvents(env, true));
-  assert.deepEqual(summary.days, [{ day: TODAY, mode: "bg", fmt: null, games: 1 }, { day: TODAY, mode: "ranked", fmt: "standard", games: 12 }]);
+  assert.deepEqual(summary.days, [{ day: TODAY, mode: "ranked", fmt: "standard", games: 12 }], "a day cell needs five installs");
   const x = summary.discover.find((r) => r.card === "CARD_X");
   assert.deepEqual(x, { kind: "discover", card: "CARD_X", offered: 12, picked: 9, rate: 0.75 });
   assert.equal(summary.discover[0].card, "CARD_X");
@@ -180,9 +182,11 @@ test("the summary counts games per day and builds Discover and mulligan totals f
   assert.equal((await read.json()).games, 13);
 });
 
-test("the summary leaves out cards seen in fewer than 10 games", async () => {
+test("the summary leaves out cards seen in fewer than 10 games, or from fewer than 5 installs", async () => {
   const env = sqlite();
   await post("/v1/events", { v: 1, iid: IID, games: [ranked()] }, env);
+  const one = Array.from({ length: 12 }, (_, i) => ranked({ id: (100 + i).toString(16).padStart(32, "0") }));
+  await post("/v1/events", { v: 1, iid: IID, games: one.slice(0, 12) }, env);
   const summary = JSON.parse(await rebuildEvents(env, true));
   assert.deepEqual(summary.discover, []);
   assert.deepEqual(summary.mulligan, []);

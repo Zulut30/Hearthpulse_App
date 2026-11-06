@@ -34,6 +34,12 @@ public static class GameStatsRecord
 
     internal const int MaxTurn = 200;
 
+    /// <summary>
+    /// Ratings at or above this are all sent as this ("10000+"): the few players up there are on Blizzard's public
+    /// leaderboard (LEGAL-game-stats L-M4).
+    /// </summary>
+    internal const int MaxMmr = 10_000;
+
     private static readonly HashSet<string> Treasures = Excavate.Treasures.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>The server's mode for a history mode; null for a mode that is not sent (Friendly, Practice, Mercenaries...).</summary>
@@ -259,7 +265,7 @@ public static class GameStatsRecord
         var bg = new JsonObject { ["placement"] = game.Placement };
         if (game.RatingBefore is { } rating and > 0)
         {
-            bg["mmr"] = rating / 500 * 500;
+            bg["mmr"] = Math.Min(rating, MaxMmr) / 500 * 500;
         }
 
         if (pool is not null)

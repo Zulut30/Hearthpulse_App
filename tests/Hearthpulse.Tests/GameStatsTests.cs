@@ -215,6 +215,13 @@ public sealed class GameStatsTests : IDisposable
     }
 
     [Fact]
+    public void A_rating_at_the_top_is_sent_as_ten_thousand_plus()
+    {
+        var game = new GameRecord { Key = "k", Mode = "Battlegrounds", Result = "Win", Placement = 1, RatingBefore = 12_345 };
+        Assert.Equal(10_000, (int)GameStatsRecord.Build(game, new string('c', 32), null, null, null, null)!["bg"]!["mmr"]!);
+    }
+
+    [Fact]
     public void Ids_are_keyed_hashes_stable_per_install()
     {
         var settings = new AppSettings { PoolSecret = new string('5', 64) };

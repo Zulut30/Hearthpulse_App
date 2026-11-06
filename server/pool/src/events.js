@@ -5,7 +5,8 @@
 // A record is one row of table `e` (WITHOUT ROWID: the row and the day index are the only writes), with the random id
 // of the install that sent it so the player can have all of their records deleted (POST /v1/events/forget).
 // Records are kept for KEEP_DAYS; the cron job builds the only published view (/v1/events/summary): games per day,
-// the most picked Discover options and the mulligan keep rate per card, each from MIN_CELL games or more.
+// the most picked Discover options and the mulligan keep rate per card, each from MIN_CELL games of MIN_PLAYERS
+// installs or more. Records are pseudonymous personal data (ADR 0011): one install's records are never published.
 
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
@@ -28,7 +29,11 @@ const MAX_RECORD = 24 * 1024;
 // Records stored per day: a record writes its row, its day index and its install index, and the clean-up deletes as
 // many, so 8,000 records stay near 48,000 rows written a day (D1's free plan allows 100,000 for the whole database).
 const EVENTS_DAILY = 8_000;
+// A published cell needs this many games, and MIN_PLAYERS installs among them (one player's picks are not published).
 const MIN_CELL = 10;
+const MIN_PLAYERS = 5;
+// Ratings at or above this are stored as this ("10000+"): the few players up there are on Blizzard's public leaderboard.
+const MAX_MMR = 10_000;
 const TOP = 200;
 
 const MAX = { plays: 400, oplays: 200, choices: 120, draws: 300, exc: 40, mull: 6, turns: 200, buys: 300, sells: 300 };
@@ -68,7 +73,7 @@ function battlegrounds(b) {
   const out = { placement: b.placement };
   if (card(b.picked)) out.picked = b.picked;
   if (cards(b.offered, 4)) out.offered = [...new Set(b.offered)];
-  if (int(b.mmr, 0, 30_000) && b.mmr % 500 === 0) out.mmr = b.mmr;
+  if (int(b.mmr, 0, 30_000) && b.mmr % 500 === 0) out.mmr = Math.min(b.mmr, MAX_MMR);
   if (card(b.anomaly)) out.anomaly = b.anomaly;
   if (Array.isArray(b.tribes) && b.tribes.length <= 8 && b.tribes.every((t) => typeof t === "string" && TRIBE.test(t))) out.tribes = [...new Set(b.tribes)];
   if (int(b.tier, 1, 7)) out.tier = b.tier;
@@ -197,24 +202,27 @@ export async function rebuildEvents(env, force) {
   }
 
   const days = (await env.DB.prepare(
-    `SELECT day, mode, fmt, COUNT(*) AS games FROM e WHERE day >= ?1 GROUP BY day, mode, fmt ORDER BY day, mode, fmt`).bind(since).all()).results;
+    `SELECT day, mode, fmt, COUNT(*) AS games FROM e WHERE day >= ?1 GROUP BY day, mode, fmt
+     HAVING COUNT(DISTINCT iid) >= ?2 ORDER BY day, mode, fmt`).bind(since, MIN_PLAYERS).all()).results;
   // An option offered by a Discover-style card, and whether it was the one taken.
   const discover = (await env.DB.prepare(
     `SELECT json_extract(c.value, '$[1]') AS kind, o.value AS card, COUNT(*) AS offered,
             SUM(EXISTS (SELECT 1 FROM json_each(c.value, '$[4]') p WHERE p.value = o.value)) AS picked
      FROM e, json_each(e.body, '$.choices') c, json_each(c.value, '$[3]') o
      WHERE e.day >= ?1 AND json_extract(c.value, '$[1]') IN ('discover', 'adapt', 'chooseone', 'dredge')
-     GROUP BY kind, card HAVING offered >= ?2 ORDER BY picked DESC, offered DESC LIMIT ?3`).bind(since, MIN_CELL, TOP).all()).results;
+     GROUP BY kind, card HAVING offered >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY picked DESC, offered DESC LIMIT ?3`)
+    .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;
   const mulligan = (await env.DB.prepare(
     `SELECT o.value AS card, COUNT(*) AS offered,
             SUM(EXISTS (SELECT 1 FROM json_each(e.body, '$.mull.k') k WHERE k.value = o.value)) AS kept
      FROM e, json_each(e.body, '$.mull.o') o
-     WHERE e.day >= ?1 GROUP BY card HAVING offered >= ?2 ORDER BY offered DESC LIMIT ?3`).bind(since, MIN_CELL, TOP).all()).results;
+     WHERE e.day >= ?1 GROUP BY card HAVING offered >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY offered DESC LIMIT ?3`)
+    .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;
 
   const body = JSON.stringify({
     window: WINDOW_DAYS,
     updated: Date.now(),
-    games: days.reduce((sum, r) => sum + r.games, 0),
+    games: (await env.DB.prepare("SELECT COUNT(*) AS n FROM e WHERE day >= ?1").bind(since).first())?.n ?? 0,
     days: days.map((r) => ({ day: r.day, mode: r.mode, fmt: r.fmt ?? null, games: r.games })),
     discover: discover.map((r) => ({ kind: r.kind, card: r.card, offered: r.offered, picked: r.picked, rate: round(r.picked / r.offered) })),
     mulligan: mulligan.map((r) => ({ card: r.card, offered: r.offered, kept: r.kept, rate: round(r.kept / r.offered) })),
