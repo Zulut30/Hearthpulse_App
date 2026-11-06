@@ -560,8 +560,8 @@ public sealed partial class OverlayViewModel
                 r.LowSample && r.PickRate is not null))
             .ToList();
         CardPoolPicksNote = !picks.HasNumbers ? Loc.T("Pool.Picks.Few")
-            : picks.HasLowSample ? Loc.T("Pool.Picks.Note") + " · " + Loc.T("Pool.Picks.LowSample")
-            : Loc.T("Pool.Picks.Note");
+            : picks.HasLowSample ? Loc.T("Pool.Picks.LowSample")
+            : string.Empty;
     }
 
     private static string PickPercent(double share) => OverlayFormat.Percent(share);

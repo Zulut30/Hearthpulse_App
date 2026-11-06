@@ -304,7 +304,6 @@
                     <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}" IsVisible="{Binding ArenaCommunityLoading}" />
                     <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}" IsVisible="{Binding ArenaCommunityUnavailable}" />
-                    <TextBlock Text="{Binding ArenaCommunitySource}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
         </Grid>

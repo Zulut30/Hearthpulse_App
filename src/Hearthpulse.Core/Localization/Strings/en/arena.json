@@ -1,5 +1,4 @@
 {
-  "Arena.Source": "Scores: {0}",
   "Arena.NoScore": "No score yet",
   "Arena.BestPick": "Best pick",
   "Arena.BestClass": "Best class",
@@ -10,7 +9,7 @@
   "Arena.Stat.PlaceValue": "{0}/{1}",
   "Arena.Stat.SevenPlus": "7+ wins",
   "Arena.ChooseHero": "Choose a hero",
-  "Arena.NoData": "No Arena numbers: Hearthpulse data is unavailable and there is no saved copy. The deck and curve still work.",
+  "Arena.NoData": "Arena scores are unavailable right now. The deck and curve still work.",
   "Arena.Panel.Title": "Arena draft",
   "Arena.Panel.Picks": "Arena draft scores",
   "Arena.Panel.Average": "Average score of the deck",

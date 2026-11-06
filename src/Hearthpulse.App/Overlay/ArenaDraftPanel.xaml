@@ -28,13 +28,14 @@
         <StackPanel>
             <!-- Header: what the panel is and how far the draft got, then the run's class -->
             <Border Style="{StaticResource OverlayHeader}" o:OverlayHit.Interactive="True">
-                <!-- What the letters mean (the class scale at the hero pick, the card scale after it) and where the scores come from -->
+                <!-- What the letters mean (the class scale at the hero pick, the card scale after it), and which games the scores come from -->
                 <Border.ToolTip>
                     <ToolTip>
                         <StackPanel MaxWidth="260">
                             <TextBlock Text="{Binding ArenaTierLegend}" TextWrapping="Wrap" Margin="0,0,0,4"
                                        Visibility="{Binding ArenaTierLegend, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding ArenaSource}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding ArenaSliceNote}" TextWrapping="Wrap"
+                                       Visibility="{Binding ArenaSliceNote, Converter={StaticResource Vis}}" />
                         </StackPanel>
                     </ToolTip>
                 </Border.ToolTip>
