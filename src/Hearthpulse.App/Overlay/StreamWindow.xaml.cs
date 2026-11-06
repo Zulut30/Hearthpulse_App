@@ -43,8 +43,10 @@ public partial class StreamWindow : Window
         {
             "deck" => new DeckPanel(),
             "lobby" => new LobbyPanel(),
+            "session" => new StreamSessionPanel(),
             _ => new OddsPanel(),
         };
+        ResetSessionItem.Visibility = spec == StreamWindowSpec.Session ? Visibility.Visible : Visibility.Collapsed;
         SetTitle();
         ApplyLook();
         ApplyState();

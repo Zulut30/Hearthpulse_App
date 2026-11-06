@@ -311,6 +311,7 @@ public sealed partial class MatchViewModel : Observable
         ClearPlayer();
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
+        Raise(nameof(CanShareDeck));
         RaiseTabs();
     }
 
@@ -356,6 +357,7 @@ public sealed partial class MatchViewModel : Observable
         ShowPlayer(page);
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
+        Raise(nameof(CanShareDeck));
         Raise(nameof(ShowOpponent));
         Raise(nameof(Frame));
         Raise(nameof(FrameMax));

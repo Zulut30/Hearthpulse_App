@@ -1,0 +1,56 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.StreamSessionPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- The OBS window "Hearthpulse — Session" (proposal B1, docs/streaming.md): the rank or Battlegrounds rating now, where
+         the stream started and the change, the record or the last places. Only the player's own numbers.
+         DataContext: OverlayViewModel (inherited). Tokens only. -->
+    <UserControl.Resources>
+        <i:VisibleWhen x:Key="Vis" />
+        <i:SignBrush x:Key="SignBrush" />
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" Padding="16,12" Width="250">
+        <StackPanel>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StreamSessionSince}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding StreamSessionTitle}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <DockPanel Margin="0,4,0,0">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StreamSessionChange}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeTitle}"
+                           FontWeight="Bold" Foreground="{Binding StreamSessionChangeValue, Converter={StaticResource SignBrush}}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding StreamSessionValue}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
+                           Foreground="{StaticResource StatText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="{Binding StreamSessionFrom}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}"
+                       Visibility="{Binding StreamSessionFrom, Converter={StaticResource Vis}}" />
+            <TextBlock Text="{Binding StreamSessionRecord}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeTitle}" FontWeight="SemiBold"
+                       Margin="0,4,0,0" Visibility="{Binding StreamSessionRecord, Converter={StaticResource Vis}}" />
+            <ItemsControl ItemsSource="{Binding StreamSessionPlaces}" Margin="0,8,0,0" Focusable="False"
+                          Visibility="{Binding HasStreamSessionPlaces, Converter={StaticResource Vis}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type o:PlaceChip}">
+                        <Border x:Name="Chip" Width="24" Height="24" CornerRadius="{StaticResource RadiusSmall}" Margin="0,0,4,0" Background="{StaticResource NegativeSoft}">
+                            <TextBlock x:Name="Num" Text="{Binding Place}" FontSize="{StaticResource FontSizeLabel}" FontWeight="Bold" Foreground="{StaticResource Negative}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Top}" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource PositiveSoft}" />
+                                <Setter TargetName="Num" Property="Foreground" Value="{StaticResource Positive}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

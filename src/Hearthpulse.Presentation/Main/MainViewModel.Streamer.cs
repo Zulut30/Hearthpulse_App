@@ -112,6 +112,8 @@ public sealed partial class MainViewModel
         Raise(nameof(StreamDeckWindow));
         Raise(nameof(StreamLobbyWindow));
         Raise(nameof(StreamOddsWindow));
+        Raise(nameof(StreamSessionWindow));
+        Raise(nameof(StreamSessionStartText));
         Raise(nameof(StreamWindowsOnTop));
         Raise(nameof(StreamBackgroundTheme));
         Raise(nameof(StreamBackgroundGreen));

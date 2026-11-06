@@ -439,6 +439,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()))
         {
             ArenaDraft = BuildArenaDraft(),
+            StreamSession = BuildStreamSession(game, inGame),
             Ladder = BuildLadder(game, inGame),
         };
 

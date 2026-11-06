@@ -94,6 +94,7 @@ public sealed class StreamWindows
             Moved?.Invoke();
         };
         window.OnTopToggled += () => _main.StreamWindowsOnTop = !Settings.StreamWindowsOnTop;
+        window.ResetSessionRequested += _main.ResetStreamSession;
         window.CloseRequested += s =>
         {
             // Closed by hand: switched off (the switch in Settings follows). A window already replaced (theme) says nothing.

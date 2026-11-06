@@ -1,0 +1,19 @@
+<UserControl x:Class="Hearthpulse.App.Main.SettingsTabs.StreamSessionSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- Settings → Stream, in the windows' group: the "Session" window (proposal B1) and "Start a new session". A file of its
+         own so the Settings rework does not touch it. DataContext: MainViewModel. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <StackPanel Margin="0,0,0,14">
+        <CheckBox x:Name="StreamSessionSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Session}" IsChecked="{Binding StreamSessionWindow}"
+                  ToolTip="{i:Loc Stream.Window.SessionTip}" />
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding StreamSessionWindow, Converter={StaticResource Vis}}">
+            <Button x:Name="StreamSessionReset" Style="{StaticResource GhostButton}" Content="{i:Loc Stream.Session.Reset}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}"
+                    Click="OnReset" ToolTip="{i:Loc Stream.Session.ResetTip}" AutomationProperties.Name="{i:Loc Stream.Session.Reset}" />
+            <TextBlock Text="{Binding StreamSessionStartText}" Style="{StaticResource Caption}" Margin="12,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

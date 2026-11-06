@@ -15,6 +15,7 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
 | Hearthpulse — Deck | `deck` | `DeckPanel` | 268 × 720 | 168 × 200 | a game other than Battlegrounds with its deck known | such a game, deck not recognised | no game, a Battlegrounds game, the Arena draft |
 | Hearthpulse — Lobby | `lobby` | `LobbyPanel` | 246 × 306 | 156 × 120 | Battlegrounds (Duos too), hero picked, opponents seen | hero pick | no game or not Battlegrounds |
 | Hearthpulse — Combat odds | `odds` | `OddsPanel` | 266 × 140 | 166 × 84 | a Battlegrounds fight with its odds | between fights, hero pick | no game or not Battlegrounds |
+| Hearthpulse — Session | `session` | `StreamSessionPanel` (window only) | 266 × 184 | 166 × 104 | while it is on: the rank or rating since the stream started, the change, the record (Ranked) or the last places (Battlegrounds); "No games yet" before the first | — | window off |
 
 - **One model.** The windows show the overlay's own panel controls (`Overlay/DeckPanel`, `LobbyPanel`, `OddsPanel` in
   both UIs, also used by the overlay's `deck`, `lobby` and `odds` panels) on the same `OverlayViewModel`. A window can
@@ -44,6 +45,11 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
   finds it again by its title. The windows are in the taskbar (OBS lists no tool windows) and are not minimized by the
   app; a minimized window gives OBS an empty frame, so the help in Settings says not to minimize them. WPF rebuilds them
   with a theme change (the title stays, OBS picks the window up again in about a second); Avalonia recolours them in place.
+- **Session window** (`TASK-2026-11-07-growth-app`): counts from the player's "Start a new session" (Settings → Stream,
+  or the window's menu; `AppSettings.StreamSessionStart`) when that is later than the ladder session's start, else from
+  the ladder session's start (Hearthstone's start or a break longer than the setting). Ranked or Battlegrounds, whichever
+  was played last (the game being played decides first). Built in `GameSession.StreamSession.cs` only while the window
+  is on (`LiveSnapshot.StreamSession`), shown by `OverlayViewModel.StreamSession.cs`. The player's own numbers only.
 - **Not done:** hiding the overlay itself from capture (`WDA_EXCLUDEFROMCAPTURE`, an idea for later), a browser source,
   a show delay against stream sniping (the Twitch extension has its own delay, below).
 
