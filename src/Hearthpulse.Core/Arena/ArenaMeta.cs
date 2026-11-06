@@ -71,6 +71,9 @@ public sealed class ArenaMeta
 
     public int CardCount => _byId.Count;
 
+    /// <summary>The same card scores without the class numbers (they have no Underground split).</summary>
+    public ArenaMeta WithoutClasses() => new(Cards, [], FetchedAt, Underground);
+
     /// <summary>Every scored or listed card.</summary>
     public IEnumerable<ArenaCardScore> Cards => _byId.Values;
 

@@ -45,5 +45,11 @@
   "Arena.Mode.Underground": "Подземная Арена",
   "Arena.Mode.Normal": "Обычная Арена",
   "Arena.Slice.Underground": "по играм Подземной Арены",
-  "Arena.Slice.Normal": "по играм обычной Арены"
+  "Arena.Slice.Normal": "по играм обычной Арены",
+  "Arena.Page.Tabs": "Какая арена",
+  "Arena.Page.TabArena": "Арена",
+  "Arena.Page.TabArenaTip": "Обычная Арена: забег до 12 побед или 3 поражений",
+  "Arena.Page.TabUnderground": "Подземная арена",
+  "Arena.Page.TabUndergroundTip": "Подземная арена: забег до 12 побед или 5 поражений, своя статистика",
+  "Arena.Page.CommunityNoSplit": "Нет данных: общий винрейт классов есть только для обычной Арены, смешивать его с Подземной не будем."
 }

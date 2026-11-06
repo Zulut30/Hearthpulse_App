@@ -45,5 +45,11 @@
   "Arena.Mode.Underground": "Underground Arena",
   "Arena.Mode.Normal": "Normal Arena",
   "Arena.Slice.Underground": "from Underground Arena games",
-  "Arena.Slice.Normal": "from normal Arena games"
+  "Arena.Slice.Normal": "from normal Arena games",
+  "Arena.Page.Tabs": "Which Arena",
+  "Arena.Page.TabArena": "Arena",
+  "Arena.Page.TabArenaTip": "Regular Arena: a run lasts to 12 wins or 3 losses",
+  "Arena.Page.TabUnderground": "Underground Arena",
+  "Arena.Page.TabUndergroundTip": "Underground Arena: a run lasts to 12 wins or 5 losses, with stats of its own",
+  "Arena.Page.CommunityNoSplit": "No data: community class win rates exist for the regular Arena only, and we don't mix them with Underground."
 }

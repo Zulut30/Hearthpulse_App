@@ -37,6 +37,9 @@
                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Battlegrounds}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Duos}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Ranked}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Arena}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Arena" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.History.Underground}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Underground"
+                                 ToolTip="{i:Loc Main.History.UndergroundTip}" />
                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.History.Other}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
                 </StackPanel>
             </Border>

@@ -13,6 +13,7 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 
@@ -447,7 +448,7 @@ public sealed partial class MainViewModel : Observable
             }.Where(x => !string.IsNullOrEmpty(x)));
         return new GameRow(
             When(g.StartedAt),
-            Mode(g.Mode),
+            ModeOf(g),
             g.HeroCardId,
             _cards.NameOf(g.HeroCardId),
             bg && !g.IsAbandoned ? Ordinal(g.Placement) : ResultText(g.Result),
@@ -465,12 +466,14 @@ public sealed partial class MainViewModel : Observable
     internal static double PlacementWidth(double place, double best, double worst) =>
         worst - best < 0.01 ? 1 : 1 - ((place - best) / (worst - best) * 0.85);
 
-    private static bool FilterMatch(GameRecord g, string filter) => filter switch
+    internal static bool FilterMatch(GameRecord g, string filter) => filter switch
     {
         "Battlegrounds" => g.Mode == "Battlegrounds",
         "Duos" => g.Mode == "Duos",
         "Ranked" => g.Mode.StartsWith("Ranked", StringComparison.Ordinal),
-        "Other" => !g.IsBattlegrounds && !g.Mode.StartsWith("Ranked", StringComparison.Ordinal),
+        "Arena" => ArenaStats.Is(g, ArenaKind.Arena),
+        "Underground" => ArenaStats.Is(g, ArenaKind.Underground),
+        "Other" => !g.IsBattlegrounds && !g.Mode.StartsWith("Ranked", StringComparison.Ordinal) && !StatsFilter.IsArena(g),
         _ => true,
     };
 
@@ -494,6 +497,7 @@ public sealed partial class MainViewModel : Observable
         "GT_RANKED" or "Ranked" => Loc.T("Main.Mode.Ranked"),
         "GT_CASUAL" or "Casual" => Loc.T("Main.Mode.Casual"),
         "GT_ARENA" or "Arena" => Loc.T("Main.Mode.Arena"),
+        "GT_UNDERGROUND_ARENA" => Loc.T("Main.Mode.Underground"),
         "GT_BATTLEGROUNDS" or "Battlegrounds" => Loc.T("Main.Mode.Battlegrounds"),
         "GT_BATTLEGROUNDS_DUO" or "Duos" => Loc.T("Main.Mode.Duos"),
         "GT_VS_AI" or "Practice" => Loc.T("Main.Mode.Practice"),
@@ -505,6 +509,9 @@ public sealed partial class MainViewModel : Observable
         _ when mode.StartsWith("GT_", StringComparison.Ordinal) => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(mode[3..].Replace('_', ' ').ToLowerInvariant()),
         _ => mode,
     };
+
+    /// <summary>A saved game's mode as the player reads it; Underground Arena apart from the regular one.</summary>
+    private static string ModeOf(GameRecord g) => StatsFilter.IsArena(g) && ArenaStats.KindOf(g) == ArenaKind.Underground ? Loc.T("Main.Mode.Underground") : Mode(g.Mode);
 
     private static string Scene(string scene) => scene switch
     {
