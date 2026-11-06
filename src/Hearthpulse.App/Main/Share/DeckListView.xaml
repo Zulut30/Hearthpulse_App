@@ -30,7 +30,7 @@
                 <TextBlock Text="{i:Loc Growth.Deck.Curve}" Style="{StaticResource Label}" Margin="0,16,0,8" />
                 <ItemsControl ItemsSource="{Binding Card.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" ItemsPanel="{StaticResource ShareCurvePanel}" Focusable="False" />
 
-                <TextBlock Text="{Binding Card.Code}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Faint}"
+                <TextBlock Text="{Binding Card.Code}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}"
                            TextWrapping="Wrap" Margin="0,16,0,0" />
                 <c:Wave Style="{StaticResource PageRule}" Margin="2,12,0,12" />
                 <ContentControl Template="{StaticResource ShareBrandFooter}" Focusable="False" />

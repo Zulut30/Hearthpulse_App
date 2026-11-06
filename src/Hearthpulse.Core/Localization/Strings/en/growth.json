@@ -100,7 +100,7 @@
   "Growth.Year.Subtitle": "Your year in Hearthstone, from the game history on this computer. Nothing is sent anywhere.",
   "Growth.Year.Games": "Games this year",
   "Growth.Year.Hours": "Hours played",
-  "Growth.Year.HoursValue": "{0:N0} h",
+  "Growth.Year.HoursValue": "{0:N0} h",
   "Growth.Year.Record": "{0}–{1} outside Battlegrounds",
   "Growth.Year.FavouriteClass": "Favourite class",
   "Growth.Year.FavouriteDeck": "Favourite deck",

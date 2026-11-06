@@ -100,7 +100,7 @@
   "Growth.Year.Subtitle": "Ваш год в Hearthstone — по истории игр на этом компьютере. Никуда не отправляется.",
   "Growth.Year.Games": "Игры за год",
   "Growth.Year.Hours": "Часы в игре",
-  "Growth.Year.HoursValue": "{0:N0} ч",
+  "Growth.Year.HoursValue": "{0:N0} ч",
   "Growth.Year.Record": "{0}–{1} вне Полей сражений",
   "Growth.Year.FavouriteClass": "Любимый класс",
   "Growth.Year.FavouriteDeck": "Любимая колода",
