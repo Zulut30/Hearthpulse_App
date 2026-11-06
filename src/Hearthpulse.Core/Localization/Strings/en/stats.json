@@ -1,5 +1,7 @@
 {
   "Stats.Title": "My stats",
+  "Stats.More": "More details",
+  "Stats.Less": "Show less",
   "Stats.Period.Tip": "Time frame",
   "Stats.Period.All": "All time",
   "Stats.Period.Week": "7 days",

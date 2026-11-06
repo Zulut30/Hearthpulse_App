@@ -168,196 +168,195 @@
             </Border>
         </Grid>
 
-        <!-- Six tiles (the last: rewards) in rows of three, as Constructed's -->
-        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel3}" />
+        <!-- Four headline numbers; time played and the rewards' total wait under «Подробнее» -->
+        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
 
-        <Grid Margin="0,0,0,24">
+        <!-- The runs (and «Подробнее» under them) beside the latest run's deck score and the community class win rates -->
+        <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.Arena.Runs}" Icon="&#xF0538;" Size="13" Margin="0,0,0,8" />
-                    <ItemsControl ItemsSource="{Binding ArenaRuns}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type m:ArenaRunRow}">
-                                <Border>
-                                    <!-- The row being edited keeps the Row fill (no hover change) -->
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource StatsRow}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Editing}" Value="True">
-                                                    <Setter Property="Background" Value="{StaticResource Row}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <Border Width="36" Height="36" Margin="0,0,12,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ClassName}" FontWeight="SemiBold" />
-                                            <TextBlock Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}">
-                                                <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Status, Mode=OneWay}" />
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding DeckScore}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{Binding DeckTier, Converter={StaticResource KeyBrush}}"
-                                                       Visibility="{Binding DeckScore, Converter={StaticResource Vis}}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Stats.Arena.RecordTip}">
-                                            <Border Width="90" Height="7" CornerRadius="2" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
-                                                        Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=90}" />
-                                            </Border>
-                                            <TextBlock Text="{Binding Record}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" MinWidth="44" TextAlignment="Right" />
-                                        </StackPanel>
-                                        <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
-                                        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Style="{StaticResource RewardsChip}"
-                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip="{Binding RewardsTip}" Loaded="ChipLoaded"
-                                                AutomationProperties.Name="{Binding RewardsTip}" Visibility="{Binding Editing, Converter={StaticResource Vis}, ConverterParameter=!}">
-                                            <WrapPanel>
-                                                <ItemsControl ItemsSource="{Binding RewardParts}" Focusable="False">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <WrapPanel />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate DataType="{x:Type m:ArenaRewardPart}">
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
-                                                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"
-                                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                                                <TextBlock Text="{Binding Amount}" Margin="2,0,0,0" VerticalAlignment="Center" />
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                                <TextBlock Text="&#xF03EB;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"
-                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                           Visibility="{Binding HasRewards, Converter={StaticResource Vis}}" />
-                                                <StackPanel Orientation="Horizontal" Visibility="{Binding HasRewards, Converter={StaticResource Vis}, ConverterParameter=!}">
-                                                    <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,4,0"
-                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                                    <TextBlock Text="{i:Loc Stats.Arena.Rewards.Add}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </WrapPanel>
-                                        </Button>
-                                        <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Content="{Binding Edit}" ContentTemplate="{StaticResource ArenaRewardsEditor}" Focusable="False"
-                                                        Visibility="{Binding Editing, Converter={StaticResource Vis}}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0538;" Content="{i:Loc Stats.Arena.RunsEmpty}"
-                                    Visibility="{Binding ArenaRuns, Converter={StaticResource Vis}, ConverterParameter=!}" />
+            <StackPanel>
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Stats.Arena.Runs}" Icon="&#xF0538;" Size="13" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding ArenaRuns}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type m:ArenaRunRow}">
+                                    <Border>
+                                        <!-- The row being edited keeps the Row fill (no hover change) -->
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource StatsRow}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Editing}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource Row}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Border Width="36" Height="36" Margin="0,0,12,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ClassName}" FontWeight="SemiBold" />
+                                                <TextBlock Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}">
+                                                    <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Status, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding DeckScore}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{Binding DeckTier, Converter={StaticResource KeyBrush}}"
+                                                           Visibility="{Binding DeckScore, Converter={StaticResource Vis}}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Stats.Arena.RecordTip}">
+                                                <Border Width="90" Height="7" CornerRadius="2" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
+                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=90}" />
+                                                </Border>
+                                                <TextBlock Text="{Binding Record}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" MinWidth="44" TextAlignment="Right" />
+                                            </StackPanel>
+                                            <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
+                                            <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Style="{StaticResource RewardsChip}"
+                                                    Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip="{Binding RewardsTip}" Loaded="ChipLoaded"
+                                                    AutomationProperties.Name="{Binding RewardsTip}" Visibility="{Binding Editing, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                                <WrapPanel>
+                                                    <ItemsControl ItemsSource="{Binding RewardParts}" Focusable="False">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type m:ArenaRewardPart}">
+                                                                <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"
+                                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                                    <TextBlock Text="{Binding Amount}" Margin="2,0,0,0" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="&#xF03EB;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"
+                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                               Visibility="{Binding HasRewards, Converter={StaticResource Vis}}" />
+                                                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasRewards, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                                        <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Add}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </WrapPanel>
+                                            </Button>
+                                            <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Content="{Binding Edit}" ContentTemplate="{StaticResource ArenaRewardsEditor}" Focusable="False"
+                                                            Visibility="{Binding Editing, Converter={StaticResource Vis}}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0538;" Content="{i:Loc Stats.Arena.RunsEmpty}"
+                                        Visibility="{Binding ArenaRuns, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+                <!-- The rest, closed until asked for: time played, rewards, your classes and the opponents' -->
+                <ToggleButton x:Name="ArenaMore" Style="{StaticResource MoreToggle}" />
+                <StackPanel Visibility="{Binding IsChecked, ElementName=ArenaMore, Converter={StaticResource Vis}}">
+                    <ItemsControl ItemsSource="{Binding ArenaMoreTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
+                            <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding ArenaClassesSort}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}}" />
+                            <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                            <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0004;" Content="{i:Loc Stats.Arena.NoRuns}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,8" />
+                            <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding ArenaOpponentsSort}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}}" />
+                            <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                            <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-            </Border>
+            </StackPanel>
             <StackPanel Grid.Column="2">
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
-                        <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
-                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding ArenaClassesSort}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}}" />
-                        <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                        <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0004;" Content="{i:Loc Stats.Arena.NoRuns}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <c:Ornament Text="{i:Loc Arena.Page.DeckTitle}" Icon="&#xF0D8F;" Size="13" Margin="0,0,0,8" />
+                        <StackPanel Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding ArenaDeckTitle}" FontWeight="SemiBold" />
+                            <StackPanel Margin="0,8,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Grid Width="46" Height="46" VerticalAlignment="Center">
+                                        <c:Scallop Fill="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                                        <TextBlock Text="{Binding ArenaDeckTier}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="Bold" Foreground="{StaticResource Bg}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ArenaDeckAverage}" Style="{StaticResource Stat}" Foreground="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" />
+                                        <TextBlock Text="{Binding ArenaDeckNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding ArenaDeckCurve}" Margin="0,12,0,0" Width="280" HorizontalAlignment="Left">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type m:ArenaCurveColumn}">
+                                            <StackPanel Margin="2,0" VerticalAlignment="Bottom" ToolTip="{Binding Count}">
+                                                <TextBlock Text="{Binding Count}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                                                <Grid Height="46">
+                                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" Background="{StaticResource Accent}" />
+                                                </Grid>
+                                                <Border Height="1" Background="{StaticResource Outline}" Margin="-2,0" />
+                                                <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{i:Loc Arena.Page.Best}" Style="{StaticResource StatsHead}" />
+                                    <ItemsControl ItemsSource="{Binding ArenaDeckBest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="{i:Loc Arena.Page.Weakest}" Style="{StaticResource StatsHead}" />
+                                    <ItemsControl ItemsSource="{Binding ArenaDeckWeakest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                        <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                   Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,8" />
-                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding ArenaOpponentsSort}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}}" />
-                        <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                        <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding ArenaCommunity, Converter={StaticResource Vis}}" />
+                        <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}"
+                                        Visibility="{Binding ArenaCommunityLoading, Converter={StaticResource Vis}}" />
+                        <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
+                                        Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Border>
             </StackPanel>
-        </Grid>
-
-        <!-- Latest run's deck score and the community class win rates -->
-        <Grid Margin="0,0,0,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Arena.Page.DeckTitle}" Icon="&#xF0D8F;" Size="13" Margin="0,0,0,8" />
-                    <StackPanel Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}}">
-                        <TextBlock Text="{Binding ArenaDeckTitle}" FontWeight="SemiBold" />
-                        <StackPanel Margin="0,8,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <Grid Width="46" Height="46" VerticalAlignment="Center">
-                                    <c:Scallop Fill="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                                    <TextBlock Text="{Binding ArenaDeckTier}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="Bold" Foreground="{StaticResource Bg}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Grid>
-                                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding ArenaDeckAverage}" Style="{StaticResource Stat}" Foreground="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" />
-                                    <TextBlock Text="{Binding ArenaDeckNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
-                                </StackPanel>
-                            </StackPanel>
-                            <ItemsControl ItemsSource="{Binding ArenaDeckCurve}" Margin="0,12,0,0" Width="280" HorizontalAlignment="Left">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Rows="1" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type m:ArenaCurveColumn}">
-                                        <StackPanel Margin="2,0" VerticalAlignment="Bottom" ToolTip="{Binding Count}">
-                                            <TextBlock Text="{Binding Count}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
-                                            <Grid Height="46">
-                                                <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" Background="{StaticResource Accent}" />
-                                            </Grid>
-                                            <Border Height="1" Background="{StaticResource Outline}" Margin="-2,0" />
-                                            <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                        <Grid Margin="0,16,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="{i:Loc Arena.Page.Best}" Style="{StaticResource StatsHead}" />
-                                <ItemsControl ItemsSource="{Binding ArenaDeckBest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="{i:Loc Arena.Page.Weakest}" Style="{StaticResource StatsHead}" />
-                                <ItemsControl ItemsSource="{Binding ArenaDeckWeakest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                    <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
-                               Visibility="{Binding HasArenaDeck, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,8" />
-                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding ArenaCommunity, Converter={StaticResource Vis}}" />
-                    <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}"
-                                    Visibility="{Binding ArenaCommunityLoading, Converter={StaticResource Vis}}" />
-                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
-                                    Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
-                </StackPanel>
-            </Border>
         </Grid>
     </StackPanel>
 </UserControl>

@@ -21,7 +21,10 @@
         <!-- Hero tier list: a click on a column head sorts the heroes inside their tiers -->
         <Border Name="HeroTierCard" Classes="card">
             <StackPanel>
-                <Grid Margin="0,0,0,4" ColumnDefinitions="40,50,*,56,190,64,56,72,80,100">
+                <!-- The essential columns; the switch adds first places, pick rate and games -->
+                <CheckBox Classes="switch" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding HeroAllColumns}" HorizontalAlignment="Right"
+                          FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+                <Grid Margin="0,0,0,4" ColumnDefinitions="40,50,*,56,190,64,Auto,Auto,Auto,100">
                     <TextBlock Text="#" Classes="tableHead" />
                     <Button Grid.Column="2" Classes="sortHead" Command="{Binding SetHeroSort}" CommandParameter="Name">
                         <StackPanel Orientation="Horizontal">
@@ -42,19 +45,19 @@
                             <TextBlock Text="{Binding HeroArrows.Top4}" Classes="sortArrow" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="6" Classes="sortHead" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="First" ToolTip.Tip="{i:Loc Main.Table.FirstTip}">
+                    <Button Grid.Column="6" Classes="sortHead" HorizontalAlignment="Right" Width="56" HorizontalContentAlignment="Right" IsVisible="{Binding HeroAllColumns}" Command="{Binding SetHeroSort}" CommandParameter="First" ToolTip.Tip="{i:Loc Main.Table.FirstTip}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Main.Table.First}" Classes="sortLabel" />
                             <TextBlock Text="{Binding HeroArrows.First}" Classes="sortArrow" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="7" Classes="sortHead" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Pick" ToolTip.Tip="{i:Loc Main.Table.PickRateTip}">
+                    <Button Grid.Column="7" Classes="sortHead" HorizontalAlignment="Right" Width="72" HorizontalContentAlignment="Right" IsVisible="{Binding HeroAllColumns}" Command="{Binding SetHeroSort}" CommandParameter="Pick" ToolTip.Tip="{i:Loc Main.Table.PickRateTip}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Main.Table.PickRate}" Classes="sortLabel" />
                             <TextBlock Text="{Binding HeroArrows.Pick}" Classes="sortArrow" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="8" Classes="sortHead" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Games" ToolTip.Tip="{i:Loc Main.Table.GamesTip}">
+                    <Button Grid.Column="8" Classes="sortHead" HorizontalAlignment="Right" Width="80" HorizontalContentAlignment="Right" IsVisible="{Binding HeroAllColumns}" Command="{Binding SetHeroSort}" CommandParameter="Games" ToolTip.Tip="{i:Loc Main.Table.GamesTip}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Main.Table.Games}" Classes="sortLabel" />
                             <TextBlock Text="{Binding HeroArrows.Games}" Classes="sortArrow" />
@@ -82,7 +85,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="m:MetaHeroRow">
                                             <Border Classes="row" Padding="8,4">
-                                                <Grid ColumnDefinitions="40,50,*,56,190,64,56,72,80,100">
+                                                <Grid ColumnDefinitions="40,50,*,56,190,64,Auto,Auto,Auto,100">
                                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
                                                     <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}"
                                                             HorizontalAlignment="Left" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
@@ -99,9 +102,9 @@
                                                         </Border>
                                                     </StackPanel>
                                                     <TextBlock Grid.Column="5" Text="{Binding Top4}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding FirstPlace}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="7" Text="{Binding PickRate}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="8" Text="{Binding DataPoints}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="6" Width="56" TextAlignment="Right" IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).HeroAllColumns}" Text="{Binding FirstPlace}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="7" Width="72" TextAlignment="Right" IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).HeroAllColumns}" Text="{Binding PickRate}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="8" Width="80" TextAlignment="Right" IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).HeroAllColumns}" Text="{Binding DataPoints}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="9" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeLabel}" />
                                                 </Grid>
                                             </Border>
@@ -264,42 +267,6 @@
                 <TextBlock Text="{Binding CardEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
                            IsVisible="{Binding CardTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
-
-        <!-- My heroes -->
-        <Border Name="MyHeroesCard" Classes="card" IsVisible="False">
-            <StackPanel>
-                <Grid Margin="0,0,0,8" ColumnDefinitions="50,*,80,100,80,80,90">
-                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Hero}" Classes="tableHead" />
-                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlace}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.AvgPlaceTip}" />
-                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Top4}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.Top4MineTip}" />
-                    <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Wins}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.WinsTip}" />
-                    <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.NetMmr}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.NetMmrTip}" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding MyHeroes}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="m:HeroRow">
-                            <Border Classes="row" Padding="8,4">
-                                <Grid ColumnDefinitions="50,*,80,100,80,80,90">
-                                    <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                            i:CardArt.Portrait="{Binding CardId}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Column="2" Text="{Binding Games}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
-                                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                    <TextBlock Grid.Column="4" Text="{Binding Top4}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="5" Text="{Binding Wins}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="6" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
-                                               Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Text="{i:Loc Main.Bg.MyHeroesEmpty}" Classes="caption" Margin="0,8"
-                           IsVisible="{Binding MyHeroes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
             </StackPanel>
         </Border>
     </Panel>

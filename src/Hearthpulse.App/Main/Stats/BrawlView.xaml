@@ -66,8 +66,9 @@
                 <TextBlock Text="{Binding BrawlMineNote}" Style="{StaticResource CardNote}" Visibility="{Binding BrawlMineNote, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlMineSort}" Visibility="{Binding BrawlMine, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding BrawlMine}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF1116;" Content="{i:Loc Brawl.Mine.Empty}"
-                                Visibility="{Binding BrawlMineEmpty, Converter={StaticResource Vis}}" />
+                <!-- Empty for most players most weeks: one line, not a big empty card -->
+                <TextBlock Text="{i:Loc Brawl.Mine.Empty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                           Visibility="{Binding BrawlMineEmpty, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{i:Loc Brawl.Mine.EmptyOld}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                            Visibility="{Binding BrawlMineOld, Converter={StaticResource Vis}}" />
             </StackPanel>

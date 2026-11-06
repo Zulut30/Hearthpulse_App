@@ -165,7 +165,8 @@ public sealed partial class MainViewModel
         var note = ConstructedNote(meta);
         return () =>
         {
-            CtStatTiles = tiles;
+            CtStatTiles = [.. tiles.Take(HeadlineTiles)];
+            CtMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             CtRankChart = chart;
             CtClasses = CtClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             CtOpponents = CtOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
@@ -241,7 +242,8 @@ public sealed partial class MainViewModel
         var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
         return () =>
         {
-            ArenaStatTiles = tiles;
+            ArenaStatTiles = [.. tiles.Take(HeadlineTiles)];
+            ArenaMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             ArenaRuns = RebuiltArenaRuns(runRows);
             ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));

@@ -30,11 +30,15 @@ public sealed partial class MainViewModel
     private bool _heroSortAscending = true;
     private RelayCommand? _setHeroSort;
     private bool _bgMetaFailed;
+    private bool _heroAllColumns;
 
     /// <summary>The hero tier list by tier, S to D; tiers without heroes are left out.</summary>
     public IReadOnlyList<HeroTierGroup> HeroTierGroups { get => _heroTierGroups; private set => Set(ref _heroTierGroups, value); }
 
     public IReadOnlyList<TrinketTierGroup> TrinketTierGroups { get => _trinketTierGroups; private set => Set(ref _trinketTierGroups, value); }
+
+    /// <summary>The hero tier table's rarely read columns (first places, pick rate, games); off by default.</summary>
+    public bool HeroAllColumns { get => _heroAllColumns; set => Set(ref _heroAllColumns, value); }
 
     public HeroSortArrows HeroArrows => new(HeroArrow("Name"), HeroArrow("Placement"), HeroArrow("Top4"), HeroArrow("First"), HeroArrow("Pick"), HeroArrow("Games"));
 

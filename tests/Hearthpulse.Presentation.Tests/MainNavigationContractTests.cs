@@ -25,18 +25,19 @@ public sealed class MainNavigationContractTests
     {
         Assert.Equal(WpfMain.BattlegroundsTabs, AvaMain.BattlegroundsTabs);
         Assert.Equal(WpfMain.ConstructedTabs, AvaMain.ConstructedTabs);
-        Assert.Equal(["Heroes", "Comps", "Trinkets", "Cards", "Mine"], WpfMain.BattlegroundsTabs);
+        Assert.Equal(["Mine", "Heroes", "Comps", "Trinkets", "Cards"], WpfMain.BattlegroundsTabs);
         Assert.Equal(["Decks", "Tiers", "Top", "Matchups"], AvaMain.ConstructedTabs);
 
         Assert.Equal(3, WpfMain.NavIndex(WpfMain.NavPages, ConstructedPage.Wild));
         Assert.Equal(5, AvaMain.NavIndex(AvaMain.NavPages, "Brawl"));
         Assert.Equal(6, AvaMain.NavIndex(AvaMain.NavPages, "History"));
-        Assert.Equal(4, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Mine"));
-        // An unknown name opens the first: Overview, Heroes, Decks.
+        Assert.Equal(0, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Mine"));
+        Assert.Equal(1, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Heroes"));
+        // An unknown name opens the first: Overview, My stats, Decks.
         Assert.Equal(0, WpfMain.NavIndex(WpfMain.NavPages, "Nowhere"));
         Assert.Equal(0, WpfMain.NavIndex(WpfMain.ConstructedTabs, string.Empty));
 
-        Assert.Equal("Trinkets", WpfMain.NavChecked(WpfMain.BattlegroundsTabs, [false, null, true, false, false]));
+        Assert.Equal("Trinkets", WpfMain.NavChecked(WpfMain.BattlegroundsTabs, [false, null, false, true, false]));
         Assert.Equal("Overview", AvaMain.NavChecked(AvaMain.NavPages, [true, false, false, false, false, false, false, false]));
         // Between two buttons of a radio group none is checked.
         Assert.Null(AvaMain.NavChecked(AvaMain.ConstructedTabs, [false, false, null, false]));
@@ -108,11 +109,17 @@ public sealed class MainNavigationContractTests
             }
 
             window.ShowPage("Battlegrounds");
+            Assert.Equal("Mine", window.BattlegroundsTab);
             foreach (var tab in WpfMain.BattlegroundsTabs)
             {
                 window.BattlegroundsTab = tab;
                 Pump();
                 Assert.Equal(tab, window.BattlegroundsTab);
+                // One tab row for the page: My stats with its numbers, or a tier list (never both stacked).
+                var mine = tab == "Mine";
+                Assert.Equal(mine, window.PageBattlegrounds.BgStats.IsVisible);
+                Assert.Equal(!mine, window.PageBattlegrounds.BgTiers.IsVisible);
+                Assert.Equal(!mine, window.PageBattlegrounds.BracketPicker.Visibility == System.Windows.Visibility.Visible);
             }
         }
         finally

@@ -99,15 +99,24 @@ public sealed class StatsXamlLoadTests
         var page = new DeckDetailsView();
         Lay(page, deck);
 
-        // The mulligan and card tables take their rows' height, not the room left on the page (a few rows, no gap).
+        // The mulligan and card tables take their rows' height, not the room left on the page (a few rows, no gap). They
+        // share one place behind two tabs: each is checked on its own tab.
         Assert.NotEmpty(deck.MulliganRows);
-        foreach (var list in Descendants<ItemsControl>(page).Where(l => l.ItemsSource == deck.MulliganRows || l.ItemsSource == deck.PerformanceRows))
-        {
-            var rows = Descendants<Border>(list).Where(b => b.DataContext is DeckCardStatRow && b.TemplatedParent is ContentPresenter).ToList();
-            Assert.NotEmpty(rows);
-            Assert.True(list.ActualHeight <= rows.Sum(r => r.ActualHeight + r.Margin.Bottom) + 1,
-                $"{list.ActualHeight} for {rows.Count} rows of {rows[0].ActualHeight}");
-        }
+        CheckRows(page, deck.MulliganRows);
+        page.TabDeckCards.IsChecked = true;
+        page.UpdateLayout();
+        PumpUntil(() => true);
+        page.UpdateLayout();
+        CheckRows(page, deck.PerformanceRows);
+    }
+
+    private static void CheckRows(DeckDetailsView page, object rowsSource)
+    {
+        var list = Descendants<ItemsControl>(page).Single(l => l.ItemsSource == rowsSource);
+        var rows = Descendants<Border>(list).Where(b => b.DataContext is DeckCardStatRow && b.TemplatedParent is ContentPresenter).ToList();
+        Assert.NotEmpty(rows);
+        Assert.True(list.ActualHeight <= rows.Sum(r => r.ActualHeight + r.Margin.Bottom) + 1,
+            $"{list.ActualHeight} for {rows.Count} rows of {rows[0].ActualHeight}");
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject node) where T : DependencyObject

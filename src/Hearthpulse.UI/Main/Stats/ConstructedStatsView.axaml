@@ -17,20 +17,7 @@
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
     </UserControl.Styles>
     <StackPanel>
-        <Grid Classes="statsHead" Margin="0,0,0,12" RowDefinitions="Auto,Auto">
-            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Week" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Month" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Season}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Season"
-                                 ToolTip.Tip="{i:Loc Stats.Period.SeasonTip}" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <ItemsControl ItemsSource="{Binding CtStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel3}" Margin="0,0,-12,4" />
-
+        <!-- The period bar and the headline tiles sit in the page (ConstructedPageView), above the decks -->
         <Border Classes="card" Margin="0,0,0,16">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -41,58 +28,63 @@
             </DockPanel>
         </Border>
 
-        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.Ct.YourClasses}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
-                    <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding CtClassesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtClasses, Converter={StaticResource Truthy}}" />
-                    <ItemsControl ItemsSource="{Binding CtClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Classes="emptyState" Tag="&#xF0004;" Content="{i:Loc Stats.Chart.NoGames}"
-                                    IsVisible="{Binding CtClasses, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                </StackPanel>
-            </Border>
-            <Border Classes="card statsRight" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,8" />
-                    <ContentControl Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding CtOpponentsSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtOpponents, Converter={StaticResource Truthy}}" />
-                    <ItemsControl ItemsSource="{Binding CtOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}"
-                                    IsVisible="{Binding CtOpponents, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                </StackPanel>
-            </Border>
-        </Grid>
+        <!-- The rest of My stats, closed until asked for: going first / on the coin, classes, opponents, archetypes, length -->
+        <ToggleButton Name="CtMore" Classes="more" />
+        <StackPanel IsVisible="{Binding #CtMore.IsChecked}">
+            <ItemsControl ItemsSource="{Binding CtMoreTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
+            <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Classes="card statsLeft" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Stats.Ct.YourClasses}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding CtClassesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtClasses, Converter={StaticResource Truthy}}" />
+                        <ItemsControl ItemsSource="{Binding CtClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <ContentControl Classes="emptyState" Tag="&#xF0004;" Content="{i:Loc Stats.Chart.NoGames}"
+                                        IsVisible="{Binding CtClasses, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card statsRight" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding CtOpponentsSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtOpponents, Converter={StaticResource Truthy}}" />
+                        <ItemsControl ItemsSource="{Binding CtOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}"
+                                        IsVisible="{Binding CtOpponents, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-        <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.Ct.Archetypes}" Icon="&#xF0639;" Size="13" Margin="0,0,0,8" />
-                    <ContentControl Content="{i:Loc Stats.Table.Archetype}" Tag="{Binding CtArchetypesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtArchetypes, Converter={StaticResource Truthy}}" />
-                    <ItemsControl ItemsSource="{Binding CtArchetypes}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Stats.Ct.ArchetypesWindowsOnly}"
-                                    IsVisible="{Binding CtArchetypes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                </StackPanel>
-            </Border>
-            <Border Classes="card statsRight" VerticalAlignment="Top">
-                <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.Ct.GameLength}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,8" />
-                    <ContentControl Content="{i:Loc Stats.Table.Length}" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtLengths, Converter={StaticResource Truthy}}" />
-                    <ItemsControl ItemsSource="{Binding CtLengths}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Classes="emptyState" Tag="&#xF0128;" Content="{i:Loc Stats.Chart.NoGames}"
-                                    IsVisible="{Binding CtLengths, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                </StackPanel>
-            </Border>
-        </Grid>
-        <TextBlock Text="{Binding CtStatsNote}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap"
-                   IsVisible="{Binding CtStatsNote, Converter={StaticResource Truthy}}" />
+            <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Classes="card statsLeft" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Stats.Ct.Archetypes}" Icon="&#xF0639;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Content="{i:Loc Stats.Table.Archetype}" Tag="{Binding CtArchetypesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtArchetypes, Converter={StaticResource Truthy}}" />
+                        <ItemsControl ItemsSource="{Binding CtArchetypes}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Stats.Ct.ArchetypesWindowsOnly}"
+                                        IsVisible="{Binding CtArchetypes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card statsRight" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Stats.Ct.GameLength}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Content="{i:Loc Stats.Table.Length}" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding CtLengths, Converter={StaticResource Truthy}}" />
+                        <ItemsControl ItemsSource="{Binding CtLengths}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <ContentControl Classes="emptyState" Tag="&#xF0128;" Content="{i:Loc Stats.Chart.NoGames}"
+                                        IsVisible="{Binding CtLengths, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <TextBlock Text="{Binding CtStatsNote}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,-12,0,16" TextWrapping="Wrap"
+                       IsVisible="{Binding CtStatsNote, Converter={StaticResource Truthy}}" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

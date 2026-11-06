@@ -38,18 +38,6 @@ public sealed record GameRow(
     public string Summary => Detail.Length > 0 ? Mode + " · " + Detail : Mode;
 }
 
-public sealed partial record PlacementBar(int Place, int Count, double Fraction, string Share, bool Top)
-{
-    /// <summary>No game ended on this place: the row sinks back and shows no "0 · 0 %" (D3, A06).</summary>
-    public bool Empty => Count == 0;
-
-    /// <summary>The row's opacity: an empty place sinks back.</summary>
-    public double Dim => Empty ? EmptyRowOpacity : 1;
-
-    /// <summary>How far an empty place's row sinks back, here and on the Battlegrounds page.</summary>
-    public const double EmptyRowOpacity = 0.4;
-}
-
 public sealed record HeroRow(string CardId, string Name, int Games, string AveragePlace, double AverageValue, string Top4, string Wins, string Net, int NetValue, string Tier);
 
 public sealed record MetaHeroRow(
@@ -101,8 +89,6 @@ public sealed record DeckRow(
     /// <summary>Too few games to tell: the win bar is faded.</summary>
     public bool Few => Games < Hearthpulse.Core.Stats.DeckDetails.SmallSample;
 }
-
-public sealed record MatchupRow(string Class, int Games, string Record, string WinRate, double WinFraction);
 
 public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0);
 

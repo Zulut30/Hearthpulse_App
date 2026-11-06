@@ -9,6 +9,40 @@
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
 
+    <!-- «Подробнее» / «Свернуть»: opens the secondary part of a page (classes, archetypes, rarely read columns). The part
+         binds its visibility to the toggle's IsChecked; closed by default. Avalonia twin: ToggleButton.more (StatsStyles). -->
+    <Style x:Key="MoreToggle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Background="Transparent" BorderBrush="{StaticResource GhostEdge}" BorderThickness="1" CornerRadius="8" Padding="12,7">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Glyph" Text="&#xF0140;" Style="{StaticResource Icon}" FontSize="16" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock x:Name="Label" Text="{i:Loc Stats.More}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Glyph" Property="Text" Value="&#xF0143;" />
+                            <Setter TargetName="Label" Property="Text" Value="{i:Loc Stats.Less}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Hover}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentLine}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A win rate coloured on a scale: green from 53 %, red up to 47 %, plain text between (StatGroupRow.WinSign) -->
     <Style x:Key="WinRateText" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource Text}" />

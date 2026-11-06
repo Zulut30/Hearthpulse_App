@@ -55,12 +55,15 @@ public sealed partial class DeckDetailsViewModel
                 all.Count != games.Count ? Loc.F("Deck.Tile.GamesOf", all.Count) : Loc.T("Deck.Tile.WithDeck")),
             new StatTile(Loc.T("Deck.Tile.AvgGame"), summary.AverageDuration is { } avg ? Loc.F("Deck.Minutes", avg.TotalMinutes) : "—",
                 summary.AverageTurns is { } turns ? Loc.F("Deck.Tile.AvgTurns", turns) : "—"),
-            new StatTile(Loc.T("Deck.Tile.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Deck.Tile.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
-            new StatTile(Loc.T("Deck.Tile.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Deck.Tile.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
             archetype is not null && deckRate is { } rate
                 ? new StatTile(Loc.T("Deck.Tile.VsMeta"), Signed((rate - archetype.WinRate) * 100), $"{archetype.Name} {Percent(archetype.WinRate)} · {metaFits!.Source}",
                     Math.Sign(Math.Round((rate - archetype.WinRate) * 100)))
                 : new StatTile(Loc.T("Deck.Tile.VsMeta"), "—", metaFits is null ? Loc.T("Deck.Tile.MetaNotLoaded") : Loc.T("Deck.Tile.NoArchetype")),
+        ];
+        IReadOnlyList<StatTile> moreTiles =
+        [
+            new StatTile(Loc.T("Deck.Tile.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Deck.Tile.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
+            new StatTile(Loc.T("Deck.Tile.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Deck.Tile.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
         ];
 
         var chart = DeckDetails.WinRateTimeline(games)
@@ -242,6 +245,7 @@ public sealed partial class DeckDetailsViewModel
             ArchetypeLine = archetypeLine;
             FilterText = filterText;
             Tiles = tiles;
+            MoreTiles = moreTiles;
             Chart = chart;
             LengthWins = lengths.Select(l => l.Record.Wins).ToList();
             LengthLosses = lengths.Select(l => l.Record.Losses).ToList();
