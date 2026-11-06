@@ -40,14 +40,14 @@
                 </Border>
             </Grid>
 
-            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
-            <s:BattlegroundsStatsView Name="BgStats" />
-
-            <c:Ornament Text="{i:Loc Main.Bg.TierLists}" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
+            <!-- One tab row: My stats first (as Standard and Wild), then the community tier lists; after the tabs the period
+                 (My stats) or the bracket (the tier lists, only when the stats have a choice); the window switches them -->
             <WrapPanel Margin="0,0,0,14">
                 <Border Classes="segmentBar" Margin="0,0,12,8">
                     <WrapPanel>
-                        <RadioButton Name="TabHeroes" Classes="segment" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True"
+                        <RadioButton Name="TabMine" Classes="segment" Content="{i:Loc Stats.Title}" GroupName="BgTab" IsChecked="True"
+                                     ToolTip.Tip="{i:Loc Main.Bg.MyHeroesTip}" />
+                        <RadioButton Name="TabHeroes" Classes="segment" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab"
                                      ToolTip.Tip="{i:Loc Main.Bg.HeroesTip}" />
                         <RadioButton Name="TabComps" Classes="segment" Content="{i:Loc Main.Bg.Comps}" GroupName="BgTab"
                                      ToolTip.Tip="{i:Loc Main.Bg.CompCaptionComps}" />
@@ -55,9 +55,16 @@
                                      ToolTip.Tip="{i:Loc Main.Bg.TrinketsTip}" />
                         <RadioButton Name="TabCards" Classes="segment" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab"
                                      ToolTip.Tip="{i:Loc Main.Bg.CardsCaption}" />
-                        <RadioButton Name="TabMine" Classes="segment" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab"
-                                     ToolTip.Tip="{i:Loc Main.Bg.MyHeroesTip}" />
                     </WrapPanel>
+                </Border>
+                <Border Name="BgPeriodBar" Classes="segmentBar statsBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
+                        <RadioButton Classes="segment" Content="{i:Loc Stats.Period.ThisMonth}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
+                                     ToolTip.Tip="{i:Loc Stats.Period.ThisMonthBgTip}" />
+                    </StackPanel>
                 </Border>
                 <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
                 <Panel IsVisible="{Binding HasBracketChoice}">
@@ -80,8 +87,11 @@
                 </Panel>
             </WrapPanel>
 
-            <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards, your heroes -->
-            <mm:BattlegroundsTiersView Name="BgTiers" />
+            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
+            <s:BattlegroundsStatsView Name="BgStats" />
+
+            <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards -->
+            <mm:BattlegroundsTiersView Name="BgTiers" IsVisible="False" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

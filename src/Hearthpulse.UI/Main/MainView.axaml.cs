@@ -65,10 +65,12 @@ public partial class MainView : UserControl
             };
         }
 
-        foreach (var tab in new[] { PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine })
+        foreach (var tab in BattlegroundsTabButtons)
         {
             tab.IsCheckedChanged += (_, _) => UpdateTabs();
         }
+
+        UpdateTabs();
 
         foreach (var tab in new[] { PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups })
         {
@@ -150,7 +152,7 @@ public partial class MainView : UserControl
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
+    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
 
     /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
     private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
@@ -409,15 +411,6 @@ public partial class MainView : UserControl
         Classes.Set("compact", compact);
         UpdateTilePanels();
         Frame.ColumnDefinitions[0].Width = new GridLength(compact ? 76 : 250);
-        // Side-by-side cards stack on narrow screens.
-        foreach (var (grid, right) in new[] { (PageOverview.HomeCharts, (Control)PageOverview.PlacementCard), (PageConstructed.DeckColumns, PageConstructed.MatchupCard) })
-        {
-            grid.ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("3*,16,2*");
-            grid.RowDefinitions = compact ? new RowDefinitions("Auto,16,Auto") : new RowDefinitions("Auto");
-            Grid.SetColumn(right, compact ? 0 : 2);
-            Grid.SetRow(right, compact ? 2 : 0);
-        }
-
         PageConstructed.CtMeta.Stack(compact);
     }
 
@@ -511,7 +504,7 @@ public partial class MainView : UserControl
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
     }
 
-    /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
+    /// <summary>The open Battlegrounds tab ("Mine", "Heroes", "Comps", "Trinkets", "Cards"), kept when the window is rebuilt.</summary>
     public string BattlegroundsTab
     {
         get => MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
@@ -548,8 +541,13 @@ public partial class MainView : UserControl
 
     private void UpdateTabs()
     {
+        // My stats and the tier lists share the tab row: the period shows with My stats, the bracket with the tier lists.
+        var mine = PageBattlegrounds.TabMine.IsChecked == true;
+        PageBattlegrounds.BgStats.IsVisible = mine;
+        PageBattlegrounds.BgPeriodBar.IsVisible = mine;
+        PageBattlegrounds.BgTiers.IsVisible = !mine;
+        PageBattlegrounds.BracketPicker.IsVisible = !mine;
         PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
-        PageBattlegrounds.BracketPicker.IsVisible = PageBattlegrounds.TabMine.IsChecked != true;
     }
 
     /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
@@ -564,6 +562,7 @@ public partial class MainView : UserControl
         var mine = PageConstructed.TabMyDecks.IsChecked == true;
         PageConstructed.CtStats.IsVisible = mine;
         PageConstructed.DeckColumns.IsVisible = mine;
+        PageConstructed.CtPeriodBar.IsVisible = mine;
         var tab = ConstructedTab;
         PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
     }

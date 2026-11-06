@@ -176,7 +176,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
+    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
 
     /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
     private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
@@ -393,8 +393,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var shown = PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
-        PageBattlegrounds.BracketPicker.Visibility = PageBattlegrounds.TabMine.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+        var mine = PageBattlegrounds.TabMine.IsChecked == true;
+        FrameworkElement shown = mine ? PageBattlegrounds.BgStats : PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
+        PageBattlegrounds.BracketPicker.Visibility = mine ? Visibility.Collapsed : Visibility.Visible;
         if (chosen)
         {
             Reveal(shown, 8);
@@ -462,7 +463,7 @@ public partial class MainWindow : Window
         ConstructedTab = place.ConstructedTab;
     }
 
-    /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
+    /// <summary>The open Battlegrounds tab ("Mine", "Heroes", "Comps", "Trinkets", "Cards"), kept when the window is rebuilt.</summary>
     public string BattlegroundsTab
     {
         get => _battlegrounds is null

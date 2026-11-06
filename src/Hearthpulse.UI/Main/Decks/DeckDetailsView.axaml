@@ -257,55 +257,66 @@
             </ItemsControl.ItemsPanel>
         </ItemsControl>
 
-        <!-- Win rate over time + results by game length -->
-        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="2*" />
-            </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft">
-                <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <c:Ornament Text="{i:Loc Deck.Chart.Title}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                        <TextBlock Text="{i:Loc Deck.Chart.Caption}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    </Grid>
-                    <c:StatsLineChart x:Name="WinRateChart" Height="200" Points="{Binding Chart}" EmptyText="{i:Loc Deck.Chart.Empty}">
-                        <c:StatsLineChart.HoverTemplate>
-                            <DataTemplate x:DataType="d:DeckGamePoint">
-                                <Border Width="260" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
-                                    <Grid ColumnDefinitions="Auto,*">
-                                        <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" VerticalAlignment="Top" BorderBrush="{StaticResource GoldTrim}"
-                                                BorderThickness="1" ClipToBounds="True" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
-                                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
-                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <TextBlock Text="{Binding ResultText}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
-                                                <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
-                                                <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
+        <!-- The rest of the summary, closed until asked for: going first / on the coin, win rate over time, results by length -->
+        <ToggleButton Name="DeckMore" Classes="more" />
+        <StackPanel IsVisible="{Binding #DeckMore.IsChecked}">
+            <ItemsControl ItemsSource="{Binding MoreTiles}" ItemTemplate="{StaticResource StatsTile}" Margin="0,0,-12,4">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Classes="deckTiles" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            <!-- Win rate over time + results by game length -->
+            <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Border Classes="card statsLeft">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <c:Ornament Text="{i:Loc Deck.Chart.Title}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                            <TextBlock Text="{i:Loc Deck.Chart.Caption}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                        <c:StatsLineChart x:Name="WinRateChart" Height="200" Points="{Binding Chart}" EmptyText="{i:Loc Deck.Chart.Empty}">
+                            <c:StatsLineChart.HoverTemplate>
+                                <DataTemplate x:DataType="d:DeckGamePoint">
+                                    <Border Width="260" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" VerticalAlignment="Top" BorderBrush="{StaticResource GoldTrim}"
+                                                    BorderThickness="1" ClipToBounds="True" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <TextBlock Text="{Binding ResultText}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
+                                                    <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
+                                                    <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding SoFar}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Margin="0,4,0,0" />
+                                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding When}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                                             </StackPanel>
-                                            <TextBlock Text="{Binding SoFar}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" Margin="0,4,0,0" />
-                                            <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding When}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </c:StatsLineChart.HoverTemplate>
-                    </c:StatsLineChart>
-                </DockPanel>
-            </Border>
-            <Border Classes="card statsRight">
-                <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <c:Ornament Text="{i:Loc Deck.Length.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" />
-                        <TextBlock Text="{i:Loc Deck.Length.Caption}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    </Grid>
-                    <c:ResultBars Height="200" Wins="{Binding LengthWins}" Losses="{Binding LengthLosses}" Labels="{Binding LengthLabels}"
-                                  ToolTip.Tip="{i:Loc Deck.Length.Tip}" />
-                </DockPanel>
-            </Border>
-        </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </c:StatsLineChart.HoverTemplate>
+                        </c:StatsLineChart>
+                    </DockPanel>
+                </Border>
+                <Border Classes="card statsRight">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <c:Ornament Text="{i:Loc Deck.Length.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" />
+                            <TextBlock Text="{i:Loc Deck.Length.Caption}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                        <c:ResultBars Height="200" Wins="{Binding LengthWins}" Losses="{Binding LengthLosses}" Labels="{Binding LengthLabels}"
+                                      ToolTip.Tip="{i:Loc Deck.Length.Tip}" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
 
         <!-- Matchups (the filter) and versions; the main version's list and curve beside them -->
         <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
@@ -599,19 +610,31 @@
             </Border>
         </Grid>
 
-        <!-- Personal mulligan (the meta columns hide on narrow screens) -->
-        <Border Classes="card" Margin="0,0,0,16">
+        <!-- The two long tables share one place: your mulligan or card performance -->
+        <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Name="TabDeckMulligan" Classes="segment" Content="{i:Loc Deck.Mulligan.Title}" GroupName="DeckTables" IsChecked="True" />
+                <RadioButton Name="TabDeckCards" Classes="segment" Content="{i:Loc Deck.Cards.Title}" GroupName="DeckTables" />
+            </StackPanel>
+        </Border>
+        <!-- Personal mulligan (the extra columns behind «Все столбцы»; the meta columns also hide on narrow screens) -->
+        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckMulligan.IsChecked}">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Deck.Mulligan.Title}" Icon="&#xF04E1;" Size="13" Margin="0,0,0,8" />
+                <!-- The essential columns; the switch shows the rest -->
+                <Grid Margin="0,0,0,8">
+                    <c:Ornament Text="{i:Loc Deck.Mulligan.Title}" Icon="&#xF04E1;" Size="13" Margin="0,0,190,0" VerticalAlignment="Center" />
+                    <CheckBox Classes="switch" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding MulliganAllColumns}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" />
+                </Grid>
                 <Border Classes="tableHead">
-                    <Grid ColumnDefinitions="*,64,64,80,80,Auto">
+                    <Grid ColumnDefinitions="*,64,64,80,Auto,Auto">
                         <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding MulliganSort}" Classes="wide" HorizontalAlignment="Left"
                                       ToolTip.Tip="{i:Loc Deck.Mulligan.CardTip}" />
                         <c:SortHeader Grid.Column="1" Text="{i:Loc Deck.Mulligan.Offered}" Column="Offered" Sort="{Binding MulliganSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Mulligan.OfferedTip}" />
                         <c:SortHeader Grid.Column="2" Text="{i:Loc Deck.Mulligan.Kept}" Column="Kept" Sort="{Binding MulliganSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Mulligan.KeptTip}" />
                         <c:SortHeader Grid.Column="3" Text="{i:Loc Deck.Mulligan.WrKept}" Column="KeptWinRate" Sort="{Binding MulliganSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Mulligan.WrKeptTip}" />
-                        <c:SortHeader Grid.Column="4" Text="{i:Loc Deck.Mulligan.WrReplaced}" Column="ReplacedWinRate" Sort="{Binding MulliganSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Mulligan.WrReplacedTip}" />
-                        <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide">
+                        <c:SortHeader Grid.Column="4" Text="{i:Loc Deck.Mulligan.WrReplaced}" Column="ReplacedWinRate" Sort="{Binding MulliganSort}" Classes="num" Width="80" IsVisible="{Binding MulliganAllColumns}" ToolTip.Tip="{i:Loc Deck.Mulligan.WrReplacedTip}" />
+                        <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" IsVisible="{Binding MulliganAllColumns}">
                             <c:SortHeader Text="{i:Loc Deck.Mulligan.MetaKept}" Column="MetaKept" Sort="{Binding MulliganSort}" Classes="num" Width="80" ToolTip.Tip="{i:Loc Deck.Mulligan.MetaKeptTip}" />
                             <c:SortHeader Text="{i:Loc Deck.Mulligan.MetaWr}" Column="MetaWinRate" Sort="{Binding MulliganSort}" Classes="num" Width="76" ToolTip.Tip="{i:Loc Deck.Mulligan.MetaWrTip}" />
                         </StackPanel>
@@ -621,7 +644,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
                             <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
-                                <Grid ColumnDefinitions="*,64,64,80,80,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
+                                <Grid ColumnDefinitions="*,64,64,80,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
                                     <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
                                     <TextBlock Grid.Column="1" Text="{Binding Offered}" Classes="num cell" />
                                     <StackPanel Grid.Column="2" Classes="cell" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -631,10 +654,12 @@
                                     <Border Grid.Column="3" Classes="markCell cell" Classes.best="{Binding KeptBest}" Classes.worst="{Binding KeptWorst}">
                                         <TextBlock Text="{Binding KeptWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
                                     </Border>
-                                    <Border Grid.Column="4" Classes="markCell cell" Classes.best="{Binding ReplacedBest}" Classes.worst="{Binding ReplacedWorst}">
-                                        <TextBlock Text="{Binding ReplacedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
-                                    </Border>
-                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" VerticalAlignment="Center">
+                                    <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
+                                        <Border Classes="markCell" Classes.best="{Binding ReplacedBest}" Classes.worst="{Binding ReplacedWorst}">
+                                            <TextBlock Text="{Binding ReplacedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
+                                        </Border>
+                                    </Panel>
+                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" VerticalAlignment="Center" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
                                         <TextBlock Text="{Binding MetaKeep}" Classes="num" Width="80" TextAlignment="Right" Foreground="{StaticResource Muted}" />
                                         <TextBlock Text="{Binding MetaWinRate}" Classes="num" Width="76" TextAlignment="Right" Foreground="{StaticResource Muted}" />
                                     </StackPanel>
@@ -648,18 +673,23 @@
         </Border>
 
         <!-- Card performance -->
-        <Border Classes="card" Margin="0,0,0,16">
+        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckCards.IsChecked}">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Deck.Cards.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,8" />
+                <!-- The essential columns; the switch shows the rest -->
+                <Grid Margin="0,0,0,8">
+                    <c:Ornament Text="{i:Loc Deck.Cards.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,190,0" VerticalAlignment="Center" />
+                    <CheckBox Classes="switch" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding CardsAllColumns}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" />
+                </Grid>
                 <Border Classes="tableHead">
-                    <Grid ColumnDefinitions="*,60,80,60,80,Auto">
+                    <Grid ColumnDefinitions="*,60,80,Auto,Auto,Auto">
                         <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding CardsSort}" Classes="wide" HorizontalAlignment="Left"
                                       ToolTip.Tip="{i:Loc Deck.Mulligan.CardTip}" />
                         <c:SortHeader Grid.Column="1" Text="{i:Loc Deck.Cards.Drawn}" Column="Drawn" Sort="{Binding CardsSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Cards.DrawnTip}" />
                         <c:SortHeader Grid.Column="2" Text="{i:Loc Deck.Cards.WrDrawn}" Column="DrawnWinRate" Sort="{Binding CardsSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Cards.WrTip}" />
-                        <c:SortHeader Grid.Column="3" Text="{i:Loc Deck.Cards.Played}" Column="Played" Sort="{Binding CardsSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Cards.PlayedTip}" />
-                        <c:SortHeader Grid.Column="4" Text="{i:Loc Deck.Cards.WrPlayed}" Column="PlayedWinRate" Sort="{Binding CardsSort}" Classes="num" ToolTip.Tip="{i:Loc Deck.Cards.WrTip}" />
-                        <c:SortHeader Grid.Column="5" Text="{i:Loc Deck.Cards.AvgTurn}" Column="AverageTurn" Sort="{Binding CardsSort}" Classes="num wide" Width="72"
+                        <c:SortHeader Grid.Column="3" Text="{i:Loc Deck.Cards.Played}" Column="Played" Sort="{Binding CardsSort}" Classes="num" Width="60" IsVisible="{Binding CardsAllColumns}" ToolTip.Tip="{i:Loc Deck.Cards.PlayedTip}" />
+                        <c:SortHeader Grid.Column="4" Text="{i:Loc Deck.Cards.WrPlayed}" Column="PlayedWinRate" Sort="{Binding CardsSort}" Classes="num" Width="80" IsVisible="{Binding CardsAllColumns}" ToolTip.Tip="{i:Loc Deck.Cards.WrTip}" />
+                        <c:SortHeader Grid.Column="5" Text="{i:Loc Deck.Cards.AvgTurn}" Column="AverageTurn" Sort="{Binding CardsSort}" Classes="num wide" Width="72" IsVisible="{Binding CardsAllColumns}"
                                       ToolTip.Tip="{i:Loc Deck.Cards.AvgTurnTip}" />
                     </Grid>
                 </Border>
@@ -667,17 +697,19 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
                             <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
-                                <Grid ColumnDefinitions="*,60,80,60,80,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
+                                <Grid ColumnDefinitions="*,60,80,Auto,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
                                     <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
                                     <TextBlock Grid.Column="1" Text="{Binding Drawn}" Classes="num cell" />
                                     <Border Grid.Column="2" Classes="markCell cell" Classes.best="{Binding DrawnBest}" Classes.worst="{Binding DrawnWorst}">
                                         <TextBlock Text="{Binding DrawnWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
                                     </Border>
-                                    <TextBlock Grid.Column="3" Text="{Binding Played}" Classes="num cell" />
-                                    <Border Grid.Column="4" Classes="markCell cell" Classes.best="{Binding PlayedBest}" Classes.worst="{Binding PlayedWorst}">
-                                        <TextBlock Text="{Binding PlayedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
-                                    </Border>
-                                    <TextBlock Grid.Column="5" Text="{Binding AverageTurn}" Classes="num wide" Width="72" TextAlignment="Right" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Played}" Classes="num cell" Width="60" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
+                                    <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}">
+                                        <Border Classes="markCell" Classes.best="{Binding PlayedBest}" Classes.worst="{Binding PlayedWorst}">
+                                            <TextBlock Text="{Binding PlayedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
+                                        </Border>
+                                    </Panel>
+                                    <TextBlock Grid.Column="5" Text="{Binding AverageTurn}" Classes="num wide" Width="72" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

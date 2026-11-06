@@ -68,10 +68,17 @@ public sealed partial class LocBindingTests
         }
 
         view.ShowPage("Battlegrounds");
+        Assert.Equal("Mine", view.BattlegroundsTab);
+        Assert.True(view.PageBattlegrounds.BgStats.IsVisible);
+        Assert.False(view.PageBattlegrounds.BgTiers.IsVisible);
         foreach (var tab in new[] { "Comps", "Trinkets", "Cards", "Mine", "Heroes" })
         {
             view.BattlegroundsTab = tab;
             Assert.Equal(tab, view.BattlegroundsTab);
+            // One tab row for the page: My stats with its period, or a tier list with its bracket.
+            Assert.Equal(tab == "Mine", view.PageBattlegrounds.BgStats.IsVisible);
+            Assert.Equal(tab == "Mine", view.PageBattlegrounds.BgPeriodBar.IsVisible);
+            Assert.Equal(tab != "Mine", view.PageBattlegrounds.BgTiers.IsVisible);
             Dispatcher.UIThread.RunJobs();
         }
 

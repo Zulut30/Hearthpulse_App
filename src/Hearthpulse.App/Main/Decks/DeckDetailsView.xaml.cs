@@ -15,6 +15,9 @@ public partial class DeckDetailsView : UserControl
     /// <summary>The win-rate chart, so the UI render check can show a hover card.</summary>
     public Controls.StatsLineChart Chart => WinRateChart;
 
+    /// <summary>Opens or closes «Подробнее» (the charts and first / coin), so the UI render check can show the chart.</summary>
+    public void ShowMore(bool open) => DeckMore.IsChecked = open;
+
     /// <summary>The Versions card, so the UI render check can crop it.</summary>
     public FrameworkElement Versions => VersionsCard;
 

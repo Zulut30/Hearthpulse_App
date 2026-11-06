@@ -38,18 +38,6 @@ public sealed record GameRow(
     public string Summary => Detail.Length > 0 ? Mode + " · " + Detail : Mode;
 }
 
-public sealed partial record PlacementBar(int Place, int Count, double Fraction, string Share, bool Top)
-{
-    /// <summary>No game ended on this place: the row sinks back and shows no "0 · 0 %" (D3, A06).</summary>
-    public bool Empty => Count == 0;
-
-    /// <summary>The row's opacity: an empty place sinks back.</summary>
-    public double Dim => Empty ? EmptyRowOpacity : 1;
-
-    /// <summary>How far an empty place's row sinks back, here and on the Battlegrounds page.</summary>
-    public const double EmptyRowOpacity = 0.4;
-}
-
 public sealed record HeroRow(string CardId, string Name, int Games, string AveragePlace, double AverageValue, string Top4, string Wins, string Net, int NetValue, string Tier);
 
 public sealed record MetaHeroRow(
@@ -101,8 +89,6 @@ public sealed record DeckRow(
     /// <summary>Too few games to tell: the win bar is faded.</summary>
     public bool Few => Games < Hearthpulse.Core.Stats.DeckDetails.SmallSample;
 }
-
-public sealed record MatchupRow(string Class, int Games, string Record, string WinRate, double WinFraction);
 
 public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0);
 
@@ -265,13 +251,11 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<GameRecord>? _recentGames;
     private IReadOnlyList<StatTile> _overviewTiles = Array.Empty<StatTile>();
     private IReadOnlyList<RatingPoint> _ratingPoints = Array.Empty<RatingPoint>();
-    private IReadOnlyList<PlacementBar> _placements = Array.Empty<PlacementBar>();
     private bool _hasBgGames;
     private IReadOnlyList<HeroRow> _myHeroes = Array.Empty<HeroRow>();
     private IReadOnlyList<MetaHeroRow> _heroTiers = Array.Empty<MetaHeroRow>();
     private IReadOnlyList<MetaCompRow> _compTiers = Array.Empty<MetaCompRow>();
     private IReadOnlyList<DeckRow> _decks = Array.Empty<DeckRow>();
-    private IReadOnlyList<MatchupRow> _matchups = Array.Empty<MatchupRow>();
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
     private int _bracket = 100;
@@ -307,7 +291,6 @@ public sealed partial class MainViewModel : Observable
     }
     public IReadOnlyList<StatTile> OverviewTiles { get => _overviewTiles; private set => Set(ref _overviewTiles, value); }
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
-    public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
 
     /// <summary>Home shows the Battlegrounds rating and placement cards only once the mode has games to draw.</summary>
     public bool HasBgGames { get => _hasBgGames; private set => Set(ref _hasBgGames, value); }
@@ -358,7 +341,6 @@ public sealed partial class MainViewModel : Observable
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
     public int CardTier { get => _cardTier; private set => Set(ref _cardTier, value); }
     public IReadOnlyList<DeckRow> Decks { get => _decks; private set => Set(ref _decks, value); }
-    public IReadOnlyList<MatchupRow> Matchups { get => _matchups; private set => Set(ref _matchups, value); }
     public string BgMode { get => _bgMode; private set => Set(ref _bgMode, value); }
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
     public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }
@@ -501,13 +483,6 @@ public sealed partial class MainViewModel : Observable
         RatingPoints = data.Rating;
         RestoreRatingFromHistory(mode, data.Rating);
 
-        var top = mode == "Duos" ? 2 : 4;
-        var max = Math.Max(1, data.Distribution.Max());
-        var total = Math.Max(1, data.Distribution.Sum());
-        Placements = Enumerable.Range(1, mode == "Duos" ? 4 : 8)
-            .Select(p => new PlacementBar(p, data.Distribution[p - 1], data.Distribution[p - 1] / (double)max,
-                (data.Distribution[p - 1] / (double)total).ToString("P0", CultureInfo.CurrentCulture), p <= top))
-            .ToList();
         HasBgGames = data.Distribution.Sum() > 0 || data.Rating.Count >= 2;
 
         MyHeroes = data.Heroes.Select(h => new HeroRow(
@@ -525,10 +500,11 @@ public sealed partial class MainViewModel : Observable
 
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
+        // The Duos rating only for a player who has one: a "—" tile is a number nobody reads.
         OverviewTiles =
         [
             new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue),
-            new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty),
+            .. (DuosRating == "—" ? (StatTile[])[] : [new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty)]),
             new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
                 todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : string.Empty),
             new StatTile(Loc.T("Main.Tile.AllTime"), HistoryCount.ToString("N0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.GamesTracked")),

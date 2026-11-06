@@ -58,6 +58,9 @@ public sealed class DeckDetailsViewModel : Observable
     private string _archetypeLine = string.Empty;
     private string _filterText = string.Empty;
     private IReadOnlyList<StatTile> _tiles = [];
+    private IReadOnlyList<StatTile> _moreTiles = [];
+    private bool _mulliganAllColumns;
+    private bool _cardsAllColumns;
     private IReadOnlyList<IChartValue> _chart = [];
     private IReadOnlyList<int> _lengthWins = [];
     private IReadOnlyList<int> _lengthLosses = [];
@@ -258,7 +261,17 @@ public sealed class DeckDetailsViewModel : Observable
     /// <summary>"Only games vs Priest (6)" while a matchup is selected, else empty.</summary>
     public string FilterText { get => _filterText; private set => Set(ref _filterText, value); }
 
+    /// <summary>Games, average game and the win rate against the meta: with the banner's win rate, the page's four numbers.</summary>
     public IReadOnlyList<StatTile> Tiles { get => _tiles; private set => Set(ref _tiles, value); }
+
+    /// <summary>Going first and on the coin, under «Подробнее» with the charts.</summary>
+    public IReadOnlyList<StatTile> MoreTiles { get => _moreTiles; private set => Set(ref _moreTiles, value); }
+
+    /// <summary>The mulligan table's rarely read columns (win rate if replaced, the meta's keep rate and win rate); off by default.</summary>
+    public bool MulliganAllColumns { get => _mulliganAllColumns; set => Set(ref _mulliganAllColumns, value); }
+
+    /// <summary>The card table's rarely read columns (played, win rate if played, average turn); off by default.</summary>
+    public bool CardsAllColumns { get => _cardsAllColumns; set => Set(ref _cardsAllColumns, value); }
 
     public IReadOnlyList<IChartValue> Chart { get => _chart; private set => Set(ref _chart, value); }
 
@@ -442,12 +455,15 @@ public sealed class DeckDetailsViewModel : Observable
                 all.Count != games.Count ? Loc.F("Deck.Tile.GamesOf", all.Count) : Loc.T("Deck.Tile.WithDeck")),
             new StatTile(Loc.T("Deck.Tile.AvgGame"), summary.AverageDuration is { } avg ? Loc.F("Deck.Minutes", avg.TotalMinutes) : "—",
                 summary.AverageTurns is { } turns ? Loc.F("Deck.Tile.AvgTurns", turns) : "—"),
-            new StatTile(Loc.T("Deck.Tile.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Deck.Tile.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
-            new StatTile(Loc.T("Deck.Tile.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Deck.Tile.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
             archetype is not null && deckRate is { } rate
                 ? new StatTile(Loc.T("Deck.Tile.VsMeta"), Signed((rate - archetype.WinRate) * 100), $"{archetype.Name} {Percent(archetype.WinRate)} · {metaFits!.Source}",
                     Math.Sign(Math.Round((rate - archetype.WinRate) * 100)))
                 : new StatTile(Loc.T("Deck.Tile.VsMeta"), "—", metaFits is null ? Loc.T("Deck.Tile.MetaNotLoaded") : Loc.T("Deck.Tile.NoArchetype")),
+        ];
+        IReadOnlyList<StatTile> moreTiles =
+        [
+            new StatTile(Loc.T("Deck.Tile.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Deck.Tile.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
+            new StatTile(Loc.T("Deck.Tile.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Deck.Tile.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
         ];
 
         var chart = DeckDetails.WinRateTimeline(games)
@@ -629,6 +645,7 @@ public sealed class DeckDetailsViewModel : Observable
             ArchetypeLine = archetypeLine;
             FilterText = filterText;
             Tiles = tiles;
+            MoreTiles = moreTiles;
             Chart = chart;
             LengthWins = lengths.Select(l => l.Record.Wins).ToList();
             LengthLosses = lengths.Select(l => l.Record.Losses).ToList();

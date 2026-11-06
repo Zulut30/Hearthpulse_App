@@ -133,8 +133,11 @@ public sealed record BgPlaceRow(string Place, string Share, double Fraction, boo
     /// <summary>No game ended on this place: the row sinks back and shows no "0 %" (D3, A06).</summary>
     public bool Empty => Fraction <= 0;
 
-    /// <summary>The row's opacity: an empty place sinks back, as on Home.</summary>
-    public double Dim => Empty ? PlacementBar.EmptyRowOpacity : 1;
+    /// <summary>How far an empty place's row sinks back.</summary>
+    public const double EmptyRowOpacity = 0.4;
+
+    /// <summary>The row's opacity: an empty place sinks back.</summary>
+    public double Dim => Empty ? EmptyRowOpacity : 1;
 }
 
 /// <summary>One Arena run.</summary>
@@ -179,6 +182,8 @@ public sealed partial class MainViewModel
     private string _ctFormat = "FT_STANDARD";
     private StatsPeriod _ctPeriod = StatsPeriod.All;
     private IReadOnlyList<StatTile> _ctStatTiles = [];
+    private IReadOnlyList<StatTile> _ctMoreTiles = [];
+    private bool _bgHeroAllColumns;
     private IReadOnlyList<IChartValue> _ctRankChart = [];
     private IReadOnlyList<StatGroupRow> _ctClasses = [];
     private IReadOnlyList<StatGroupRow> _ctOpponents = [];
@@ -188,6 +193,7 @@ public sealed partial class MainViewModel
 
     private StatsPeriod _arenaPeriod = StatsPeriod.All;
     private IReadOnlyList<StatTile> _arenaStatTiles = [];
+    private IReadOnlyList<StatTile> _arenaMoreTiles = [];
     private IReadOnlyList<ArenaRunRow> _arenaRuns = [];
     private IReadOnlyList<StatGroupRow> _arenaClasses = [];
     private IReadOnlyList<StatGroupRow> _arenaOpponents = [];
@@ -264,11 +270,18 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
 
+    /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
+    public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }
+
     public IReadOnlyList<BgHeroPerfRow> BgHeroPerf { get => _bgHeroPerf; private set => Set(ref _bgHeroPerf, value); }
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
 
+    /// <summary>The page's headline numbers: win rate, games, rank, time played (at most four at the top of a page).</summary>
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
+
+    /// <summary>The rest, under «Подробнее»: going first and on the coin.</summary>
+    public IReadOnlyList<StatTile> CtMoreTiles { get => _ctMoreTiles; private set => Set(ref _ctMoreTiles, value); }
 
     public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
 
@@ -283,6 +296,9 @@ public sealed partial class MainViewModel
 
     public TableSort ArenaOpponentsSort => _arenaOpponentsSort ??= GroupSort(() => ArenaOpponents = ArenaOpponentsSort.Apply(ArenaOpponents, (r, c) => r.SortValue(c)));
 
+    /// <summary>How many summary numbers a page shows at its top; the rest wait under «Подробнее».</summary>
+    internal const int HeadlineTiles = 4;
+
     private static TableSort GroupSort(Action changed) => new("Games", changed, "Name");
 
     public IReadOnlyList<StatGroupRow> CtClasses { get => _ctClasses; private set => Set(ref _ctClasses, value); }
@@ -295,7 +311,11 @@ public sealed partial class MainViewModel
 
     public string CtStatsNote { get => _ctStatsNote; private set => Set(ref _ctStatsNote, value); }
 
+    /// <summary>The page's headline numbers: runs, average wins, best run, win rate.</summary>
     public IReadOnlyList<StatTile> ArenaStatTiles { get => _arenaStatTiles; private set => Set(ref _arenaStatTiles, value); }
+
+    /// <summary>The rest, under «Подробнее»: time played and the rewards' total.</summary>
+    public IReadOnlyList<StatTile> ArenaMoreTiles { get => _arenaMoreTiles; private set => Set(ref _arenaMoreTiles, value); }
 
     public IReadOnlyList<ArenaRunRow> ArenaRuns { get => _arenaRuns; private set => Set(ref _arenaRuns, value); }
 
@@ -519,7 +539,8 @@ public sealed partial class MainViewModel
         var note = ConstructedNote(meta);
         return () =>
         {
-            CtStatTiles = tiles;
+            CtStatTiles = [.. tiles.Take(HeadlineTiles)];
+            CtMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             CtRankChart = chart;
             CtClasses = CtClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             CtOpponents = CtOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
@@ -595,7 +616,8 @@ public sealed partial class MainViewModel
         var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
         return () =>
         {
-            ArenaStatTiles = tiles;
+            ArenaStatTiles = [.. tiles.Take(HeadlineTiles)];
+            ArenaMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             ArenaRuns = RebuiltArenaRuns(runRows);
             ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
