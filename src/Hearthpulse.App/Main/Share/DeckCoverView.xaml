@@ -1,0 +1,52 @@
+<UserControl x:Class="Hearthpulse.App.Main.Share.DeckCoverView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             Width="960" Height="540">
+    <!-- The deck picture, 16:9 cover for video thumbnails (proposal C1): the class art fading in from the left under the name,
+         the facts and the curve; the cards in two columns on the right. 960 × 540 DIP, saved at 1920 × 1080. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/Share/ShareLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource Bg}" ClipToBounds="True">
+        <Image i:CardArt.Splash="{Binding Card.HeroCardId}" Width="520" HorizontalAlignment="Left" Stretch="UniformToFill" Opacity="0.6" />
+        <Rectangle Width="520" HorizontalAlignment="Left" Fill="{StaticResource Bg}" OpacityMask="{StaticResource ShareArtMask}" />
+
+        <Grid Margin="40,32">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Margin="0,0,32,0">
+                <ContentControl DockPanel.Dock="Bottom" Template="{StaticResource ShareBrandFooter}" Focusable="False" />
+                <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Card.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" ItemsPanel="{StaticResource ShareCurvePanel}"
+                              Margin="0,0,0,24" Focusable="False" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Card.ClassName}" Style="{StaticResource Label}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}" />
+                    <TextBlock Text="{Binding Card.Name}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeDisplay}" FontWeight="ExtraBold"
+                               Foreground="{StaticResource GildedText}" TextWrapping="Wrap" Margin="0,4,0,8" />
+                    <TextBlock Text="{Binding Card.Facts}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Two columns of rows; a long deck (40 cards) shrinks as a whole to fit -->
+            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Center">
+                <Grid Width="456">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ItemsControl ItemsSource="{Binding Card.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Card.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
+                </Grid>
+            </Viewbox>
+        </Grid>
+    </Grid>
+</UserControl>

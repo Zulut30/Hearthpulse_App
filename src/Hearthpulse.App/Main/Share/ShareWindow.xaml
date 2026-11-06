@@ -1,0 +1,73 @@
+<Window x:Class="Hearthpulse.App.Main.Share.ShareWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+        Title="{Binding Title}" Width="1040" Height="780" MinWidth="560" MinHeight="420"
+        Background="{StaticResource Bg}" Icon="/Hearthpulse;component/Assets/hearthpulse.ico"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True" Style="{StaticResource AppWindow}">
+    <!-- The share window (TASK-2026-11-07-growth-app): the picture as it will be saved, scaled down to fit, and what to do
+         with it. The picture is a control of theme tokens (Main/Share/*View); the code draws it to PNG like the turn picture. -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource SegmentBar}" Margin="0,0,16,0" Visibility="{Binding HasLayouts, Converter={StaticResource Vis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="LayoutList" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.List}"
+                                     ToolTip="{i:Loc Growth.Deck.ListTip}" AutomationProperties.Name="{i:Loc Growth.Deck.List}" IsChecked="{Binding List}" />
+                        <RadioButton x:Name="LayoutCover" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.Cover}"
+                                     ToolTip="{i:Loc Growth.Deck.CoverTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Cover}" IsChecked="{Binding Cover}" />
+                    </StackPanel>
+                </Border>
+                <CheckBox x:Name="SignSwitch" Style="{StaticResource Switch}" Content="{i:Loc Growth.Share.ShowBattleTag}" VerticalAlignment="Center"
+                          ToolTip="{i:Loc Growth.Share.ShowBattleTagTip}" AutomationProperties.Name="{i:Loc Growth.Share.ShowBattleTag}"
+                          IsChecked="{Binding ShowBattleTag}" Visibility="{Binding CanSign, Converter={StaticResource Vis}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" FontSize="{StaticResource FontSizeSubhead}" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <!-- The picture at its own size while it fits, else scaled down; saved and copied at twice that -->
+        <Border Grid.Row="1" Background="{StaticResource GrooveFill}" CornerRadius="{StaticResource RadiusLarge}" Padding="16"
+                AutomationProperties.Name="{i:Loc Growth.Share.Preview}">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                <ContentControl x:Name="CardHost" Focusable="False" />
+            </Viewbox>
+        </Border>
+
+        <DockPanel Grid.Row="2" Margin="0,16,0,0" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="CopyButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Growth.Share.Copy}" Click="OnCopy" IsDefault="True"
+                        ToolTip="{i:Loc Growth.Share.CopyTip}" AutomationProperties.Name="{i:Loc Growth.Share.Copy}" />
+                <Button x:Name="SaveButton" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Share.Save}" Click="OnSave" Margin="8,0,0,0"
+                        ToolTip="{i:Loc Growth.Share.SaveTip}" AutomationProperties.Name="{i:Loc Growth.Share.Save}" />
+                <Button x:Name="CloseButton" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True" Margin="8,0,0,0"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Text="{Binding Status}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       AutomationProperties.LiveSetting="Polite">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DockPanel>
+    </Grid>
+</Window>

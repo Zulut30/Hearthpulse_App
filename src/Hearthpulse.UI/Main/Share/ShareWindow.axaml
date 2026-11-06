@@ -1,0 +1,61 @@
+<Window x:Class="Hearthpulse.UI.Main.Share.ShareWindow"
+        x:DataType="s:ShareViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure"
+        xmlns:s="using:Hearthpulse.UI.Main.Share"
+        Title="{Binding Title}" Width="1040" Height="780" MinWidth="560" MinHeight="420"
+        Background="{StaticResource Bg}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <!-- The share window (TASK-2026-11-07-growth-app), as WPF's Main/Share/ShareWindow.xaml: the picture as it will be saved,
+         scaled down to fit, the layout and BattleTag switches, "Copy image", "Save", "Close". -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Share/ShareStyles.axaml" />
+    </Window.Styles>
+
+    <Grid Margin="24" RowDefinitions="Auto,*,Auto">
+        <DockPanel Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Classes="segmentBar" Margin="0,0,16,0" IsVisible="{Binding HasLayouts}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Name="LayoutList" Classes="segment" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.List}"
+                                     ToolTip.Tip="{i:Loc Growth.Deck.ListTip}" AutomationProperties.Name="{i:Loc Growth.Deck.List}" IsChecked="{Binding List}" />
+                        <RadioButton Name="LayoutCover" Classes="segment" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.Cover}"
+                                     ToolTip.Tip="{i:Loc Growth.Deck.CoverTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Cover}" IsChecked="{Binding Cover}" />
+                    </StackPanel>
+                </Border>
+                <CheckBox Name="SignSwitch" Classes="switch" Content="{i:Loc Growth.Share.ShowBattleTag}" VerticalAlignment="Center"
+                          ToolTip.Tip="{i:Loc Growth.Share.ShowBattleTagTip}" AutomationProperties.Name="{i:Loc Growth.Share.ShowBattleTag}"
+                          IsChecked="{Binding ShowBattleTag}" IsVisible="{Binding CanSign}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <!-- The picture at its own size while it fits, else scaled down; saved and copied at twice that -->
+        <Border Grid.Row="1" Background="{StaticResource GrooveFill}" CornerRadius="{StaticResource RadiusLarge}" Padding="16"
+                AutomationProperties.Name="{i:Loc Growth.Share.Preview}">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                <ContentControl Name="CardHost" Focusable="False" />
+            </Viewbox>
+        </Border>
+
+        <DockPanel Grid.Row="2" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                <Button Name="CopyButton" Classes="primary" Content="{i:Loc Growth.Share.Copy}" Click="OnCopy" IsDefault="True"
+                        ToolTip.Tip="{i:Loc Growth.Share.CopyTip}" AutomationProperties.Name="{i:Loc Growth.Share.Copy}" />
+                <Button Name="SaveButton" Classes="ghost" Content="{i:Loc Growth.Share.Save}" Click="OnSave"
+                        ToolTip.Tip="{i:Loc Growth.Share.SaveTip}" AutomationProperties.Name="{i:Loc Growth.Share.Save}" />
+                <Button Name="CloseButton" Classes="ghost" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <TextBlock Name="StatusText" Text="{Binding Status}" Classes="caption shareStatus" Classes.error="{Binding StatusIsError}" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
+        </DockPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,55 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Share.DeckCoverView"
+             x:DataType="s:ShareViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:s="using:Hearthpulse.UI.Main.Share"
+             Width="960" Height="540">
+    <!-- The deck picture, 16:9 cover (proposal C1), as WPF's Main/Share/DeckCoverView.xaml: 960 × 540 DIP, saved at 1920 × 1080. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Share/ShareLook.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Share/ShareStyles.axaml" />
+    </UserControl.Styles>
+
+    <Panel Background="{StaticResource Bg}" ClipToBounds="True">
+        <Image i:CardArt.Splash="{Binding Deck.HeroCardId}" Width="520" HorizontalAlignment="Left" Stretch="UniformToFill" Opacity="0.6" />
+        <Rectangle Width="520" HorizontalAlignment="Left" Fill="{StaticResource Bg}" OpacityMask="{StaticResource ShareArtMask}" />
+
+        <Grid Margin="40,32" ColumnDefinitions="400,*">
+            <DockPanel Margin="0,0,32,0">
+                <DockPanel DockPanel.Dock="Bottom">
+                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" />
+                    <Image Source="{StaticResource HearthpulseLogo}" Width="24" Height="24" VerticalAlignment="Center" />
+                    <TextBlock Text="Hearthpulse" Classes="wordmark" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Deck.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" Margin="0,0,0,24" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Deck.ClassName}" Classes="label" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}" />
+                    <TextBlock Text="{Binding Deck.Name}" Classes="wordmark" FontSize="{StaticResource FontSizeDisplay}" FontWeight="ExtraBold" TextWrapping="Wrap" Margin="0,4,0,8" />
+                    <TextBlock Text="{Binding Deck.Facts}" Classes="caption" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Two columns of rows; a long deck (40 cards) shrinks as a whole to fit -->
+            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Center">
+                <Grid Width="456" ColumnDefinitions="*,8,*">
+                    <ItemsControl ItemsSource="{Binding Deck.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Deck.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
+                </Grid>
+            </Viewbox>
+        </Grid>
+    </Panel>
+</UserControl>
