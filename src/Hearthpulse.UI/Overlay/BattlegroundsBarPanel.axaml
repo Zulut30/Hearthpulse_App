@@ -59,7 +59,7 @@
         </Border>
 
         <!-- Minion browser for the selected tier -->
-        <Border Classes="overlayCard" Background="{DynamicResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="10,7,10,8"
+        <Border Classes="overlayCard solid" Margin="0,6,0,0" Padding="10,7,10,8"
                 HorizontalAlignment="Left" MaxWidth="880" o:OverlayHit.Interactive="True"
                 IsVisible="{Binding Browser, Converter={StaticResource Truthy}}">
             <DockPanel>

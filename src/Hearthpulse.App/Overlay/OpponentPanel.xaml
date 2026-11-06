@@ -55,10 +55,10 @@
                            Foreground="{Binding OpponentMatchupEdge, Converter={StaticResource SignBrush}}" />
             </StackPanel>
 
-            <c:Ornament Text="{i:Loc Overlay.Opponent.Played}" Size="10.5" Margin="0,12,0,6" Visibility="{Binding Played, Converter={StaticResource Vis}}" />
+            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Opponent.Played}" Margin="0,12,0,6" Visibility="{Binding Played, Converter={StaticResource Vis}}" />
             <ItemsControl ItemsSource="{Binding Played}" ItemTemplate="{StaticResource PlayedTemplate}" />
 
-            <c:Ornament Text="{i:Loc Overlay.Opponent.CardsInHand}" Size="10.5" Margin="0,12,0,6" Visibility="{Binding Hand, Converter={StaticResource Vis}}" />
+            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Opponent.CardsInHand}" Margin="0,12,0,6" Visibility="{Binding Hand, Converter={StaticResource Vis}}" />
             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandTemplate}" />
         </StackPanel>
         </StackPanel>

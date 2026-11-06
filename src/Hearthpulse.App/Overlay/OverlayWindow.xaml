@@ -80,11 +80,11 @@
                     <!-- One value column for every row, so the progress under each title ends at the same place -->
                     <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
                         <StackPanel Visibility="{Binding OpponentCounters, Converter={StaticResource Vis}}">
-                            <c:Ornament Text="{i:Loc Overlay.Common.Opponent}" Size="10.5" Margin="3,0,0,3" />
+                            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Common.Opponent}" Margin="3,0,0,3" />
                             <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
                         </StackPanel>
                         <StackPanel Visibility="{Binding MyCounters, Converter={StaticResource Vis}}">
-                            <c:Ornament Text="{i:Loc Overlay.Counters.You}" Size="10.5" Margin="3,6,0,3" />
+                            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Counters.You}" Margin="3,6,0,3" />
                             <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
                         </StackPanel>
                     </StackPanel>
@@ -234,7 +234,7 @@
 
             <!-- ============ Battlegrounds: leaderboard hover ============ -->
             <Canvas x:Name="LobbyLayer" IsHitTestVisible="False">
-                <Border x:Name="LobbyCard" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" Padding="10,8"
+                <Border x:Name="LobbyCard" Style="{StaticResource OverlayCardSolid}" Padding="10,8"
                         Canvas.Left="{Binding LobbyLeft}" Canvas.Top="{Binding LobbyTop}"
                         Visibility="{Binding Lobby, Converter={StaticResource Vis}}">
                     <StackPanel DataContext="{Binding Lobby}">
@@ -326,8 +326,7 @@
             </o:MovablePanel>
 
             <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
-            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Style="{StaticResource OverlayCard}"
-                    Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
+            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Style="{StaticResource OverlayCardSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                     Visibility="{Binding LayoutEditing, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel VerticalAlignment="Center">
@@ -343,7 +342,7 @@
 
             <!-- ============ End of game toast ============ -->
             <o:MovablePanel Id="toast" Title="{i:Loc Overlay.Panel.Toast}" Shown="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
-                <Border x:Name="Toast" Style="{StaticResource OverlayCard}" Background="{DynamicResource OverlayPanelSolid}" Padding="0">
+                <Border x:Name="Toast" Style="{StaticResource OverlayCardSolid}" Padding="0">
                     <StackPanel Orientation="Horizontal">
                         <Border Width="4" CornerRadius="7,0,0,7" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
                         <StackPanel Margin="16,11,22,12">
@@ -356,8 +355,7 @@
 
             <!-- ============ One-time move tip, the first time the overlay shows over the game: top centre, never over
                  the hand, and never takes the mouse ============ -->
-            <Border x:Name="MoveTip" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0" Style="{StaticResource OverlayCard}"
-                    Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,9" IsHitTestVisible="False"
+            <Border x:Name="MoveTip" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0" Style="{StaticResource OverlayCardSolid}" BorderBrush="{StaticResource Accent}" Padding="16,9" IsHitTestVisible="False"
                     Visibility="{Binding ShowMoveTip, Converter={StaticResource Vis}}">
                 <StackPanel>
                     <TextBlock Text="{i:Loc Overlay.Move.TipTitle}" FontSize="14" FontWeight="SemiBold" />

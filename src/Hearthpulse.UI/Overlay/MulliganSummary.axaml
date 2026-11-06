@@ -20,7 +20,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="12"
+    <Border Classes="overlayCard solid"
             HorizontalAlignment="Center" Padding="12,3,12,4" ToolTip.Tip="{Binding MulliganDetails}" o:OverlayHit.Interactive="True">
         <StackPanel Orientation="Horizontal">
             <TextBlock Text="{Binding MulliganSummary}" Classes="summary" Classes.good="{Binding MulliganImpactGood}" Classes.bad="{Binding MulliganImpactBad}"
