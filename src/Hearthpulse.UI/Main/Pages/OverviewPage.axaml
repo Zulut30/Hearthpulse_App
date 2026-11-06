@@ -4,6 +4,7 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:sh="using:Hearthpulse.UI.Main.Share"
              xmlns:cs="using:Hearthpulse.Core.Stats"
              x:Class="Hearthpulse.UI.Main.Pages.OverviewPage"
              x:DataType="m:MainViewModel">
@@ -36,6 +37,9 @@
             <Panel IsVisible="{Binding Migration.ShowOnHome}">
                 <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16" />
             </Panel>
+
+            <!-- December and January: the year in review is ready (Main/Share) -->
+            <sh:YearReviewBanner />
 
             <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
                  worth doing before a match. The buttons are the existing import and layout actions. -->

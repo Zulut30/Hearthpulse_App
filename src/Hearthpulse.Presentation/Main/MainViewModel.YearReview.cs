@@ -15,8 +15,9 @@ namespace Hearthpulse.UI.Main;
 #endif
 
 /// <summary>
-/// "Hearthpulse 2026 in review" (proposal A3): a sidebar page from December 1 to January 31 (any day with
-/// <c>HEARTHPULSE_YEAR_REVIEW=1</c>), built from local history only, and its share picture.
+/// "Hearthpulse 2026 in review" (proposal A3): a page of its own (a window opened from Home's banner, so the sidebar and
+/// its Ctrl+1…8 stay as they are) from December 1 to January 31 (any day with <c>HEARTHPULSE_YEAR_REVIEW=1</c>), built
+/// from local history only, and its share picture.
 /// </summary>
 public sealed partial class MainViewModel
 {
@@ -26,11 +27,11 @@ public sealed partial class MainViewModel
     /// <summary>The year the page shows today, or null while the page is hidden.</summary>
     public int? ReviewYear { get; } = YearInReview.ShownYear(DateTime.Now, YearInReview.Forced());
 
-    /// <summary>The sidebar shows the page (December and January, or the dev flag).</summary>
+    /// <summary>Home shows the "your year is ready" banner (December and January, or the dev flag).</summary>
     public bool ShowYearReview => ReviewYear is not null;
 
-    /// <summary>The sidebar item: "2026 in review".</summary>
-    public string YearReviewNav => ReviewYear is { } year ? Loc.F("Growth.Year.Nav", year) : string.Empty;
+    /// <summary>The banner's line: "Your 2026 in review is ready: …".</summary>
+    public string YearReviewBanner => ReviewYear is { } year ? Loc.F("Growth.Year.Banner", year) : string.Empty;
 
     /// <summary>The page's content, null until <see cref="RefreshYearReviewAsync"/> has run once.</summary>
     public YearCard? YearReview { get => _yearReview; private set => Set(ref _yearReview, value); }
@@ -56,6 +57,13 @@ public sealed partial class MainViewModel
         {
             Core.Diag.Error("Year in review failed", ex);
         }
+    }
+
+    /// <summary>The year page's model, its history read off the UI thread; null while the page is hidden.</summary>
+    public async Task<ShareViewModel?> YearShareAsync()
+    {
+        await RefreshYearReviewAsync().ConfigureAwait(true);
+        return YearShare();
     }
 
     /// <summary>The share window of the year in review; null while the page is hidden.</summary>

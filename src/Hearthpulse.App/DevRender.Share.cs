@@ -24,10 +24,18 @@ public partial class App
                 await RenderSharePictureAsync(share, folder, "share-deck-cover.png");
             }
 
-            if (_mainViewModel.YearShare() is { } year)
+            if (await _mainViewModel.YearShareAsync() is { } year)
             {
                 await RenderSharePictureAsync(year, folder, "share-year.png");
             }
+
+            // YouTube timestamps of the latest session.
+            var stamps = new TimestampsWindow(_mainViewModel.Timestamps()) { WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, ShowActivated = false };
+            stamps.Show();
+            await Task.Delay(500);
+            stamps.UpdateLayout();
+            Save(stamps, Path.Combine(folder, "share-timestamps.png"));
+            stamps.Close();
 
             // The OBS window "Session" over the latest session of the history.
             var games = _history.Recent(400);

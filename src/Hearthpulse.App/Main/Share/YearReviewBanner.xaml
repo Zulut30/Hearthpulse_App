@@ -1,0 +1,24 @@
+<UserControl x:Class="Hearthpulse.App.Main.Share.YearReviewBanner"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- Home: "your year is ready" (proposal A3), December 1 to January 31 or with HEARTHPULSE_YEAR_REVIEW=1. Opens the year
+         page. A control of its own, mounted with one line on the Overview page. DataContext: MainViewModel. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="{StaticResource RadiusLarge}"
+            Padding="16,12" Margin="0,0,0,16" Visibility="{Binding ShowYearReview, Converter={StaticResource Vis}}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xF0538;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding YearReviewBanner}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" VerticalAlignment="Center" />
+            <Button x:Name="OpenYearButton" Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="{i:Loc Growth.Year.Open}" Margin="16,0,0,0" Click="OnOpen"
+                    AutomationProperties.Name="{i:Loc Growth.Year.Open}" />
+        </Grid>
+    </Border>
+</UserControl>

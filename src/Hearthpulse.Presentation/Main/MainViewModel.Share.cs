@@ -61,7 +61,7 @@ public sealed partial class MainViewModel
 
     /// <summary>The YouTube timestamps window's model: History's games with its mode filter (proposal C2).</summary>
     public TimestampsViewModel Timestamps() =>
-        new(_history.Recent(2000).Where(g => FilterMatch(g, HistoryFilter)).ToList(), Settings, _cards.NameOf, DateTime.Now);
+        new(_history.Recent(2000).Where(g => FilterMatch(g, HistoryFilter)).ToList(), Settings, id => _cards.NameOf(_cards.BaseHeroId(id)), DateTime.Now);
 
     /// <summary>The recap's sections: Ranked per format, Battlegrounds per mode, Arena runs.</summary>
     internal static SessionRecapCard RecapCard(SessionRecapData recap, Func<string, string> cardName)

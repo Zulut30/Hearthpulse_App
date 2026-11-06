@@ -1,0 +1,40 @@
+<Window x:Class="Hearthpulse.App.Main.Share.YearReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+        xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+        xmlns:s="clr-namespace:Hearthpulse.App.Main.Share"
+        Title="{Binding Title}" Width="900" Height="900" MinWidth="560" MinHeight="480"
+        Background="{StaticResource WindowFill}" Icon="/Hearthpulse;component/Assets/hearthpulse.ico"
+        WindowStartupLocation="CenterOwner" UseLayoutRounding="True" Style="{StaticResource AppWindow}">
+    <!-- The year in review page (proposal A3): the year's picture at full size and "Share as a picture". Built from the
+         history on this PC only. DataContext: ShareViewModel (kind Year). -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="40,24,40,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,8,0,0">
+                <Button x:Name="ShareButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Growth.Year.Share}" Click="OnShare"
+                        ToolTip="{i:Loc Growth.Year.ShareTip}" AutomationProperties.Name="{i:Loc Growth.Year.Share}" />
+                <Button x:Name="CloseButton" Style="{StaticResource GhostButton}" Content="{i:Loc Growth.Close}" Click="OnClose" IsCancel="True" Margin="8,0,0,0"
+                        AutomationProperties.Name="{i:Loc Growth.Close}" />
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{Binding Year.Title}" Style="{StaticResource PageTitle}" TextWrapping="Wrap" />
+                <c:Wave Style="{StaticResource PageRule}" />
+                <TextBlock Text="{Binding Year.Subtitle}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="2,0,0,16" />
+            </StackPanel>
+        </DockPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="40,0,40,40">
+                <s:YearCardView x:Name="Page" />
+            </Viewbox>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

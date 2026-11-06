@@ -5,6 +5,7 @@
              xmlns:c="clr-namespace:Hearthpulse.App.Controls"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             xmlns:sh="clr-namespace:Hearthpulse.App.Main.Share"
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core">
     <!-- Home: setup warning, migration card, getting started, tiles, ladder session, BG rating and placements, recent
          games. Same tree as the Avalonia OverviewPage.axaml. -->
@@ -34,6 +35,9 @@
             <!-- First start: games and decks of HDT / Firestone found on this PC (Main/Migration) -->
             <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16"
                               Visibility="{Binding ShowOnHome, Converter={StaticResource Vis}}" />
+
+            <!-- December and January: the year in review is ready (Main/Share) -->
+            <sh:YearReviewBanner />
 
             <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
                  worth doing before a match. The buttons are the existing import and layout actions. -->

@@ -24,9 +24,21 @@ internal static partial class OffscreenRenderer
             await RenderSharePictureAsync(share, folder, "share-deck-cover.png");
         }
 
-        if (host.Main.YearShare() is { } year)
+        if (await host.Main.YearShareAsync() is { } year)
         {
             await RenderSharePictureAsync(year, folder, "share-year.png");
+        }
+
+        // YouTube timestamps of the latest session.
+        var stamps = new TimestampsWindow(host.Main.Timestamps());
+        stamps.Show();
+        try
+        {
+            await Save(stamps, Path.Combine(folder, "share-timestamps.png"));
+        }
+        finally
+        {
+            stamps.Close();
         }
 
         // The OBS window "Session" over the latest session of the history.
