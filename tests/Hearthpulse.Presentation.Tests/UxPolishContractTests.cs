@@ -52,14 +52,12 @@ public sealed partial class UxPolishContractTests
     });
 
     /// <summary>
-    /// Every settings card says what it is for, in the same order as the Avalonia view (LocBindingTests.UxPolish); the
-    /// leaderboard calibration in the Layout card says it under its own heading (WPF has its Windows wording).
+    /// Only the cards whose use is not obvious keep a note line, in the same order as the Avalonia view
+    /// (LocBindingTests.UxPolish); the leaderboard calibration says it under its own heading (WPF has its Windows wording).
     /// </summary>
     private static readonly string[] CardNotes =
     [
-        "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout", "Overlay.Move.Settings",
-        "Settings.Leaderboard.Caption", "Settings.Note.Tracker", "Settings.Note.Counters", "Stream.Mode.Note", "Discord.Note", "Stream.Windows.Note", "Settings.Note.Account", "Migration.Settings.Note", "Settings.Note.Data",
-        "Settings.Note.Sources",
+        "Overlay.Move.Settings", "Settings.Leaderboard.Caption", "Stream.Mode.Note", "Discord.Note", "Stream.Windows.Note", "Migration.Settings.Note",
     ];
 
     [Fact]

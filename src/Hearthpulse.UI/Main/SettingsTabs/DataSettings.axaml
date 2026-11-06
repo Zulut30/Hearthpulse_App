@@ -28,7 +28,6 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Data}" Classes="caption cardNote" />
                 <!-- Plan 0.5: crash reports without asking; off by default -->
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Data.CrashReports}" IsChecked="{Binding CrashReports}" Margin="0,0,0,4" />
                 <TextBlock Text="{i:Loc Settings.Data.CrashReportsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,18" />
@@ -40,14 +39,6 @@
                 <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
                 <!-- The replay rule was only in the folder path's tip: it decides what is deleted, so it is a visible line -->
                 <TextBlock Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
-            </StackPanel>
-        </Border>
-
-        <Border Classes="card">
-            <StackPanel>
-                <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Settings.Note.Sources}" Classes="caption cardNote" Margin="0,-6,0,10" />
-                <TextBlock Text="{Binding Attribution}" Classes="caption" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
     </StackPanel>
