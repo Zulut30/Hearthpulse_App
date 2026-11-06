@@ -90,8 +90,6 @@ public sealed record DeckRow(
     public bool Few => Games < Hearthpulse.Core.Stats.DeckDetails.SmallSample;
 }
 
-public sealed record MatchupRow(string Class, int Games, string Record, string WinRate, double WinFraction);
-
 public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0);
 
 /// <summary>One trinket in the community tier list.</summary>
@@ -258,7 +256,6 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<MetaHeroRow> _heroTiers = Array.Empty<MetaHeroRow>();
     private IReadOnlyList<MetaCompRow> _compTiers = Array.Empty<MetaCompRow>();
     private IReadOnlyList<DeckRow> _decks = Array.Empty<DeckRow>();
-    private IReadOnlyList<MatchupRow> _matchups = Array.Empty<MatchupRow>();
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
     private int _bracket = 100;
@@ -344,7 +341,6 @@ public sealed partial class MainViewModel : Observable
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
     public int CardTier { get => _cardTier; private set => Set(ref _cardTier, value); }
     public IReadOnlyList<DeckRow> Decks { get => _decks; private set => Set(ref _decks, value); }
-    public IReadOnlyList<MatchupRow> Matchups { get => _matchups; private set => Set(ref _matchups, value); }
     public string BgMode { get => _bgMode; private set => Set(ref _bgMode, value); }
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
     public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }

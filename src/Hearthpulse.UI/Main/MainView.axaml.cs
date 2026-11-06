@@ -557,6 +557,7 @@ public partial class MainView : UserControl
         var mine = PageConstructed.TabMyDecks.IsChecked == true;
         PageConstructed.CtStats.IsVisible = mine;
         PageConstructed.DeckColumns.IsVisible = mine;
+        PageConstructed.CtPeriodBar.IsVisible = mine;
         var tab = ConstructedTab;
         PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
     }

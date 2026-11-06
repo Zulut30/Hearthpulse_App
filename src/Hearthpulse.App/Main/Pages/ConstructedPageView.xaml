@@ -12,7 +12,13 @@
              xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core">
     <!-- Standard and Wild: the player's decks and stats, the meta's tiers, decks and matchups. Same tree as the Avalonia ConstructedPageView.axaml. -->
     <UserControl.Resources>
-        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+                <!-- The headline tiles above the decks -->
+                <ResourceDictionary Source="/Hearthpulse;component/Main/Stats/StatsResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="40,0,40,120">
@@ -39,17 +45,24 @@
                                      ToolTip="{i:Loc Main.Ct.MetaMatchupsTip}" />
                     </StackPanel>
                 </Border>
+                <!-- The period of My stats, in the tab row (one filter row for the page) -->
+                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}"
+                        Visibility="{Binding IsChecked, ElementName=TabMyDecks, Converter={StaticResource Vis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Week}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Week" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Month}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Month" />
+                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Season}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Season"
+                                     ToolTip="{i:Loc Stats.Period.SeasonTip}" />
+                    </StackPanel>
+                </Border>
             </Grid>
 
-            <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
-            <s:ConstructedStatsView x:Name="CtStats" />
-            <Grid x:Name="MyDecksPanel">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="2*" />
-                </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+            <!-- My stats: the four headline numbers, then your decks (the way into a deck page), then the rank and the rest
+                 (Main/Stats ConstructedStatsView) -->
+            <StackPanel x:Name="MyDecksPanel">
+                <ItemsControl ItemsSource="{Binding CtStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Main.Ct.Decks}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
                         <!-- Decks that look like versions of one -->
@@ -120,32 +133,8 @@
                                 HorizontalAlignment="Left" Margin="0,4,0,8" Visibility="{Binding ShowGettingStarted, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
-                    <StackPanel>
-                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10"
-                                    ToolTip="{i:Loc Main.Ct.MatchupsHint}" />
-                        <ItemsControl ItemsSource="{Binding Matchups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type m:MatchupRow}">
-                                    <Border Style="{StaticResource RowBorder}" Padding="10,8">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="60" />
-                                                <ColumnDefinition Width="56" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Class}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="{i:Loc Main.Ct.MatchupsEmpty}" Style="{StaticResource Caption}" Visibility="{Binding Matchups, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+            </StackPanel>
+            <s:ConstructedStatsView x:Name="CtStats" />
             <!-- Community tabs (Main/Meta): tier list, top decks, matchup heat map -->
             <mm:ConstructedMetaView x:Name="CtMeta" Visibility="Collapsed" />
         </StackPanel>

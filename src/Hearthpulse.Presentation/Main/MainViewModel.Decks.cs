@@ -318,8 +318,7 @@ public sealed partial class MainViewModel
 
                 // The Standard and Wild pages list only their format's decks; the deck page still sees every family.
                 var shown = ConstructedPage.Decks(families, format);
-                return (Families: families, Suggestions: suggestions, Shown: shown, ShownSuggestions: ConstructedPage.Suggestions(suggestions, format),
-                    Matchups: DeckDetails.ByOpponentClass(shown.SelectMany(f => f.Games).ToList()));
+                return (Families: families, Suggestions: suggestions, Shown: shown, ShownSuggestions: ConstructedPage.Suggestions(suggestions, format));
             }).ConfigureAwait(true);
             if (build != _decksBuild)
             {
@@ -352,13 +351,6 @@ public sealed partial class MainViewModel
                     s.Second.Key,
                     $"{s.First.Name} + {s.Second.Name}",
                     DeckVersionsText.SuggestionDetail(s.Overlap, s.SameDeckId, s.SimilarNames)))
-                .ToList();
-            Matchups = data.Matchups.Select(m => new MatchupRow(
-                    OverlayViewModel.ClassName(m.OpponentClass),
-                    m.Record.Games,
-                    $"{m.Record.Wins}–{m.Record.Losses}",
-                    (m.Record.WinRate ?? 0).ToString("P0", CultureInfo.CurrentCulture),
-                    m.Record.WinRate ?? 0))
                 .ToList();
 
             if (DeckOpen && _openDeckKey is { } key && !OpenDeckPage(key))

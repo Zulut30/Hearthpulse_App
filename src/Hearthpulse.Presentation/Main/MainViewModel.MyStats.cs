@@ -182,6 +182,7 @@ public sealed partial class MainViewModel
     private string _ctFormat = "FT_STANDARD";
     private StatsPeriod _ctPeriod = StatsPeriod.All;
     private IReadOnlyList<StatTile> _ctStatTiles = [];
+    private IReadOnlyList<StatTile> _ctMoreTiles = [];
     private IReadOnlyList<IChartValue> _ctRankChart = [];
     private IReadOnlyList<StatGroupRow> _ctClasses = [];
     private IReadOnlyList<StatGroupRow> _ctOpponents = [];
@@ -271,7 +272,11 @@ public sealed partial class MainViewModel
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
 
+    /// <summary>The page's headline numbers: win rate, games, rank, time played (at most four at the top of a page).</summary>
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
+
+    /// <summary>The rest, under «Подробнее»: going first and on the coin.</summary>
+    public IReadOnlyList<StatTile> CtMoreTiles { get => _ctMoreTiles; private set => Set(ref _ctMoreTiles, value); }
 
     public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
 
@@ -285,6 +290,9 @@ public sealed partial class MainViewModel
     public TableSort ArenaClassesSort => _arenaClassesSort ??= GroupSort(() => ArenaClasses = ArenaClassesSort.Apply(ArenaClasses, (r, c) => r.SortValue(c)));
 
     public TableSort ArenaOpponentsSort => _arenaOpponentsSort ??= GroupSort(() => ArenaOpponents = ArenaOpponentsSort.Apply(ArenaOpponents, (r, c) => r.SortValue(c)));
+
+    /// <summary>How many summary numbers a page shows at its top; the rest wait under «Подробнее».</summary>
+    internal const int HeadlineTiles = 4;
 
     private static TableSort GroupSort(Action changed) => new("Games", changed, "Name");
 
@@ -522,7 +530,8 @@ public sealed partial class MainViewModel
         var note = ConstructedNote(meta);
         return () =>
         {
-            CtStatTiles = tiles;
+            CtStatTiles = [.. tiles.Take(HeadlineTiles)];
+            CtMoreTiles = [.. tiles.Skip(HeadlineTiles)];
             CtRankChart = chart;
             CtClasses = CtClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             CtOpponents = CtOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
