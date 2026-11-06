@@ -77,6 +77,8 @@ end in `twitch-extension/`): the cards left, a card large on hover (`TASK-2026-1
 app → `POST /api/v1/twitch/state` on hearthpulse.net (our server, the EBS) → Twitch Extension PubSub → the extension.
 No Twitch secret is in the app: it signs in with the account's own token (device flow, scope `tracker.write`).
 
+- **Hidden until the wide release** (owner, 2026-11-07): the card shows only with `"TwitchPreview": true` in
+  settings.json or `HEARTHPULSE_TWITCH=1` (`AppSettings.TwitchCardShown`); the code, settings and tests stay.
 - **Settings → Stream → Twitch extension** (both UIs): the switch `AppSettings.TwitchExtension` (off by default), the
   delay `TwitchDelaySeconds` (0–600 s, a slider, whole seconds), a status line with a dot (green while the site takes
   the deck) and *Link Twitch*, shown while the account has no Twitch linked; it opens the status's `linkUrl`

@@ -32,6 +32,12 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>The switch: the deck goes to the extension on the player's channel.</summary>
+    /// <summary>
+    /// The Twitch card shows in Settings → Stream: hidden from regular users until the wide release, shown with
+    /// <see cref="AppSettings.TwitchPreview"/> or <c>HEARTHPULSE_TWITCH=1</c>. The extension's code and settings stay as they are.
+    /// </summary>
+    public bool ShowTwitchCard => Settings.TwitchCardShown();
+
     public bool TwitchExtension
     {
         get => Settings.TwitchExtension;
