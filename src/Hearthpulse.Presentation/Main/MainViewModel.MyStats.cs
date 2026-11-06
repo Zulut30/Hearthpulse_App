@@ -377,17 +377,29 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Builds a page off the UI thread; the returned action applies the result unless a newer build started.</summary>
+    private readonly Lock _statsBuildGate = new();
+
     private void RunStatsBuild(int page, Func<Action> build) => BuildStatsPageAsync(page, build).Forget("My Stats build");
 
     private async Task BuildStatsPageAsync(int page, Func<Action> build)
     {
-        var generation = ++_statsBuilds[page];
+        int generation;
+        lock (_statsBuildGate)
+        {
+            generation = ++_statsBuilds[page];
+        }
+
         try
         {
             var apply = await Task.Run(build).ConfigureAwait(true);
-            if (generation == _statsBuilds[page])
+            // Without a UI thread (tests, renders before the window) two builds can finish on two threads: the check and
+            // the apply go together, so a stale build never lands after a newer one.
+            lock (_statsBuildGate)
             {
-                apply();
+                if (generation == _statsBuilds[page])
+                {
+                    apply();
+                }
             }
         }
         catch (Exception ex)

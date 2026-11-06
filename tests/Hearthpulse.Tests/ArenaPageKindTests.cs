@@ -67,12 +67,12 @@ public sealed class ArenaPageKindTests : IDisposable
     {
         var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         vm.SetArenaMeta(new ArenaMeta([], [new ArenaClassStat("MAGE", 0.55, 0.1, 0.2, 1000)], underground: false));
-        await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
+        await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2 && vm.ArenaCommunity.Count > 0);
         Assert.True(vm.ArenaTabRegular);
         Assert.False(vm.ArenaCommunityNoSplit);
         Assert.NotEmpty(vm.ArenaCommunity);
 
-        await Runs(vm, () => vm.ArenaTabUnderground = true, rows => rows.Count == 1);
+        await Runs(vm, () => vm.ArenaTabUnderground = true, rows => rows.Count == 1 && vm.ArenaCommunity.Count == 0);
         Assert.Equal(ArenaKind.Underground, vm.ArenaKindShown);
         Assert.Equal("2–1", vm.ArenaRuns.Single().Record);
         Assert.True(vm.ArenaCommunityNoSplit);
@@ -80,7 +80,7 @@ public sealed class ArenaPageKindTests : IDisposable
         Assert.False(vm.ArenaCommunityLoading);
         Assert.False(vm.ArenaCommunityUnavailable);
 
-        await Runs(vm, () => vm.ArenaTabRegular = true, rows => rows.Count == 2);
+        await Runs(vm, () => vm.ArenaTabRegular = true, rows => rows.Count == 2 && vm.ArenaCommunity.Count > 0);
         Assert.False(vm.ArenaCommunityNoSplit);
     }
 
@@ -142,7 +142,8 @@ public sealed class ArenaPageKindTests : IDisposable
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         void Changed(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(MainViewModel.ArenaRuns) && done(vm.ArenaRuns))
+            // The run list and the community rows are set one after the other: any change may complete the picture.
+            if (e.PropertyName is nameof(MainViewModel.ArenaRuns) or nameof(MainViewModel.ArenaCommunity) && done(vm.ArenaRuns))
             {
                 ready.TrySetResult();
             }
