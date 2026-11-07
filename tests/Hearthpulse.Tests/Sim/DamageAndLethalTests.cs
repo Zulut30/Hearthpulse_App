@@ -169,8 +169,8 @@ public sealed class DamageAndLethalTests
         Assert.True(spread.Covers(2) && spread.Covers(10));
         Assert.False(spread.Covers(11));
         Assert.Null(DamageSpread.From([0, 0, 0]));
-        Assert.Equal("+7 ±4", CombatOddsText.Damage(spread, dealt: true));
-        Assert.Equal("−5", CombatOddsText.Damage(DamageSpread.From([0, 0, 0, 0, 0, 3]), dealt: false));
+        Assert.Equal("2–10", CombatOddsText.Damage(spread, dealt: true));
+        Assert.Equal("5", CombatOddsText.Damage(DamageSpread.From([0, 0, 0, 0, 0, 3]), dealt: false));
     }
 
     [Fact]

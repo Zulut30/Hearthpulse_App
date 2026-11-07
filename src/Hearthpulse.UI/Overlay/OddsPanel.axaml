@@ -5,57 +5,92 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.OddsPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Simulated combat odds (MovablePanel "odds" and the OBS window "Hearthpulse — Combat odds", docs/streaming.md): win, tie
-         and loss with the damage either way, the share bar, lethal both ways and how the odds were found; a red edge while
-         the fight can kill the player. DataContext: OverlayViewModel (inherited). Tokens only. -->
+    <!-- Simulated combat odds (MovablePanel "odds" and the OBS window "Hearthpulse — Combat odds", docs/streaming.md): one row
+         of up to five cells - you kill, win, tie, loss, you die (a lethal cell at 0 is gone) - with the damage range under win
+         and loss, the share bar, and a bottom line only for unsimulated effects or the damage cap; a red edge while the
+         fight can kill the player. Width follows the content (360..460). DataContext: OverlayViewModel (inherited). Tokens only.
+         Same tree as the WPF OddsPanel.xaml. -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
         <i:FractionWidth x:Key="Fraction" />
     </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="StackPanel.cell">
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBlock.pct">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeIcon}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.cellLabel">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.cellDamage">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.cellDivider">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
+        </Style>
+        <!-- Red edge while the fight can kill the player -->
+        <Style Selector="Border.lethal">
+            <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+        </Style>
+    </UserControl.Styles>
 
-    <Border x:Name="OddsCard" Classes="overlayCard solid" Classes.lethal="{Binding LethalDanger}" Padding="14,7,14,8" Width="250">
-        <Border.Styles>
-            <!-- Red edge while the fight can kill the player -->
-            <Style Selector="Border.lethal">
-                <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
-            </Style>
-        </Border.Styles>
+    <Border x:Name="OddsCard" Classes="overlayCard solid" Classes.lethal="{Binding LethalDanger}" Padding="12,8" MinWidth="360" MaxWidth="460" HorizontalAlignment="Left">
         <StackPanel>
-            <UniformGrid Columns="3">
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding OddsWin}" Classes="number" FontSize="17" Foreground="{StaticResource Positive}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{i:Loc Overlay.Odds.Win}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding OddsDamageWin}" ToolTip.Tip="{Binding OddsDamageWinTip}" Classes="number" FontSize="11" Foreground="{StaticResource Positive}"
-                               HorizontalAlignment="Center" IsVisible="{Binding OddsDamageWin, Converter={StaticResource Truthy}}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <StackPanel Classes="cell" ToolTip.Tip="{i:Loc Overlay.Odds.KillTip}" IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="{Binding OddsKill}" Classes="pct" Foreground="{StaticResource Positive}" />
+                    <TextBlock Text="{i:Loc Overlay.Odds.KillLabel}" Classes="cellLabel" />
                 </StackPanel>
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding OddsTie}" Classes="number" FontSize="17" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{i:Loc Overlay.Odds.Tie}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                <Border Classes="cellDivider" IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}" />
+                <StackPanel Classes="cell">
+                    <TextBlock Text="{Binding OddsWin}" Classes="pct" Foreground="{StaticResource Positive}" />
+                    <TextBlock Text="{i:Loc Overlay.Odds.Win}" Classes="cellLabel" />
+                    <TextBlock Text="{Binding OddsDamageWin}" ToolTip.Tip="{Binding OddsDamageWinTip}" Classes="cellDamage" Foreground="{StaticResource Positive}" />
                 </StackPanel>
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding OddsLoss}" Classes="number" FontSize="17" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{i:Loc Overlay.Odds.Loss}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding OddsDamageLoss}" ToolTip.Tip="{Binding OddsDamageLossTip}" Classes="number" FontSize="11" Foreground="{StaticResource Negative}"
-                               HorizontalAlignment="Center" IsVisible="{Binding OddsDamageLoss, Converter={StaticResource Truthy}}" />
+                <StackPanel Classes="cell">
+                    <TextBlock Text="{Binding OddsTie}" Classes="pct" Foreground="{StaticResource Muted}" />
+                    <TextBlock Text="{i:Loc Overlay.Odds.Tie}" Classes="cellLabel" />
                 </StackPanel>
-            </UniformGrid>
-            <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,6,0,5" Background="{StaticResource Surface3}">
-                <StackPanel Orientation="Horizontal">
-                    <Border Background="{StaticResource Positive}" Width="{Binding WinShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                    <Border Background="{StaticResource Faint}" Width="{Binding TieShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                    <Border Background="{StaticResource Negative}" Width="{Binding LossShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                <StackPanel Classes="cell">
+                    <TextBlock Text="{Binding OddsLoss}" Classes="pct" Foreground="{StaticResource Negative}" />
+                    <TextBlock Text="{i:Loc Overlay.Odds.Loss}" Classes="cellLabel" />
+                    <TextBlock Text="{Binding OddsDamageLoss}" ToolTip.Tip="{Binding OddsDamageLossTip}" Classes="cellDamage" Foreground="{StaticResource Negative}" />
                 </StackPanel>
-            </Border>
-            <!-- Lethal: the share of fights that kill either hero -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
-                <StackPanel Orientation="Horizontal" Margin="5,0" ToolTip.Tip="{i:Loc Overlay.Odds.LethalTip}" IsVisible="{Binding OddsLethal, Converter={StaticResource Truthy}}">
-                    <TextBlock Text="&#xF068C;" Classes="icon" FontSize="12" Foreground="{StaticResource Negative}" Margin="0,0,4,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding OddsLethal}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
+                <Border Classes="cellDivider" IsVisible="{Binding OddsLethal, Converter={StaticResource Truthy}}" />
+                <StackPanel Classes="cell" ToolTip.Tip="{i:Loc Overlay.Odds.LethalTip}" IsVisible="{Binding OddsLethal, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="{Binding OddsLethal}" Classes="pct" Foreground="{StaticResource Negative}" />
+                    <TextBlock Text="{i:Loc Overlay.Odds.LethalLabel}" Classes="cellLabel" />
                 </StackPanel>
-                <TextBlock Text="{Binding OddsKill}" ToolTip.Tip="{i:Loc Overlay.Odds.KillTip}" FontSize="11" Foreground="{StaticResource Positive}" Margin="5,0" VerticalAlignment="Center"
-                           IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}" />
             </StackPanel>
-            <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+            <!-- The share bar: a 220-wide row stretched to the card's width (the card is 360..460 wide) -->
+            <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,8,0,4" Background="{StaticResource Surface3}">
+                <Viewbox Stretch="Fill">
+                    <StackPanel Orientation="Horizontal" Width="220" Height="4">
+                        <Border Background="{StaticResource Positive}" Width="{Binding WinShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                        <Border Background="{StaticResource Faint}" Width="{Binding TieShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                        <Border Background="{StaticResource Negative}" Width="{Binding LossShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                    </StackPanel>
+                </Viewbox>
+            </Border>
+            <!-- Only when there is something to say: unsimulated effects, the hero damage cap -->
+            <TextBlock Text="{Binding OddsNote}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
+                       TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding OddsNote, Converter={StaticResource Truthy}}" />
         </StackPanel>
     </Border>
 </UserControl>

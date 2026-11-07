@@ -12,23 +12,27 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>
-/// The tavern bar's tribe chips: the lobby's tribes, each a filter for the tier list under the bar (one tribe at a
-/// time; the same chip again shows every tribe).
+/// The lobby's tribes: a plain line on the tavern bar ("Tribes: Beast, Dragon"), and chips in the head of the tier list
+/// that filter it (one tribe at a time; the same chip again shows every tribe).
 /// </summary>
 public sealed partial class OverlayViewModel
 {
     private string _selectedTribe = string.Empty;
     private IReadOnlyList<TribeChip> _tribeChips = Array.Empty<TribeChip>();
+    private string _tribesLine = string.Empty;
     private string _browserTitle = string.Empty;
     private string _browserScope = string.Empty;
     private RelayCommand? _selectTribe;
 
     public IReadOnlyList<TribeChip> TribeChips { get => _tribeChips; private set => Set(ref _tribeChips, value); }
 
+    /// <summary>The bar's second line: the lobby's tribes as text, or that the lobby is still being read.</summary>
+    public string TribesLine { get => _tribesLine; private set => Set(ref _tribesLine, value); }
+
     /// <summary>The open tier list's heading ("Tier 4").</summary>
     public string BrowserTitle { get => _browserTitle; private set => Set(ref _browserTitle, value); }
 
-    /// <summary>What the tier list shows: the minions of the lobby, or of the one tribe chosen on the bar.</summary>
+    /// <summary>What the tier list shows: the minions of the lobby, or of the one tribe chosen in its head.</summary>
     public string BrowserScope { get => _browserScope; private set => Set(ref _browserScope, value); }
 
     /// <summary>
@@ -59,6 +63,9 @@ public sealed partial class OverlayViewModel
         }
 
         TribeChips = races.Select(r => new TribeChip(r, Races.Display(r, _locale), r == _selectedTribe)).ToList();
+        TribesLine = races.Count == 0
+            ? Loc.T("Overlay.Bar.TribesReading")
+            : Loc.F("Overlay.Bar.TribesLine", string.Join(", ", races.Select(r => Races.Display(r, _locale))));
     }
 
     /// <summary>Whether a minion with these tribes belongs in the list while a tribe chip is chosen.</summary>
