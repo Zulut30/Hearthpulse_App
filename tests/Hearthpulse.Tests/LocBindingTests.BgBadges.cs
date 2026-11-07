@@ -64,9 +64,8 @@ public sealed partial class LocBindingTests
             // Alice: "Tavern 4" and her three murlocs of three, in words.
             Assert.Equal(["Tavern", "4", "Murlocs: 3 of 3"], Visible(items[0]));
             var badges = layer.GetVisualDescendants().OfType<Grid>().Where(g => g.Classes.Contains("bgBadge")).ToList();
-            // Column 1 waits for the opponents' rating: sized to its content, empty for now.
-            Assert.True(badges[0].ColumnDefinitions[1].Width.IsAuto);
-            Assert.DoesNotContain(badges[0].Children, c => Grid.GetColumn(c) == 1);
+            // One label, nothing held empty beside it.
+            Assert.Empty(badges[0].ColumnDefinitions);
             // Centred on the tile.
             var label = badges[0].GetVisualDescendants().OfType<Control>().Single(b => b.Name == "Label");
             var centre = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), layer)!.Value.Y;

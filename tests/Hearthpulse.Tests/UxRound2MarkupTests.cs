@@ -220,8 +220,14 @@ public sealed class UxRound2MarkupTests
     private static readonly string[] ListPanels =
         ["deck", "opponent", "opponent-archetype", "secrets", "ladder-session", "card-pool", "arena-draft", "lobby", "bg-lobby"];
 
-    /// <summary>List panels whose columns carry their own headings under the band, so the band has no muted line.</summary>
-    private static readonly string[] ColumnHeadingPanels = ["lobby"];
+    /// <summary>
+    /// List panels whose columns carry their own headings under the band instead of a muted line in it, with the headings'
+    /// keys: the check is that they are there.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> ColumnHeadingPanels = new(StringComparer.Ordinal)
+    {
+        ["lobby"] = ["Overlay.Lobby.ColPlace", "Overlay.Lobby.ColHero", "Overlay.Lobby.ColTier", "Overlay.Lobby.ColHealth", "Overlay.Lobby.ColFight"],
+    };
 
     /// <summary>
     /// One header for every list panel: the gold band first in the card, then an optional glyph, the title and a muted line
@@ -264,7 +270,15 @@ public sealed class UxRound2MarkupTests
                 }
 
                 Assert.Contains("title", parts);
-                if (!ColumnHeadingPanels.Contains(id))
+                if (ColumnHeadingPanels.TryGetValue(id, out var headings))
+                {
+                    // No muted line in the band: the column headings, right under it and in the same card, say what is listed.
+                    Assert.DoesNotContain("note", parts);
+                    var texts = card.Descendants().Where(e => e.Name.LocalName == "TextBlock").Select(e => (string?)e.Attribute("Text")).ToList();
+                    Assert.All(headings, key => Assert.Contains("{i:Loc " + key + "}", texts));
+                    Assert.All(headings, key => Assert.True(Loc.Has(key), key));
+                }
+                else
                 {
                     Assert.Contains("note", parts);
                 }

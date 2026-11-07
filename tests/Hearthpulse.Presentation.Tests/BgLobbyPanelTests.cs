@@ -164,6 +164,90 @@ public sealed class BgLobbyPanelTests
         Assert.False((bool)model.LobbyTribesUnconfirmed);
     }
 
+    /// <summary>
+    /// The lobby list's rows ("lobby", AC6): the player's own last fight with each opponent in words with a sign, in the
+    /// colour of the player's result; health of ten or less marked; the "You" and "Next" plates on the right rows.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Lobby_rows_say_the_last_fight_in_words_and_mark_low_health_you_and_next(bool wpf)
+    {
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var won = new BgOpponent(2, "HERO_A", "Alice", 30, 0, 4, 1, false, 0, [M("BG_MURLOC")], 6, "Win", 6, IsNextOpponent: true);
+        var lost = new BgOpponent(3, "HERO_B", "Bob", 10, 0, 3, 3, false, 0, [M("BG_BEAST")], 5, "Loss", 10, false);
+        var tie = new BgOpponent(4, "HERO_C", "Cid", 8, 3, 2, 4, false, 0, [M("BG_DRAGON")], 4, "Tie", 0, false);
+        var unseen = new BgOpponent(5, "HERO_D", "Dee", 11, 0, 2, 5, false, 0, [], 0, null, 0, false);
+        var dead = new BgOpponent(6, "HERO_E", "Eve", 0, 0, 5, 8, true, 0, [], 0, null, 0, false);
+        var view = Lobby(["MURLOC", "BEAST", "DRAGON"], confirmed: true, [won, lost, tie, unseen, dead], []);
+
+        foreach (var (language, texts) in new[]
+                 {
+                     (Loc.English, new[] { "Won, +6", "Lost, −10", "Tie" }),
+                     (Loc.Russian, new[] { "Победа, +6", "Поражение, −10", "Ничья" }),
+                 })
+        {
+            Loc.Instance.SetLanguage(language);
+            try
+            {
+                model.Update(Live(view), Cards, On(), null, null);
+                var rows = ((IEnumerable<dynamic>)model.LobbyRows).ToDictionary(r => (string)r.HeroCardId);
+                Assert.Equal(texts, new[] { "HERO_A", "HERO_B", "HERO_C" }.Select(h => (string)rows[h].Last));
+                Assert.Equal(["Win", "Loss", "Tie"], new[] { "HERO_A", "HERO_B", "HERO_C" }.Select(h => (string)rows[h].LastKey));
+                // Never fought, and the player's own row: no fight to tell.
+                Assert.Equal((string.Empty, string.Empty), ((string)rows["HERO_D"].Last, (string)rows["HERO_ME"].Last));
+
+                // Health with armor; ten or less is low, but not for a player who is out.
+                Assert.Equal([30, 10, 11, 11, 0], new[] { "HERO_A", "HERO_B", "HERO_C", "HERO_D", "HERO_E" }.Select(h => (int)rows[h].Health));
+                Assert.Equal([false, true, false, false, false], new[] { "HERO_A", "HERO_B", "HERO_C", "HERO_D", "HERO_E" }.Select(h => (bool)rows[h].LowHealth));
+                Assert.True((bool)rows["HERO_E"].Dead);
+
+                // One "You" (the player) and one "Next" (the next opponent).
+                Assert.Equal(["HERO_ME"], rows.Values.Where(r => (bool)r.You).Select(r => (string)r.HeroCardId));
+                Assert.Equal(["HERO_A"], rows.Values.Where(r => (bool)r.Next).Select(r => (string)r.HeroCardId));
+            }
+            finally
+            {
+                Loc.Instance.SetLanguage(Loc.English);
+            }
+        }
+    }
+
+    /// <summary>The WPF lobby list with data: the plates stand on the player's and the next opponent's rows, low health in the danger colour, "Out" for the dead.</summary>
+    [Fact]
+    public void Wpf_lobby_rows_show_the_plates_low_health_and_out() => WpfThread.RunThemed(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var model = new WpfOverlay();
+        var next = new BgOpponent(2, "HERO_A", "Alice", 30, 0, 4, 1, false, 0, [], 0, null, 0, IsNextOpponent: true);
+        var low = new BgOpponent(3, "HERO_B", "Bob", 9, 0, 3, 3, false, 0, [M("BG_BEAST")], 5, "Loss", 10, false);
+        var dead = new BgOpponent(4, "HERO_C", "Cid", 0, 0, 2, 8, true, 0, [], 0, null, 0, false);
+        model.Update(Live(Lobby(["MURLOC"], confirmed: true, [next, low, dead], [])), Cards, new AppSettings(), null, null);
+
+        var panel = new Hearthpulse.App.Overlay.LobbyPanel { DataContext = model };
+        panel.Measure(new Size(600, 800));
+        panel.Arrange(new Rect(0, 0, 600, 800));
+        var frame = new DispatcherFrame();
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        Dispatcher.PushFrame(frame);
+        panel.UpdateLayout();
+
+        // Texts on screen; an empty fight cell is not text.
+        string[] Shown(DependencyObject root) => Descendants<TextBlock>(root).Where(t => Visible(t, root) && t.Text.Length > 0).Select(t => t.Text).ToArray();
+        var rows = Descendants<Grid>(panel).Where(g => g.Name == "RowRoot").ToList();
+        Assert.Equal(4, rows.Count);
+        Assert.Equal(["1", "Alice", "Next", "4", "30"], Shown(rows[0]));
+        // The player (second place): "You", no fight of their own.
+        Assert.Equal(["2", "Me", "You", "3", "20"], Shown(rows[1]));
+        Assert.Equal(["3", "Bob", "3", "9", "Lost, −10"], Shown(rows[2]));
+        Assert.Same(Application.Current.FindResource("Negative"), Descendants<TextBlock>(rows[2]).Single(t => t.Name == "Health").Foreground);
+        Assert.Same(Application.Current.FindResource("Text"), Descendants<TextBlock>(rows[0]).Single(t => t.Name == "Health").Foreground);
+        // Out: "Out" in place of the health, the name muted rather than faded.
+        Assert.Equal(["8", "Cid", "2", "Out"], Shown(rows[3]));
+        Assert.Same(Application.Current.FindResource("Muted"), Descendants<TextBlock>(rows[3]).Single(t => t.Name == "Name").Foreground);
+        Assert.Equal(1.0, rows[3].Opacity, 3);
+    });
+
     /// <summary>The WPF row template with data: place, hero, tier and the main tribe; the player's name in the accent colour; the dead faded.</summary>
     [Fact]
     public void Wpf_rows_bind_tier_and_main_tribe_and_fade_the_dead() => WpfThread.RunThemed(() =>

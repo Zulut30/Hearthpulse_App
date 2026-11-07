@@ -69,9 +69,10 @@ public sealed partial class OverlayViewModel
         }
 
         var fights = FightsWith(opponent);
-        // Built 10 times a second while the mouse rests on a tile: only a change of what it shows rebuilds it.
+        // Built 10 times a second while the mouse rests on a tile: only a change of what it shows rebuilds it, the
+        // interface language too (its texts are words).
         var key = string.Create(CultureInfo.InvariantCulture,
-            $"{opponent.PlayerId}|{opponent.HeroCardId}|{opponent.Place}|{opponent.Health}|{opponent.Armor}|{opponent.Dead}|{opponent.IsNextOpponent}|{opponent.LastResult}|{opponent.LastDamage}|{opponent.LastBoardTurn}|{opponent.LastBoard.Count}|{bg.Turn}|{fights.Count}");
+            $"{opponent.PlayerId}|{opponent.HeroCardId}|{opponent.Place}|{opponent.Health}|{opponent.Armor}|{opponent.Dead}|{opponent.IsNextOpponent}|{opponent.LastResult}|{opponent.LastDamage}|{opponent.LastBoardTurn}|{opponent.LastBoard.Count}|{bg.Turn}|{fights.Count}|{Loc.Instance.Language}");
         if (Lobby is not null && key == _lobbyKey)
         {
             return;

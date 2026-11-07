@@ -234,9 +234,10 @@
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: the opponent under the mouse on the leaderboard (top centre, where the odds sit; they
-                 hide meanwhile. 0,48 keeps the two layout placeholders apart) ============ -->
+                 hide meanwhile). 0,64: below the two-line Battlegrounds bar (10…62), which on 4:3 reaches the centre, and
+                 the two layout placeholders stay apart ============ -->
             <o:MovablePanel Id="lobby-popup" Title="{i:Loc Overlay.Panel.LobbyPopup}" Hint="{i:Loc Overlay.LobbyPopup.Hint}" Shown="{Binding ShowLobbyPopup}"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,48,0,0">
+                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,64,0,0">
                 <o:LobbyPopupPanel />
             </o:MovablePanel>
 

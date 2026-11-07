@@ -415,10 +415,9 @@ public sealed class BgBadgesTests
         Assert.Equal(["Tavern", "2"], Shown(items[1]));
         // No icon font anywhere: the tribe is in words.
         Assert.DoesNotContain(Descendants<TextBlock>(layer), t => t.Text.Any(char.IsSurrogate));
+        // One label, nothing held empty beside it.
         var badges = Descendants<Grid>(layer).Where(g => g.Name == "Badge").ToList();
-        // Column 1 waits for the opponents' rating: sized to its content, empty for now.
-        Assert.True(badges[0].ColumnDefinitions[1].Width.IsAuto);
-        Assert.DoesNotContain(badges[0].Children.Cast<UIElement>(), c => Grid.GetColumn(c) == 1);
+        Assert.Empty(badges[0].ColumnDefinitions);
         // Centred on its tile.
         var label = Descendants<FrameworkElement>(items[0]).Single(b => b.Name == "Label");
         Assert.InRange(label.TranslatePoint(new Point(0, label.ActualHeight / 2), layer).Y, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);

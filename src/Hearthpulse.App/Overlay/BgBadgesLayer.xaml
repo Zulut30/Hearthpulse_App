@@ -25,13 +25,8 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type o:BgBadge}">
-                <!-- The label in words, two lines: "Tavern 5", then "Quilboar: 4 of 7" once a fight showed the board | column 1 kept
-                     empty for the opponents' rating (up to 6 characters): it takes its width from that text -->
-                <Grid x:Name="Badge" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <!-- The label in words, two lines: "Tavern 5", then "Quilboar: 4 of 7" once a fight showed the board -->
+                <Grid x:Name="Badge" VerticalAlignment="Center" HorizontalAlignment="Left">
                     <Border x:Name="Label" MinWidth="72" CornerRadius="4" Padding="6,2" Background="{DynamicResource OverlayBadgeShade}"
                             BorderBrush="{StaticResource AccentDeep}" BorderThickness="1" VerticalAlignment="Center">
                         <StackPanel>

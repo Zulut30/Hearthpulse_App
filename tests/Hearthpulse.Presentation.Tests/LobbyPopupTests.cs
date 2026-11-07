@@ -88,6 +88,14 @@ public sealed class LobbyPopupTests
             Assert.Equal(("Place 4 · 32 HP", "won, dealt 6", "Board seen 2 turns ago", "Elementals: 2 of 6"),
                 ((string)model.Lobby.Summary, (string)model.Lobby.LastResult, (string)model.Lobby.LastSeen, (string)model.Lobby.Tribe));
 
+            // The language switches while the mouse rests on the same tile: the words follow on the next hover.
+            Loc.Instance.SetLanguage(Loc.Russian);
+            model.HoverLeaderboard(4);
+            Assert.Equal(("4-е место · 32 ОЗ", "победа, нанесли 6"), ((string)model.Lobby.Summary, (string)model.Lobby.LastResult));
+            Loc.Instance.SetLanguage(Loc.English);
+            model.HoverLeaderboard(4);
+            Assert.Equal("Place 4 · 32 HP", (string)model.Lobby.Summary);
+
             // The mouse leaves: no popup.
             model.HoverLeaderboard(0);
             Assert.Null((object?)model.Lobby);

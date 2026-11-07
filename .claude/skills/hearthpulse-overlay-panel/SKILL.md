@@ -6,11 +6,12 @@ description: Use when adding or changing an in-game overlay panel in Hearthpulse
 # Adding or changing an overlay panel
 
 The overlay is a transparent, click-through window over the game. Every panel is a `MovablePanel` the player can
-drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids. At `7657bb5` there are 26:
-`deck`, `opponent`, `opponent-archetype`, `ladder-session`, `turn-timer-opponent`, `turn-timer`, `opponent-hand`,
-`secrets`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan-bars`, `mulligan-summary`, `bgbar`,
-`hero-row`, `trinket-row`, `tavern-row`, `odds`, `lobby-popup`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`,
-`arena-draft`. The two surface files are authoritative; compare their `MovablePanel` Id sets after a change.
+drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids. There are 29:
+`deck`, `opponent`, `opponent-archetype`, `ladder-session`, `turn-timer-opponent`, `turn-timer`, `opponent-hand-fan`,
+`secrets`, `graveyard`, `opponent-deck`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan-bars`,
+`mulligan-summary`, `bg-lobby`, `bgbar`, `hero-row`, `trinket-row`, `tavern-row`, `odds`, `choice-row`, `lobby-popup`,
+`arena-picks`, `arena-draft`, `session`, `lobby`, `toast`. The two surface files are authoritative; compare their
+`MovablePanel` Id sets after a change.
 Arena draft panels show in the `DRAFT` scene, outside games (`docs/arena-draft.md`).
 
 Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). Data into the snapshot:
