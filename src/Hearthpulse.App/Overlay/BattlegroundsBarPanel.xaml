@@ -4,62 +4,46 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- Content of the "bgbar" overlay panel: rating, turn, anomaly and combat history,
-         and the tavern tiers and tribes that open the minion browser. Same tree as the Avalonia BattlegroundsBarPanel.axaml. -->
+    <!-- Content of the "bgbar" overlay panel. Line 1: turn, the tavern tiers that open the minion browser, the combat
+         history; line 2: the lobby's tribes as text. The tribe filter lives in the browser's head. Rating is in the
+         "session" panel. Same tree as the Avalonia BattlegroundsBarPanel.axaml. -->
     <UserControl.Resources>
         <ResourceDictionary Source="/Hearthpulse;component/Overlay/OverlayPanels.xaml" />
     </UserControl.Resources>
     <StackPanel>
-        <Border Style="{StaticResource OverlayCard}" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
-            <StackPanel Orientation="Horizontal">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Bar.TurnTip}">
-                    <TextBlock Text="{i:Loc Overlay.Bar.Turn}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <TextBlock Text="{Binding Turn}" Style="{StaticResource Number}" VerticalAlignment="Center" />
+        <Border Style="{StaticResource OverlayCard}" Padding="12,4" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Height="24">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Bar.TurnTip}">
+                        <TextBlock Text="{i:Loc Overlay.Bar.Turn}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding Turn}" Style="{StaticResource Number}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <TextBlock Text="{i:Loc Overlay.Bar.Tavern}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ItemsControl ItemsSource="{Binding Tiers}" ItemTemplate="{StaticResource TierTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Divider}" Visibility="{Binding Combats, Converter={StaticResource Vis}}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding Combats, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{i:Loc Overlay.Bar.Fights}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding Combats}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
+                    </StackPanel>
                 </StackPanel>
-                <Border Style="{StaticResource Divider}" />
-                <ItemsControl ItemsSource="{Binding Tiers}" ItemTemplate="{StaticResource TierTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
-                <Border Style="{StaticResource Divider}" />
-                <Grid VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Bar.TribesTip}">
-                    <!-- Each tribe filters the tier list below; the chosen one is filled -->
-                    <ItemsControl ItemsSource="{Binding TribeChips}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type o:TribeChip}">
-                                <Button Command="{Binding DataContext.SelectTribe, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}"
-                                        Cursor="Hand" Margin="0,0,4,0" Focusable="False" ToolTip="{i:Loc Overlay.Bar.TribeFilterTip}">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Chip" Height="22" CornerRadius="11" Padding="9,0" Background="{StaticResource Surface3}"
-                                                    BorderBrush="Transparent" BorderThickness="1">
-                                                <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentLine}" />
-                                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Text}" />
-                                                </Trigger>
-                                                <DataTrigger Binding="{Binding Selected}" Value="True">
-                                                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource Accent}" />
-                                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource OnAccent}" />
-                                                </DataTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                               Visibility="{Binding TribeChips, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                </Grid>
-                <Border Style="{StaticResource Divider}" />
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Bar.RatingTip}">
-                    <TextBlock Text="{Binding Rating}" Style="{StaticResource Number}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding RatingDelta}" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
-                               Foreground="{Binding RatingDeltaValue, Converter={StaticResource SignBrush}}" />
-                </StackPanel>
-                <Border Style="{StaticResource Divider}" Visibility="{Binding Combats, Converter={StaticResource Vis}}" />
-                <ItemsControl ItemsSource="{Binding Combats}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}"
-                              VerticalAlignment="Center" Visibility="{Binding Combats, Converter={StaticResource Vis}}" />
+                <!-- The lobby's tribes: text, not buttons (the filter is in the tier list) -->
+                <DockPanel Margin="0,4,0,0" MaxWidth="596" HorizontalAlignment="Left" Background="Transparent" ToolTip="{i:Loc Overlay.Bar.TribesTip}">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding TribesLabel}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"
+                               Foreground="{StaticResource Muted}" Margin="0,0,4,0" />
+                    <TextBlock Text="{Binding TribesNames}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
+                                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TribeChips.Count}" Value="0">
+                                        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </DockPanel>
             </StackPanel>
         </Border>
         <Border Style="{StaticResource OverlayCard}" Padding="10,4" Margin="0,6,0,0" HorizontalAlignment="Left"
@@ -82,6 +66,38 @@
                         <Run Text="{Binding BrowserTitle, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" /><Run Text="  ·  " FontSize="11" Foreground="{StaticResource Faint}" /><Run Text="{Binding BrowserScope, Mode=OneWay}" FontSize="11.5" Foreground="{StaticResource Muted}" />
                     </TextBlock>
                 </DockPanel>
+                <!-- Tribe filter: one tribe at a time, the chosen one filled; the same chip again shows every tribe -->
+                <Grid DockPanel.Dock="Top" Margin="0,4,0,8">
+                    <ItemsControl ItemsSource="{Binding TribeChips}" ItemsPanel="{StaticResource WrapRow}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type o:TribeChip}">
+                                <Button Command="{Binding DataContext.SelectTribe, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}"
+                                        Cursor="Hand" Margin="0,0,4,4" Focusable="False" ToolTip="{i:Loc Overlay.Bar.TribeFilterTip}" AutomationProperties.Name="{Binding Name}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Chip" Height="22" CornerRadius="11" Padding="8,0" Background="{StaticResource Surface3}"
+                                                    BorderBrush="Transparent" BorderThickness="1">
+                                                <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentLine}" />
+                                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Text}" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding Selected}" Value="True">
+                                                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource Accent}" />
+                                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource OnAccent}" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                               Visibility="{Binding TribeChips, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                </Grid>
                 <ScrollViewer MaxHeight="760" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Browser}">
                         <ItemsControl.ItemTemplate>

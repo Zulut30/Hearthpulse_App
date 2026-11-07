@@ -14,7 +14,7 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
 |---|---|---|---|---|---|---|---|
 | Hearthpulse — Deck | `deck` | `DeckPanel` | 268 × 720 | 168 × 200 | a game other than Battlegrounds with its deck known | such a game, deck not recognised | no game, a Battlegrounds game, the Arena draft |
 | Hearthpulse — Lobby | `lobby` | `LobbyPanel` | 246 × 306 | 156 × 120 | Battlegrounds (Duos too), hero picked, opponents seen | hero pick | no game or not Battlegrounds |
-| Hearthpulse — Combat odds | `odds` | `OddsPanel` | 266 × 140 | 166 × 84 | a Battlegrounds fight with its odds | between fights, hero pick | no game or not Battlegrounds |
+| Hearthpulse — Combat odds | `odds` | `OddsPanel` | 516 × 176 | 310 × 106 | a Battlegrounds fight with its odds | between fights, hero pick | no game or not Battlegrounds |
 | Hearthpulse — Session | `session` | `StreamSessionPanel` (window only) | 266 × 184 | 166 × 104 | while it is on: the rank or rating since the stream started, the change, the record (Ranked) or the last places (Battlegrounds); "No games yet" before the first | — | window off |
 
 - **One model.** The windows show the overlay's own panel controls (`Overlay/DeckPanel`, `LobbyPanel`, `OddsPanel` in
@@ -39,7 +39,8 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
   because a green key also eats the green win numbers (`Positive`) and the Fel theme's accent.
 - **Place.** Moves and sizes are kept by id in `AppSettings.StreamWindows` (DIP), saved when a move or resize ends. A
   saved window that no longer shows 40 × 40 on any work area (a monitor gone) opens at its default spot: the top left of
-  the primary work area, side by side (24, 24), (308, 24), (570, 24).
+  the primary work area, side by side (24, 24), (308, 24), (570, 24), (1102, 24); the odds window is 516 wide for
+  the panel's five cells (360..500).
 - **Life.** A window switched on opens without taking the focus, on its place, in the state of the moment. Closing it
   (its menu, Alt+F4, the taskbar) switches it off; quitting the app closes it but keeps it on for the next start, so OBS
   finds it again by its title. The windows are in the taskbar (OBS lists no tool windows) and are not minimized by the

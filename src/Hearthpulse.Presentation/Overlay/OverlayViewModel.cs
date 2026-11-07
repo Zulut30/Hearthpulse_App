@@ -195,16 +195,16 @@ public sealed partial class OverlayViewModel : Observable
     public string OddsLoss { get => _oddsLoss; private set => Set(ref _oddsLoss, value); }
     public string OddsNote { get => _oddsNote; private set => Set(ref _oddsNote, value); }
 
-    /// <summary>Hero damage if we win ("+8 ±2") / if we lose ("−6 ±2"); empty when that result never came up.</summary>
+    /// <summary>Hero damage if we win ("You deal 8–16") / if we lose ("You take 9–17"); empty when that result never came up.</summary>
     public string OddsDamageWin { get => _oddsDamageWin; private set => Set(ref _oddsDamageWin, value); }
     public string OddsDamageWinTip { get => _oddsDamageWinTip; private set => Set(ref _oddsDamageWinTip, value); }
     public string OddsDamageLoss { get => _oddsDamageLoss; private set => Set(ref _oddsDamageLoss, value); }
     public string OddsDamageLossTip { get => _oddsDamageLossTip; private set => Set(ref _oddsDamageLossTip, value); }
 
-    /// <summary>"you die: 12%" while any simulated fight kills the player's hero; empty otherwise.</summary>
+    /// <summary>The share of fights that kill the player's hero ("12.0%", the label is in the view); empty when none does.</summary>
     public string OddsLethal { get => _oddsLethal; private set => Set(ref _oddsLethal, value); }
 
-    /// <summary>"you kill: 30%" while any simulated fight kills the opponent's hero; empty otherwise.</summary>
+    /// <summary>The share of fights that kill the opponent's hero ("30.0%", the label is in the view); empty when none does.</summary>
     public string OddsKill { get => _oddsKill; private set => Set(ref _oddsKill, value); }
 
     /// <summary>The fight can kill the player: the odds panel turns red.</summary>

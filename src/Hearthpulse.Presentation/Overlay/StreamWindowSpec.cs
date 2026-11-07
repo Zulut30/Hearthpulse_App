@@ -36,11 +36,14 @@ public sealed record StreamWindowSpec(string Id, string NameKey, double Width, d
     /// <summary>The panel 230 × about 290: eight players at scale 1.</summary>
     public static readonly StreamWindowSpec Lobby = new("lobby", "Stream.Window.Lobby", 246, 306, 156, 120, 308, 24);
 
-    /// <summary>The panel 250 × about 110, plus 14 for the note wrapping onto a second line.</summary>
-    public static readonly StreamWindowSpec Odds = new("odds", "Stream.Window.Odds", 266, 140, 166, 84, 570, 24);
+    /// <summary>
+    /// The panel 360..500 wide (five cells at most 494) × about 110, plus room for a wrapped damage line and the note
+    /// on a second line; the smallest keeps about 0.6 of it.
+    /// </summary>
+    public static readonly StreamWindowSpec Odds = new("odds", "Stream.Window.Odds", 516, 176, 310, 106, 570, 24);
 
-    /// <summary>The session card 250 × about 160: the rank or rating, the change, the record or the last places.</summary>
-    public static readonly StreamWindowSpec Session = new("session", "Stream.Window.Session", 266, 184, 166, 104, 852, 24);
+    /// <summary>The session card 250 × about 160: the rank or rating, the change, the record or the last places; right of the odds window.</summary>
+    public static readonly StreamWindowSpec Session = new("session", "Stream.Window.Session", 266, 184, 166, 104, 1102, 24);
 
     public static readonly IReadOnlyList<StreamWindowSpec> All = [Deck, Lobby, Odds, Session];
 

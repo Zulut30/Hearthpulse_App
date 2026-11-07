@@ -50,20 +50,19 @@ public sealed partial class OverlayViewModel
             OddsTie = OddsPercent(odds.Tie, odds.Runs);
             OddsLoss = OddsPercent(odds.Loss, odds.Runs);
             SetOddsShares(odds.Win, odds.Tie, odds.Loss);
-            OddsNote = odds.Approximate
-                ? Loc.P("Overlay.Odds.Estimate", odds.Unsimulated)
-                : Loc.T("Overlay.Odds.Simulated");
-            if (odds.DamageCap > 0)
-            {
-                OddsNote = Loc.F("Overlay.Odds.Cap", OddsNote, odds.DamageCap);
-            }
+            // The bottom line only when there is something to say: unsimulated effects, the hero damage cap, or both.
+            var estimate = odds.Approximate ? Loc.P("Overlay.Odds.Estimate", odds.Unsimulated) : string.Empty;
+            OddsNote = odds.DamageCap <= 0 ? estimate
+                : estimate.Length > 0 ? Loc.F("Overlay.Odds.Cap", estimate, odds.DamageCap)
+                : Loc.F("Overlay.Odds.CapOnly", odds.DamageCap);
 
-            OddsDamageWin = CombatOddsText.Damage(odds.DamageDealt, dealt: true);
+            // Damage as the range of 8 fights in 10 ("You deal 8–16"); the cells' labels say who dies.
+            OddsDamageWin = odds.DamageDealt is null ? string.Empty : Loc.F("Overlay.Odds.DamageDealt", CombatOddsText.Damage(odds.DamageDealt));
             OddsDamageWinTip = CombatOddsText.DamageTip(odds.DamageDealt, dealt: true);
-            OddsDamageLoss = CombatOddsText.Damage(odds.DamageTaken, dealt: false);
+            OddsDamageLoss = odds.DamageTaken is null ? string.Empty : Loc.F("Overlay.Odds.DamageTaken", CombatOddsText.Damage(odds.DamageTaken));
             OddsDamageLossTip = CombatOddsText.DamageTip(odds.DamageTaken, dealt: false);
-            OddsLethal = odds.LethalTaken is > 0 and var lethal ? Loc.F("Overlay.Odds.Lethal", OddsPercent(lethal, odds.Runs)) : string.Empty;
-            OddsKill = odds.LethalDealt is > 0 and var kill ? Loc.F("Overlay.Odds.Kill", OddsPercent(kill, odds.Runs)) : string.Empty;
+            OddsLethal = odds.LethalTaken is > 0 and var lethal ? OddsPercent(lethal, odds.Runs) : string.Empty;
+            OddsKill = odds.LethalDealt is > 0 and var kill ? OddsPercent(kill, odds.Runs) : string.Empty;
             LethalDanger = OddsLethal.Length > 0;
         }
         RebuildTiers();

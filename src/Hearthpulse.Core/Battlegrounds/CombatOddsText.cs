@@ -6,18 +6,19 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// <summary>Short overlay texts for the hero damage of <see cref="CombatOdds"/>, shared by both UIs.</summary>
 public static class CombatOddsText
 {
-    /// <summary>"+8 ±2" (damage we deal when we win) or "−6 ±2" (damage we take when we lose); empty without a spread.</summary>
-    public static string Damage(DamageSpread? spread, bool dealt)
+    /// <summary>
+    /// The damage range of 8 fights in 10 ("8–16", en dash, no sign; one number when both ends meet); empty without a
+    /// spread. The same either way: the cell's label says who takes it.
+    /// </summary>
+    public static string Damage(DamageSpread? spread)
     {
         if (spread is null)
         {
             return string.Empty;
         }
 
-        var mean = (int)Math.Round(spread.Mean, MidpointRounding.AwayFromZero);
-        var spreadHalf = (int)Math.Round((spread.High - spread.Low) / 2.0, MidpointRounding.AwayFromZero);
-        var text = (dealt ? "+" : "−") + mean.ToString(CultureInfo.CurrentCulture);
-        return spreadHalf > 0 ? $"{text} ±{spreadHalf}" : text;
+        var low = spread.Low.ToString(CultureInfo.CurrentCulture);
+        return spread.High > spread.Low ? $"{low}–{spread.High.ToString(CultureInfo.CurrentCulture)}" : low;
     }
 
     public static string DamageTip(DamageSpread? spread, bool dealt) =>

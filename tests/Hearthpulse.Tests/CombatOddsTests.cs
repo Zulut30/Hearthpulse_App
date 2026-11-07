@@ -12,6 +12,16 @@ public sealed class CombatOddsTests(ITestOutputHelper output)
         new(attack, health, taunt, shield, poison, false, reborn, attacks, false, attack, false);
 
     [Fact]
+    public void Damage_reads_as_the_range_of_eight_fights_in_ten()
+    {
+        // Low and high are the 10th and 90th percentiles; en dash, no sign, one number when they meet.
+        Assert.Equal("8–16", CombatOddsText.Damage(new DamageSpread(12, 8, 16, 20, [1])));
+        Assert.Equal("9–17", CombatOddsText.Damage(new DamageSpread(13, 9, 17, 21, [1])));
+        Assert.Equal("8", CombatOddsText.Damage(new DamageSpread(8, 8, 8, 8, [1])));
+        Assert.Equal(string.Empty, CombatOddsText.Damage(null));
+    }
+
+    [Fact]
     public void Bigger_board_wins_every_time()
     {
         var odds = CombatSimulator.Run([M(10, 10), M(10, 10)], [M(1, 1)], null);
