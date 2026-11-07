@@ -51,30 +51,24 @@ public sealed partial class LocBindingTests
 
             Assert.False(layer.IsHitTestVisible);
             var items = layer.GetVisualDescendants().OfType<ContentPresenter>().Where(p => p.DataContext is BgBadge).ToList();
-            // The player (second place) has none.
-            Assert.Equal(2, items.Count);
+            // The player (second place) has none, nor Bob, who is out.
+            Assert.Single(items);
             var slot = 0.69 / 8 * 1080;
             Assert.Equal(240 + (0.112 * 1080), Canvas.GetLeft(items[0]), 6);
             Assert.Equal(162, Canvas.GetTop(items[0]), 6);
-            Assert.Equal(162 + (2 * slot), Canvas.GetTop(items[1]), 6);
             // Layout rounding moves the laid-out box by under a unit.
             Assert.InRange(items[0].Bounds.Height, slot - 1, slot + 1);
             Assert.InRange(items[0].Bounds.X, 240 + (0.112 * 1080) - 1, 240 + (0.112 * 1080) + 1);
 
             string[] Visible(Control item) => item.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? string.Empty).ToArray();
-            // Alice: tier 4, three murlocs.
-            Assert.Equal(["4", model.LobbyRows[0].Tribe!.Glyph, "3"], Visible(items[0]));
-            // Bob: never fought, out of the game: the tier only, faded.
-            Assert.Equal(["2"], Visible(items[1]));
+            // Alice: "Tavern 4" and her three murlocs of three, in words.
+            Assert.Equal(["Tavern", "4", "Murlocs: 3 of 3"], Visible(items[0]));
             var badges = layer.GetVisualDescendants().OfType<Grid>().Where(g => g.Classes.Contains("bgBadge")).ToList();
-            Assert.Equal(1, badges[0].Opacity, 3);
-            Assert.Equal(0.35, badges[1].Opacity, 3);
-            // Column 2 waits for the opponents' rating: sized to its content, empty for now.
-            Assert.True(badges[0].ColumnDefinitions[2].Width.IsAuto);
-            Assert.DoesNotContain(badges[0].Children, c => Grid.GetColumn(c) == 2);
+            // One label, nothing held empty beside it.
+            Assert.Empty(badges[0].ColumnDefinitions);
             // Centred on the tile.
-            var tier = badges[0].GetVisualDescendants().OfType<Control>().Single(b => b.Name == "Tier");
-            var centre = tier.TranslatePoint(new Point(0, tier.Bounds.Height / 2), layer)!.Value.Y;
+            var label = badges[0].GetVisualDescendants().OfType<Control>().Single(b => b.Name == "Label");
+            var centre = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), layer)!.Value.Y;
             Assert.InRange(centre, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
 
             settings.ShowBgLeaderboardBadges = false;

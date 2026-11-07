@@ -233,51 +233,13 @@
                 </StackPanel>
             </o:MovablePanel>
 
-            <!-- ============ Battlegrounds: leaderboard hover ============ -->
-            <Canvas x:Name="LobbyLayer" IsHitTestVisible="False">
-                <Border x:Name="LobbyCard" Style="{StaticResource OverlayCardSolid}" Padding="10,8"
-                        Canvas.Left="{Binding LobbyLeft}" Canvas.Top="{Binding LobbyTop}"
-                        Visibility="{Binding Lobby, Converter={StaticResource Vis}}">
-                    <StackPanel DataContext="{Binding Lobby}">
-                        <!-- One line: portrait, hero, place, health, tavern tier, triples -->
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding HeroName}" FontSize="13.5" FontWeight="SemiBold" Margin="8,0,10,0" VerticalAlignment="Center" />
-                            <Border Style="{StaticResource Pill}" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding PlaceText}" FontSize="11" FontWeight="SemiBold" />
-                            </Border>
-                            <Border Style="{StaticResource Pill}" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding HealthText}" FontSize="11" />
-                            </Border>
-                            <Border Style="{StaticResource Pill}" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding TierText}" FontSize="11" />
-                            </Border>
-                            <Border Style="{StaticResource Pill}" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding TriplesText}" FontSize="11" />
-                            </Border>
-                            <Border Background="{StaticResource Accent}" CornerRadius="5" Padding="7,1" Margin="4,0,0,0" VerticalAlignment="Center"
-                                    Visibility="{Binding NextOpponent, Converter={StaticResource Vis}}">
-                                <TextBlock Text="{i:Loc Overlay.LobbyPopup.Next}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
-                            </Border>
-                        </StackPanel>
-                        <!-- The last fight on a plate in its colour, the fights with this opponent as dots, when the board was seen -->
-                        <StackPanel Orientation="Horizontal" Margin="0,7,0,6">
-                            <Border CornerRadius="5" Padding="7,1" Margin="0,0,8,0" BorderThickness="1" VerticalAlignment="Center"
-                                    BorderBrush="{Binding ResultKey, Converter={StaticResource KeyBrush}}" Visibility="{Binding LastResult, Converter={StaticResource Vis}}">
-                                <TextBlock Text="{Binding LastResult}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                            </Border>
-                            <ItemsControl ItemsSource="{Binding History}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" Margin="0,0,8,0"
-                                          VerticalAlignment="Center" Visibility="{Binding History, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding LastSeen}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding TribeGlyph}" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="8,0,0,0"
-                                       Visibility="{Binding TribeGlyph, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="3,0,0,0" VerticalAlignment="Center"
-                                       Visibility="{Binding Tribe, Converter={StaticResource Vis}}" />
-                        </StackPanel>
-                        <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource LobbyMinionTemplate}" ItemsPanel="{StaticResource HRow}" />
-                    </StackPanel>
-                </Border>
-            </Canvas>
+            <!-- ============ Battlegrounds: the opponent under the mouse on the leaderboard (top centre, where the odds sit; they
+                 hide meanwhile). 0,64: below the two-line Battlegrounds bar (10…62), which on 4:3 reaches the centre, and
+                 the two layout placeholders stay apart ============ -->
+            <o:MovablePanel Id="lobby-popup" Title="{i:Loc Overlay.Panel.LobbyPopup}" Hint="{i:Loc Overlay.LobbyPopup.Hint}" Shown="{Binding ShowLobbyPopup}"
+                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,64,0,0">
+                <o:LobbyPopupPanel />
+            </o:MovablePanel>
 
             <!-- ============ Leaderboard calibration guides ============ -->
             <Canvas x:Name="GuideLayer" IsHitTestVisible="False" />
@@ -295,30 +257,7 @@
 
             <!-- ============ Battlegrounds: session (top-right) ============ -->
             <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
-                <Border Style="{StaticResource OverlayCard}" Padding="12,7">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{i:Loc Overlay.Session.Title}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Text="{Binding SessionRating}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding RatingDelta}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
-                                   Foreground="{Binding RatingDeltaValue, Converter={StaticResource SignBrush}}" />
-                        <ItemsControl ItemsSource="{Binding SessionPlaces}" Margin="10,0,0,0" VerticalAlignment="Center" ItemsPanel="{StaticResource HRow}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type o:PlaceChip}">
-                                    <Border x:Name="Chip" Width="19" Height="19" CornerRadius="5" Margin="0,0,3,0" Background="{StaticResource NegativeSoft}">
-                                        <TextBlock x:Name="Num" Text="{Binding Place}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource Negative}"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </Border>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding Top}" Value="True">
-                                            <Setter TargetName="Chip" Property="Background" Value="{StaticResource PositiveSoft}" />
-                                            <Setter TargetName="Num" Property="Foreground" Value="{StaticResource Positive}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
+                <o:SessionPanel />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->

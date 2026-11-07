@@ -54,22 +54,6 @@ public sealed class OverlayLayoutLogicTests
         Assert.False(LeaderboardGeometry.Near(672.5, Width, Height, settings));
     }
 
-    [Fact]
-    public void The_popup_sits_a_little_above_the_pointer_and_stays_on_the_surface()
-    {
-        Assert.Equal(460, LeaderboardGeometry.PopupTop(500, Height));
-        Assert.Equal(8, LeaderboardGeometry.PopupTop(20, Height));
-        Assert.Equal(840, LeaderboardGeometry.PopupTop(1070, Height));
-        // A surface lower than the popup: at the top.
-        Assert.Equal(8, LeaderboardGeometry.PopupTop(150, 200));
-
-        var settings = new AppSettings();
-        for (var slot = 1; slot <= 8; slot++)
-        {
-            Assert.Equal(Math.Max(8, LeaderboardGeometry.Tile(slot - 1, Height, settings, false).Top - 20),
-                LeaderboardGeometry.SlotPopupTop(slot, Height, settings, false));
-        }
-    }
 
     [Theory]
     [InlineData(false)]

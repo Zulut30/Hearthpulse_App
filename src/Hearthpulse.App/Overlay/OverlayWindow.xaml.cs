@@ -184,7 +184,7 @@ public partial class OverlayWindow : Window
                 Root.Visibility = Visibility.Hidden;
                 _shown = false;
                 PreviewHost.Hide();
-                ViewModel.HoverLeaderboard(0, 0, 0);
+                ViewModel.HoverLeaderboard(0);
             }
 
             return;
@@ -397,7 +397,7 @@ public partial class OverlayWindow : Window
         if (!ViewModel.ShowBattlegrounds || !_settings.ShowOpponentBoards || ViewModel.LayoutEditing)
         {
             _hoverReader.Clear();
-            ViewModel.HoverLeaderboard(0, 0, 0);
+            ViewModel.HoverLeaderboard(0);
             return;
         }
 
@@ -418,16 +418,16 @@ public partial class OverlayWindow : Window
         {
             _hoverReader.Clear();
         }
-        var left = LeaderboardGeometry.Beside(Surface.Width, units, _settings);
-        var top = LeaderboardGeometry.PopupTop(y, units);
 
+        // The popup is the "lobby-popup" panel at the top centre: only who is under the mouse matters here.
+        var slot = LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, _settings, ViewModel.IsDuos);
         if (_hoverReader.Hero is { } hero)
         {
-            ViewModel.HoverLeaderboardHero(hero, top, left);
+            ViewModel.HoverLeaderboardHero(hero, slot);
             return;
         }
 
-        ViewModel.HoverLeaderboard(LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, _settings, ViewModel.IsDuos), top, left);
+        ViewModel.HoverLeaderboard(slot);
     }
 
     private void ApplyLayout()
@@ -478,11 +478,7 @@ public partial class OverlayWindow : Window
         ApplyLayout();
         FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
-        if (hoverSlot > 0)
-        {
-            ViewModel.HoverLeaderboard(hoverSlot, LeaderboardGeometry.SlotPopupTop(hoverSlot, Surface.Height, _settings, ViewModel.IsDuos),
-                LeaderboardGeometry.Beside(Surface.Width, Surface.Height, _settings));
-        }
+        ViewModel.HoverLeaderboard(hoverSlot);
 
         // Give card art time to download and decode.
         for (var i = 0; i < 16; i++)

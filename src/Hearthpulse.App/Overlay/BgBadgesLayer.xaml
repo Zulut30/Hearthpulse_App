@@ -4,8 +4,9 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              IsHitTestVisible="False" Focusable="False">
-    <!-- Badges beside the leaderboard tiles ("bg-badges", DataContext: the overlay view model): tavern tier, then the main
-         tribe of the board last seen with its count. Each item fills the strip right of its tile and centres on it. -->
+    <!-- Labels beside the leaderboard tiles ("bg-badges", DataContext: the overlay view model), in words: "Tavern 5", then the
+         main tribe of the board last seen ("Quilboar: 4 of 7"). No glyphs. Each item fills the strip right of its tile and
+         centres on it; the whole layer hides while the mouse is on the leaderboard (the game's popup sits there). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
     </UserControl.Resources>
@@ -24,39 +25,23 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type o:BgBadge}">
-                <!-- Tier shield | tribe capsule (fixed width, so the next column lines up down the leaderboard) | column 2 kept
-                     empty for the opponents' rating (up to 6 characters): it takes its width from that text -->
-                <Grid x:Name="Badge" Height="24" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="40" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid x:Name="Tier" Width="20" Height="24">
-                        <Path Data="M0.5,0.5 H19.5 V11 C19.5,17 15.5,21.5 10,23.5 C4.5,21.5 0.5,17 0.5,11 Z" Stretch="None"
-                              Fill="{DynamicResource OverlayBadgeShade}" Stroke="{StaticResource AccentDeep}" StrokeThickness="1" />
-                        <!-- Raised: the shield's point puts its visual centre above the middle -->
-                        <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Text}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" />
-                    </Grid>
-                    <!-- Empty until a board was seen: an opponent's only after a fight with them -->
-                    <Border x:Name="Tribe" Grid.Column="1" Height="18" CornerRadius="9" Padding="0,0,6,0" Margin="4,0,0,0" HorizontalAlignment="Left"
-                            Background="{DynamicResource OverlayBadgeShade}" Visibility="{Binding Tribe, Converter={StaticResource Vis}}">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource AccentDeep}" BorderThickness="1">
-                                <TextBlock Text="{Binding Tribe.Glyph}" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock Text="{Binding TribeCount}" FontFamily="{StaticResource DisplayFont}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Text}"
-                                       VerticalAlignment="Center" Margin="4,0,0,0" />
+                <!-- The label in words, two lines: "Tavern 5", then "Quilboar: 4 of 7" once a fight showed the board -->
+                <Grid x:Name="Badge" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Border x:Name="Label" MinWidth="72" CornerRadius="4" Padding="6,2" Background="{DynamicResource OverlayBadgeShade}"
+                            BorderBrush="{StaticResource AccentDeep}" BorderThickness="1" VerticalAlignment="Center">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{i:Loc Overlay.LeaderboardBadge.Tier}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                                           Foreground="{StaticResource Text}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <!-- Empty until a board was seen and a tribe has two minions on it -->
+                            <TextBlock Text="{Binding Tribe}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}"
+                                       Visibility="{Binding HasTribe, Converter={StaticResource Vis}}" />
                         </StackPanel>
                     </Border>
                 </Grid>
-                <DataTemplate.Triggers>
-                    <DataTrigger Binding="{Binding Dead}" Value="True">
-                        <Setter TargetName="Badge" Property="Opacity" Value="0.35" />
-                    </DataTrigger>
-                </DataTemplate.Triggers>
             </DataTemplate>
         </ItemsControl.ItemTemplate>
     </ItemsControl>

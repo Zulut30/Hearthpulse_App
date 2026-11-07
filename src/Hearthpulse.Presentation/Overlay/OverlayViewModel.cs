@@ -37,6 +37,7 @@ public sealed partial class OverlayViewModel : Observable
     private bool _showShop;
     private bool _showDiscover;
     private bool _showOdds;
+    private bool _oddsWanted;
 
     public bool ShowConstructed { get => _showConstructed; private set => Set(ref _showConstructed, value); }
     public bool ShowOpponent { get => _showOpponent; private set => Set(ref _showOpponent, value); }
@@ -175,8 +176,6 @@ public sealed partial class OverlayViewModel : Observable
     private IReadOnlyList<BrowserGroup> _browser = Array.Empty<BrowserGroup>();
     private string _anomaly = string.Empty;
     private LobbyPopup? _lobby;
-    private double _lobbyTop;
-    private double _lobbyLeft;
 
     public int Turn { get => _turn; private set => Set(ref _turn, value); }
     public string Phase { get => _phase; private set => Set(ref _phase, value); }
@@ -220,9 +219,22 @@ public sealed partial class OverlayViewModel : Observable
     public int SelectedTier { get => _selectedTier; private set => Set(ref _selectedTier, value); }
     public IReadOnlyList<BrowserGroup> Browser { get => _browser; private set => Set(ref _browser, value); }
     public string Anomaly { get => _anomaly; private set => Set(ref _anomaly, value); }
-    public LobbyPopup? Lobby { get => _lobby; private set => Set(ref _lobby, value); }
-    public double LobbyTop { get => _lobbyTop; private set => Set(ref _lobbyTop, value); }
-    public double LobbyLeft { get => _lobbyLeft; private set => Set(ref _lobbyLeft, value); }
+    /// <summary>
+    /// The opponent under the mouse on the leaderboard ("lobby-popup"); null when none. The odds share its spot at the
+    /// top centre and hide while it shows (<see cref="ShowOdds"/>).
+    /// </summary>
+    public LobbyPopup? Lobby
+    {
+        get => _lobby;
+        private set
+        {
+            if (Set(ref _lobby, value))
+            {
+                ShowOdds = _oddsWanted && value is null;
+                Raise(nameof(ShowLobbyPopup));
+            }
+        }
+    }
 
     /// <summary>Current Battlegrounds game is Duos (the leaderboard is laid out in teams).</summary>
     public bool IsDuos { get; private set; }
@@ -354,7 +366,8 @@ public sealed partial class OverlayViewModel : Observable
         var playing = overlayBg is { IsHeroSelection: false, HeroCardId: not null } && ShowPickPanels;
         ShowTrinkets = playing && overlayBg!.TrinketOptions.Count > 0;
         ShowDiscover = playing && overlayBg!.DiscoverAdvice.Count > 0;
-        ShowOdds = settings.ShowCombatOdds && bg is { InCombat: true, CombatOdds: not null };
+        _oddsWanted = settings.ShowCombatOdds && bg is { InCombat: true, CombatOdds: not null };
+        ShowOdds = _oddsWanted && Lobby is null;
         // Buy hints sit on the tavern row, so only while recruiting and while no choice covers the shop.
         ShowShop = playing && !overlayBg!.InCombat && overlayBg.TrinketOptions.Count == 0 && overlayBg.DiscoverOptions.Count == 0 && overlayBg.ShopAdvice.Count > 0;
         ShowLobby = bg is { IsHeroSelection: false } && settings.ShowLobbyPanel && bg.Opponents.Count > 0;

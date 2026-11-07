@@ -163,9 +163,9 @@ public sealed partial class OverlayViewModel
                 o.HeroCardId,
                 o.HeroName,
                 o.Health + o.Armor,
-                0,
                 o.TechLevel,
                 o.Triples,
+                // The player's last fight with them, from the player's side: what the player dealt or took.
                 o.LastResult switch { "Win" => Loc.F("Overlay.Lobby.Won", o.LastDamage), "Loss" => Loc.F("Overlay.Lobby.Lost", o.LastDamage), "Tie" => Loc.T("Overlay.Lobby.Tie"), _ => string.Empty },
                 o.LastResult ?? string.Empty,
                 o.IsNextOpponent,
@@ -174,25 +174,16 @@ public sealed partial class OverlayViewModel
             .ToList();
         if (view.HeroCardId is { } hero)
         {
-            rows.Add(WithMainTribe(new LobbyRow(view.Place, hero, _cards.NameOf(hero), view.Health + view.Armor, 0, view.TechLevel, view.Triples,
+            rows.Add(WithMainTribe(new LobbyRow(view.Place, hero, _cards.NameOf(hero), view.Health + view.Armor, view.TechLevel, view.Triples,
                 string.Empty, string.Empty, false, view.Health <= 0, true), view.Board, view.Races));
         }
 
-        // Empty during hero selection: no opponents seen and no hero picked yet.
-        var top = Math.Max(1, rows.Select(r => r.Health).DefaultIfEmpty(0).Max());
         // In place: a fight changes one or two rows, and the others keep their portraits.
-        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}{r.Tribe?.Key}{r.TribeCount}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
-            .Select(r => r with { HealthFraction = r.Dead ? 0 : Math.Clamp(r.Health / (double)top, 0.04, 1) })
+        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}{r.Tribe?.Key}{r.Tribe?.Plural}{r.TribeCount}{r.BoardCount}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
             .OrderBy(r => Places.SortKey(r.Place))
             .ToList()));
 
-        var session = snapshot.Session;
-        SessionRating = session.StartRating is { } start && session.CurrentRating is { } now
-            ? $"{start:N0} → {now:N0}"
-            : Rating;
-        var cut = view.IsDuos ? 2 : 4;
-        Replace(nameof(SessionPlaces), session.Placements, p => p.ToString(CultureInfo.InvariantCulture), () =>
-            SessionPlaces = session.Placements.TakeLast(12).Select(p => new PlaceChip(p, p <= cut)).ToList());
+        UpdateSession(view, snapshot);
     }
 
     // Tavern row geometry in 1080-unit overlay space (HDT: minion 0.12H plus a 0.0039H margin each side).

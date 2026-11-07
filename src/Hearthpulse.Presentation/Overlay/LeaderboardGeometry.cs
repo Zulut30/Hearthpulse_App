@@ -22,7 +22,7 @@ public static class LeaderboardGeometry
     /// </summary>
     public static double Left(double surfaceWidth, double surfaceHeight) => Math.Max(0, (surfaceWidth - (surfaceHeight * 4.0 / 3.0)) / 2);
 
-    /// <summary>Left edge of what is drawn beside the tiles (the hover popup, the badges).</summary>
+    /// <summary>Left edge of what is drawn beside the tiles (the badges).</summary>
     public static double Beside(double surfaceWidth, double surfaceHeight, AppSettings settings) =>
         Left(surfaceWidth, surfaceHeight) + ((settings.LeaderboardWidth + Gap) * surfaceHeight);
 
@@ -71,13 +71,6 @@ public static class LeaderboardGeometry
 
         return 0;
     }
-
-    /// <summary>Top of the opponent-board popup for the pointer at overlay <paramref name="y"/>: a little above it, on the surface.</summary>
-    public static double PopupTop(double y, double surfaceHeight) => Math.Clamp(y - 40, 8, Math.Max(8, surfaceHeight - 240));
-
-    /// <summary>Top of the popup shown for place <paramref name="slot"/> (1..8) without a pointer (off-screen renders).</summary>
-    public static double SlotPopupTop(int slot, double surfaceHeight, AppSettings settings, bool duos) =>
-        Math.Max(8, Tile(slot - 1, surfaceHeight, settings, duos).Top - 20);
 
     /// <summary>
     /// The calibration guides (Settings: "Show leaderboard guides"): one frame per tile, a pixel inside it top and

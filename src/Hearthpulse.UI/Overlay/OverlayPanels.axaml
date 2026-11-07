@@ -351,22 +351,6 @@
         </Panel>
     </DataTemplate>
 
-    <!-- Opponent's minion in the leaderboard popup: a mini card with its attack and health on it, as on the board -->
-    <DataTemplate x:Key="LobbyMinionTemplate" x:DataType="o:LobbyMinion">
-        <Panel Width="60" Height="84" Margin="1,0">
-            <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="60" Height="84" Stretch="Uniform" />
-            <Border BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" IsVisible="{Binding Golden}" />
-            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
-                <TextBlock Text="{Binding Attack}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TierS}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
-                <TextBlock Text="{Binding Health}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-        </Panel>
-    </DataTemplate>
-
     <ItemsPanelTemplate x:Key="HRow">
         <StackPanel Orientation="Horizontal" />
     </ItemsPanelTemplate>

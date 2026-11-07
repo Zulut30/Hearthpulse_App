@@ -45,17 +45,17 @@ public partial class App
     /// <paramref name="name"/> again on the 16:10 and 4:3 game screens (<see cref="VisualBaseline.Screens"/>), so no
     /// panel runs off a narrower screen or into another there (D5).
     /// </summary>
-    private async Task RenderOtherScreensAsync(string folder, string name)
+    private async Task RenderOtherScreensAsync(string folder, string name, int hover = 0)
     {
         foreach (var (screen, width, height) in VisualBaseline.Screens.Skip(1))
         {
-            await _overlay.RenderToFileAsync(Path.Combine(folder, $"{name}-{screen}.png"), width, height, 0);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, $"{name}-{screen}.png"), width, height, hover);
         }
     }
 
     /// <summary>
-    /// <c>overlay-pick</c>, <c>-trinket</c>, <c>-discover</c>, <c>-game</c> (with the third place's board open) and
-    /// <c>-bg-counters</c>: moments replayed from the newest kept Battlegrounds log; a moment it never reaches is skipped.
+    /// <c>overlay-pick</c>, <c>-trinket</c>, <c>-discover</c>, <c>-game</c> (with the third place's board open; then
+    /// <c>-game-badges</c> without it) and <c>-bg-counters</c>: moments replayed from the newest kept Battlegrounds log; a moment it never reaches is skipped.
     /// </summary>
     private async Task RenderBattlegroundsMomentsAsync(string folder)
     {
@@ -90,7 +90,10 @@ public partial class App
             await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
             if (name == "overlay-game")
             {
-                await RenderOtherScreensAsync(folder, name);
+                // The popup stays on the narrower screens (it shares the top centre with the odds), then the leaderboard
+                // labels alone: they hide while the mouse is on a tile.
+                await RenderOtherScreensAsync(folder, name, hover);
+                await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-game-badges.png"), 1920, 1080, 0);
             }
         }
     }

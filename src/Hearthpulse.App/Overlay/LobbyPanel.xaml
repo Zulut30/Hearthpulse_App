@@ -4,41 +4,50 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
     <!-- The Battlegrounds lobby list (MovablePanel "lobby" and the OBS window "Hearthpulse — Lobby", docs/streaming.md): every
-         player by place with hero, health, tavern tier and last fight. DataContext: OverlayViewModel (inherited). Tokens only. -->
+         player by place under column headings - place, hero, tavern tier, health and the player's own last fight with them
+         in words. "You" and "Next" plates say which row is which. DataContext: OverlayViewModel (inherited). Tokens only. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="OverlayLook.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <i:KeyBrush x:Key="KeyBrush" />
-            <i:FractionWidth x:Key="Fraction" />
+            <i:VisibleWhen x:Key="Vis" />
 
+            <!-- Place | portrait | hero (wraps) | tavern | health | your fight: the same columns as the headings -->
             <DataTemplate x:Key="LobbyRowTemplate" DataType="{x:Type o:LobbyRow}">
-                <Grid x:Name="RowRoot" Height="28" Margin="0,0,0,2">
+                <Grid x:Name="RowRoot" MinHeight="28" Margin="0,0,0,2">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="32" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="42" />
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="92" />
                     </Grid.ColumnDefinitions>
-                    <Border x:Name="Bg" Grid.ColumnSpan="5" CornerRadius="6" Background="Transparent" Margin="-5,0" />
-                    <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,6,0">
-                        <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="11.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                        <Border Height="2" CornerRadius="1" Background="{StaticResource Surface3}" Margin="0,3,0,0">
-                            <Border HorizontalAlignment="Left" CornerRadius="1" Background="{StaticResource Positive}"
-                                    Width="{Binding HealthFraction, Converter={StaticResource Fraction}, ConverterParameter=96}" />
+                    <Border x:Name="Bg" Grid.ColumnSpan="6" CornerRadius="6" Background="Transparent" Margin="-5,0" />
+                    <TextBlock x:Name="Place" Text="{Binding Place}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                               VerticalAlignment="Center" />
+                    <Border x:Name="Portrait" Grid.Column="1" Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                            i:CardArt.Portrait="{Binding HeroCardId}" />
+                    <WrapPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,2,8,2">
+                        <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                                   TextWrapping="Wrap" MaxWidth="150" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <Border Style="{StaticResource Pill}" Padding="6,1" VerticalAlignment="Center" Visibility="{Binding You, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{i:Loc Overlay.Lobby.You}" FontSize="{StaticResource FontSizeMicro}" FontWeight="Bold" Foreground="{StaticResource Accent}" />
                         </Border>
-                    </StackPanel>
-                    <Border Grid.Column="3" Width="19" Height="18" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Common.TavernTier}">
-                        <TextBlock Text="{Binding Tier}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding Health}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                        <TextBlock Text="{Binding Last}" FontSize="9.5" HorizontalAlignment="Right" Foreground="{Binding LastKey, Converter={StaticResource KeyBrush}}" />
-                    </StackPanel>
+                        <Border Background="{StaticResource Accent}" CornerRadius="4" Padding="6,1" VerticalAlignment="Center" Visibility="{Binding Next, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{i:Loc Overlay.Lobby.Next}" FontSize="{StaticResource FontSizeMicro}" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                        </Border>
+                    </WrapPanel>
+                    <TextBlock x:Name="Tier" Grid.Column="3" Text="{Binding Tier}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <TextBlock x:Name="Health" Grid.Column="4" Text="{Binding Health}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                               Foreground="{StaticResource Text}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock x:Name="Out" Grid.Column="4" Text="{i:Loc Overlay.Lobby.Out}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Collapsed" />
+                    <TextBlock Grid.Column="5" Text="{Binding Last}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Foreground="{Binding LastKey, Converter={StaticResource KeyBrush}}" />
                 </Grid>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Next}" Value="True">
@@ -46,28 +55,49 @@
                         <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentLine}" />
                         <Setter TargetName="Bg" Property="BorderThickness" Value="1" />
                     </DataTrigger>
-                    <DataTrigger Binding="{Binding You}" Value="True">
-                        <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Accent}" />
+                    <DataTrigger Binding="{Binding LowHealth}" Value="True">
+                        <Setter TargetName="Health" Property="Foreground" Value="{StaticResource Negative}" />
                     </DataTrigger>
+                    <!-- Out: the portrait fades, the texts turn muted (a faded text would drop below AA), "Out" in place of the health -->
                     <DataTrigger Binding="{Binding Dead}" Value="True">
-                        <Setter TargetName="RowRoot" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Portrait" Property="Opacity" Value="0.5" />
+                        <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Muted}" />
+                        <Setter TargetName="Tier" Property="Foreground" Value="{StaticResource Muted}" />
+                        <Setter TargetName="Health" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Out" Property="Visibility" Value="Visible" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource OverlayCard}" Width="230">
+    <Border Style="{StaticResource OverlayCard}" Width="410">
         <StackPanel>
-            <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
             <Border Style="{StaticResource OverlayHeader}">
                 <DockPanel>
                     <TextBlock Text="&#xF126F;" Style="{StaticResource OverlayHeaderIcon}" />
-                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Style="{StaticResource OverlayHeaderNote}" Margin="8,0,0,0" VerticalAlignment="Center" />
                     <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Style="{StaticResource OverlayHeaderTitle}" />
                 </DockPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
+            <!-- Column headings, on the rows' columns -->
+            <Grid Margin="12,6,12,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="52" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="92" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{i:Loc Overlay.Lobby.ColPlace}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                <TextBlock Grid.Column="1" Text="{i:Loc Overlay.Lobby.ColHero}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                <TextBlock Grid.Column="2" Text="{i:Loc Overlay.Lobby.ColTier}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="3" Text="{i:Loc Overlay.Lobby.ColHealth}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="4" Text="{i:Loc Overlay.Lobby.ColFight}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           HorizontalAlignment="Right" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,2,12,8" />
         </StackPanel>
     </Border>
 </UserControl>

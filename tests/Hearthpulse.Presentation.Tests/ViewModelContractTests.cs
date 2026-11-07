@@ -319,12 +319,12 @@ public sealed class ViewModelContractTests
         model.CloseBrowser.Execute(null);
         Assert.Equal(0, (int)model.SelectedTier);
 
-        model.HoverLeaderboard(4, 100.0, 200.0);
+        model.HoverLeaderboard(4);
         var popup = model.Lobby;
         Assert.Equal("Win", (string)popup.ResultKey);
-        Assert.Equal("Won · dealt 6", (string)popup.LastResult);
+        Assert.Equal("won, dealt 6", (string)popup.LastResult);
         Assert.Equal(new[] { "Loss", "Win" }, ((IEnumerable<dynamic>)popup.History).Select(d => (string)d.Result));
-        Assert.Equal(("#4", "30 HP", "tier 3", "triples 0"), ((string)popup.PlaceText, (string)popup.HealthText, (string)popup.TierText, (string)popup.TriplesText));
+        Assert.Equal("Place 4 · 30 HP", (string)popup.Summary);
         Assert.Equal(2, ((IEnumerable<dynamic>)popup.Board).Count());
     }
 

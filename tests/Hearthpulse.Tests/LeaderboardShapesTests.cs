@@ -52,9 +52,6 @@ public sealed class LeaderboardShapesTests
                 Assert.Equal(i + 1, LeaderboardGeometry.SlotAt(left + (column / 2), middle, width, height, settings, duos));
                 Assert.Equal(0, LeaderboardGeometry.SlotAt(left + column + 1, middle, width, height, settings, duos));
                 Assert.Equal(0, LeaderboardGeometry.SlotAt(left - 9, middle, width, height, settings, duos));
-
-                var popup = LeaderboardGeometry.SlotPopupTop(i + 1, height, settings, duos);
-                Assert.InRange(popup, 8, top);
             }
 
             Assert.Equal(0, LeaderboardGeometry.SlotAt(left + (column / 2), height - 1, width, height, settings, duos));
@@ -65,12 +62,4 @@ public sealed class LeaderboardShapesTests
             });
         }
     }
-
-    [Theory]
-    [InlineData(0, 1080, 8)]
-    [InlineData(500, 1080, 460)]
-    [InlineData(1079, 1080, 840)]
-    [InlineData(100, 200, 8)] // a surface too small for the popup: it stays at the top
-    public void The_board_popup_opens_a_little_above_the_pointer_and_stays_on_the_surface(double y, double height, double top) =>
-        Assert.Equal(top, LeaderboardGeometry.PopupTop(y, height));
 }

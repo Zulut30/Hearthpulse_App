@@ -157,8 +157,6 @@ public sealed class UxRound2MarkupTests
         // Follows the hand card or Discover option it is about; the same pool is the movable "card-pool" panel too.
         ("card pool at its card", e => e.Name.LocalName == "Canvas"
             && e.Elements().Any(c => c.Name.LocalName == "CardPoolPanel" && (string?)c.Attribute("Anchored") == "True")),
-        // Opens at the hovered leaderboard portrait.
-        ("leaderboard hover", e => e.Name.LocalName == "Canvas" && NameOf(e) == "LobbyLayer"),
         // Shows only while the leaderboard is calibrated.
         ("calibration guides", e => e.Name.LocalName == "Canvas" && NameOf(e) == "GuideLayer"),
         // Layout mode's own banner.
@@ -214,13 +212,22 @@ public sealed class UxRound2MarkupTests
 
         var wpf = Panels(WpfOverlay);
         var ava = Panels(AvaOverlay);
-        Assert.Equal(28, wpf.Count);
+        Assert.Equal(29, wpf.Count);
         Assert.Equal(wpf.Order(), ava.Order());
     }
 
     /// <summary>The overlay panels that are lists under a header (not strips like the Battlegrounds bar or a timer).</summary>
     private static readonly string[] ListPanels =
         ["deck", "opponent", "opponent-archetype", "secrets", "ladder-session", "card-pool", "arena-draft", "lobby", "bg-lobby"];
+
+    /// <summary>
+    /// List panels whose columns carry their own headings under the band instead of a muted line in it, with the headings'
+    /// keys: the check is that they are there.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> ColumnHeadingPanels = new(StringComparer.Ordinal)
+    {
+        ["lobby"] = ["Overlay.Lobby.ColPlace", "Overlay.Lobby.ColHero", "Overlay.Lobby.ColTier", "Overlay.Lobby.ColHealth", "Overlay.Lobby.ColFight"],
+    };
 
     /// <summary>
     /// One header for every list panel: the gold band first in the card, then an optional glyph, the title and a muted line
@@ -263,7 +270,19 @@ public sealed class UxRound2MarkupTests
                 }
 
                 Assert.Contains("title", parts);
-                Assert.Contains("note", parts);
+                if (ColumnHeadingPanels.TryGetValue(id, out var headings))
+                {
+                    // No muted line in the band: the column headings, right under it and in the same card, say what is listed.
+                    Assert.DoesNotContain("note", parts);
+                    var texts = card.Descendants().Where(e => e.Name.LocalName == "TextBlock").Select(e => (string?)e.Attribute("Text")).ToList();
+                    Assert.All(headings, key => Assert.Contains("{i:Loc " + key + "}", texts));
+                    Assert.All(headings, key => Assert.True(Loc.Has(key), key));
+                }
+                else
+                {
+                    Assert.Contains("note", parts);
+                }
+
                 headers[id] = string.Join(",", parts.Distinct().Order(StringComparer.Ordinal));
             }
 
@@ -296,9 +315,9 @@ public sealed class UxRound2MarkupTests
         // The strips without a header (the Battlegrounds bar's turn, the session, the turn timers) label their figures alike.
         foreach (var (file, text) in new[]
                  {
-                     ("src/Hearthpulse.App/Overlay/BattlegroundsBarPanel.xaml", "{i:Loc Overlay.Bar.Turn}"), (WpfOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.App/Overlay/BattlegroundsBarPanel.xaml", "{i:Loc Overlay.Bar.Turn}"), ("src/Hearthpulse.App/Overlay/SessionPanel.xaml", "{i:Loc Overlay.Session.Title}"),
                      ("src/Hearthpulse.App/Overlay/TurnTimerPanel.xaml", "{Binding Label}"),
-                     ("src/Hearthpulse.UI/Overlay/BattlegroundsBarPanel.axaml", "{i:Loc Overlay.Bar.Turn}"), (AvaOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.UI/Overlay/BattlegroundsBarPanel.axaml", "{i:Loc Overlay.Bar.Turn}"), ("src/Hearthpulse.UI/Overlay/SessionPanel.axaml", "{i:Loc Overlay.Session.Title}"),
                      ("src/Hearthpulse.UI/Overlay/TurnTimerPanel.axaml", "{Binding Label}"),
                  })
         {

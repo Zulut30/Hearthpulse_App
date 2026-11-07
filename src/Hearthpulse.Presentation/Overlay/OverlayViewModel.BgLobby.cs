@@ -1,5 +1,6 @@
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 #if HEARTHPULSE_WPF
@@ -9,7 +10,7 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>
-/// The compact Battlegrounds lobby panel ("bg-lobby"): the lobby's tribes as icons, then every player's tavern tier
+/// The compact Battlegrounds lobby panel ("bg-lobby"): the lobby's tribes in words, then every player's tavern tier
 /// and the main tribe of the board last seen (<see cref="LobbyRows"/>). An opponent's board is known only after a
 /// fight with them, as in the game, so their tribe stays empty until then.
 /// </summary>
@@ -40,7 +41,7 @@ public sealed partial class OverlayViewModel
 
     /// <summary><paramref name="row"/> with the main tribe of <paramref name="board"/> (none for an empty board).</summary>
     private LobbyRow WithMainTribe(LobbyRow row, IReadOnlyList<BgMinion> board, IReadOnlyList<string> lobby) =>
-        MainTribe(board, lobby) is { } main ? row with { Tribe = main.Tribe, TribeCount = main.Count } : row;
+        MainTribe(board, lobby) is { } main ? row with { Tribe = main.Tribe, TribeCount = main.Count, BoardCount = board.Count } : row with { BoardCount = board.Count };
 
     /// <summary>
     /// The tribe most minions of <paramref name="board"/> have, and how many: a minion of every tribe (amalgam) adds one
@@ -88,21 +89,13 @@ public sealed partial class OverlayViewModel
         }
     }
 
-    private TribeIcon ToTribeIcon(string race) => new(race, Races.Display(race, _locale), TribeGlyph(race));
-
-    /// <summary>Material Design Icons glyph of a tribe (checked against the bundled font).</summary>
-    private static string TribeGlyph(string race) => race switch
+    /// <summary>
+    /// A tribe in words: the game's name for one minion, and the plural for a count of them (the
+    /// <c>Overlay.LeaderboardBadge.Tribe.*</c> keys; a tribe without one falls back to the singular).
+    /// </summary>
+    private TribeIcon ToTribeIcon(string race)
     {
-        "BEAST" => "\U000F03E9", // paw
-        "DEMON" => "\U000F0C6F", // emoticon-devil
-        "DRAGON" => "\U000F1362", // google-downasaur
-        "ELEMENTAL" => "\U000F0238", // fire
-        "MECHANICAL" => "\U000F06A9", // robot
-        "MURLOC" => "\U000F023A", // fish
-        "NAGA" => "\U000F150E", // snake
-        "PIRATE" => "\U000F0A08", // pirate
-        "QUILBOAR" => "\U000F1006", // pig-variant
-        "UNDEAD" => "\U000F068C", // skull
-        _ => "\U000F070B", // rhombus: a tribe without an icon of its own
-    };
+        var name = Races.Display(race, _locale);
+        return new TribeIcon(race, name, Loc.Or("Overlay.LeaderboardBadge.Tribe." + race, name));
+    }
 }

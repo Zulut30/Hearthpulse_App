@@ -113,7 +113,12 @@ internal static partial class OffscreenRenderer
             await Save(overlay, Path.Combine(folder, name + ".png"));
             if (name == "overlay-game")
             {
+                // The popup stays on the narrower screens (it shares the top centre with the odds), then the leaderboard
+                // labels alone: they hide while the mouse is on a tile.
                 await SaveOtherScreensAsync(overlay, overlayView, folder, name);
+                overlayView.Fit(1920, 1080);
+                overlayView.ShowLeaderboardSlot(0);
+                await Save(overlay, Path.Combine(folder, "overlay-game-badges.png"));
             }
         }
     }
