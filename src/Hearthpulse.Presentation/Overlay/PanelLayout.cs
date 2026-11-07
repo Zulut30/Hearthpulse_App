@@ -66,17 +66,14 @@ public static class PanelLayout
     /// <summary>The height of the strip with the name tag and the panel's buttons; it reaches to the panel.</summary>
     public const double TagHeight = 26;
 
-    /// <summary>The height of the tag's row of buttons in the strip.</summary>
-    public const double TagRowHeight = 19;
-
     /// <summary>How far under the panel the tag's row starts: clear of the corner marker, which reaches 6 below it.</summary>
     public const double TagBelowGap = 8;
 
     /// <summary>
     /// Where a panel's name tag with its buttons goes (<see cref="TagHeight"/> strip), as an offset from the panel's
-    /// top-left corner in surface units, the panel's at its <paramref name="scale"/> and the tag
-    /// <paramref name="tagWidth"/> wide on screen; <paramref name="scale"/> is the tag's own scale (1 when it does not
-    /// scale with the panel).
+    /// top-left corner in surface units: the panel as it is on screen, the tag <paramref name="tagWidth"/> wide with its
+    /// row of buttons <paramref name="rowHeight"/> high; <paramref name="scale"/> is the tag's own scale (1 when it does
+    /// not scale with the panel).
     /// <list type="bullet">
     /// <item>Above the panel when there is room for the strip above it; else under it, its row
     /// <see cref="TagBelowGap"/> under the panel's bottom (<c>Below</c>: the row keeps to the strip's bottom); else, a
@@ -86,7 +83,7 @@ public static class PanelLayout
     /// </list>
     /// </summary>
     public static (double X, double Y, bool Below, bool Right) TagSpot(
-        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double scale,
+        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double rowHeight, double scale,
         double surfaceWidth, double surfaceHeight)
     {
         var inset = TagInset * scale;
@@ -105,10 +102,10 @@ public static class PanelLayout
         {
             y = -TagHeight * scale;
         }
-        else if (panelY + panelHeight + ((TagBelowGap + TagRowHeight) * scale) <= surfaceHeight)
+        else if (panelY + panelHeight + (TagBelowGap * scale) + rowHeight <= surfaceHeight)
         {
             below = true;
-            y = panelHeight + ((TagBelowGap + TagRowHeight - TagHeight) * scale);
+            y = panelHeight + ((TagBelowGap - TagHeight) * scale) + rowHeight;
         }
         else
         {

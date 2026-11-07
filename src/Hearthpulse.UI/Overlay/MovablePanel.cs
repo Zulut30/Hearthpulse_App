@@ -304,7 +304,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
 
         var origin = TopLeft();
         var (x, y, below, right) = PanelLayout.TagSpot(origin.X, origin.Y, Bounds.Width, Bounds.Height,
-            _chrome.DesiredSize.Width, 1, bounds.Width, bounds.Height);
+            _chrome.DesiredSize.Width, _tagRow?.DesiredSize.Height ?? 18, 1, bounds.Width, bounds.Height);
         var offset = new Point(Math.Round(x, 1), Math.Round(y, 1));
         if (_strip.Offset != offset)
         {

@@ -249,7 +249,10 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         _strip = _chrome?.Parent as PanelTagStrip;
         if (_chrome is not null)
         {
-            _chrome.IsVisibleChanged += (_, _) => FollowTag();
+            // Its own visibility, set by the template's triggers: IsVisible also waits for a shown window.
+            System.ComponentModel.DependencyPropertyDescriptor.FromProperty(VisibilityProperty, typeof(FrameworkElement))
+                .AddValueChanged(_chrome, (_, _) => FollowTag());
+            FollowTag();
         }
 
         _grip = GetTemplateChild("PART_Grip") as FrameworkElement;
@@ -292,7 +295,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     /// </summary>
     private void FollowTag()
     {
-        var follow = _chrome is { IsVisible: true };
+        var follow = _chrome is { Visibility: Visibility.Visible };
         if (follow == _followingTag)
         {
             return;
@@ -335,7 +338,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
 
         var origin = TopLeft();
         var (x, y, below, right) = PanelLayout.TagSpot(origin.X, origin.Y, ActualWidth * scale, ActualHeight * scale,
-            _chrome.DesiredSize.Width * scale, scale, surface.ActualWidth, surface.ActualHeight);
+            _chrome.DesiredSize.Width * scale, (_tagRow?.DesiredSize.Height ?? 19) * scale, scale, surface.ActualWidth, surface.ActualHeight);
         var offset = new Point(Math.Round(x / scale, 1), Math.Round(y / scale, 1));
         if (_strip.Offset != offset)
         {
