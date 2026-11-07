@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.SessionPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- The Battlegrounds session ("session", top right, DataContext: the overlay view model): "Session  MMR 6,751 → 6,779 +28",
+         then the places of the session's games. Same tree as SessionPanel.xaml. Tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Overlay/OverlayPanels.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Border Classes="overlayCard" Padding="12,8" MaxWidth="520">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{i:Loc Overlay.Session.Title}" Classes="headerNote" VerticalAlignment="Center" Margin="0" />
+                <TextBlock Text="{i:Loc Overlay.Session.Mmr}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                           Margin="12,0,6,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SessionRating}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SessionDelta}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
+                           Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}"
+                           IsVisible="{Binding SessionDelta, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" IsVisible="{Binding SessionPlaces, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Session.Places}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,0,8,0"
+                           VerticalAlignment="Center" />
+                <ItemsControl ItemsSource="{Binding SessionPlaces}" VerticalAlignment="Center" ItemsPanel="{StaticResource HRow}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:PlaceChip">
+                            <Border Classes="placeChip" Classes.top="{Binding Top}" Width="19" Height="19" CornerRadius="5" Margin="0,0,3,0">
+                                <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

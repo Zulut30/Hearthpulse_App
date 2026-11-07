@@ -113,7 +113,7 @@ internal sealed class OverlayWindow : Window
             {
                 _view.IsVisible = false;
                 _shown = false;
-                vm.HoverLeaderboard(0, 0, 0);
+                vm.HoverLeaderboard(0);
             }
 
             _platform.SetClickThrough(true);

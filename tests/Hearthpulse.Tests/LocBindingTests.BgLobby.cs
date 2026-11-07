@@ -60,7 +60,7 @@ public sealed partial class LocBindingTests
             Assert.DoesNotContain(rows[0].Children, c => Grid.GetColumn(c) == 3);
             string[] Visible(Grid row) => row.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? string.Empty).ToArray();
             // Alice: place, name, tier 4, three murlocs.
-            Assert.Equal(["1", "Alice", "4", model.LobbyRows[0].Tribe!.Glyph, "3"], Visible(rows[0]));
+            Assert.Equal(["1", "Alice", "4", "Murlocs: 3"], Visible(rows[0]));
             // The player's own row: no board, no tribe; the name in the accent colour.
             Assert.Equal(["2", "Me", "5"], Visible(rows[1]));
             Assert.Equal(app.FindResource("Accent"), rows[1].GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "HeroName").Foreground);

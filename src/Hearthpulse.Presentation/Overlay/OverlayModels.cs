@@ -66,55 +66,65 @@ public sealed record BrowserGroup(string Title, IReadOnlyList<BrowserCard> Cards
 
 public sealed record BrowserCard(string CardId, string Name) : IImmutableView;
 
-public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords) : IImmutableView;
+/// <summary>
+/// One minion of an opponent's last seen board in the leaderboard popup: a round portrait with its attack and health,
+/// the gold ring when golden and its tavern tier (the card's, 0 when unknown). No card text.
+/// </summary>
+public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, int Tier) : IImmutableView
+{
+    public bool HasTier => Tier > 0;
+}
 
 /// <summary>A lobby tribe on the tavern bar; <see cref="Selected"/> when the tier list shows only this tribe.</summary>
 public sealed record TribeChip(string Key, string Name, bool Selected) : IImmutableView;
 
-/// <summary>A minion tribe with its Material Design Icons glyph (the lobby panel's tribes and main tribes).</summary>
-public sealed record TribeIcon(string Key, string Name, string Glyph) : IImmutableView;
+/// <summary>
+/// A minion tribe in words (the "bg-lobby" panel's tribes and every main tribe): <see cref="Name"/> as the game names
+/// one minion, <see cref="Plural"/> for a count of them ("Murlocs: 3"). No glyph: the tribe is always written out.
+/// </summary>
+public sealed record TribeIcon(string Key, string Name, string Plural) : IImmutableView;
 
+/// <summary>
+/// The opponent under the mouse on the leaderboard ("lobby-popup"): what the game's leaderboard shows (place, health,
+/// next opponent, out) and what the player's own fights with them revealed - the last one, the board last seen and how
+/// long ago, its main tribe. The tavern tier and triples are left to the game's own popup.
+/// </summary>
 public sealed record LobbyPopup(
     string HeroCardId,
     string HeroName,
-    int Health,
-    int Armor,
-    int Tier,
-    int Place,
-    int Triples,
-    string LastResult,
-    string LastSeen,
+    string Summary,
     bool NextOpponent,
     bool Dead,
     IReadOnlyList<LobbyMinion> Board) : IImmutableView
 {
-    /// <summary>The last fight with this opponent: Win, Loss or Tie, colouring its plate; empty before the first one.</summary>
+    /// <summary>The player's last fight with this opponent, from the player's side ("won, dealt 6"); empty before the first one.</summary>
+    public string LastResult { get; init; } = string.Empty;
+
+    /// <summary>Win, Loss or Tie of <see cref="LastResult"/> (the player's result), colouring it; empty with it.</summary>
     public string ResultKey { get; init; } = string.Empty;
 
     /// <summary>Every fight with this opponent so far, oldest first; shown once there are two or more.</summary>
     public IReadOnlyList<CombatDot> History { get; init; } = [];
 
-    /// <summary>The tribe most of the last seen board has ("Murloc ×4"); empty when no tribe stands out.</summary>
+    /// <summary>"Board seen 2 turns ago"; empty before a board was seen.</summary>
+    public string LastSeen { get; init; } = string.Empty;
+
+    /// <summary>The tribe most of the last seen board has ("Elementals: 2 of 6"); empty when no tribe has two minions.</summary>
     public string Tribe { get; init; } = string.Empty;
 
-    /// <summary>The icon of <see cref="Tribe"/>; empty with it.</summary>
-    public string TribeGlyph { get; init; } = string.Empty;
+    /// <summary>In place of the board: "Board not seen yet" or "No minions on the board"; empty when there is a board.</summary>
+    public string BoardNote { get; init; } = string.Empty;
 
-    public string PlaceText => $"#{Place}";
-
-    public string HealthText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.HpShort", Health);
-
-    public string TierText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TierShort", Tier);
-
-    public string TriplesText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TriplesShort", Triples);
+    public bool HasFight => LastResult.Length > 0;
 }
 
+/// <param name="Last">The player's last fight with this opponent from the player's side ("Won, +6"); empty for the player's own row and before a fight.</param>
+/// <param name="LastKey">Win, Loss or Tie of <paramref name="Last"/>, colouring it.</param>
 public sealed record LobbyRow(
     int Place,
     string HeroCardId,
     string Name,
     int Health,
-    double HealthFraction,
     int Tier,
     int Triples,
     string Last,
@@ -128,14 +138,27 @@ public sealed record LobbyRow(
 
     /// <summary>How many minions of <see cref="Tribe"/> that board had.</summary>
     public int TribeCount { get; init; }
+
+    /// <summary>How many minions that board had.</summary>
+    public int BoardCount { get; init; }
+
+    /// <summary>"Murlocs: 3" for the "bg-lobby" panel; empty without <see cref="Tribe"/>.</summary>
+    public string TribeText => Tribe is null ? string.Empty : Hearthpulse.Core.Localization.Loc.F("Overlay.BgLobby.TribeCount", Tribe.Plural, TribeCount);
+
+    /// <summary>Ten health or less while still in: drawn in the danger colour.</summary>
+    public bool LowHealth => !Dead && Health <= 10;
 }
 
 /// <summary>
-/// The badge beside one leaderboard tile: the player's tavern tier and the main tribe of the board last seen, from
-/// that player's <see cref="LobbyRow"/>. <see cref="Left"/>, <see cref="Top"/> and <see cref="Height"/> are the strip
-/// beside the tile in overlay units (<see cref="LeaderboardGeometry"/>); the badge centres on it.
+/// The label beside one leaderboard tile: "Tavern 5" and, once a fight showed the board and a tribe has two minions on
+/// it, "Quilboar: 4 of 7", from that player's <see cref="LobbyRow"/>. <see cref="Left"/>, <see cref="Top"/> and
+/// <see cref="Height"/> are the strip beside the tile in overlay units (<see cref="LeaderboardGeometry"/>); the label
+/// centres on it.
 /// </summary>
-public sealed record BgBadge(int Place, double Left, double Top, double Height, int Tier, TribeIcon? Tribe, int TribeCount, bool Dead) : IImmutableView;
+public sealed record BgBadge(int Place, double Left, double Top, double Height, int Tier, string Tribe) : IImmutableView
+{
+    public bool HasTribe => Tribe.Length > 0;
+}
 
 public sealed record PlaceChip(int Place, bool Top) : IImmutableView;
 

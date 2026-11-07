@@ -4,7 +4,7 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
     <!-- The compact lobby panel ("bg-lobby", DataContext: the overlay view model): the lobby's tribes, then one line per
-         player - place, portrait, hero, tavern tier and the main tribe of the board last seen with its count. -->
+         player - place, portrait, hero, tavern tier and the main tribe of the board last seen in words ("Murlocs: 3"). -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -13,7 +13,7 @@
             <i:VisibleWhen x:Key="Vis" />
         </ResourceDictionary>
     </UserControl.Resources>
-    <Border Style="{StaticResource OverlayCard}" Width="226">
+    <Border Style="{StaticResource OverlayCard}" Width="280">
         <StackPanel>
             <!-- The header every list panel has: glyph and title, "not confirmed" on the right while the tribes are a guess -->
             <Border Style="{StaticResource OverlayHeader}">
@@ -34,11 +34,8 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type o:TribeIcon}">
-                            <Border Height="20" CornerRadius="10" Padding="5,0,7,0" Margin="0,0,3,3" Background="{StaticResource Surface3}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,3,0" />
-                                    <TextBlock Text="{Binding Name}" FontSize="10.5" VerticalAlignment="Center" />
-                                </StackPanel>
+                            <Border Height="20" CornerRadius="10" Padding="7,0" Margin="0,0,3,3" Background="{StaticResource Surface3}">
+                                <TextBlock Text="{Binding Name}" FontSize="10.5" VerticalAlignment="Center" />
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -57,7 +54,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                                 <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
@@ -67,14 +64,9 @@
                                 <Border Grid.Column="4" Width="18" Height="16" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" HorizontalAlignment="Left">
                                     <TextBlock Text="{Binding Tier}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
-                                <!-- Empty until a board was seen: an opponent's only after a fight with them -->
-                                <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Visibility="{Binding Tribe, Converter={StaticResource Vis}}">
-                                    <Border Width="16" Height="16" CornerRadius="8" Background="{StaticResource Surface3}">
-                                        <TextBlock Text="{Binding Tribe.Glyph}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
-                                    </Border>
-                                    <TextBlock Text="{Binding TribeCount}" FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0,0,0" />
-                                </StackPanel>
+                                <!-- The main tribe in words ("Murlocs: 3"), empty until a board was seen: an opponent's only after a fight with them -->
+                                <TextBlock Grid.Column="5" Text="{Binding TribeText}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                           Margin="6,0,0,0" Visibility="{Binding Tribe, Converter={StaticResource Vis}}" />
                             </Grid>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding You}" Value="True">

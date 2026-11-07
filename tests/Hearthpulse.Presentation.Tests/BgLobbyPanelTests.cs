@@ -60,14 +60,14 @@ public sealed class BgLobbyPanelTests
         var tribes = ((IEnumerable<dynamic>)model.LobbyTribes).ToList();
         Assert.Equal(["DRAGON", "BEAST", "MURLOC"], tribes.Select(t => (string)t.Key));
         Assert.Equal(["Dragon", "Beast", "Murloc"], tribes.Select(t => (string)t.Name));
-        Assert.Equal(3, tribes.Select(t => (string)t.Glyph).Where(g => g.Length > 0).Distinct().Count());
+        Assert.Equal(["Dragons", "Beasts", "Murlocs"], tribes.Select(t => (string)t.Plural));
 
         var rows = ((IEnumerable<dynamic>)model.LobbyRows).ToList();
         Assert.Equal(["HERO_A", "HERO_ME", "HERO_B", "HERO_C", "HERO_D"], rows.Select(r => (string)r.HeroCardId));
         Assert.Equal([4, 3, 3, 2, 5], rows.Select(r => (int)r.Tier));
         // The amalgam adds one to each tribe on the board: three murlocs and the amalgam.
         Assert.Equal(("MURLOC", 4), ((string)rows[0].Tribe.Key, (int)rows[0].TribeCount));
-        Assert.Equal(tribes[2].Glyph, rows[0].Tribe.Glyph);
+        Assert.Equal("Murlocs: 4", (string)rows[0].TribeText);
         // The player's own row, from their own board.
         Assert.True((bool)rows[1].You);
         Assert.Equal(("BEAST", 1), ((string)rows[1].Tribe.Key, (int)rows[1].TribeCount));
@@ -76,14 +76,15 @@ public sealed class BgLobbyPanelTests
         // Never fought: nothing about the board.
         Assert.Null((object?)rows[3].Tribe);
         Assert.Equal(0, (int)rows[3].TribeCount);
+        Assert.Equal(string.Empty, (string)rows[3].TribeText);
         Assert.True((bool)rows[4].Dead);
         Assert.Equal(("DRAGON", 2), ((string)rows[4].Tribe.Key, (int)rows[4].TribeCount));
 
         // The leaderboard popup counts the same way; one minion of a tribe does not stand out there.
-        model.HoverLeaderboard(1, 100.0, 200.0);
-        Assert.Equal(("Murloc ×4", (string)rows[0].Tribe.Glyph), ((string)model.Lobby.Tribe, (string)model.Lobby.TribeGlyph));
-        model.HoverLeaderboard(3, 100.0, 200.0);
-        Assert.Equal((string.Empty, string.Empty), ((string)model.Lobby.Tribe, (string)model.Lobby.TribeGlyph));
+        model.HoverLeaderboard(1);
+        Assert.Equal("Murlocs: 4 of 6", (string)model.Lobby.Tribe);
+        model.HoverLeaderboard(3);
+        Assert.Equal(string.Empty, (string)model.Lobby.Tribe);
 
         // A language switch renames the tribes on the next snapshot.
         Loc.Instance.SetLanguage(Loc.Russian);
@@ -92,6 +93,7 @@ public sealed class BgLobbyPanelTests
             model.Update(Live(view), Cards, On(), null, null);
             Assert.Equal(["Дракон", "Зверь", "Мурлок"], ((IEnumerable<dynamic>)model.LobbyTribes).Select(t => (string)t.Name));
             Assert.Equal("Мурлок", (string)((IEnumerable<dynamic>)model.LobbyRows).First().Tribe.Name);
+            Assert.Equal("Мурлоки: 4", (string)((IEnumerable<dynamic>)model.LobbyRows).First().TribeText);
         }
         finally
         {
@@ -126,8 +128,8 @@ public sealed class BgLobbyPanelTests
         Assert.Equal(("MURLOC", 2), ((string)rows[3].Tribe.Key, (int)rows[3].TribeCount));
 
         // The popup has nothing to say about two amalgams either.
-        model.HoverLeaderboard(3, 100.0, 200.0);
-        Assert.Equal((string.Empty, string.Empty), ((string)model.Lobby.Tribe, (string)model.Lobby.TribeGlyph));
+        model.HoverLeaderboard(3);
+        Assert.Equal(string.Empty, (string)model.Lobby.Tribe);
     }
 
     [Theory]
@@ -183,12 +185,12 @@ public sealed class BgLobbyPanelTests
 
         string[] Shown(DependencyObject root) => Descendants<TextBlock>(root).Where(t => Visible(t, root)).Select(t => t.Text).ToArray();
         // The header first (glyph, "not confirmed" docked right, title), then the tribes.
-        Assert.Equal(["\U000F0849", "not confirmed", Loc.T("Overlay.BgLobby.Title"), "Tribes", model.LobbyTribes[0].Glyph, "Murloc", model.LobbyTribes[1].Glyph, "Beast"],
-            Shown(panel).Take(8));
+        Assert.Equal(["\U000F0849", "not confirmed", Loc.T("Overlay.BgLobby.Title"), "Tribes", "Murloc", "Beast"],
+            Shown(panel).Take(6));
 
         var rows = Descendants<Grid>(panel).Where(g => g.Name == "Row").ToList();
         Assert.Equal(3, rows.Count);
-        Assert.Equal(["1", "Alice", "4", model.LobbyRows[0].Tribe!.Glyph, "3"], Shown(rows[0]));
+        Assert.Equal(["1", "Alice", "4", "Murlocs: 3"], Shown(rows[0]));
         Assert.Equal(["2", "Me", "3"], Shown(rows[1]));
         Assert.Same(Application.Current.FindResource("Accent"), Descendants<TextBlock>(rows[1]).Single(t => t.Name == "Name").Foreground);
         Assert.Equal(["3", "Bob", "2"], Shown(rows[2]));

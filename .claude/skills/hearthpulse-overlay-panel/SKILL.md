@@ -9,7 +9,7 @@ The overlay is a transparent, click-through window over the game. Every panel is
 drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids. At `7657bb5` there are 26:
 `deck`, `opponent`, `opponent-archetype`, `ladder-session`, `turn-timer-opponent`, `turn-timer`, `opponent-hand`,
 `secrets`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan-bars`, `mulligan-summary`, `bgbar`,
-`hero-row`, `trinket-row`, `tavern-row`, `odds`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`,
+`hero-row`, `trinket-row`, `tavern-row`, `odds`, `lobby-popup`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`,
 `arena-draft`. The two surface files are authoritative; compare their `MovablePanel` Id sets after a change.
 Arena draft panels show in the `DRAFT` scene, outside games (`docs/arena-draft.md`).
 

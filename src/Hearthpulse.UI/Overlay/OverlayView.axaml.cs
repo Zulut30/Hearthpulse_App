@@ -307,7 +307,7 @@ public partial class OverlayView : UserControl
 
         if (pointer is not { } p || !vm.ShowBattlegrounds || !Settings.ShowOpponentBoards || vm.LayoutEditing)
         {
-            vm.HoverLeaderboard(0, 0, 0);
+            vm.HoverLeaderboard(0);
             return;
         }
 
@@ -315,15 +315,15 @@ public partial class OverlayView : UserControl
         var x = p.X / _scale;
         var y = p.Y / _scale;
         var units = Surface.Height;
-        var left = LeaderboardGeometry.Beside(Surface.Width, units, Settings);
-        var top = LeaderboardGeometry.PopupTop(y, units);
+        // The popup is the "lobby-popup" panel at the top centre: only who is under the mouse matters here.
+        var slot = LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, Settings, vm.IsDuos);
         if (hoveredHero is not null)
         {
-            vm.HoverLeaderboardHero(hoveredHero, top, left);
+            vm.HoverLeaderboardHero(hoveredHero, slot);
             return;
         }
 
-        vm.HoverLeaderboard(LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, Settings, vm.IsDuos), top, left);
+        vm.HoverLeaderboard(slot);
     }
 
     /// <summary>
@@ -341,17 +341,8 @@ public partial class OverlayView : UserControl
         return LeaderboardGeometry.Near(p.X / _scale, Surface.Width, Surface.Height, Settings);
     }
 
-    /// <summary>Shows the popup for one leaderboard place (off-screen rendering).</summary>
-    public void ShowLeaderboardSlot(int slot)
-    {
-        if (_viewModel is null || slot <= 0)
-        {
-            return;
-        }
-
-        _viewModel.HoverLeaderboard(slot, LeaderboardGeometry.SlotPopupTop(slot, Surface.Height, Settings, _viewModel.IsDuos),
-            LeaderboardGeometry.Beside(Surface.Width, Surface.Height, Settings));
-    }
+    /// <summary>Shows the popup for one leaderboard place, or none for 0 (off-screen rendering).</summary>
+    public void ShowLeaderboardSlot(int slot) => _viewModel?.HoverLeaderboard(Math.Max(0, slot));
 
     public void ApplyLayout()
     {

@@ -16,8 +16,8 @@ using AvaGeometry = Hearthpulse.UI.Overlay.LeaderboardGeometry;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// The badges beside the Battlegrounds leaderboard tiles ("bg-badges"): tavern tier and main tribe from the lobby rows,
-/// placed on the calibrated tiles, in both compiled overlays.
+/// The labels beside the Battlegrounds leaderboard tiles ("bg-badges"): "Tavern 4" and "Murlocs: 4 of 6" in words from
+/// the lobby rows, placed on the calibrated tiles, hidden while the mouse is on the leaderboard, in both compiled overlays.
 /// </summary>
 public sealed class BgBadgesTests
 {
@@ -63,34 +63,65 @@ public sealed class BgBadgesTests
 
         Assert.True((bool)model.ShowBgBadges);
         var badges = ((IEnumerable<dynamic>)model.BgBadges).ToList();
-        // The player is second on the leaderboard and has no badge of their own.
-        Assert.Equal([1, 3, 4, 5, 8], badges.Select(b => (int)b.Place));
-        Assert.Equal([4, 3, 2, 5, 5], badges.Select(b => (int)b.Tier));
+        // The player is second on the leaderboard and has no badge of their own; the player who is out has none either.
+        Assert.Equal([1, 3, 4, 5], badges.Select(b => (int)b.Place));
+        Assert.Equal([4, 3, 2, 5], badges.Select(b => (int)b.Tier));
 
         // One count for the lobby panels and the badges: every badge repeats its opponent's lobby row.
         var rows = ((IEnumerable<dynamic>)model.LobbyRows).Where(r => !(bool)r.You).ToDictionary(r => (int)r.Place);
         foreach (var badge in badges)
         {
-            var row = rows[(int)badge.Place];
-            Assert.Equal((string?)row.Tribe?.Key, (string?)badge.Tribe?.Key);
-            Assert.Equal((string?)row.Tribe?.Glyph, (string?)badge.Tribe?.Glyph);
-            Assert.Equal((int)row.TribeCount, (int)badge.TribeCount);
-            Assert.Equal((int)row.Tier, (int)badge.Tier);
-            Assert.Equal((bool)row.Dead, (bool)badge.Dead);
+            Assert.Equal((int)rows[(int)badge.Place].Tier, (int)badge.Tier);
         }
 
-        // Three murlocs and the amalgam; a tie goes to the lobby's first tribe; nothing before a fight or with amalgams only.
-        Assert.Equal(("MURLOC", 4), ((string)badges[0].Tribe.Key, (int)badges[0].TribeCount));
-        Assert.Equal(("DRAGON", 1), ((string)badges[1].Tribe.Key, (int)badges[1].TribeCount));
-        Assert.Null((object?)badges[2].Tribe);
-        Assert.Null((object?)badges[3].Tribe);
-        Assert.True((bool)badges[4].Dead);
-        Assert.Equal(("DRAGON", 2), ((string)badges[4].Tribe.Key, (int)badges[4].TribeCount));
+        // Three murlocs and the amalgam of six, in words; one minion of a tribe, no fight yet or amalgams only: the tier alone.
+        Assert.Equal(["Murlocs: 4 of 6", "", "", ""], badges.Select(b => (string)b.Tribe));
+        Assert.Equal([true, false, false, false], badges.Select(b => (bool)b.HasTribe));
 
-        // The hover popup names the same tribe.
-        model.HoverLeaderboard(1, 100.0, 200.0);
-        Assert.Equal($"Murloc ×4", (string)model.Lobby.Tribe);
-        Assert.Equal((string)badges[0].Tribe.Glyph, (string)model.Lobby.TribeGlyph);
+        // The hover popup names the same tribe the same way.
+        model.HoverLeaderboard(1);
+        Assert.Equal("Murlocs: 4 of 6", (string)model.Lobby.Tribe);
+    }
+
+    /// <summary>
+    /// The game draws its own popup right of the leaderboard while the mouse is on any tile, the player's own too: the
+    /// labels hide meanwhile and come back when the mouse leaves.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Badges_hide_while_the_mouse_is_on_the_leaderboard(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var settings = new AppSettings();
+        model.ArrangeLeaderboard(1920.0, 1080.0, settings);
+        model.Update(Live(Lobby([Murlocs, Tie])), Cards, settings, null, null);
+        Assert.True((bool)model.ShowBgBadges);
+
+        model.HoverLeaderboard(3);
+        Assert.False((bool)model.ShowBgBadges);
+        Assert.NotNull((object?)model.Lobby);
+
+        // The player's own tile: no popup of ours, but the game's is there.
+        model.HoverLeaderboard(2);
+        Assert.False((bool)model.ShowBgBadges);
+        Assert.Null((object?)model.Lobby);
+
+        // The hero read from the game counts too.
+        model.HoverLeaderboard(0);
+        model.HoverLeaderboardHero("HERO_A", 0);
+        Assert.False((bool)model.ShowBgBadges);
+
+        model.HoverLeaderboardHero(null, 0);
+        Assert.True((bool)model.ShowBgBadges);
+
+        // A new snapshot while hovered keeps them hidden.
+        model.HoverLeaderboard(1);
+        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = 4 }])), Cards, settings, null, null);
+        Assert.False((bool)model.ShowBgBadges);
+        model.HoverLeaderboard(0);
+        Assert.True((bool)model.ShowBgBadges);
     }
 
     [Theory]
@@ -103,17 +134,29 @@ public sealed class BgBadgesTests
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
         model.Update(Live(Lobby([Unseen])), Cards, settings, null, null);
-        Assert.Null((object?)((IEnumerable<dynamic>)model.BgBadges).Single().Tribe);
+        Assert.Equal(string.Empty, (string)((IEnumerable<dynamic>)model.BgBadges).Single().Tribe);
 
-        var fought = Unseen with { LastBoard = [M("BG_BEAST"), M("BG_BEAST")], LastBoardTurn = 7, LastResult = "Win", TechLevel = 3 };
+        var fought = Unseen with { LastBoard = [M("BG_BEAST"), M("BG_BEAST"), M("BG_NEUTRAL")], LastBoardTurn = 7, LastResult = "Win", TechLevel = 3 };
         model.Update(Live(Lobby([fought])), Cards, settings, null, null);
         var badge = ((IEnumerable<dynamic>)model.BgBadges).Single();
-        Assert.Equal(("BEAST", 2, 3), ((string)badge.Tribe.Key, (int)badge.TribeCount, (int)badge.Tier));
-        Assert.False((bool)badge.Dead);
+        Assert.Equal(("Beasts: 2 of 3", 3), ((string)badge.Tribe, (int)badge.Tier));
 
+        // Out of the game: the label goes.
         model.Update(Live(Lobby([fought with { Dead = true, Health = 0, Place = 8 }])), Cards, settings, null, null);
-        badge = ((IEnumerable<dynamic>)model.BgBadges).Single();
-        Assert.Equal((8, true), ((int)badge.Place, (bool)badge.Dead));
+        Assert.Empty((IEnumerable<dynamic>)model.BgBadges);
+        Assert.False((bool)model.ShowBgBadges);
+
+        // A language switch renames the tribe on the next snapshot.
+        Loc.Instance.SetLanguage(Loc.Russian);
+        try
+        {
+            model.Update(Live(Lobby([fought])), Cards, settings, null, null);
+            Assert.Equal("Звери: 2 из 3", (string)((IEnumerable<dynamic>)model.BgBadges).Single().Tribe);
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
     }
 
     [Theory]
@@ -171,7 +214,7 @@ public sealed class BgBadgesTests
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
         model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
         var badges = (object)model.BgBadges;
-        Assert.Equal(3, ((IEnumerable<dynamic>)model.BgBadges).Count());
+        Assert.Equal(2, ((IEnumerable<dynamic>)model.BgBadges).Count());
 
         var changes = new List<string?>();
         ((INotifyPropertyChanged)model).PropertyChanged += (_, e) => changes.Add(e.PropertyName);
@@ -236,8 +279,8 @@ public sealed class BgBadgesTests
         wpf.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
         ava.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
         Frame();
-        Assert.Equal(3, wpf.BgBadges.Count);
-        Assert.Equal(3, ava.BgBadges.Count);
+        Assert.Equal(2, wpf.BgBadges.Count);
+        Assert.Equal(2, ava.BgBadges.Count);
         Assert.Equal(0, Allocated(Frame));
     }
 
@@ -278,7 +321,7 @@ public sealed class BgBadgesTests
         var badges = ((IEnumerable<dynamic>)model.BgBadges).ToList();
         Assert.All(badges, b => Assert.Equal(leaderboardLeft + ((0.10 + 0.012) * 1080), (double)b.Left, 6));
         Assert.All(badges, b => Assert.Equal(slot, (double)b.Height, 6));
-        Assert.Equal(new[] { 162, 162 + (2 * slot), 162 + (7 * slot) }, badges.Select(b => (double)b.Top), new ToleranceComparer());
+        Assert.Equal(new[] { 162, 162 + (2 * slot) }, badges.Select(b => (double)b.Top), new ToleranceComparer());
 
         // Recalibrated in the settings: the next frame moves them.
         settings.LeaderboardTop = 0.2;
@@ -304,7 +347,7 @@ public sealed class BgBadgesTests
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
         model.Update(Live(Lobby([Murlocs, Tie, Dead], duos: true)), Cards, settings, null, null);
 
-        var expected = new[] { 0, 2, 7 }.Select(i => WpfGeometry.Tile(i, 1080, settings, duos: true)).ToList();
+        var expected = new[] { 0, 2 }.Select(i => WpfGeometry.Tile(i, 1080, settings, duos: true)).ToList();
         var badges = ((IEnumerable<dynamic>)model.BgBadges).ToList();
         Assert.Equal(expected.Select(t => t.Top), badges.Select(b => (double)b.Top));
         Assert.Equal(expected.Select(t => t.Height), badges.Select(b => (double)b.Height));
@@ -340,7 +383,7 @@ public sealed class BgBadgesTests
         Assert.Equal(162 + (8 * slot), last.Top + last.Height, 6);
     }
 
-    /// <summary>The WPF badge layer with data: on the tiles, tier and main tribe shown, the dead faded, the mouse never taken.</summary>
+    /// <summary>The WPF badge layer with data: on the tiles, "Tavern 4" and the main tribe in words, nobody who is out, the mouse never taken.</summary>
     [Fact]
     public void Wpf_badges_stand_on_the_tiles_and_bind_tier_and_tribe() => WpfThread.RunThemed(() =>
     {
@@ -361,24 +404,24 @@ public sealed class BgBadgesTests
 
         Assert.False(layer.IsHitTestVisible);
         var items = Descendants<ContentPresenter>(layer).Where(p => p.Content is Hearthpulse.App.Overlay.BgBadge).ToList();
-        Assert.Equal(3, items.Count);
+        Assert.Equal(2, items.Count);
         var slot = 0.69 / 8 * 1080;
         Assert.All(items, i => Assert.Equal(240 + (0.112 * 1080), Canvas.GetLeft(i), 6));
-        Assert.Equal(new[] { 162, 162 + (3 * slot), 162 + (7 * slot) }, items.Select(Canvas.GetTop), new ToleranceComparer());
+        Assert.Equal(new[] { 162, 162 + (3 * slot) }, items.Select(Canvas.GetTop), new ToleranceComparer());
         Assert.Equal(slot, items[0].Height, 6);
 
         string[] Shown(DependencyObject root) => Descendants<TextBlock>(root).Where(t => Visible(t, root)).Select(t => t.Text).ToArray();
-        Assert.Equal(["4", model.BgBadges[0].Tribe!.Glyph, "4"], Shown(items[0]));
-        Assert.Equal(["2"], Shown(items[1]));
-        Assert.Equal(["5", model.BgBadges[2].Tribe!.Glyph, "2"], Shown(items[2]));
+        Assert.Equal(["Tavern", "4", "Murlocs: 4 of 6"], Shown(items[0]));
+        Assert.Equal(["Tavern", "2"], Shown(items[1]));
+        // No icon font anywhere: the tribe is in words.
+        Assert.DoesNotContain(Descendants<TextBlock>(layer), t => t.Text.Any(char.IsSurrogate));
         var badges = Descendants<Grid>(layer).Where(g => g.Name == "Badge").ToList();
-        Assert.Equal([1.0, 1.0, 0.35], badges.Select(b => Math.Round(b.Opacity, 2)));
-        // Column 2 waits for the opponents' rating: sized to its content, empty for now.
-        Assert.True(badges[0].ColumnDefinitions[2].Width.IsAuto);
-        Assert.DoesNotContain(badges[0].Children.Cast<UIElement>(), c => Grid.GetColumn(c) == 2);
+        // Column 1 waits for the opponents' rating: sized to its content, empty for now.
+        Assert.True(badges[0].ColumnDefinitions[1].Width.IsAuto);
+        Assert.DoesNotContain(badges[0].Children.Cast<UIElement>(), c => Grid.GetColumn(c) == 1);
         // Centred on its tile.
-        var tier = Descendants<FrameworkElement>(items[0]).Single(b => b.Name == "Tier");
-        Assert.InRange(tier.TranslatePoint(new Point(0, tier.ActualHeight / 2), layer).Y, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
+        var label = Descendants<FrameworkElement>(items[0]).Single(b => b.Name == "Label");
+        Assert.InRange(label.TranslatePoint(new Point(0, label.ActualHeight / 2), layer).Y, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
     });
 
     /// <summary>Visible in the layer: neither the element nor any parent up to <paramref name="root"/> is collapsed.</summary>

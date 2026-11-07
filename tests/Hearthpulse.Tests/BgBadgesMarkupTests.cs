@@ -5,8 +5,9 @@ using Hearthpulse.Core.Localization;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// The leaderboard badges ("bg-badges") never take the mouse and sit under the hover popup, and their switch stands
-/// next to the lobby panel's in both settings pages. Read from the markup, so it runs on every platform.
+/// The leaderboard badges ("bg-badges") never take the mouse, sit under the hover popup and say everything in words (no
+/// tribe glyphs), and their switch stands next to the lobby panel's in both settings pages. Read from the markup, so it
+/// runs on every platform.
 /// </summary>
 public sealed class BgBadgesMarkupTests
 {
@@ -23,12 +24,28 @@ public sealed class BgBadgesMarkupTests
         var badges = Assert.Single(elements, e => e.Name.LocalName == "BgBadgesLayer");
         // Not a panel: it is not moved or armed with Ctrl, it follows the leaderboard calibration.
         Assert.DoesNotContain(badges.Ancestors(), e => e.Name.LocalName == "MovablePanel");
-        var popup = Assert.Single(elements, e => e.Name.LocalName == "Canvas" && NameOf(e) == "LobbyLayer");
+        Assert.DoesNotContain(elements, e => NameOf(e) == "LobbyLayer");
+        var popup = Assert.Single(elements, e => e.Name.LocalName == "MovablePanel" && (string?)e.Attribute("Id") == "lobby-popup");
         Assert.True(elements.IndexOf(badges) < elements.IndexOf(popup), "the hover popup must draw over the badges");
         Assert.Same(popup.Parent, badges.Parent);
         // The bottom layer of the surface: the tavern bar's tier list, the counters and the pick rows draw over it.
         Assert.Equal("Surface", NameOf(badges.Parent!));
         Assert.Same(badges, badges.Parent!.Elements().First(e => !e.Name.LocalName.Contains('.', StringComparison.Ordinal)));
+    }
+
+    /// <summary>The tribe is a word everywhere it was an icon: the badges, the popup and the "bg-lobby" panel.</summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay/BgBadgesLayer.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/BgBadgesLayer.axaml")]
+    [InlineData("src/Hearthpulse.App/Overlay/LobbyPopupPanel.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/LobbyPopupPanel.axaml")]
+    [InlineData("src/Hearthpulse.App/Overlay/BgLobbyPanel.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/BgLobbyPanel.axaml")]
+    public void Tribes_are_written_out_without_glyphs(string file)
+    {
+        var markup = File.ReadAllText(Path.Combine(RepoFiles.Root, file));
+        Assert.DoesNotContain("Glyph", markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("TribeCount}", markup, StringComparison.Ordinal);
     }
 
     [Theory]
