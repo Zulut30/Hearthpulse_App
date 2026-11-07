@@ -22,8 +22,41 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-/// <summary>A minion of the final board in the rating chart's hover card.</summary>
-public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden) : IImmutableView;
+/// <summary>
+/// A minion of the final board in the rating chart's hover card: attack and health each in its own badge on the
+/// portrait (<see cref="AttackText"/>, <see cref="HealthText"/>), the name and full numbers in its tooltip.
+/// </summary>
+public sealed record BoardMinionRow(string CardId, string Name, int Attack, int Health, bool Golden) : IImmutableView
+{
+    /// <summary>Numbers from here on are shortened to thousands, so a badge stays as wide as its column.</summary>
+    public const int ShortFrom = 10_000;
+
+    public string AttackText => Stat(Attack);
+
+    public string HealthText => Stat(Health);
+
+    /// <summary>The minion's name with its attack and health in full ("Name: 12 500 attack, 9 800 health").</summary>
+    public string Tip => Loc.F("Stats.Bg.MinionTip", Name, Attack.ToString("N0", Loc.DateCulture), Health.ToString("N0", Loc.DateCulture));
+
+    /// <summary>
+    /// A stat as the badge shows it: whole and without group separators up to 9 999 ("1240"), from
+    /// <see cref="ShortFrom"/> in thousands with one decimal ("12,5к" in Russian, "12.5k" in English, "12к" with no zero
+    /// decimal), from 100 000 in whole thousands ("125к"): at most five signs, which fit half a 64-unit column.
+    /// </summary>
+    public static string Stat(int value)
+    {
+        if (value > -ShortFrom && value < ShortFrom)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        var thousands = value / 1000.0;
+        var shown = Math.Abs(thousands) < 100
+            ? Math.Round(thousands, 1, MidpointRounding.AwayFromZero).ToString("0.#", Loc.DateCulture)
+            : Math.Round(thousands, MidpointRounding.AwayFromZero).ToString("0", Loc.DateCulture);
+        return Loc.F("Stats.Bg.Thousands", shown);
+    }
+}
 
 /// <summary>A Battlegrounds game on the rating chart, with what its hover card shows.</summary>
 public sealed record BgGamePoint(

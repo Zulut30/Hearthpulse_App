@@ -1,5 +1,8 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.UI;
+using Hearthpulse.UI.Controls;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Desktop;
@@ -29,6 +32,18 @@ internal static partial class OffscreenRenderer
                 .Last();
             view.HoverBattlegroundsGame(index);
             await Save(main, Path.Combine(folder, "main-battlegrounds-hover.png"));
+
+            // The same card with a late game's board: five-digit stats and a 40-letter hero name, which must not run together.
+            if (view.GetVisualDescendants().OfType<StatsLineChart>().FirstOrDefault(c => c.Name == "RatingChart") is { } chart)
+            {
+                var wide = bgPoints.ToList();
+                wide[index] = WideBoardSample.Apply((BgGamePoint)wide[index]);
+                chart.SetCurrentValue(StatsLineChart.PointsProperty, wide);
+                view.HoverBattlegroundsGame(index);
+                await Save(main, Path.Combine(folder, "main-battlegrounds-hover-wide.png"));
+                chart.SetCurrentValue(StatsLineChart.PointsProperty, bgPoints);
+            }
+
             view.HoverBattlegroundsGame(-1);
         }
 
@@ -53,4 +68,20 @@ internal static partial class OffscreenRenderer
         main.Width = 1260;
         main.Height = 840;
     }
+}
+
+/// <summary>A late game's final board for the rating chart's hover card: stats from three to five digits, a long hero name.</summary>
+internal static class WideBoardSample
+{
+    public static BgGamePoint Apply(BgGamePoint point) => point with
+    {
+        HeroName = Loc.Instance.Language == Loc.Russian
+            ? "Ноздорму на курорте в бухте Злачной Тени"
+            : "Nozdormu on vacation at the Gilded Cove!",
+        Board = [.. new[] { (186, 195), (373, 138), (955, 955), (1240, 1300), (12_500, 9800), (9999, 10_000), (99_960, 7) }
+            .Select((s, i) => new BoardMinionRow(
+                point.Board.Count > 0 ? point.Board[i % point.Board.Count].CardId : "BG21_001",
+                point.Board.Count > 0 ? point.Board[i % point.Board.Count].Name : "Minion",
+                s.Item1, s.Item2, Golden: i % 3 == 0))],
+    };
 }

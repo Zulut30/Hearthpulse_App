@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.Tests;
@@ -326,5 +327,47 @@ public sealed class MyStatsTests
         var run = Assert.Single(runs);
         Assert.Equal((7, 3, true), (run.Wins, run.Losses, run.Finished));
         Assert.Equal(7, run.DeckId);
+    }
+}
+
+/// <summary>The final board's badges in the rating chart's hover card: numbers that fit a 60-unit column in both languages.</summary>
+[Collection(nameof(GlobalLanguage))]
+public sealed class MyStatsBoardTests
+{
+    [Theory]
+    [InlineData(0, "0", "0")]
+    [InlineData(186, "186", "186")]
+    [InlineData(1240, "1240", "1240")]
+    [InlineData(9999, "9999", "9999")]
+    [InlineData(10_000, "10k", "10к")]
+    [InlineData(12_500, "12.5k", "12,5к")]
+    [InlineData(9800, "9800", "9800")]
+    [InlineData(99_960, "100k", "100к")]
+    [InlineData(125_400, "125k", "125к")]
+    [InlineData(-12_000, "-12k", "-12к")]
+    [InlineData(int.MinValue, "-2147484k", "-2147484к")]
+    public void Board_stats_are_whole_up_to_9999_and_in_thousands_from_10000(int value, string english, string russian)
+    {
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            Assert.Equal(english, Hearthpulse.UI.Main.BoardMinionRow.Stat(value));
+            Loc.Instance.SetLanguage(Loc.Russian);
+            Assert.Equal(russian, Hearthpulse.UI.Main.BoardMinionRow.Stat(value));
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+    }
+
+    [Fact]
+    public void A_board_minion_has_its_own_attack_and_health_texts_and_the_full_numbers_in_its_tip()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var minion = new Hearthpulse.UI.Main.BoardMinionRow("BG21_001", "Cord Puller", 12_500, 9800, Golden: true);
+        Assert.Equal("12.5k", minion.AttackText);
+        Assert.Equal("9800", minion.HealthText);
+        Assert.Equal("Cord Puller: 12,500 attack, 9,800 health", minion.Tip);
     }
 }

@@ -49,6 +49,17 @@ public partial class App
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, "main-battlegrounds-hover.png"));
+
+            // The same card with a late game's board: five-digit stats and a 40-letter hero name, which must not run together.
+            var chart = _main.PageBattlegrounds.BgStats.RatingChart;
+            var wide = bgPoints.ToList();
+            wide[index] = WideBoardSample.Apply((BgGamePoint)wide[index]);
+            chart.SetCurrentValue(Controls.StatsLineChart.PointsProperty, wide);
+            _main.PageBattlegrounds.BgStats.HoverGame(index);
+            await Task.Delay(1500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-battlegrounds-hover-wide.png"));
+            chart.SetCurrentValue(Controls.StatsLineChart.PointsProperty, bgPoints);
             _main.PageBattlegrounds.BgStats.HoverGame(-1);
         }
 
@@ -91,4 +102,20 @@ public partial class App
         using var stream = File.Create(path);
         encoder.Save(stream);
     }
+}
+
+/// <summary>A late game's final board for the rating chart's hover card: stats from three to five digits, a long hero name.</summary>
+internal static class WideBoardSample
+{
+    public static BgGamePoint Apply(BgGamePoint point) => point with
+    {
+        HeroName = Hearthpulse.Core.Localization.Loc.Instance.Language == Hearthpulse.Core.Localization.Loc.Russian
+            ? "Ноздорму на курорте в бухте Злачной Тени"
+            : "Nozdormu on vacation at the Gilded Cove!",
+        Board = [.. new[] { (186, 195), (373, 138), (955, 955), (1240, 1300), (12_500, 9800), (9999, 10_000), (99_960, 7) }
+            .Select((s, i) => new BoardMinionRow(
+                point.Board.Count > 0 ? point.Board[i % point.Board.Count].CardId : "BG21_001",
+                point.Board.Count > 0 ? point.Board[i % point.Board.Count].Name : "Minion",
+                s.Item1, s.Item2, Golden: i % 3 == 0))],
+    };
 }

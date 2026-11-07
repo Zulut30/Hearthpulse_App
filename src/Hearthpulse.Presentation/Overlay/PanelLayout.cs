@@ -60,6 +60,61 @@ public static class PanelLayout
         (Math.Clamp(PanelSnap.Snap(startX + dx, width, surfaceWidth, across), 0, Math.Max(0, surfaceWidth - width)),
          Math.Clamp(PanelSnap.Snap(startY + dy, height, surfaceHeight, down), 0, Math.Max(0, surfaceHeight - height)));
 
+    /// <summary>How far the name tag reaches past the panel's left edge, in line with the layout frame.</summary>
+    public const double TagInset = 4;
+
+    /// <summary>The height of the strip with the name tag and the panel's buttons; it reaches to the panel.</summary>
+    public const double TagHeight = 26;
+
+    /// <summary>How far under the panel the tag's row starts: clear of the corner marker, which reaches 6 below it.</summary>
+    public const double TagBelowGap = 8;
+
+    /// <summary>
+    /// Where a panel's name tag with its buttons goes (<see cref="TagHeight"/> strip), as an offset from the panel's
+    /// top-left corner in surface units: the panel as it is on screen, the tag <paramref name="tagWidth"/> wide with its
+    /// row of buttons <paramref name="rowHeight"/> high; <paramref name="scale"/> is the tag's own scale (1 when it does
+    /// not scale with the panel).
+    /// <list type="bullet">
+    /// <item>Above the panel when there is room for the strip above it; else under it, its row
+    /// <see cref="TagBelowGap"/> under the panel's bottom (<c>Below</c>: the row keeps to the strip's bottom); else, a
+    /// panel as tall as the screen, inside it at its top.</item>
+    /// <item>From the panel's left edge; lined up with its right edge (<c>Right</c>: the parts go in mirrored order, the
+    /// lock in the corner) when it would pass the screen's right side. Never outside the surface.</item>
+    /// </list>
+    /// </summary>
+    public static (double X, double Y, bool Below, bool Right) TagSpot(
+        double panelX, double panelY, double panelWidth, double panelHeight, double tagWidth, double rowHeight, double scale,
+        double surfaceWidth, double surfaceHeight)
+    {
+        var inset = TagInset * scale;
+        var x = -inset;
+        var right = panelX + x + tagWidth > surfaceWidth;
+        if (right)
+        {
+            x = panelWidth + inset - tagWidth;
+        }
+
+        x = Math.Clamp(panelX + x, 0, Math.Max(0, surfaceWidth - tagWidth)) - panelX;
+
+        double y;
+        var below = false;
+        if (panelY - (TagHeight * scale) >= 0)
+        {
+            y = -TagHeight * scale;
+        }
+        else if (panelY + panelHeight + (TagBelowGap * scale) + rowHeight <= surfaceHeight)
+        {
+            below = true;
+            y = panelHeight + ((TagBelowGap - TagHeight) * scale) + rowHeight;
+        }
+        else
+        {
+            y = inset;
+        }
+
+        return (x, y, below, right);
+    }
+
     /// <summary>The placement saved for a panel whose top-left corner is at (<paramref name="x"/>, <paramref name="y"/>).</summary>
     public static PanelPlacement Placement(double x, double y, double surfaceWidth, double surfaceHeight, double scale) => new()
     {

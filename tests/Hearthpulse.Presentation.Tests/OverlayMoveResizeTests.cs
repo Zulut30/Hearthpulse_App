@@ -70,6 +70,63 @@ public sealed class OverlayMoveResizeTests
     [Fact]
     public void Wpf_panel_shows_its_corner_marker_and_move_hint_and_ends_a_drag_that_lost_the_mouse() => WpfThread.Run(WpfPanel);
 
+    /// <summary>
+    /// The WPF panel tag at the screen's edges (AC8), as in the Avalonia overlay: the session panel at its default spot,
+    /// 10 from the top at the right edge, armed, shows its whole tag under itself, its row 8 below it, lined up with its
+    /// right side with the lock in the corner; in the middle of the screen the tag is above it at its left edge again.
+    /// </summary>
+    [Fact]
+    public void Wpf_panel_tag_goes_under_a_panel_at_the_top_and_lines_up_right_at_the_right_edge() => WpfThread.Run(WpfPanelTag);
+
+    private static void WpfPanelTag()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
+        var window = new OverlayWindow(new WpfOverlay(), new AppSettings());
+        var root = (FrameworkElement)window.Content;
+        root.Measure(new Size(1920, 1080));
+        root.Arrange(new Rect(0, 0, 1920, 1080));
+        Idle();
+        root.UpdateLayout();
+        var session = Descendants<MovablePanel>(root).Single(p => p.Id == "session");
+        var surface = (FrameworkElement)session.Parent;
+        session.Shown = true;
+        session.IsDragArmed = true;
+        Settle();
+        var chrome = Part("PART_Chrome");
+        var row = (Panel)Part("PART_TagRow");
+        Assert.Equal(Visibility.Visible, chrome.Visibility);
+        var tag = Bounds(chrome);
+        var panel = Bounds(session);
+        Assert.True(tag.Top >= panel.Bottom, $"{tag} {panel}");
+        // Within a unit: layout rounding snaps to the test machine's pixels.
+        Assert.InRange(Bounds(row).Top - panel.Bottom, 7, 9);
+        Assert.True(tag.Left >= 0 && tag.Right <= 1920 && tag.Bottom <= 1080, tag.ToString());
+        Assert.InRange(tag.Right - panel.Right, 3, 5);
+        Assert.Equal("PART_Lock", ((FrameworkElement)row.Children[^1]).Name);
+
+        session.Apply(new PanelPlacement { X = 0.4, Y = 0.5, Scale = 1 }, new Size(1920, 1080));
+        Settle();
+        tag = Bounds(chrome);
+        panel = Bounds(session);
+        Assert.InRange(panel.Top - tag.Top, PanelLayout.TagHeight - 1, PanelLayout.TagHeight + 1);
+        Assert.InRange(panel.Left - tag.Left, PanelLayout.TagInset - 1, PanelLayout.TagInset + 1);
+        Assert.Equal("PART_Lock", ((FrameworkElement)row.Children[0]).Name);
+
+        FrameworkElement Part(string name) => (FrameworkElement)session.Template.FindName(name, session);
+
+        Rect Bounds(FrameworkElement element) => element.TransformToAncestor(surface).TransformBounds(new Rect(element.RenderSize));
+
+        // The tag is placed after a layout pass, which lays it out again.
+        void Settle()
+        {
+            root.UpdateLayout();
+            Idle();
+            root.UpdateLayout();
+        }
+    }
+
     private static void WpfPanel()
     {
         Loc.Instance.SetLanguage(Loc.English);

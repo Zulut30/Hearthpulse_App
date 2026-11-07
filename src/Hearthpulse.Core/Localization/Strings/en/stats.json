@@ -72,6 +72,8 @@
   "Stats.Bg.Place": "Place",
   "Stats.Bg.FinalBoard": "Final board",
   "Stats.Bg.NoBoard": "No board was saved for this game.",
+  "Stats.Bg.MinionTip": "{0}: {1} attack, {2} health",
+  "Stats.Bg.Thousands": "{0}k",
 
   "Stats.Ct.RankTitle": "Rank over time",
   "Stats.Ct.RankHint": "Rank at the start of each ranked game",
