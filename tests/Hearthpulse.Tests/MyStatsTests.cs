@@ -345,6 +345,7 @@ public sealed class MyStatsBoardTests
     [InlineData(99_960, "100k", "100к")]
     [InlineData(125_400, "125k", "125к")]
     [InlineData(-12_000, "-12k", "-12к")]
+    [InlineData(int.MinValue, "-2147484k", "-2147484к")]
     public void Board_stats_are_whole_up_to_9999_and_in_thousands_from_10000(int value, string english, string russian)
     {
         try

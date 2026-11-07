@@ -45,7 +45,7 @@ public sealed record BoardMinionRow(string CardId, string Name, int Attack, int 
     /// </summary>
     public static string Stat(int value)
     {
-        if (Math.Abs(value) < ShortFrom)
+        if (value > -ShortFrom && value < ShortFrom)
         {
             return value.ToString(CultureInfo.InvariantCulture);
         }
