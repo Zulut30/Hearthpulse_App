@@ -8,16 +8,18 @@
     <!-- Simulated combat odds (MovablePanel "odds" and the OBS window "Hearthpulse — Combat odds", docs/streaming.md): one row
          of up to five cells - you kill, win, tie, loss, you die (a lethal cell at 0 is gone) - with the damage range under win
          and loss, the share bar, and a bottom line only for unsimulated effects or the damage cap; a red edge while the
-         fight can kill the player. Width follows the content (360..460). DataContext: OverlayViewModel (inherited). Tokens only.
+         fight can kill the player. Width follows the content: at least 360, each cell at most 84 with its label and damage
+         wrapping inside it, so five cells and two dividers stay under the card's 500 (494 at most). DataContext: OverlayViewModel (inherited). Tokens only.
          Same tree as the WPF OddsPanel.xaml. -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
-        <i:FractionWidth x:Key="Fraction" />
+        <o:StarShare x:Key="Star" />
     </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="StackPanel.cell">
             <Setter Property="MinWidth" Value="72" />
-            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="MaxWidth" Value="84" />
+            <Setter Property="Margin" Value="3,0" />
             <Setter Property="VerticalAlignment" Value="Top" />
         </Style>
         <Style Selector="TextBlock.pct">
@@ -30,12 +32,16 @@
             <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="TextBlock.cellDamage">
             <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Height" Value="16" />
+            <Setter Property="MinHeight" Value="16" />
             <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="Border.cellDivider">
             <Setter Property="Width" Value="1" />
@@ -50,7 +56,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Border x:Name="OddsCard" Classes="overlayCard solid" Classes.lethal="{Binding LethalDanger}" Padding="12,8" MinWidth="360" MaxWidth="460" HorizontalAlignment="Left">
+    <Border x:Name="OddsCard" Classes="overlayCard solid" Classes.lethal="{Binding LethalDanger}" Padding="12,8" MinWidth="360" MaxWidth="500" HorizontalAlignment="Left">
         <StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <StackPanel Classes="cell" ToolTip.Tip="{i:Loc Overlay.Odds.KillTip}" IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}">
@@ -78,15 +84,18 @@
                     <TextBlock Text="{i:Loc Overlay.Odds.LethalLabel}" Classes="cellLabel" />
                 </StackPanel>
             </StackPanel>
-            <!-- The share bar: a 220-wide row stretched to the card's width (the card is 360..460 wide) -->
+            <!-- The share bar: star columns by the shares, as in WPF, so it takes the card's width and never sets it -->
             <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,8,0,4" Background="{StaticResource Surface3}">
-                <Viewbox Stretch="Fill">
-                    <StackPanel Orientation="Horizontal" Width="220" Height="4">
-                        <Border Background="{StaticResource Positive}" Width="{Binding WinShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                        <Border Background="{StaticResource Faint}" Width="{Binding TieShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                        <Border Background="{StaticResource Negative}" Width="{Binding LossShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                    </StackPanel>
-                </Viewbox>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{Binding WinShare, Converter={StaticResource Star}}" />
+                        <ColumnDefinition Width="{Binding TieShare, Converter={StaticResource Star}}" />
+                        <ColumnDefinition Width="{Binding LossShare, Converter={StaticResource Star}}" />
+                    </Grid.ColumnDefinitions>
+                    <Border Background="{StaticResource Positive}" />
+                    <Border Grid.Column="1" Background="{StaticResource Faint}" />
+                    <Border Grid.Column="2" Background="{StaticResource Negative}" />
+                </Grid>
             </Border>
             <!-- Only when there is something to say: unsimulated effects, the hero damage cap -->
             <TextBlock Text="{Binding OddsNote}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"

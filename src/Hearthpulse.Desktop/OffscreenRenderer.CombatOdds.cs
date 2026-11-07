@@ -31,6 +31,15 @@ internal static partial class OffscreenRenderer
                 SaveCrop(overlay, card, Path.Combine(folder, "overlay-odds-panel.png"));
             }
 
+            // The widest state: all five cells, wide damage both ways, an estimate and the cap in the bottom line.
+            host.Overlay.Update(snapshot with { Battlegrounds = BarScene() with { CombatOdds = FiveCells(BarScene().CombatOdds!) } }, host.Cards, settings, null, null);
+            overlayView.Fit(1920, 1080);
+            await Save(overlay, Path.Combine(folder, "overlay-odds-full.png"));
+            if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } full)
+            {
+                SaveCrop(overlay, full, Path.Combine(folder, "overlay-odds-full-panel.png"));
+            }
+
             // The bar between fights with the tier 3 list open and one tribe chosen in its head.
             host.Overlay.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, host.Cards, settings, null, null);
             host.Overlay.SelectTier.Execute(3);
@@ -44,6 +53,16 @@ internal static partial class OffscreenRenderer
             Diag.Error("Render of the combat odds failed", ex);
         }
     }
+
+    /// <summary>The odds with every cell shown: a kill chance, a lethal risk, two-digit damage ranges, one unsimulated effect.</summary>
+    private static Core.Battlegrounds.CombatOdds FiveCells(Core.Battlegrounds.CombatOdds odds) => odds with
+    {
+        Unsimulated = 1,
+        LethalDealt = 0.197,
+        LethalTaken = 0.311,
+        DamageDealt = new Core.Battlegrounds.DamageSpread(19, 12, 27, 31, [1]),
+        DamageTaken = new Core.Battlegrounds.DamageSpread(23, 19, 27, 30, [1]),
+    };
 
     /// <summary>The made-up fight on turn 11 at tavern tier 5, with five lobby tribes and four fights behind it.</summary>
     private static BattlegroundsView BarScene() => CombatOddsScene.Synthetic() with

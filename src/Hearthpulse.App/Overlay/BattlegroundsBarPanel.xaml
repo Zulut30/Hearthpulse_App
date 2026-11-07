@@ -28,19 +28,22 @@
                     </StackPanel>
                 </StackPanel>
                 <!-- The lobby's tribes: text, not buttons (the filter is in the tier list) -->
-                <TextBlock Text="{Binding TribesLine}" Margin="0,4,0,0" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" MaxWidth="596"
-                           HorizontalAlignment="Left" ToolTip="{i:Loc Overlay.Bar.TribesTip}">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
-                            <Setter Property="Foreground" Value="{StaticResource Text}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding TribeChips.Count}" Value="0">
-                                    <Setter Property="Foreground" Value="{StaticResource Muted}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <DockPanel Margin="0,4,0,0" MaxWidth="596" HorizontalAlignment="Left" Background="Transparent" ToolTip="{i:Loc Overlay.Bar.TribesTip}">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding TribesLabel}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"
+                               Foreground="{StaticResource Muted}" Margin="0,0,4,0" />
+                    <TextBlock Text="{Binding TribesNames}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
+                                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TribeChips.Count}" Value="0">
+                                        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </DockPanel>
             </StackPanel>
         </Border>
         <Border Style="{StaticResource OverlayCard}" Padding="10,4" Margin="0,6,0,0" HorizontalAlignment="Left"

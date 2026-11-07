@@ -79,6 +79,12 @@ public partial class App
             await RenderBaselineAsync(folder);
         }
 
+        if (RenderOnly("odds"))
+        {
+            // The combat odds and the Battlegrounds bar (DevRender.CombatOdds.cs).
+            await RenderCombatOddsAsync(folder);
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

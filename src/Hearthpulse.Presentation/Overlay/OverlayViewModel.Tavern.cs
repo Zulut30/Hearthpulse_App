@@ -20,6 +20,8 @@ public sealed partial class OverlayViewModel
     private string _selectedTribe = string.Empty;
     private IReadOnlyList<TribeChip> _tribeChips = Array.Empty<TribeChip>();
     private string _tribesLine = string.Empty;
+    private string _tribesLabel = string.Empty;
+    private string _tribesNames = string.Empty;
     private string _browserTitle = string.Empty;
     private string _browserScope = string.Empty;
     private RelayCommand? _selectTribe;
@@ -28,6 +30,14 @@ public sealed partial class OverlayViewModel
 
     /// <summary>The bar's second line: the lobby's tribes as text, or that the lobby is still being read.</summary>
     public string TribesLine { get => _tribesLine; private set => Set(ref _tribesLine, value); }
+
+    /// <summary>
+    /// <see cref="TribesLine"/> in two parts for the view: the label ("Tribes:", the text of the line's key before its
+    /// value) and what follows it (the tribes, or "reading the lobby…").
+    /// </summary>
+    public string TribesLabel { get => _tribesLabel; private set => Set(ref _tribesLabel, value); }
+
+    public string TribesNames { get => _tribesNames; private set => Set(ref _tribesNames, value); }
 
     /// <summary>The open tier list's heading ("Tier 4").</summary>
     public string BrowserTitle { get => _browserTitle; private set => Set(ref _browserTitle, value); }
@@ -63,9 +73,22 @@ public sealed partial class OverlayViewModel
         }
 
         TribeChips = races.Select(r => new TribeChip(r, Races.Display(r, _locale), r == _selectedTribe)).ToList();
-        TribesLine = races.Count == 0
-            ? Loc.T("Overlay.Bar.TribesReading")
-            : Loc.F("Overlay.Bar.TribesLine", string.Join(", ", races.Select(r => Races.Display(r, _locale))));
+        var names = string.Join(", ", races.Select(r => Races.Display(r, _locale)));
+        TribesLine = races.Count == 0 ? Loc.T("Overlay.Bar.TribesReading") : Loc.F("Overlay.Bar.TribesLine", names);
+
+        // The label is the line's own text up to its value, so both languages split where their key puts the value.
+        var format = Loc.T("Overlay.Bar.TribesLine");
+        var at = format.IndexOf("{0}", StringComparison.Ordinal);
+        var label = at > 0 ? format[..at].TrimEnd() : string.Empty;
+        var rest = races.Count == 0 ? TribesLine : names;
+        if (races.Count == 0)
+        {
+            rest = label.Length > 0 && rest.StartsWith(label, StringComparison.Ordinal) ? rest[label.Length..].TrimStart() : rest;
+            label = rest == TribesLine ? string.Empty : label;
+        }
+
+        TribesLabel = label;
+        TribesNames = rest;
     }
 
     /// <summary>Whether a minion with these tribes belongs in the list while a tribe chip is chosen.</summary>

@@ -76,6 +76,14 @@ internal static partial class OffscreenRenderer
             await RenderBaselineAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("odds"))
+        {
+            // The combat odds and the Battlegrounds bar (OffscreenRenderer.CombatOdds.cs).
+            var (overlay, overlayView) = OpenOverlay(host, host.Settings);
+            await RenderCombatOddsAsync(folder, host, host.Settings, overlay, overlayView);
+            overlay.Close();
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

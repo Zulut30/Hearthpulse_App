@@ -5,13 +5,15 @@
     <!-- Simulated combat odds (MovablePanel "odds" and the OBS window "Hearthpulse — Combat odds", docs/streaming.md): one row
          of up to five cells - you kill, win, tie, loss, you die (a lethal cell at 0 is gone) - with the damage range under win
          and loss, the share bar, and a bottom line only for unsimulated effects or the damage cap; a red edge while the
-         fight can kill the player. Width follows the content (360..460). DataContext: OverlayViewModel (inherited). Tokens only.
+         fight can kill the player. Width follows the content: at least 360, each cell at most 84 with its label and damage
+         wrapping inside it, so five cells and two dividers stay under the card's 500 (494 at most). DataContext: OverlayViewModel (inherited). Tokens only.
          Same tree as the Avalonia OddsPanel.axaml. -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
         <Style x:Key="Cell" TargetType="StackPanel">
             <Setter Property="MinWidth" Value="72" />
-            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="MaxWidth" Value="84" />
+            <Setter Property="Margin" Value="3,0" />
             <Setter Property="VerticalAlignment" Value="Top" />
         </Style>
         <Style x:Key="Pct" TargetType="TextBlock" BasedOn="{StaticResource Base}">
@@ -24,12 +26,16 @@
             <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style x:Key="CellDamage" TargetType="TextBlock" BasedOn="{StaticResource Base}">
             <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Height" Value="16" />
+            <Setter Property="MinHeight" Value="16" />
             <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style x:Key="CellDivider" TargetType="Border">
             <Setter Property="Width" Value="1" />
@@ -40,7 +46,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Border x:Name="OddsCard" Background="{DynamicResource OverlayPanelSolid}" Padding="12,8" MinWidth="360" MaxWidth="460" HorizontalAlignment="Left">
+    <Border x:Name="OddsCard" Background="{DynamicResource OverlayPanelSolid}" Padding="12,8" MinWidth="360" MaxWidth="500" HorizontalAlignment="Left">
         <Border.Style>
             <!-- Red edge while the fight can kill the player -->
             <Style TargetType="Border" BasedOn="{StaticResource OverlayCard}">

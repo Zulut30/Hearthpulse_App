@@ -8,11 +8,10 @@ public static class CombatOddsText
 {
     /// <summary>
     /// The damage range of 8 fights in 10 ("8–16", en dash, no sign; one number when both ends meet); empty without a
-    /// spread. <paramref name="dealt"/> picks the side only for <see cref="DamageTip"/>, the range reads the same.
+    /// spread. The same either way: the cell's label says who takes it.
     /// </summary>
-    public static string Damage(DamageSpread? spread, bool dealt)
+    public static string Damage(DamageSpread? spread)
     {
-        _ = dealt;
         if (spread is null)
         {
             return string.Empty;

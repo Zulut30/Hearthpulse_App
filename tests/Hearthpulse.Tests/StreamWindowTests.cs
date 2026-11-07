@@ -230,7 +230,7 @@ public sealed class StreamWindowTests
         // Never moved: the default spots side by side at the top left of the primary work area.
         Assert.Equal(new StreamRect(24, 24, 268, 720), StreamWindowLayout.Place(StreamWindowSpec.Deck, null, areas, primary));
         Assert.Equal(new StreamRect(308, 24, 246, 306), StreamWindowLayout.Place(StreamWindowSpec.Lobby, null, areas, primary));
-        Assert.Equal(new StreamRect(570, 24, 266, 140), StreamWindowLayout.Place(StreamWindowSpec.Odds, null, areas, primary));
+        Assert.Equal(new StreamRect(570, 24, 516, 176), StreamWindowLayout.Place(StreamWindowSpec.Odds, null, areas, primary));
         Assert.Equal(new StreamRect(124, 74, 268, 720), StreamWindowLayout.Place(StreamWindowSpec.Deck, null, areas, new StreamRect(100, 50, 1800, 1000)));
 
         // Saved on the second monitor: kept.
@@ -239,8 +239,8 @@ public sealed class StreamWindowTests
         // That monitor is gone: the default spot, the saved size.
         Assert.Equal(new StreamRect(24, 24, 400, 900), StreamWindowLayout.Place(StreamWindowSpec.Deck, saved, [primary], primary));
         // Only a sliver (30 wide) still on a screen is not enough.
-        var sliver = new StreamWindowPlacement { X = 1890, Y = 100, Width = 300, Height = 300 };
-        Assert.Equal(new StreamRect(570, 24, 300, 300), StreamWindowLayout.Place(StreamWindowSpec.Odds, sliver, [primary], primary));
+        var sliver = new StreamWindowPlacement { X = 1890, Y = 100, Width = 320, Height = 300 };
+        Assert.Equal(new StreamRect(570, 24, 320, 300), StreamWindowLayout.Place(StreamWindowSpec.Odds, sliver, [primary], primary));
         // Never below the smallest size.
         var tiny = new StreamWindowPlacement { X = 100, Y = 100, Width = 20, Height = 20 };
         Assert.Equal(new StreamRect(100, 100, 156, 120), StreamWindowLayout.Place(StreamWindowSpec.Lobby, tiny, areas, primary));
@@ -255,7 +255,7 @@ public sealed class StreamWindowTests
         Assert.Equal((40.0, 50.0, 300.0, 160.0), (odds.X, odds.Y, odds.Width, odds.Height));
         StreamWindowLayout.Save(settings, StreamWindowSpec.Deck, new StreamRect(double.NaN, 0, 10, 10));
         Assert.False(settings.StreamWindows.ContainsKey("deck"));
-        Assert.Equal(new StreamRect(40, 50, 266, 140), StreamWindowLayout.OriginalSize(StreamWindowSpec.Odds, new StreamRect(40, 50, 300, 160)));
+        Assert.Equal(new StreamRect(40, 50, 516, 176), StreamWindowLayout.OriginalSize(StreamWindowSpec.Odds, new StreamRect(40, 50, 300, 160)));
 
         // The ids are the overlay panels' (never renamed: saved places would be lost).
         Assert.Equal(new[] { "deck", "lobby", "odds", "session" }, StreamWindowSpec.All.Select(s => s.Id));

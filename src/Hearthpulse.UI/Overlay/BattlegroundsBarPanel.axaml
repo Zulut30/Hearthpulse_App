@@ -41,9 +41,12 @@
                     </StackPanel>
                 </StackPanel>
                 <!-- The lobby's tribes: text, not buttons (the filter is in the tier list) -->
-                <TextBlock Text="{Binding TribesLine}" Classes="tribesLine" Classes.reading="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}"
-                           Margin="0,4,0,0" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" MaxWidth="596"
-                           HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Overlay.Bar.TribesTip}" />
+                <DockPanel Margin="0,4,0,0" MaxWidth="596" HorizontalAlignment="Left" Background="Transparent" ToolTip.Tip="{i:Loc Overlay.Bar.TribesTip}">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding TribesLabel}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"
+                               Foreground="{StaticResource Muted}" Margin="0,0,4,0" />
+                    <TextBlock Text="{Binding TribesNames}" Classes="tribesLine" Classes.reading="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}"
+                               FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" />
+                </DockPanel>
             </StackPanel>
         </Border>
         <Border Classes="overlayCard" Padding="10,4" Margin="0,6,0,0" HorizontalAlignment="Left"

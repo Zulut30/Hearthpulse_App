@@ -28,6 +28,14 @@ public partial class App
                 SaveScaled(card, Path.Combine(folder, "overlay-odds-panel.png"));
             }
 
+            // The widest state: all five cells, wide damage both ways, an estimate and the cap in the bottom line.
+            _overlayViewModel.Update(snapshot with { Battlegrounds = BarScene() with { CombatOdds = FiveCells(BarScene().CombatOdds!) } }, _cards, _settings, null, null);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds-full.png"), 1920, 1080, 0);
+            if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement full)
+            {
+                SaveScaled(full, Path.Combine(folder, "overlay-odds-full-panel.png"));
+            }
+
             // The bar between fights with the tier 3 list open and one tribe chosen in its head.
             _overlayViewModel.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, _cards, _settings, null, null);
             _overlayViewModel.SelectTier.Execute(3);
@@ -49,6 +57,16 @@ public partial class App
         Races = ["ABERRATION", "MECHANICAL", "ELEMENTAL", "QUILBOAR", "UNDEAD"],
         RacesConfirmed = true,
         Combats = [new(7, 2, "TB_BaconShop_HERO_08", "Win", 0, 6), new(8, 3, "TB_BaconShop_HERO_11", "Loss", 9, 0), new(9, 4, "TB_BaconShop_HERO_14", "Tie", 0, 0), new(10, 5, "TB_BaconShop_HERO_17", "Win", 0, 4)],
+    };
+
+    /// <summary>The odds with every cell shown: a kill chance, a lethal risk, two-digit damage ranges, one unsimulated effect.</summary>
+    private static Core.Battlegrounds.CombatOdds FiveCells(Core.Battlegrounds.CombatOdds odds) => odds with
+    {
+        Unsimulated = 1,
+        LethalDealt = 0.197,
+        LethalTaken = 0.311,
+        DamageDealt = new Core.Battlegrounds.DamageSpread(19, 12, 27, 31, [1]),
+        DamageTaken = new Core.Battlegrounds.DamageSpread(23, 19, 27, 30, [1]),
     };
 
     /// <summary>The first <typeparamref name="T"/> in the logical tree under <paramref name="root"/>.</summary>

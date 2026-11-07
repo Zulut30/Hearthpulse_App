@@ -57,9 +57,9 @@ public sealed partial class OverlayViewModel
                 : Loc.F("Overlay.Odds.CapOnly", odds.DamageCap);
 
             // Damage as the range of 8 fights in 10 ("You deal 8–16"); the cells' labels say who dies.
-            OddsDamageWin = odds.DamageDealt is null ? string.Empty : Loc.F("Overlay.Odds.DamageDealt", CombatOddsText.Damage(odds.DamageDealt, dealt: true));
+            OddsDamageWin = odds.DamageDealt is null ? string.Empty : Loc.F("Overlay.Odds.DamageDealt", CombatOddsText.Damage(odds.DamageDealt));
             OddsDamageWinTip = CombatOddsText.DamageTip(odds.DamageDealt, dealt: true);
-            OddsDamageLoss = odds.DamageTaken is null ? string.Empty : Loc.F("Overlay.Odds.DamageTaken", CombatOddsText.Damage(odds.DamageTaken, dealt: false));
+            OddsDamageLoss = odds.DamageTaken is null ? string.Empty : Loc.F("Overlay.Odds.DamageTaken", CombatOddsText.Damage(odds.DamageTaken));
             OddsDamageLossTip = CombatOddsText.DamageTip(odds.DamageTaken, dealt: false);
             OddsLethal = odds.LethalTaken is > 0 and var lethal ? OddsPercent(lethal, odds.Runs) : string.Empty;
             OddsKill = odds.LethalDealt is > 0 and var kill ? OddsPercent(kill, odds.Runs) : string.Empty;

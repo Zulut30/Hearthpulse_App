@@ -37,10 +37,16 @@ public sealed class BgBarTests : IDisposable
         Loc.Instance.SetLanguage(Loc.English);
         Assert.Equal("Tribes: Beast, Dragon", (string)Model(wpf, View(["BEAST", "DRAGON"])).TribesLine);
         Assert.Equal("Tribes: reading the lobby…", (string)Model(wpf, View([])).TribesLine);
+        // The view styles the label apart from the values: split where the key puts its value.
+        var known = Model(wpf, View(["BEAST", "DRAGON"]));
+        Assert.Equal(("Tribes:", "Beast, Dragon"), ((string)known.TribesLabel, (string)known.TribesNames));
+        var reading = Model(wpf, View([]));
+        Assert.Equal(("Tribes:", "reading the lobby…"), ((string)reading.TribesLabel, (string)reading.TribesNames));
 
         Loc.Instance.SetLanguage(Loc.Russian);
         Assert.StartsWith("Расы: ", (string)Model(wpf, View(["BEAST", "DRAGON"])).TribesLine, StringComparison.Ordinal);
         Assert.Equal("Расы: лобби считывается…", (string)Model(wpf, View([])).TribesLine);
+        Assert.Equal(("Расы:", "лобби считывается…"), ((string)Model(wpf, View([])).TribesLabel, (string)Model(wpf, View([])).TribesNames));
     }
 
     [Theory]
