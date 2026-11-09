@@ -144,13 +144,15 @@ internal sealed class SourceScratch : IDisposable
         await queue.ConfigureAsync(Iid, Endpoint, sharing: true); return queue;
     }
     internal JsonDocument Manifest() => JsonDocument.Parse(File.ReadAllBytes(Directory.GetFiles(Path, "manifest.json", SearchOption.AllDirectories).Single()));
-    internal static SourceCaptureFrame Frame(int seq, string kind, object? data = null) => new(CaptureId, "game", "ranked", 20766,
+    // v = 1 builds a capture as an app before the v2 update spooled it.
+    internal static SourceCaptureFrame Frame(int seq, string kind, object? data = null, int v = SourceCaptureRecord.CurrentVersion) => new(CaptureId, "game", "ranked", 20766,
         new(seq, kind, 0, "none", 0, null, 0, data ?? kind switch
         {
-            "start" => new { captureKind = "game", mode = "ranked", day = 20766, build = (int?)null },
+            "start" when v == 1 => new { captureKind = "game", mode = "ranked", day = 20766, build = (int?)null },
+            "start" => new { captureKind = "game", mode = "ranked", day = 20766, build = (int?)null, format = (string?)"standard", arena = (string?)null },
             "end" => new { status = "complete", result = "W", placement = (int?)null, reason = "normal" },
             _ => new { tag = "TURN", value = 1 },
-        }));
+        }, v));
     internal static void Complete(SourceCaptureQueue queue) { queue.TryAppend(Frame(0, "start")); queue.TryAppend(Frame(1, "tag")); queue.TryAppend(Frame(2, "end")); }
     public void Dispose() => TestDataFolder.TryDelete(Path);
 }

@@ -5,7 +5,9 @@ below with a real SQLite/D1 adapter. See [`handover-P2.md`](handover-P2.md) for 
 [`deploy/LINUX-RUNBOOK.md`](deploy/LINUX-RUNBOOK.md) for isolated Linux staging. Source capture is not hosted by
 the Cloudflare entrypoint. Public `/v1/events/summary` now uses `Cache-Control: no-store` so forget cannot leave
 stale deletion-sensitive totals in a public cache. Apply migration `0008_captures.sql` to existing databases for
-transactional snapshot invalidation; the Node service applies it automatically.
+transactional snapshot invalidation; the Node service applies it automatically. Migration `0009_analytics.sql`
+adds the source v2 analytics facts and the published snapshot behind `GET /v2/analytics/bg/heroes`
+([docs/analytics-api.md](../../docs/analytics-api.md)); the Node service applies it too, the Worker never serves it.
 
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:
 heroes, final boards, trinkets, tribes, tavern tier timing, combat odds, picks (Discover, triple rewards, trinkets)

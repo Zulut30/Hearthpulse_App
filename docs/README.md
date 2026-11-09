@@ -41,7 +41,9 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [usage-limits.md](usage-limits.md) | Daily free limits of our own analytics (stats pool in the BG overlay), soft mode |
 | [crash-reports.md](crash-reports.md) | Crash reports on the player's consent: what is sent, what is cut out, the queue |
 | [game-stats.md](game-stats.md) | Game records of every mode for our own statistics: the record, consent, queue, server, deletion |
+| [analytics-api.md](analytics-api.md) | Analytics from source v2: checked facts, idempotent and deletable contribution, snapshot, `/stats/v2/analytics/bg/heroes` |
 | [source-capture.md](source-capture.md) | Safe game sources, durable upload, server reprocessing and capture completeness |
+| [analytics-metrics.md](analytics-metrics.md) | Catalog of statistics metrics and the field matrix ([JSON](analytics-metrics.json)); per-metric eligibility |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits |
 
 ## Project records

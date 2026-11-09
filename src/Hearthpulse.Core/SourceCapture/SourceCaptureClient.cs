@@ -58,7 +58,7 @@ public sealed class SourceCaptureClient(HttpClient http)
         PostAsync(endpoint, "complete", new
         {
             v = 1, manifest.Iid, manifest.Generation, manifest.CaptureId, manifest.CaptureKind, manifest.Mode, manifest.Day,
-            sourceVersion = 1, manifest.CaptureStatus, chunks = manifest.Chunks.Select(c => new { c.Index, c.Sha256, c.UncompressedBytes }), manifest.Gaps,
+            manifest.SourceVersion, manifest.CaptureStatus, chunks = manifest.Chunks.Select(c => new { c.Index, c.Sha256, c.UncompressedBytes }), manifest.Gaps,
         }, root => root.TryGetProperty("status", out var status) && status.GetString() == "stored"
             && root.TryGetProperty("captureId", out var id) && id.GetString() == manifest.CaptureId, token);
 
@@ -106,5 +106,6 @@ internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpa
 public sealed record SourceCaptureRemoteStatus(string Status, string? ParserVersion, int Records, int Unsupported, int Gaps);
 internal sealed record SourceCaptureRevocation(string Iid, string Generation, string Endpoint);
 internal sealed record SourceCaptureChunk(int Index, string Sha256, int UncompressedBytes, bool Acknowledged = false);
+/// <summary>A spool manifest. SourceVersion is absent from manifests written before v2 and then reads as 1.</summary>
 internal sealed record SourceCaptureManifest(string Iid, string Generation, string CaptureId, string CaptureKind, string Mode, int Day,
-    string CaptureStatus, int Gaps, bool Finalized, List<SourceCaptureChunk> Chunks);
+    string CaptureStatus, int Gaps, bool Finalized, List<SourceCaptureChunk> Chunks, int SourceVersion = 1);

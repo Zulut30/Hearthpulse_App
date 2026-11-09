@@ -1,0 +1,26 @@
+{
+  "v": 2, "metric": "bg.hero.offer_pick_placement", "rulesVersion": "bg-hero-1",
+  "mode": "solo", "available": true, "reason": null,
+  "published": 1762646400000, "stale": false, "source": "source_capture",
+  "period": { "fromDay": 20371, "toDay": 20401, "days": 30 },
+  "groups": [
+    { "build": 223456, "captures": 120, "sources": 14, "suppressed": 3,
+      "heroes": [
+        { "hero": "TB_BaconShop_HERO_xx", "offered": 40, "picked": 12,
+          "pickRate":  { "num": 12, "den": 40, "value": 0.3,   "low": 0.181, "high": 0.454 },
+          "placement": { "n": 12, "mean": 3.92, "low": 3.05, "high": 4.79, "dist": [2,1,2,2,1,2,1,1] },
+          "top4":      { "num": 7,  "den": 12, "value": 0.583, "low": 0.320, "high": 0.807 },
+          "first":     { "num": 2,  "den": 12, "value": 0.167, "low": 0.047, "high": 0.448 },
+          "quality": "ok" },
+        { "hero": "TB_BaconShop_HERO_yy", "offered": 9, "picked": 5,
+          "pickRate":  { "num": 5, "den": 9, "value": null, "low": null, "high": null },
+          "placement": { "n": 5, "mean": null, "low": null, "high": null, "dist": null },
+          "top4":      { "num": 4, "den": 5, "value": null, "low": null, "high": null },
+          "first":     { "num": 0, "den": 5, "value": null, "low": null, "high": null },
+          "quality": "small_sample" },
+        { "hero": "TB_BaconShop_HERO_zz", "offered": 6, "picked": null,
+          "pickRate": null, "placement": null, "top4": null, "first": null,
+          "quality": "small_sample" } ] },
+    { "build": null, "captures": 2, "sources": 2, "suppressed": 0, "heroes": [] }
+  ]
+}

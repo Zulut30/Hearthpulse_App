@@ -5,13 +5,16 @@ namespace Hearthpulse.Core.SourceCapture;
 /// <summary>A validated observation. Construction stays inside the visible projection, never a raw-log API.</summary>
 public sealed class SourceCaptureRecord
 {
-    internal SourceCaptureRecord(int seq, string kind, int turn, string side, int entity, string? card, int target, object data)
+    /// <summary>The wire version new observations are written in. A spooled capture keeps the version it started with.</summary>
+    public const int CurrentVersion = 2;
+
+    internal SourceCaptureRecord(int seq, string kind, int turn, string side, int entity, string? card, int target, object data, int v = CurrentVersion)
     {
-        Seq = seq; Kind = kind; Turn = Math.Clamp(turn, 0, 1000); Side = side;
+        V = v; Seq = seq; Kind = kind; Turn = Math.Clamp(turn, 0, 1000); Side = side;
         Entity = entity; Card = card; Target = target; Data = data;
     }
 
-    public int V => 1;
+    public int V { get; }
     public int Seq { get; }
     public string Kind { get; }
     public int Turn { get; }
@@ -22,7 +25,7 @@ public sealed class SourceCaptureRecord
     public object Data { get; }
 
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    /// <summary>Compact source v1; the spool adds the mandatory LF.</summary>
+    /// <summary>Compact source line (v1 or v2); the spool adds the mandatory LF.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, Json);
 }
 
