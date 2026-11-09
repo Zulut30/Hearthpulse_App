@@ -2,9 +2,12 @@
 """Visual regression: render the baseline frames of both UIs and compare them with the stored baselines.
 
 Usage (from the repository root, isolated interpreter, needs Pillow with WebP):
-  python -B -I tools/visual/visual_check.py render <out-dir> [--ui wpf|ava|both] [--no-build] [--artifacts <dir>]
-  python -B -I tools/visual/visual_check.py compare <out-dir> [--ui wpf|ava|both]
+  python -B -I tools/visual/visual_check.py render <out-dir> [--ui wpf|ava|both] [--theme <name>]... [--no-build] [--artifacts <dir>]
+  python -B -I tools/visual/visual_check.py compare <out-dir> [--ui wpf|ava|both] [--theme <name>]...
   python -B -I tools/visual/visual_check.py update <out-dir> [--ui wpf|ava|both] [--scene <name>]...
+
+--theme (Tavern, Frost, Shadow; repeatable) limits render and compare to those themes' frames: CI renders each WPF
+theme in a job of its own, since one WPF render run takes about a minute whatever the number of frames kept.
 
 - render: builds the app (Release) unless --no-build, then for each theme of THEMES runs `--render-ui` with render group
   `baseline` (the built executable itself, found by one MSBuild evaluation, or `dotnet run --no-build` when that fails;
@@ -95,7 +98,12 @@ def launcher(project: str, artifacts: str | None) -> list[str]:
     return [command]
 
 
-def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
+def chosen_themes(themes: list[str] | None) -> dict[str, list[str]]:
+    """THEMES, or only the named ones (every theme when none is named)."""
+    return {theme: scenes for theme, scenes in THEMES.items() if not themes or theme in themes}
+
+
+def render(out: Path, which: str, build: bool, artifacts: str | None, themes: list[str] | None = None) -> int:
     failed = False
     extra = ["--artifacts-path", artifacts] if artifacts else []
     for ui in uis(which):
@@ -105,9 +113,9 @@ def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
         start = launcher(project, artifacts)
         target = out / ui
         target.mkdir(parents=True, exist_ok=True)
-        for old in target.glob("*.png"):
-            old.unlink()
-        for theme, scenes in THEMES.items():
+        for theme, scenes in chosen_themes(themes).items():
+            for old in target.glob(f"{theme}-*.png"):
+                old.unlink()
             with tempfile.TemporaryDirectory(prefix="hp-visual-") as temporary:
                 data, staging = Path(temporary) / "data", Path(temporary) / "frames"
                 shutil.copytree(FIXTURE, data)
@@ -119,6 +127,10 @@ def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
                     code = subprocess.run([*start, "--render-ui", str(staging)],
                                           env=env, stdout=handle, stderr=subprocess.STDOUT, timeout=600).returncode
                 seconds = time.monotonic() - began
+                # The app's own log (timestamps of start-up, loading and each frame) goes away with the data copy.
+                app_log = data / "hearthpulse.log"
+                if app_log.is_file():
+                    shutil.copy2(app_log, out / f"{ui}-{theme}-app.log")
                 kept = 0
                 for scene in scenes:
                     source = staging / f"{scene}.png"
@@ -170,10 +182,12 @@ def sheet(baseline: Image.Image, rendered: Image.Image, mask: Image.Image | None
     result.save(path)
 
 
-def compare(out: Path, which: str) -> int:
+def compare(out: Path, which: str, themes: list[str] | None = None) -> int:
     failed = []
     for ui in uis(which):
         for frame in frames():
+            if themes and frame.split("-", 1)[0] not in themes:
+                continue
             rendered_path = out / ui / f"{frame}.png"
             baseline_path = BASELINES / ui / f"{frame}.webp"
             pending = PENDING.get(scene_of(frame))
@@ -225,11 +239,13 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     command, out, rest = argv[0], Path(argv[1]).resolve(), argv[2:]
-    which, build, artifacts, only = "both", True, None, []
+    which, build, artifacts, only, themes = "both", True, None, [], []
     while rest:
         flag = rest.pop(0)
         if flag == "--ui":
             which = rest.pop(0)
+        elif flag == "--theme":
+            themes.append(rest.pop(0))
         elif flag == "--no-build":
             build = False
         elif flag == "--artifacts":
@@ -242,10 +258,13 @@ def main(argv: list[str]) -> int:
     if which not in ("wpf", "ava", "both"):
         print("--ui is wpf, ava or both")
         return 2
+    if unknown := [theme for theme in themes if theme not in THEMES]:
+        print(f"--theme is one of {', '.join(THEMES)}, not {', '.join(unknown)}")
+        return 2
     if command == "render":
-        return render(out, which, build, artifacts)
+        return render(out, which, build, artifacts, themes)
     if command == "compare":
-        return compare(out, which)
+        return compare(out, which, themes)
     return update(out, which, only)
 
 

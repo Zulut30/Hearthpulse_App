@@ -137,6 +137,44 @@ class VisualBaselineTests(unittest.TestCase):
             with self.subTest(properties=properties, code=code), answer(properties, code), redirect_stdout(StringIO()):
                 self.assertEqual(dotnet_run, visual.launcher("src/Hearthpulse.App", None))
 
+    def test_a_theme_limits_render_and_compare_to_its_frames(self):
+        out = self.root / "out"
+        (out / "wpf").mkdir(parents=True)
+        (out / "wpf/Tavern-main-overview.png").write_bytes(b"kept")
+        started = []
+
+        def run(args, env, **_):
+            # The app saves every frame of the group into the folder after --render-ui.
+            started.append(env["HEARTHPULSE_THEME"])
+            staging = Path(args[args.index("--render-ui") + 1])
+            staging.mkdir(parents=True)
+            for scene in visual.THEMES[env["HEARTHPULSE_THEME"]]:
+                Image.new("RGB", (4, 4)).save(staging / f"{scene}.png")
+            return subprocess.CompletedProcess(args, 0)
+
+        with patch.object(visual, "launcher", return_value=["app"]), patch.object(visual.subprocess, "run", side_effect=run), \
+                patch.object(visual, "uis", lambda which: [which]), redirect_stdout(StringIO()):
+            self.assertEqual(0, visual.render(out, "wpf", False, None, ["Frost"]))
+        self.assertEqual(["Frost"], started)
+        self.assertEqual(b"kept", (out / "wpf/Tavern-main-overview.png").read_bytes())
+        self.assertEqual({f"Frost-{s}.png" for s in visual.THEMES["Frost"]} | {"Tavern-main-overview.png"},
+                         {p.name for p in (out / "wpf").iterdir()})
+
+        grey = Image.new("RGB", (40, 40), (90, 90, 90))
+        printed = StringIO()
+        baselines = self.root / "baselines"
+        (baselines / "ava").mkdir(parents=True)
+        grey.save(baselines / "ava/Frost-main-overview.webp", "WEBP", lossless=True)
+        (out / "ava").mkdir()
+        grey.save(out / "ava/Frost-main-overview.png")
+        with patch.object(visual, "BASELINES", baselines), patch.object(visual, "uis", lambda which: [which]), \
+                patch.object(visual, "frames", lambda: ["Tavern-main-overview", "Frost-main-overview"]), redirect_stdout(printed):
+            # Tavern is neither rendered nor stored here: only a Frost run passes.
+            self.assertEqual(0, visual.compare(out, "ava", ["Frost"]))
+            self.assertEqual(1, visual.compare(out, "ava"))
+        with redirect_stdout(StringIO()):
+            self.assertEqual(2, visual.main(["render", str(out), "--theme", "Winter"]))
+
 
 if __name__ == "__main__":
     unittest.main()
