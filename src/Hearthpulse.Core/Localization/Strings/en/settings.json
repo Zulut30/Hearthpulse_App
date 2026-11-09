@@ -154,8 +154,8 @@
   "Settings.About.Icons": "Navigation icons: game-icons.net by Lorc and Delapouite (CC BY 3.0), drawn in gold.",
   "Settings.About.NotAffiliated": "Not affiliated with Blizzard Entertainment.",
   "Settings.Data.GameStats": "Send my games to Hearthpulse statistics",
-  "Settings.Data.GameStatsTip": "After each Ranked and Casual game, Arena, Brawl and Battlegrounds (solo and duos): the mode, format, rank league, your class, hero and deck code, the opponent's class and archetype, the result, turns, length, who went first, the mulligan (what you were offered, kept and replaced, and what came instead), every card you played with its turn and the mana spent, every pick (Discover, Adapt, Choose One, Dredge and the like) and what you took, the cards that came into your hand and your Excavate treasures. In Battlegrounds: the heroes offered and the one you picked, the lobby's tribes and anomaly, your tavern tier by turn, the minions you bought and sold, your picks, trinkets, quests, final board, placement and rating rounded to 500 (above 10,000 as \"10,000+\"). The cards your opponent played, only once they showed them during the game.",
-  "Settings.Data.GameStatsNote": "On by default. Never your name, BattleTag, account, deck name or Legend number; opponent cards only once shown in the game. Games are kept for 180 days with a random number of this install, not linked to your account; Hearthpulse builds its own statistics from them, paid features included; only totals over many players are published. Turn it off and the games waiting on this PC are deleted, and the ones already sent are deleted from the server. More in the privacy policy on hearthpulse.net.",
+  "Settings.Data.GameStatsTip": "Cleaned match and draft journals: visible offers, choices, cards played and received, buys and sells, tavern refreshes, resources, shown board states and the result. Opponent cards only once shown in the game. Incomplete observations are marked; the server can reprocess saved journals to refine statistics.",
+  "Settings.Data.GameStatsNote": "On by default; detailed journals start after the updated notice. No name, BattleTag, account, deck name, exact rating or hidden cards of other players. Kept on the Hearthpulse server for up to 180 days, separately from your site account; totals may support paid features. Turning sending off clears the queue and requests deletion; the status below shows when confirmation is still pending.",
   "Settings.Data.CrashReports": "Send crash reports automatically",
   "Settings.Data.CrashReportsNote": "Sent: the app and system versions, the language, the error type and text and where in the code it happened. Names, BattleTags, e-mails, paths, quoted values and long numbers are cut out of the text; your account, history and game logs are never sent. Off: a report goes only when you press “Send report” in the error window; turning it off deletes reports waiting to go.",
   "Settings.Tab.Appearance": "Appearance",
@@ -211,5 +211,12 @@
   "Settings.File.ExportFailed": "The file could not be saved",
   "Settings.File.Imported": "Settings loaded",
   "Settings.File.NotSettings": "This is not a Hearthpulse settings file",
-  "Settings.File.Filter": "Hearthpulse settings"
+  "Settings.File.Filter": "Hearthpulse settings",
+  "Settings.Data.SourceDeleting": "Deletion of previously sent journals is awaiting server confirmation.",
+  "Settings.Data.SourceOff": "Journal sending is off.",
+  "Settings.Data.SourceNotice": "Journal sending starts after the updated notice.",
+  "Settings.Data.SourceDropped": "Some journals could not be saved: {0}. These records are not treated as complete.",
+  "Settings.Data.SourceUnavailable": "Journal sending is unavailable. Saved data remains queued.",
+  "Settings.Data.SourcePending": "Journals waiting to be sent: {0}.",
+  "Settings.Data.SourceReady": "The journal queue is empty."
 }

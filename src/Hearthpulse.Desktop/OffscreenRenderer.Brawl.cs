@@ -41,6 +41,16 @@ internal static partial class OffscreenRenderer
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
     private static async Task RenderOnlyAsync(Window main, MainView view, AppHost host, string folder)
     {
+        if (RenderOnly("sourcecapture"))
+        {
+            view.ShowPage("Overview");
+            await Save(main, Path.Combine(folder, "main-source-notice.png"));
+            view.ShowPage("Settings");
+            view.ShowSettingsTab("Data");
+            if (view.FindControl<Avalonia.Controls.ScrollViewer>("PageSettings") is { } dataScroll)
+                dataScroll.Offset = new Avalonia.Vector(0, 360);
+            await Save(main, Path.Combine(folder, "main-source-data.png"));
+        }
         if (RenderOnly("brawl"))
         {
             await RenderBrawlPageAsync(main, view, host, folder);

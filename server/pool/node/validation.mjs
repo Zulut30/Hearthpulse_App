@@ -24,7 +24,7 @@ const tags = x => object(x) && Object.keys(x).length <= TAGS.size && Object.entr
 const fields = (d, names) => exact(d, names.split(' '));
 const hidden = (side, zone) => side !== 'local' && ['HAND', 'DECK', 'SETASIDE', 'UNKNOWN'].includes(zone);
 function visibleEntity(x) {
-  return SIDES.includes(x.side) && ZONES.includes(x.zone) && int(x.entity) && int(x.position, 0, 1000)
+  return SIDES.includes(x.side) && ZONES.includes(x.zone) && int(x.entity, 1) && int(x.position, 0, 1000)
     && nullable(x.card, card) && tags(x.tags)
     && (!hidden(x.side, x.zone) || (x.card === null && Object.keys(x.tags).every(t => t === 'ZONE_POSITION')))
     && x.side !== 'none' && (x.side !== 'shop' || x.zone === 'SHOP')
@@ -39,32 +39,41 @@ export function validRecord(r) {
   const d = r.data;
   switch (r.kind) {
     case 'start': return fields(d, 'captureKind mode day build') && ['game', 'draft'].includes(d.captureKind)
-      && MODES.includes(d.mode) && int(d.day, 0, 100000) && nullable(d.build, v => int(v, 0, 100_000_000))
-      && r.side === 'none' && r.entity === 0 && r.target === 0;
+      && MODES.includes(d.mode) && int(d.day, 0, 100000) && nullable(d.build, v => int(v, 1, 2147483647))
+      && r.turn === 0 && r.side === 'none' && r.entity === 0 && r.target === 0;
     case 'end': return fields(d, 'status result placement reason') && ['complete', 'incomplete'].includes(d.status)
       && nullable(d.result, v => ['W', 'L', 'T'].includes(v)) && nullable(d.placement, v => int(v, 1, 8))
       && ['normal', 'abandoned', 'rotation', 'shutdown', 'unsupported', 'unknown'].includes(d.reason)
-      && (d.status === 'complete' || (d.result === null && d.placement === null)) && r.side === 'none';
+      && r.side === 'none' && r.entity === 0 && r.target === 0;
     case 'entity': return fields(d, 'zone position tags') && visibleEntity({ ...d, side: r.side, entity: r.entity, card: r.card });
     case 'tag': return fields(d, 'tag value') && TAGS.has(d.tag) && number(d.value)
       && r.side !== 'shop' && (r.side === 'local' || r.card === null);
-    case 'block_start': case 'block_end': return fields(d, 'block') && ['PLAY', 'POWER', 'TRIGGER', 'ATTACK', 'DEATHS', 'MOVE_MINION', 'OTHER'].includes(d.block);
+    case 'block_start': case 'block_end': return fields(d, 'block') && ['PLAY', 'POWER', 'TRIGGER', 'ATTACK', 'DEATHS', 'MOVE_MINION', 'OTHER'].includes(d.block)
+      && (r.side === 'local' || r.card === null);
     case 'choice': return fields(d, 'choiceId sourceCard options picked resolved') && r.side === 'local'
-      && int(d.choiceId) && nullable(d.sourceCard, card) && cards(d.options, 64) && cards(d.picked, 16)
-      && d.picked.every(c => d.options.includes(c)) && typeof d.resolved === 'boolean';
+      && int(d.choiceId) && nullable(d.sourceCard, card) && cards(d.options, 64) && d.options.length > 0 && cards(d.picked, 16)
+      && typeof d.resolved === 'boolean' && (d.resolved || d.picked.length === 0) && multisetSubset(d.picked, d.options);
     case 'action': return fields(d, 'action cost') && ['play', 'buy', 'sell', 'refresh', 'freeze', 'upgrade', 'move', 'hero_power', 'receive', 'draw', 'discard', 'unknown'].includes(d.action)
-      && nullable(d.cost, v => int(v, 0, 1000))
+      && nullable(d.cost, v => int(v))
+      && (['local', 'opponent', 'partner_public'].includes(r.side) || (r.side === 'none' && d.action === 'unknown' && r.entity === 0 && r.card === null && d.cost === null))
+      && (r.side === 'local' || r.card === null || ['play', 'hero_power', 'move'].includes(d.action))
       && (!(r.side === 'opponent' && ['draw', 'receive', 'discard'].includes(d.action)) || (r.card === null && d.cost === null && r.target === 0));
-    case 'snapshot': return fields(d, 'gold tier cards') && nullable(d.gold, v => int(v, 0, 1000))
-      && nullable(d.tier, v => int(v, 1, 7)) && Array.isArray(d.cards) && d.cards.length <= 256
+    case 'snapshot': return fields(d, 'gold tier cards') && ['local', 'none'].includes(r.side) && nullable(d.gold, v => int(v))
+      && nullable(d.tier, v => int(v, 1, 10)) && Array.isArray(d.cards) && d.cards.length <= 256
+      && new Set(d.cards.map(x => x?.entity)).size === d.cards.length
       && d.cards.every(x => fields(x, 'entity card side zone position tags') && visibleEntity(x));
     case 'draft_choice': return fields(d, 'pick options picked underground') && r.side === 'local' && int(d.pick, 0, 1000)
       && Array.isArray(d.options) && d.options.length >= 1 && d.options.length <= 64
       && d.options.every(x => fields(x, 'card package') && card(x.card) && cards(x.package, 64))
       && nullable(d.picked, v => int(v, 0, d.options.length - 1)) && nullable(d.underground, v => typeof v === 'boolean');
-    case 'gap': return fields(d, 'reason count') && ['late_attach', 'rotation', 'source_missing', 'unsupported', 'limit', 'invalid', 'shutdown'].includes(d.reason) && int(d.count, 1, 1_000_000);
+    case 'gap': return fields(d, 'reason count') && ['late_attach', 'rotation', 'source_missing', 'unsupported', 'limit', 'invalid', 'shutdown'].includes(d.reason) && int(d.count, 1, 1_000_000)
+      && r.side === 'none' && r.entity === 0 && r.target === 0;
     default: return false;
   }
+}
+function multisetSubset(picked, options) {
+  const remaining = [...options];
+  return picked.every(c => { const i = remaining.indexOf(c); if (i < 0) return false; remaining.splice(i, 1); return true; });
 }
 export const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 export function parseJson(text) {
@@ -142,15 +151,33 @@ export function validateManifest(b) {
   }
 }
 
-export function streamState() { return { seq: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, concealed: new Set(), publicRefs: new Set() }; }
+export function streamState() { return { seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
 export function addRecords(state, list) {
   for (const r of list) {
     if (r.seq !== state.seq++ || state.ended || (r.kind === 'start' && r.seq !== 0)) fail(400, 'invalid_sequence');
+    if (r.turn < state.turn || (r.seq === 0 && r.kind !== 'start')) fail(400, 'invalid_sequence');
+    state.turn = r.turn;
     state.first ??= r;
     state.last = r;
     if (r.kind === 'end') state.ended = true;
     if (r.kind === 'gap') state.gaps += r.data.count;
     if ((r.kind === 'action' && r.data.action === 'unknown') || r.data.block === 'OTHER') state.unsupported = true;
+    if (r.kind === 'block_start') {
+      if (state.blocks.length >= 64) fail(413, 'block_limit');
+      state.blocks.push(r.data.block);
+    }
+    if (r.kind === 'block_end') {
+      if (state.blocks.at(-1) !== r.data.block) {
+        if (!state.gaps) fail(400, 'invalid_blocks');
+        state.blocks.length = 0; state.unsupported = true;
+      } else state.blocks.pop();
+    }
+    if (r.kind === 'choice') {
+      const old = state.choices.get(r.data.choiceId);
+      if (old?.resolved && (JSON.stringify(old.options) !== JSON.stringify(r.data.options) || old.sourceCard !== r.data.sourceCard
+        || !r.data.resolved || old.picked.some((x, i) => r.data.picked[i] !== x))) fail(400, 'invalid_choice_progression');
+      state.choices.set(r.data.choiceId, r.data);
+    }
     const entities = r.kind === 'snapshot' ? r.data.cards : r.kind === 'entity' ? [{ ...r.data, entity: r.entity, side: r.side, card: r.card }] : [];
     for (const e of entities) {
       if (!e.entity) continue;
@@ -171,7 +198,8 @@ export function finishStream(state, b) {
   const start = state.first;
   if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps) fail(400, 'manifest_source_mismatch');
   const end = state.last;
-  if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported)) fail(400, 'incomplete_stream');
+  if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported
+    || state.blocks.length || [...state.choices.values()].some(x => !x.resolved))) fail(400, 'incomplete_stream');
   if (b.captureStatus === 'incomplete' && !(end?.kind === 'gap' || (end?.kind === 'end' && end.data.status === 'incomplete'))) fail(400, 'incomplete_stream');
   if (b.captureKind === 'draft' && end?.kind === 'end' && (end.data.result !== null || end.data.placement !== null)) fail(400, 'draft_result');
 }

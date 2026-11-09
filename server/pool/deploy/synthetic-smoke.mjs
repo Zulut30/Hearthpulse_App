@@ -20,10 +20,16 @@ const sha256 = createHash('sha256').update(bytes).digest('hex');
 async function post(route, body, operator = false) {
   const headers = { 'content-type': 'application/json' };
   if (operator) headers.authorization = `Bearer ${process.env.POOL_OPERATOR_TOKEN ?? ''}`;
-  const response = await fetch(new URL(`v1/captures/${route}`, url), { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(150000) });
-  const result = await response.json();
-  if (!response.ok) throw new Error(`smoke_${route}_${response.status}`);
-  return { code: response.status, result };
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const response = await fetch(new URL(`v1/captures/${route}`, url), { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(150000) });
+    if ([429, 502, 503, 504].includes(response.status) && attempt < 11) {
+      await response.arrayBuffer();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue;
+    }
+    if (!response.ok) throw new Error(`smoke_${route}_${response.status}`);
+    return { code: response.status, result: await response.json() };
+  }
 }
 async function waitParsed() {
   for (let i = 0; i < 120; i++) {

@@ -162,7 +162,8 @@ internal static class SourceCaptureSchema
                 string action = OneOf(d.GetProperty("action"), "play", "buy", "sell", "refresh", "freeze", "upgrade",
                     "move", "hero_power", "receive", "draw", "discard", "unknown");
                 NullableNumber(d.GetProperty("cost"), 0, 1_000_000);
-                Require(e.Side is "local" or "opponent" or "partner_public");
+                Require(e.Side is "local" or "opponent" or "partner_public" ||
+                    e.Side == "none" && action == "unknown" && e.Entity == 0 && e.Card is null && d.GetProperty("cost").ValueKind == JsonValueKind.Null);
                 Require(e.Side == "local" || e.Card is null || action is "play" or "hero_power" or "move");
                 break;
             case "snapshot":

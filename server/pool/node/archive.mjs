@@ -38,11 +38,13 @@ const nowDay = () => Math.floor(Date.now() / 86_400_000);
 export class CaptureArchive {
   constructor({ sqlite, root, queue = new SerialQueue(), maxArchiveBytes = 256 * MiB, dailyBytes = 128 * MiB,
     dailyCaptures = 1000, minFreeBytes = 64 * MiB, retentionDays = 180, unfinishedHours = 24,
-    worker = null, workerTimeoutMs = 120_000, maxWorkerOutputBytes = 64 * MiB }) {
+    worker = null, workerTimeoutMs = 120_000, maxWorkerOutputBytes = 64 * MiB,
+    maxMetadataBytes = 64 * MiB, maxNewRevocationsPerDay = 1000, maxUnknownRevocations = 10000 }) {
     this.db = sqlite;
     this.root = path.resolve(root);
     this.queue = queue;
-    Object.assign(this, { maxArchiveBytes, dailyBytes, dailyCaptures, minFreeBytes, retentionDays, unfinishedHours, worker, workerTimeoutMs, maxWorkerOutputBytes });
+    Object.assign(this, { maxArchiveBytes, dailyBytes, dailyCaptures, minFreeBytes, retentionDays, unfinishedHours, worker, workerTimeoutMs, maxWorkerOutputBytes,
+      maxMetadataBytes, maxNewRevocationsPerDay, maxUnknownRevocations });
     this.active = new Map();
     this.jobs = new Set();
     this.revocations = new Set();
@@ -66,10 +68,14 @@ export class CaptureArchive {
   usage() {
     return this.db.prepare(`SELECT (SELECT COALESCE(SUM(bytes + compressed_bytes),0) FROM source_chunks)
       + (SELECT COALESCE(SUM(derived_bytes),0) FROM source_captures) AS n`).get().n
-      + this.db.prepare("SELECT COUNT(*) AS n FROM source_captures WHERE status='processing'").get().n * this.maxWorkerOutputBytes;
+      + this.db.prepare("SELECT COUNT(*) AS n FROM source_captures WHERE status='processing'").get().n * this.maxWorkerOutputBytes
+      + (fs.existsSync(this.ledger) ? fs.statSync(this.ledger).size : 0);
   }
   pressure(extra) {
     if (this.usage() + extra > this.maxArchiveBytes) fail(503, 'archive_pressure');
+    const file = this.db.prepare('PRAGMA database_list').get().file;
+    const metadata = ['', '-wal', '-shm'].reduce((n, suffix) => n + (fs.existsSync(file + suffix) ? fs.statSync(file + suffix).size : 0), 0);
+    if (metadata > this.maxMetadataBytes) fail(503, 'metadata_pressure');
     const space = fs.statfsSync(this.root);
     if (space.bavail * space.bsize < this.minFreeBytes + extra) fail(503, 'disk_pressure');
   }
@@ -254,6 +260,13 @@ export class CaptureArchive {
     return this.queue.run(async () => {
       const id = identity(body, false);
       if (!exact(body, ['v', 'iid', 'generation'])) fail(400, 'invalid_forget');
+      if (!this.revoked(id.generation) && !this.db.prepare('SELECT 1 FROM source_captures WHERE generation=? LIMIT 1').get(id.generation)) {
+        // Real deletion and repeated receipts remain available under pressure. New anonymous tombstones need a budget.
+        const today = nowDay() * 86400000;
+        const daily = this.db.prepare('SELECT COUNT(*) AS n FROM source_revoked WHERE revoked_at>=?').get(today).n;
+        if (daily >= this.maxNewRevocationsPerDay || this.revocations.size >= this.maxUnknownRevocations) fail(503, 'revocation_pressure');
+        this.pressure(256);
+      }
       this.revoke(id.generation);
       return await this.cleanGeneration(id.generation) ? { statusCode: 200, body: { ok: true, status: 'deleted' } }
         : { statusCode: 202, body: { ok: true, status: 'deleting' } };

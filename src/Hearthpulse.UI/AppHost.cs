@@ -101,7 +101,9 @@ public sealed partial class AppHost : IDisposable
             _settingsDebounce.Kick();
             if (on) _services.GameStats.Kick();
             else _services.GameStats.Withdraw();
+            _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
+        _services.SourceCaptures.StateChanged += state => Dispatcher.UIThread.Post(() => Main.UpdateSourceCaptureState(state));
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -258,6 +260,7 @@ public sealed partial class AppHost : IDisposable
             _watcher.Start();
             Uploader.Start();
             _services.GameStats.Start();
+            _services.SourceCaptures.Start();
             Main.ShowBusy(InstallDirectory is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
@@ -482,6 +485,7 @@ public sealed partial class AppHost : IDisposable
         _watcher?.Dispose();
         Uploader.Dispose();
         _services.GameStats.Dispose();
+        _services.SourceCaptures.Dispose();
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();

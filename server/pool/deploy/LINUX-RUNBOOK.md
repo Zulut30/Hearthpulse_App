@@ -53,7 +53,7 @@ dotnet publish tools/Hearthpulse.SourceWorker/Hearthpulse.SourceWorker.csproj --
 
 Install the whole self-contained publish directory read-only under `/opt/hearthpulse-pool/worker`. P4 fixes the
 executable path in the environment; no runtime upgrade or shell command is needed. The API accepts the validated
-reported parser version (including the parent's corrected `source-v1.1`), never a hardcoded `source-v1.0`:
+reported parser version (the integrated decoder is `source-v1.2`), never a hardcoded `source-v1.0`:
 
 ```ini
 POOL_WORKER_EXECUTABLE=/opt/hearthpulse-pool/worker/Hearthpulse.SourceWorker
@@ -73,7 +73,9 @@ P4 adds the scoped locations from `nginx-source-capture.conf` to the existing `a
 without replacing other API routes, DNS or TLS settings. They strip `/stats`, turn proxy caching off, and expose
 no archive alias/static location. The proxy rejects reprocess, strips Authorization, does not buffer request bodies to its
 disk, and disables access logging. Do not configure request-body logging at a WAF/monitoring layer. Decide the
-public rate limit and staging allowlist before opening it. Check `nginx -t` before any P4-authorized reload.
+public rate limit before opening it. Install `nginx-source-capture-limits.conf` in nginx's `http{}` context;
+the pilot uses 2 requests/second per restored client address with a burst of 12. The smoke retries rate limits and
+brief gateway unavailability during startup. Check `nginx -t` before any P4-authorized reload.
 
 ```sh
 curl --fail http://127.0.0.1:3181/healthz

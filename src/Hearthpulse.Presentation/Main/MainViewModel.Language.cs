@@ -22,6 +22,7 @@ public sealed partial class MainViewModel
     /// <summary>Rebuilds the texts made from data (lists, captions, tiles) and re-reads every bound property.</summary>
     private void OnLanguageChanged()
     {
+        Raise(nameof(SourceCaptureStatusText));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
         // My Stats keeps the texts it built; a refresh only rebuilds them when the history changed.

@@ -63,7 +63,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             Assert.Equal(SourceWorkerCommand.Serialize(first), SourceWorkerCommand.Serialize(again));
         }
         finally { CultureInfo.CurrentCulture = original; }
-        Assert.Equal("source-v1.1", first.ParserVersion);
+        Assert.Equal("source-v1.2", first.ParserVersion);
         Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source))), first.SourceSha256);
         var reordered = await Parse(source.Replace("\"v\":1,\"seq\":0", "\"seq\":0,\"v\":1", StringComparison.Ordinal));
         Assert.NotEqual(first.SourceSha256, reordered.SourceSha256);
@@ -375,7 +375,7 @@ public sealed class SourceCaptureParserTests : IDisposable
         await File.WriteAllTextAsync(input, Source(Start(), Line(1, "gap", """{"reason":"unsupported","count":2}"""), End(2)), new UTF8Encoding(false));
         using var status = new StringWriter(CultureInfo.InvariantCulture);
         Assert.Equal(0, await SourceWorkerCommand.RunAsync(["--input", input, "--output", output], status));
-        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v1.1","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
+        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v1.2","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
         using var json = JsonDocument.Parse(await File.ReadAllTextAsync(output));
         Assert.Equal("incomplete", json.RootElement.GetProperty("summary").GetProperty("captureStatus").GetString());
         Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("summary").GetProperty("result").ValueKind);
@@ -404,6 +404,19 @@ public sealed class SourceCaptureParserTests : IDisposable
         Assert.Equal(1, parsed.Summary.Plays);
         Assert.Null(parsed.Summary.Result);
         Assert.False(parsed.Summary.CompleteForAggregation);
+    }
+
+    [Fact]
+    public async Task A_local_turn_counter_does_not_replace_the_global_game_turn()
+    {
+        var parsed = await Parse(Source(Start(),
+            Line(1, "tag", """{"tag":"TURN","value":3}""", turn: 3),
+            Line(2, "tag", """{"tag":"TURN","value":2}""", turn: 3, side: "local"), End(3, turn: 3)));
+        Assert.Equal(3, parsed.Summary.Turns);
+        Assert.Equal("turn", parsed.Events[1].Kind);
+        Assert.Equal("tag", parsed.Events[2].Kind);
+        Assert.Equal(2, parsed.Events[2].Data.GetProperty("value").GetInt32());
+        Assert.True(parsed.Summary.CompleteForAggregation);
     }
 
     [Fact]

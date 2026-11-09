@@ -90,6 +90,7 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
         if (req.headers['content-type']) headers.set('content-type', req.headers['content-type']);
         const request = new Request(`http://pool.internal${url.pathname}${url.search}`, { method: req.method, headers, body: bytes });
         response = await queue.run(async () => {
+          if (req.method === 'POST' && url.pathname !== '/v1/events/forget') archive.pressure(512 * 1024);
           const pending = [];
           // Quota reservation and inserts commit together; readers and capture operations share this queue.
           store.sqlite.exec('BEGIN IMMEDIATE');

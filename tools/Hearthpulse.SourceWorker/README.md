@@ -38,7 +38,7 @@ Use distinct source/result paths and a separate output per job. The worker never
 Stdout is exactly one safe JSON status line; stderr is empty. Success example:
 
 ```json
-{"ok":true,"status":"parsed","parserVersion":"source-v1.1","records":4,"unsupported":0,"gaps":0}
+{"ok":true,"status":"parsed","parserVersion":"source-v1.2","records":4,"unsupported":0,"gaps":0}
 ```
 
 Failure example:
@@ -66,7 +66,7 @@ Namespace: `Hearthpulse.Core.SourceCapture.Processing`.
 ```csharp
 new SourceCaptureParser(SourceCaptureLimits? limits = null);
 Task<SourceCaptureResult> ParseAsync(Stream input, CancellationToken cancellationToken = default);
-SourceCaptureParser.ParserVersion; // "source-v1.1"
+SourceCaptureParser.ParserVersion; // "source-v1.2"
 SourceWorkerCommand.Serialize(SourceCaptureResult result); // stable camelCase JSON
 Task<int> SourceWorkerCommand.RunAsync(string[] args, TextWriter stdout,
     CancellationToken cancellationToken = default);

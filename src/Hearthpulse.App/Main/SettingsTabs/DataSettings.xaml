@@ -31,6 +31,8 @@
                           ToolTip="{i:Loc Settings.Data.GameStatsTip}" />
                 <TextBlock Text="{i:Loc Settings.Data.GameStatsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,16"
                            Visibility="{Binding GameStatsAvailable, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding SourceCaptureStatusText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,16"
+                           Visibility="{Binding GameStatsAvailable, Converter={StaticResource Vis}}" />
                 <!-- Plan 0.5: crash reports without asking; off by default -->
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.CrashReports}" IsChecked="{Binding CrashReports}" Margin="0,0,0,4" />
                 <TextBlock Text="{i:Loc Settings.Data.CrashReportsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,18" />

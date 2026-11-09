@@ -32,19 +32,23 @@ and "cog" by Lorc. Fonts and libraries: THIRD-PARTY-NOTICES.txt.
 Not affiliated with Blizzard Entertainment.
 
 GAME STATISTICS
-- On by default; turn it off in Settings > Data, "Send my games to Hearthpulse
-  statistics". Turning it off deletes the games waiting on this computer and
-  asks the stats server to delete the ones already sent.
-- After each Ranked, Casual, Arena, Brawl and Battlegrounds game the app sends
-  a record of it to the Hearthpulse stats server (Cloudflare): mode, format,
-  rank league, classes, deck code, result, mulligan, cards played and drawn,
-  your picks; in Battlegrounds the heroes, tavern tiers, buys and sells,
-  board and placement. Only what you saw in the game: opponent cards only
-  once shown. Never your name, BattleTag, account, deck name or Legend number.
-- Records carry a random number of this install (so they can be deleted), not
-  your account, and are kept for 180 days. Only totals over many players are
-  published. More: the privacy policy on hearthpulse.net, section 9.
-- Nothing is sent until the stats server is set up in the app.
+- On by default; expanded source sending starts only after the updated in-app
+  notice and a statistics endpoint are available. Turn it off in Settings >
+  Data, "Send my games to Hearthpulse statistics".
+- The app sends compact game records and a sanitized journal of observed games
+  and Arena draft choices to Hearthpulse's private statistics service: ordered
+  visible offers and choices, played/drawn cards, buys, sells, shop refreshes,
+  resources, visible board states and outcomes. Incomplete observations are
+  marked separately. Stored journals can be reprocessed as the parser improves.
+- No name, BattleTag, account, deck name, exact rating, private network log or
+  hidden opponent cards. Source identities are random per installation and
+  generation, separate from the website account; only aggregate statistics
+  are published, including in paid features. Storage is up to 180 days.
+- Turning sending off clears pending journals and asks the server to delete
+  uploaded data. Pending deletion remains visible until the server confirms it.
+- The expanded source service is a synthetic pilot in this build; its default
+  endpoint is unset. Public activation requires the matching published privacy
+  policy and verified hosting/backup deletion procedures.
 
 CRASH REPORTS
 - Off by default. A report of an unexpected error goes to hearthpulse.net only

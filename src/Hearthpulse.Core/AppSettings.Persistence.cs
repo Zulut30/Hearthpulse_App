@@ -104,25 +104,38 @@ public sealed partial class AppSettings
 
     public void Save() => Save(AppPaths.Settings);
 
+    private readonly Lock _saveGate = new();
+
+    /// <summary>Persist before granting a delivery identity; callers must handle storage failure.</summary>
+    public void SaveRequired() => SaveRequired(AppPaths.Settings);
+
     internal void Save(string path)
     {
-        // If recovery could not make a diagnostic copy (for example the disk was full), do not silently replace the
-        // original on shutdown. Retry copying first, so normal saving resumes when the storage problem is resolved.
-        if (_unpreservedFile is { } unreadable)
-        {
-            if (!PreserveUnreadable(unreadable)) return;
-            _unpreservedFile = null;
-        }
-
-        try
-        {
-            var temp = path + ".tmp";
-            File.WriteAllText(temp, ToJson());
-            File.Move(temp, path, overwrite: true);
-        }
+        try { SaveRequired(path); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Diag.Error("Settings not saved", ex);
+        }
+    }
+
+    internal void SaveRequired(string path)
+    {
+        lock (_saveGate)
+        {
+            // If recovery could not make a diagnostic copy, preserve it before permitting another write.
+            if (_unpreservedFile is { } unreadable)
+            {
+                if (!PreserveUnreadable(unreadable)) throw new IOException("Settings preservation is unavailable.");
+                _unpreservedFile = null;
+            }
+
+            var temp = path + ".tmp";
+            using (var file = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                file.Write(System.Text.Encoding.UTF8.GetBytes(ToJson()));
+                file.Flush(flushToDisk: true);
+            }
+            File.Move(temp, path, overwrite: true);
         }
     }
 

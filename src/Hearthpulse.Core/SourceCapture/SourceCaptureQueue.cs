@@ -201,6 +201,8 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
     private void Load()
     {
         Directory.CreateDirectory(_root);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(_root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         if (File.Exists(StorePath)) _store = Read<StoreState>(StorePath);
         _dropped = _store.Dropped;
         // Startup never accepts new captures until settings/new notice have been checked by the host.
@@ -244,8 +246,9 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
         if (tail.RootElement.GetProperty("kind").GetString() != "end")
         {
             var seq = tail.RootElement.GetProperty("seq").GetInt32() + 1;
-            var suffix = new SourceCaptureRecord(seq, "gap", 0, "none", 0, null, 0, new { reason = "shutdown", count = 1 }).ToJson() + "\n"
-                + new SourceCaptureRecord(seq + 1, "end", 0, "none", 0, null, 0, new { status = "incomplete", result = (string?)null, placement = (int?)null, reason = "shutdown" }).ToJson() + "\n";
+            var turn = tail.RootElement.GetProperty("turn").GetInt32();
+            var suffix = new SourceCaptureRecord(seq, "gap", turn, "none", 0, null, 0, new { reason = "shutdown", count = 1 }).ToJson() + "\n"
+                + new SourceCaptureRecord(seq + 1, "end", turn, "none", 0, null, 0, new { status = "incomplete", result = (string?)null, placement = (int?)null, reason = "shutdown" }).ToJson() + "\n";
             using var append = new FileStream(last, FileMode.Append, FileAccess.Write); append.Write(Encoding.UTF8.GetBytes(suffix)); append.Flush(true);
         }
         FinalizeCapture(manifest);

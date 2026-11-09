@@ -131,7 +131,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     private void Emit(string kind, object data, string side = "none", int entity = 0, string? card = null, int target = 0)
     {
         if (_capture is null || _stopped) return;
-        Recorded?.Invoke(new(_capture, _kind, _mode, _day, new(_seq++, kind, _kind == "game" ? _game?.Turn ?? 0 : 0, side, entity, card, target, data)));
+        Recorded?.Invoke(new(_capture, _kind, _mode, _day, new(_seq++, kind, kind == "start" || _kind != "game" ? 0 : _game?.Turn ?? 0, side, entity, card, target, data)));
     }
 
     public void OnEntityCreated(GameState game, Entity entity) { if (Ready(game)) Sync(game, entity); }
@@ -181,7 +181,12 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         {
             _shown.Remove(entity.Id);
             // No individually trackable deck refs or attributes. SETASIDE is observed only in a local choice callback.
-            if (entity.Zone == "DECK") Emit("entity", new { zone = "DECK", position = 0, tags = new Dictionary<string, int>() }, side);
+            if (entity.Zone == "DECK")
+            {
+                if (_nextRef >= 999_999) { NoteGap("limit"); return; }
+                // A fresh one-shot structural ref never links this hidden observation to any other zone.
+                Emit("entity", new { zone = "DECK", position = 0, tags = new Dictionary<string, int>() }, side, ++_nextRef);
+            }
             return;
         }
         _shown.TryGetValue(entity.Id, out var before);
@@ -195,7 +200,11 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         if (!hidden)
         {
             foreach (var tag in SafeTags)
-                if (TryNumber(entity.GetString(tag), out var value)) tags[tag] = value;
+            {
+                var raw = entity.GetString(tag);
+                if (TryNumber(raw, out var value)) tags[tag] = value;
+                else if (raw.Length > 0) NoteGap("unsupported");
+            }
         }
         var shown = new Shown(id, side, zone, card, hidden, Math.Clamp(entity.ZonePosition, 0, 1000), tags);
         _shown[entity.Id] = shown;
@@ -206,12 +215,13 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         }
     }
 
-    private static bool TryNumber(string value, out int number) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out number);
+    private static bool TryNumber(string value, out int number) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out number)
+        && number is >= -1_000_000 and <= 1_000_000;
     private static bool Combat(GameState game) => game.GameEntity is { } e && (e.GetInt(GameTag.BaconInCombatPhase) == 1 || e.GetInt(GameTag.BoardVisualState) == 2);
     private Shown? Visible(Entity? entity) => entity is not null && _shown.TryGetValue(entity.Id, out var shown) && !shown.Hidden ? shown : null;
     private void Action(string action, Shown? shown, int target = 0)
     {
-        Emit("action", new { action, cost = (int?)null }, shown?.Side ?? "local", shown?.Id ?? 0, shown?.Card, target);
+        Emit("action", new { action, cost = (int?)null }, "local", shown?.Id ?? 0, shown?.Card, target);
         if (action == "unknown") NoteGap("unsupported");
     }
 
@@ -260,7 +270,14 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
             if (TryNumber(value, out var number))
             {
                 var tags = new Dictionary<string, int>(shown.Tags, StringComparer.Ordinal) { [tag] = number };
-                _shown[entity.Id] = shown with { Tags = tags };
+                shown = shown with { Tags = tags };
+                _shown[entity.Id] = shown;
+            }
+            if (shown.Side == "shop")
+            {
+                if (!TryNumber(value, out _)) NoteGap("unsupported");
+                Emit("entity", new { zone = shown.Zone, position = shown.Position, tags = shown.Tags }, shown.Side, shown.Id, shown.Card);
+                return;
             }
             WriteTag(tag, value, shown.Side, shown.Id, shown.Card);
         }
@@ -268,7 +285,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
 
     private void WriteTag(string tag, string value, string side = "none", int entity = 0, string? card = null)
     {
-        if (TryNumber(value, out var number)) Emit("tag", new { tag, value = number }, side, entity, card);
+        if (TryNumber(value, out var number) && (tag != "TURN" || number is >= 0 and <= 1000))
+            Emit("tag", new { tag, value = number }, side, entity, side == "local" ? card : null);
         else NoteGap("unsupported"); // Unknown enum strings never become zero or raw text.
     }
 
@@ -280,7 +298,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         var pending = new CaptureBlock(block, source);
         _blocks.Push(pending);
         var shown = Visible(source);
-        Emit("block_start", new { block }, shown?.Side ?? "none", shown?.Id ?? 0, shown?.Card);
+        Emit("block_start", new { block }, shown?.Side ?? "none", shown?.Id ?? 0, shown?.Side == "local" ? shown.Card : null);
         if (block == "OTHER") NoteGap("unsupported");
         if (source?.Controller != game.LocalPlayerId) return;
         var target = Visible(game.Entities.GetValueOrDefault(source.GetInt("CARD_TARGET")));
@@ -335,11 +353,13 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _options = valid.Select(e => e.CardId).ToArray();
         _optionEntities = valid.Select(e => e.Id).ToArray();
         if (_options.Length != options.Count) NoteGap("invalid");
+        if (_options.Length == 0) { _choiceOpen = false; NoteGap("source_missing"); return; }
         WriteChoice(false);
     }
     public void OnChoiceMade(GameState game)
     {
-        if (Ready(game) && _choice > 0) { _choiceOpen = false; WriteChoice(true); }
+        // The chosen-entities header precedes its card lines. It is not a completed empty selection.
+        if (Ready(game) && _choice > 0 && _options.Length > 0) { _choiceOpen = false; WriteChoice(false); }
     }
     public void OnChosen(GameState game, Entity chosen)
     {
@@ -377,6 +397,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         var valid = offer is { CardIds.Count: > 0 and <= 64 } && offer.CardIds.All(SourceCaptureTokens.Card)
             && Enumerable.Range(0, offer.CardIds.Count).All(i => offer.PackageOf(i).Count <= 64 && offer.PackageOf(i).All(SourceCaptureTokens.Card));
         if (!valid || picked is < 0 || picked >= offer?.CardIds.Count) NoteGap("invalid");
+        if (!valid) { Finish(null, null, "normal"); return; }
         Emit("draft_choice", new
         {
             pick = Math.Clamp(pick, 0, 1000),

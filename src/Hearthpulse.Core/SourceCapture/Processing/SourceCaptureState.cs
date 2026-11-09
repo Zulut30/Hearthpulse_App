@@ -64,7 +64,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 break;
             case "tag":
                 string tag = d.GetProperty("tag").GetString()!;
-                if (tag == GameTag.Turn)
+                if (tag == GameTag.Turn && e.Side == "none" && e.Entity == 0)
                 {
                     SourceCaptureSchema.Require(d.GetProperty("value").GetInt32() == e.Turn);
                     derivedKind = "turn";
@@ -87,8 +87,15 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 int id = d.GetProperty("choiceId").GetInt32();
                 string options = d.GetProperty("options").GetRawText() + d.GetProperty("sourceCard").GetRawText();
                 string? picked = d.GetProperty("resolved").GetBoolean() ? d.GetProperty("picked").GetRawText() : null;
-                if (_choices.TryGetValue(id, out var previous))
-                    SourceCaptureSchema.Require(previous.Options == options && (previous.Picked is null || previous.Picked == picked));
+                if (_choices.TryGetValue(id, out var previous) && previous.Picked is not null)
+                {
+                    SourceCaptureSchema.Require(previous.Options == options && picked is not null);
+                    using var before = System.Text.Json.JsonDocument.Parse(previous.Picked);
+                    using var after = System.Text.Json.JsonDocument.Parse(picked!);
+                    var oldPicks = before.RootElement.EnumerateArray().Select(x => x.GetString()).ToArray();
+                    var newPicks = after.RootElement.EnumerateArray().Select(x => x.GetString()).ToArray();
+                    SourceCaptureSchema.Require(newPicks.Length >= oldPicks.Length && newPicks.Take(oldPicks.Length).SequenceEqual(oldPicks));
+                }
                 _choices[id] = (options, picked);
                 break;
             case "draft_choice":

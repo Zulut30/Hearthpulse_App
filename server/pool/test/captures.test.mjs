@@ -9,6 +9,35 @@ import { atomicWrite } from '../node/archive.mjs';
 
 const generationId = { v: 1, iid: ID.iid, generation: ID.generation };
 const count = (pool, table) => pool.store.sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+
+test('unknown generation deletion has a durable budget while known and repeated deletion remain available', async t => {
+  const f = await setup(t, { archive: { maxNewRevocationsPerDay: 1 } });
+  await f.upload();
+  const unknown = { v: 1, iid: 'a'.repeat(32), generation: 'b'.repeat(32) };
+  assert.equal((await f.post('forget', unknown)).status, 200);
+  assert.ok(f.pool.archive.usage() > 0);
+  const next = { ...unknown, generation: 'c'.repeat(32) };
+  assert.equal((await f.post('forget', next)).status, 503);
+  await f.restart();
+  assert.equal((await f.post('forget', next)).status, 503);
+  assert.equal((await f.post('forget', unknown)).status, 200);
+  assert.equal((await f.post('forget', generationId)).status, 200);
+  assert.equal(count(f.pool, 'source_captures'), 0);
+  assert.equal(count(f.pool, 'source_revoked'), 2);
+});
+
+test('unknown tombstones cannot grow past the archive limit without uploading a source', async t => {
+  const f = await setup(t, { archive: { maxArchiveBytes: 1024 } });
+  let accepted = 0;
+  for (let i = 0; i < 30; i++) {
+    const response = await f.post('forget', { v: 1, iid: ID.iid, generation: i.toString(16).padStart(32, '0') });
+    if (response.status === 200) accepted++;
+    else assert.equal(response.status, 503);
+  }
+  assert.ok(accepted > 0 && accepted < 30);
+  assert.equal(count(f.pool, 'source_revoked'), accepted);
+  assert.ok(f.pool.archive.usage() <= 1024);
+});
 async function waitFor(predicate) {
   const deadline = Date.now() + 10000;
   while (!predicate()) {
@@ -294,7 +323,7 @@ test('forget during a running worker kills it and late completion cannot resurre
 
 test('restart recovers processing status and incomplete source parses as partial', async t => {
   const f = await setup(t, { archive: { worker: workerConfig('v1') } });
-  const bytes = jsonl([start(), choice(), record(2, 'gap', { reason: 'unsupported', count: 1 })]);
+  const bytes = jsonl([start(), choice(), record(2, 'gap', { reason: 'unsupported', count: 1 }, { turn: 2 })]);
   await f.complete(bytes, { captureStatus: 'incomplete', gaps: 1 });
   f.pool.store.sqlite.prepare("UPDATE source_captures SET status='processing'").run();
   await f.restart();

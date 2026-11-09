@@ -1,5 +1,11 @@
 # Game records live in the stats pool (Cloudflare D1), not in the site's database
 
+**Implementation update, 2026-11-09:** the Linux pilot on server 151 replaces the proposed Worker/D1 deployment
+with an isolated Node HTTP/SQLite service and a private source archive, preserving the compact endpoints below.
+See [source capture](../source-capture.md) and `server/pool/deploy/LINUX-RUNBOOK.md`. The default client endpoint
+stays unset pending public policy and operational deletion checks. The Cloudflare-specific details below record
+the original decision, not the current deployment target.
+
 Every finished game (all modes: Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos) goes
 as one compact versioned record to the stats pool Worker, `POST /v1/events`, and is stored as one row of D1 table `e`
 (server/pool/src/events.js, [game-stats.md](../game-stats.md)). The site's SQLite (hearthpulse.net) does not hold them.

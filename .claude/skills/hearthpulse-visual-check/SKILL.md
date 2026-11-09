@@ -70,6 +70,10 @@ fresh output folder and check these files yourself when bypassing the wrapper.
 
 ## Scenes (renderer code is authoritative)
 
+`HEARTHPULSE_RENDER_ONLY=sourcecapture` renders `main-source-notice` (Overview with the data copy's current notice)
+and `main-source-data` (Settings Data). Use separate scratch profiles for an older notice and the current notice,
+with a synthetic HTTPS PoolEndpoint. Render mode never starts the source delivery loop.
+
 | PNG | WPF | Avalonia | Source |
 |---|---|---|---|
 | `main-overview`, `-battlegrounds`, `-standard`, `-wild`, `-history`, `-settings` | 1260x840 window | same | `DevRender.cs` / `OffscreenRenderer.cs` page loop (Arena is not in the loop) |

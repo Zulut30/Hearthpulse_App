@@ -1,15 +1,34 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { record, start, end, choice, jsonl } from './capture-fixture.mjs';
-import { validRecord, records, inflate, MiB } from '../node/validation.mjs';
+import { validRecord, records, inflate, MiB, streamState, addRecords } from '../node/validation.mjs';
 import { gzipSync } from 'node:zlib';
+
+test('intake agrees with decoder on partial outcomes framing and choice progression', () => {
+  assert.equal(validRecord(end(1, { status: 'incomplete', result: 'W' })), true);
+  assert.equal(validRecord({ ...start(), turn: 1 }), false);
+  assert.equal(validRecord(record(1, 'entity', { zone: 'DECK', position: 0, tags: {} }, { side: 'local' })), false);
+  const empty = choice(); empty.data.options = []; empty.data.picked = [];
+  assert.equal(validRecord(empty), false);
+  const repeated = choice(); repeated.data.options = ['A']; repeated.data.picked = ['A', 'A'];
+  assert.equal(validRecord(repeated), false);
+  const state = streamState();
+  const open = choice(1); open.data.resolved = false; open.data.picked = [];
+  const reroll = structuredClone(open); reroll.seq = 2; reroll.data.options = ['B', 'C', 'D'];
+  const selected = structuredClone(reroll); selected.seq = 3; selected.data.resolved = true; selected.data.picked = ['C'];
+  const second = structuredClone(selected); second.seq = 4; second.data.picked = ['C', 'D'];
+  addRecords(state, [start(), open, reroll, selected, second]);
+  const rewrite = structuredClone(second); rewrite.seq = 5; rewrite.data.picked = ['B'];
+  assert.throws(() => addRecords(state, [rewrite]), e => e.code === 'invalid_choice_progression');
+  assert.throws(() => addRecords(streamState(), [start(), choice(), record(2, 'gap', { reason: 'shutdown', count: 1 })]), e => e.code === 'invalid_sequence');
+});
 
 test('typed source allows every declared record family and preserves choice copies and ordering', () => {
   const examples = [start(), end(), choice(),
     record(1, 'entity', { zone: 'HAND', position: 1, tags: { COST: 3, ATK: 2 } }, { side: 'local', entity: 1, card: 'CARD_A' }),
     record(1, 'entity', { zone: 'HAND', position: 1, tags: { ZONE_POSITION: 1 } }, { side: 'opponent', entity: 2 }),
     record(1, 'tag', { tag: 'TEMP_RESOURCES', value: -1 }, { side: 'local' }),
-    record(1, 'block_start', { block: 'ATTACK' }, { side: 'opponent', entity: 3, target: 4, card: 'CARD_A' }),
+    record(1, 'block_start', { block: 'ATTACK' }, { side: 'opponent', entity: 3, target: 4, card: null }),
     record(2, 'block_end', { block: 'ATTACK' }),
     record(1, 'action', { action: 'buy', cost: 3 }, { side: 'local', card: 'CARD_A' }),
     record(1, 'snapshot', { gold: 10, tier: 6, cards: [{ entity: 1, card: 'CARD_A', side: 'shop', zone: 'SHOP', position: 1, tags: { HEALTH: 20 } }] }),
@@ -36,7 +55,7 @@ test('record reference turn sequence card and choice array limits include exact 
 
 test('snapshot and draft option bounds reject unsafe nested content and extra keys', () => {
   const card = { entity: 1, card: 'A', side: 'local', zone: 'PLAY', position: 0, tags: { ATK: 1 } };
-  const snapshot = record(1, 'snapshot', { gold: null, tier: null, cards: Array(256).fill(card) });
+  const snapshot = record(1, 'snapshot', { gold: null, tier: null, cards: Array.from({ length: 256 }, (_, i) => ({ ...card, entity: i + 1 })) });
   assert.equal(validRecord(snapshot), true);
   assert.equal(validRecord({ ...snapshot, data: { ...snapshot.data, cards: Array(257).fill(card) } }), false);
   for (const extra of [{ ...card, name: 'SyntheticPrivateMarker' }, { ...card, tags: { ...card.tags, RAW: 1 } }, { ...card, tags: { ATK: 'SyntheticPrivateMarker' } }])

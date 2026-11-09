@@ -265,7 +265,9 @@ public partial class App : Application
             _settingsDebounce.Kick();
             if (on) _services.GameStats.Kick();
             else _services.GameStats.Withdraw();
+            _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
+        _services.SourceCaptures.StateChanged += state => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateSourceCaptureState(state));
         _mainViewModel.PoolConsentChanged += () =>
         {
             _settingsDebounce.Kick();
@@ -349,6 +351,7 @@ public partial class App : Application
         _watcher?.Dispose();
         _uploader?.Dispose();
         _services?.GameStats.Dispose();
+        _services?.SourceCaptures.Dispose();
         _hotkeys?.Dispose();
 
         if (_tray is not null)
@@ -435,6 +438,7 @@ public partial class App : Application
             _watcher.Start();
             _uploader.Start();
             _services.GameStats.Start();
+            _services.SourceCaptures.Start();
             _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();

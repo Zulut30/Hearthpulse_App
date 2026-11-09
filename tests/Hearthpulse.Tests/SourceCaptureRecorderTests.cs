@@ -95,7 +95,9 @@ public sealed class SourceCaptureRecorderTests
         Assert.NotEqual(shown[0].Record.Entity, back.Record.Entity);
         Assert.NotEqual(back.Record.Entity, revealed.Record.Entity);
         Assert.DoesNotContain(frames, f => f.Record.Card == "HIDDEN_B");
-        Assert.All(frames.Where(f => f.Record.Kind == "entity" && Data(f).GetProperty("zone").GetString() == "DECK"), f => { Assert.Equal(0, f.Record.Entity); Assert.Null(f.Record.Card); });
+        var deckRows = frames.Where(f => f.Record.Kind == "entity" && Data(f).GetProperty("zone").GetString() == "DECK").ToArray();
+        Assert.All(deckRows, f => { Assert.True(f.Record.Entity > 0); Assert.Null(f.Record.Card); });
+        Assert.Equal(deckRows.Length, deckRows.Select(f => f.Record.Entity).Distinct().Count());
     }
 
     [Fact]
