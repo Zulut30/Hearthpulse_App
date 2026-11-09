@@ -72,6 +72,11 @@ internal static partial class OffscreenRenderer
             await RenderShareAsync(host, folder);
         }
 
+        if (RenderOnly("sharecards"))
+        {
+            await RenderShareCardsAsync(host, folder);
+        }
+
         if (RenderOnly("home"))
         {
             // The whole home page: the recent games and the deck banners sit below the fold, so a tall frame.

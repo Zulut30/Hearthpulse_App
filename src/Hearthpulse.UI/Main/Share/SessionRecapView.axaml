@@ -42,7 +42,7 @@
                                 <DockPanel Margin="0,0,0,12">
                                     <Border Width="40" Height="40" Margin="0,0,12,0" Classes="sharePortrait" i:CardArt.Portrait="{Binding HeroCardId}"
                                             IsVisible="{Binding HeroCardId, Converter={StaticResource Truthy}}" />
-                                    <TextBlock Text="{Binding Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
                                 <ItemsControl ItemsSource="{Binding Stats}" ItemTemplate="{StaticResource ShareStatTile}" Focusable="False">
                                     <ItemsControl.ItemsPanel>
@@ -71,7 +71,7 @@
 
                 <DockPanel Margin="0,16,0,0">
                     <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding BattleTag}" Classes="label" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" s:ShareTextFit.Mode="Line" />
                 </DockPanel>
             </StackPanel>
         </Border>

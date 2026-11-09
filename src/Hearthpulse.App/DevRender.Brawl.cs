@@ -61,6 +61,11 @@ public partial class App
             await RenderShareAsync(folder);
         }
 
+        if (RenderOnly("sharecards"))
+        {
+            await RenderShareCardsAsync(folder);
+        }
+
         if (RenderOnly("home"))
         {
             // The whole home page: the recent games and the deck banners sit below the fold.

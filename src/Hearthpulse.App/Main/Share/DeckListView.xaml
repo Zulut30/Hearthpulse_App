@@ -25,7 +25,14 @@
                     </StackPanel>
                 </DockPanel>
 
-                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" />
+                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
+                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them -->
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Height" Value="30" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
 
                 <TextBlock Text="{i:Loc Growth.Deck.Curve}" Style="{StaticResource Label}" Margin="0,16,0,8" />
                 <ItemsControl ItemsSource="{Binding Card.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" ItemsPanel="{StaticResource ShareCurvePanel}" Focusable="False" />

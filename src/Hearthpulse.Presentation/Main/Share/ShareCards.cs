@@ -45,7 +45,16 @@ public sealed record DeckPictureCard(
     IReadOnlyList<DeckListRow> Rows,
     IReadOnlyList<DeckListRow> FirstColumn,
     IReadOnlyList<DeckListRow> SecondColumn,
-    IReadOnlyList<ManaCurveBar> Curve);
+    IReadOnlyList<ManaCurveBar> Curve)
+{
+    /// <summary>Rows in each of the cover's columns (the first holds the odd one): both columns split the height into as many
+    /// even rows, so they start and end on the same lines.</summary>
+    public int ColumnRows => FirstColumn.Count;
+
+    /// <summary>The height the cover lays its two columns out in: the card's field (476 of 540) while a row gets at least 30
+    /// (a 28-high row and its gap, up to 15 rows a column), else 30 a row, which the cover then shrinks as a whole to fit.</summary>
+    public double CoverListHeight => Math.Max(476, ColumnRows * 30);
+}
 
 /// <summary>The year in review: its title, the tiles, and the portraits the picture leads with.</summary>
 public sealed record YearCard(string Title, string Subtitle, IReadOnlyList<ShareStat> Stats, string ClassHeroCardId, string HeroCardId, string TopCardId, string Empty)

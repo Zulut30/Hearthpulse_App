@@ -53,7 +53,7 @@
 
                 <DockPanel Margin="0,16,0,0">
                     <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding BattleTag}" Classes="label" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" s:ShareTextFit.Mode="Line" />
                 </DockPanel>
             </StackPanel>
         </Border>

@@ -17,8 +17,9 @@
             <StackPanel>
                 <TextBlock Text="{Binding Label}" Classes="label" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Value}" Classes="stat" FontSize="{StaticResource FontSizeHeadline}" Margin="0,4,0,0" TextWrapping="Wrap"
+                           s:ShareTextFit.Mode="Words" s:ShareTextFit.MinFontSize="{StaticResource FontSizeLead}"
                            Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasDetail}" />
+                <TextBlock Text="{Binding Detail}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
             </StackPanel>
         </Border>
     </DataTemplate>
@@ -33,7 +34,8 @@
 
     <!-- A deck card as the tracker lists it: cost gem, name over the art, copies or the legendary star, rarity edge -->
     <DataTemplate x:Key="ShareDeckRow" x:DataType="d:DeckListRow">
-        <Grid Height="28" Margin="0,0,0,2">
+        <!-- 28 high in the list; the cover's even rows stretch it up to 36 -->
+        <Grid MinHeight="28" MaxHeight="36" Margin="0,0,0,2">
             <Border Background="{StaticResource Row}" CornerRadius="{StaticResource RadiusPill}" ClipToBounds="True">
                 <Panel>
                     <Panel Width="180" HorizontalAlignment="Right">
@@ -48,7 +50,7 @@
                                        FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <TextBlock Text="{Binding Name}" Classes="shareCardName" Classes.legendary="{Binding Legendary}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
-                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" s:ShareTextFit.Mode="Line" />
                     </DockPanel>
                 </Panel>
             </Border>

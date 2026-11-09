@@ -26,9 +26,9 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Style="{StaticResource SegmentBar}" Margin="0,0,16,0" Visibility="{Binding HasLayouts, Converter={StaticResource Vis}}">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="LayoutList" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.List}"
+                        <RadioButton x:Name="LayoutList" Style="{StaticResource Tab}" Content="{i:Loc Growth.Deck.List}"
                                      ToolTip="{i:Loc Growth.Deck.ListTip}" AutomationProperties.Name="{i:Loc Growth.Deck.List}" IsChecked="{Binding List}" />
-                        <RadioButton x:Name="LayoutCover" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.Cover}"
+                        <RadioButton x:Name="LayoutCover" Style="{StaticResource Tab}" Content="{i:Loc Growth.Deck.Cover}"
                                      ToolTip="{i:Loc Growth.Deck.CoverTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Cover}" IsChecked="{Binding Cover}" />
                     </StackPanel>
                 </Border>

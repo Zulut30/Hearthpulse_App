@@ -29,7 +29,14 @@
                     </StackPanel>
                 </DockPanel>
 
-                <ItemsControl ItemsSource="{Binding Deck.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" />
+                <ItemsControl ItemsSource="{Binding Deck.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
+                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them -->
+                    <ItemsControl.Styles>
+                        <Style Selector="ItemsControl > ContentPresenter">
+                            <Setter Property="Height" Value="30" />
+                        </Style>
+                    </ItemsControl.Styles>
+                </ItemsControl>
 
                 <TextBlock Text="{i:Loc Growth.Deck.Curve}" Classes="label" Margin="0,16,0,8" />
                 <ItemsControl ItemsSource="{Binding Deck.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" Focusable="False">
@@ -47,7 +54,7 @@
                     <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" />
                     <Image Source="{StaticResource HearthpulseLogo}" Width="24" Height="24" VerticalAlignment="Center" />
                     <TextBlock Text="Hearthpulse" Classes="wordmark" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" s:ShareTextFit.Mode="Line" />
                 </DockPanel>
             </StackPanel>
         </Border>
