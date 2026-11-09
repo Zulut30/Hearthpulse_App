@@ -78,7 +78,7 @@ internal static class CardPoolRender
             var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
             {
                 MatchList = new MatchListView("BE_017", Name("BE_017"), Hearthpulse.Core.Localization.Loc.T("Pool.List.Summoned"), 2,
-                    [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("CORE_FP1_001", Name("CORE_FP1_001"), 1, "COMMON", 1)]),
+                    [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("FP1_001", Name("FP1_001"), 1, "COMMON", 1)]),
                 RelatedList = new MatchListView("BE_017", Name("BE_017"), Hearthpulse.Core.Localization.Loc.T("Related.Title"), abilities.Count, abilities),
                 CardPoolAnchor = new CardPoolAnchor(PoolAnchorZone.Hand, 2, 5),
             };

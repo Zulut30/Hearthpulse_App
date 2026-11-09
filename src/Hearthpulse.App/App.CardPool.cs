@@ -72,7 +72,7 @@ public partial class App
         {
             string Name(string id) => _cards.Get(id)?.Name ?? id;
             var list = new MatchListView("BE_017", Name("BE_017"), Core.Localization.Loc.T("Pool.List.Summoned"), 2,
-                [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("CORE_FP1_001", Name("CORE_FP1_001"), 1, "COMMON", 1)]);
+                [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("FP1_001", Name("FP1_001"), 1, "COMMON", 1)]);
             var related = new MatchListView("BE_017", Name("BE_017"), Core.Localization.Loc.T("Related.Title"), abilities.Count, abilities);
             ShowLists(list, related, new CardPoolAnchor(PoolAnchorZone.Hand, 2, 5));
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-nzoth.png"), 1920, 1080, 0);

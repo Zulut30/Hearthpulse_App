@@ -74,5 +74,42 @@ public sealed partial class LocBindingTests
         }
     }
 
+    [Fact]
+    public void The_pool_popup_shows_one_header_note_and_the_movable_panel_the_other() => Headless.Run(PoolPanelNotes);
+
+    private static void PoolPanelNotes()
+    {
+        var entries = Enumerable.Range(0, 6).Select(i => new PoolEntry($"P_{i}", $"Card {i}", i, 1, 1, "MINION", "COMMON", "MAGE", 0)).ToList();
+        var (cost, attack, health) = PoolStats.Histograms([]);
+        var pool = new CardPoolView("GEN", "Generator", PoolTrigger.Hover, "Discover a minion", "Mage + Neutral · Standard", entries.Count,
+            cost, attack, health, [], null, null, entries);
+        var constructed = new Hearthpulse.Core.Tracking.ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
+        {
+            CardPool = pool,
+            CardPoolAnchor = new CardPoolAnchor(PoolAnchorZone.Hand, 1, 3),
+        };
+        var vm = new Hearthpulse.UI.Overlay.OverlayViewModel();
+        vm.Update(Hearthpulse.Core.Tracking.LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed },
+            Hearthpulse.Core.Cards.CardDb.Empty, new Hearthpulse.Core.AppSettings(), null, null);
+        // The theme first: the panel's markup looks its tokens up when it is created.
+        var theme = Theme();
+        var popup = new Hearthpulse.UI.Overlay.CardPoolPanel { Anchored = true, DataContext = vm };
+        var panel = new Hearthpulse.UI.Overlay.CardPoolPanel { DataContext = vm };
+        var window = new Window { Width = 1200, Height = 800, Content = new StackPanel { Children = { popup, panel } } };
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal((true, false), (popup.FindControl<TextBlock>("PopupNote")!.IsVisible, popup.FindControl<TextBlock>("PanelNote")!.IsVisible));
+            Assert.Equal((false, true), (panel.FindControl<TextBlock>("PopupNote")!.IsVisible, panel.FindControl<TextBlock>("PanelNote")!.IsVisible));
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
     private static MatchListRow RelatedRow(string id) => new(id, id, 0, string.Empty, 1);
 }

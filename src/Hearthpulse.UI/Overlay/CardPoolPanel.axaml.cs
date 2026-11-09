@@ -64,6 +64,7 @@ public partial class CardPoolPanel : UserControl
 
     private bool _anchored;
     private double _floor = 1;
+    private IDisposable? _noteBinding;
 
     /// <summary>
     /// The popup's header note leaves out the card's name (the card stands beside it) and its fill does not fade with the
@@ -72,8 +73,10 @@ public partial class CardPoolPanel : UserControl
     private void ApplyAnchored()
     {
         var (shown, hidden, path) = _anchored ? (PopupNote, PanelNote, nameof(OverlayViewModel.CardPoolMeta)) : (PanelNote, PopupNote, nameof(OverlayViewModel.CardPoolSourceNote));
+        // The previous binding goes first: a local value set over a live binding does not stick.
+        _noteBinding?.Dispose();
         hidden.IsVisible = false;
-        shown.Bind(IsVisibleProperty, new Binding(path) { Converter = (IValueConverter)Resources["Truthy"]! });
+        _noteBinding = shown.Bind(IsVisibleProperty, new Binding(path) { Converter = (IValueConverter)Resources["Truthy"]! });
         Card.Classes.Set("popup", _anchored);
     }
 
