@@ -105,6 +105,28 @@ labels fall back to the built-in `ArchetypeNames.RussianLabel`, then the English
 Comps, trinkets, tribe impact, turn results and MMR floors come only from the stats pool (`PoolClient.OverlayAsync`).
 Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-sources.md`.
 
+## Battlegrounds tabs - the site's open service `https://bg.hs-manacost.ru/`
+
+`BgSiteClient(HttpClient http, string? baseUrl = null, string? cacheDirectory = null).LoadAsync()` ->
+`BgSiteStats` (`Core/Battlegrounds/Site`), for the main window's Battlegrounds tabs only (owner's decision,
+2026-11-09: the lists hearthpulse.net shows; the advisor and overlay keep `BattlegroundsMeta`). Plain `GET`, no token,
+no cookie, nothing about the player; 20 s and 8 MB per answer; never throws. Cache `cache/api/bgsite-<part>.json`,
+6 h, old file when the server fails. Fields, sizes and sources: `docs/bg-site-stats.md`; tests `BgSiteStatsTests`
+(fixtures `Fixtures/BgSite`).
+
+| Call | Cache file | Gives |
+|---|---|---|
+| `api/bg/tier-lists` (950 KB) | `bgsite-tier-lists.json` | tier lists S-D: `heroes`, `minions`, `trinkets` |
+| `api/bg/heroes` | `bgsite-heroes.json` | hero card ids by dbfId, top 4 / 1st place, the MMR slice |
+| `api/bg/library/minion-stats` | `bgsite-minion-stats.json` | minion impact, combat win rate, popularity, placement with / without |
+| `api/bg-comps` | `bgsite-comps.json` | comps (only those whose own `source` is `HSReplay`) |
+
+**Refused by source**: a list or comp whose `source` names Firestone / zerotoheroes (or names nothing) is not given
+to the app and is cut before the answer is cached: `lists.spells`, `lists.strategies`, the Firestone comps. Not
+requested: `api/bg/library/spell-stats` (Firestone), `api/bg/library/meta`, `api/bg/library/cards`. No Duos slice.
+The shown lists are HSReplay data by the service's own account: a `hearthpulse-legal` check is required before a
+change that shows more of it.
+
 ## Hearthpulse stats pool - `PoolClient.Endpoint` (server/pool, off until deployed)
 
 - `POST v1/games` - shared Battlegrounds games (`PoolClient.SubmitAsync`, WPF only).

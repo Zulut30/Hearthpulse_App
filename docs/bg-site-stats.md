@@ -174,7 +174,7 @@ Top level: `source`, `fetchedAt`, `count` int, `comps[60]`:
 | `description` | string, Russian | `"Разыгрывайте заклинания, чтобы поглощать усиленную таверну."` | `Tip` |
 | `avgPlacement` | string, **empty for all 33 HSReplay comps** | `""` | `AveragePlacement` (`null` when empty) |
 | `coreCards[]{id, dbfId, name, count, role}` | | `"BG28_633"` | `CoreCardIds` |
-| `additionalCards[]{…}` | same shape | | `AddonCardIds` (added member) |
+| `additionalCards[]{…}` | same shape, **empty for all 33 HSReplay comps** | | not read |
 | `sourceUrl`, `whenToCommit` (empty in all), `whenToCommitCards`, `enablerCards` (empty), `cards` (core + addon) | | | not read |
 
 `NameEn` is empty (one title per comp), `Games` is `null`, `Tribes` is empty: the service gives no tribe key for these
@@ -205,10 +205,8 @@ from HSReplay (Blocker L-B1 covers data of the same origin). The comps' `descrip
 
 ## 5. Records (`Hearthpulse.Core.Battlegrounds.Site`)
 
-As in the task card's contract, with these members added at the end (nullable, default `null`):
-
-- `BgSiteTierEntry.TrinketSize` (`"LARGE"` / `"SMALL"`), `BgSiteTierEntry.Cost` (int): trinkets only.
-- `BgSiteComp.AddonCardIds`: the comp's additional cards.
+As in the task card's contract, with two members added at the end of `BgSiteTierEntry` (nullable, default `null`),
+for trinkets only: `TrinketSize` (`"LARGE"` / `"SMALL"`) and `Cost` (int). `BgSiteComp` is as in the contract.
 
 Per list:
 

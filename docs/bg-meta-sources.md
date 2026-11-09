@@ -4,6 +4,13 @@ Battlegrounds community stats no longer come from Firestone (`static.zerotoheroe
 its data. The owner's decision: **heroes and minions from our API (`api.kolodahearthstone.com`, HSReplay data), the
 rest from the Hearthpulse stats pool once it runs**. The app makes no request to `zerotoheroes.com` any more.
 
+**Since 2026-11-09 the main window's Battlegrounds tabs (Heroes, Trinkets, Cards, Comps) do not read this meta.** By
+the owner's decision of that day ("as on hearthpulse.net") they show the lists of the site's open service
+`https://bg.hs-manacost.ru`: [bg-site-stats.md](bg-site-stats.md). That decision replaces the earlier "trinkets from the
+API are not used" for the tabs: the service's trinket tier list is shown there. Firestone data stays out: the service's
+lists that name Firestone as their source are refused. This document describes what the in-game advisor and the overlay
+read, which is unchanged.
+
 Checked against the live API on 2026-10-23 (`openapi.json`, "Hearthstone Data API" 0.1.0). Field-level notes on the
 API: `.claude/skills/hearthstone-context/reference/kolodahearthstone-api.md`.
 
@@ -20,9 +27,9 @@ API: `.claude/skills/hearthstone-context/reference/kolodahearthstone-api.md`.
 | MMR floor of each percentile (`mmrPercentiles`) | pool: `/v1/meta` `percentiles`, else `/v1/stats` `percentiles` (since 0.17: floors over the pool's own rated games, likely above the ladder's average; used only from 1,000 rated games and 50 at or above each floor, else the widest bracket as before). The pool's own hero brackets merge into the matching API brackets | **Missing** in the API. Without floors the advisor cannot pick a bracket from the rating and uses the widest one (top 50%). The page lets the player pick a bracket by hand. |
 | Card stats per bracket: average place of players who played the card | **API** `GET /v1/battlegrounds/minions/stats?mmr=ALL\|TOP_50_PERCENT\|TOP_20_PERCENT&period=CURRENT_BATTLEGROUNDS_PATCH&limit=500` → `normal.avg_placement_with`, `normal.games_with_minion`. Brackets: all ranks, top 50%, top 20% | Minions only (no tavern spells). Golden numbers are not used. |
 | Card stats per turn played (`turnStats`) | pool (cards with turn results) | **Missing** in the API in bulk. `/v1/battlegrounds/minions/{id}/stats` has `rounds[]`/`purchases[]` per minion, mostly null per round, 270+ requests. Tavern and Discover picks get no community placement until the pool has it. |
-| Comp stats (`comp-stats`): placement, per MMR, per hero | pool (`/v1/meta` comps) | **Missing**. The API has only each hero's compositions (`best_composition`, `/api/bg/heroes/{dbf}` → `compositions[]`, top 50%): no overall comp placement, no guides. Not used, per the owner's decision. |
+| Comp stats (`comp-stats`): placement, per MMR, per hero | pool (`/v1/meta` comps) | **Missing**. The API has only each hero's compositions (`best_composition`, `/api/bg/heroes/{dbf}` → `compositions[]`, top 50%): no overall comp placement, no guides. Not used, per the owner's decision. The Comps tab shows the site service's HSReplay comps ([bg-site-stats.md](bg-site-stats.md)). |
 | Comp guides (`comps-strategies`): cards core/addon, tips, when to commit, tribes, power level, difficulty | pool (`/v1/meta` guides) | **Missing** in the API. |
-| Trinket stats: placement, pick rate, per MMR | pool (`/v1/stats` trinkets and, since 0.17, `trinketsByBracket`; `/v1/meta` trinkets) | The API has `/api/bg/trinkets?mmr=ALL\|TOP_50…TOP_1_PERCENT` (HSReplay placement, pick rate), but its `games` is "the minimum sample compatible with the rounded distribution", not a real count. **Not used**, per the owner's decision (section 3 lists it as the easy next step). |
+| Trinket stats: placement, pick rate, per MMR | pool (`/v1/stats` trinkets and, since 0.17, `trinketsByBracket`; `/v1/meta` trinkets) | The API has `/api/bg/trinkets?mmr=ALL\|TOP_50…TOP_1_PERCENT` (HSReplay placement, pick rate), but its `games` is "the minimum sample compatible with the rounded distribution", not a real count. **Not used by the advisor** (section 3 lists it as the easy next step). The Trinkets tab shows the site service's trinket tier list instead (owner's decision, 2026-11-09, [bg-site-stats.md](bg-site-stats.md)). |
 | Tribe results of final boards | pool (`/v1/stats` tribes) | Shown instead of comps when the pool is on and there are no comps. |
 
 Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duos dimension (Firestone's was solo too).

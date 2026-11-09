@@ -152,34 +152,48 @@
    ]
   },
   {
-   "key": "hsreplay-76",
+   "key": "hsreplay-3",
    "source": "HSReplay",
-   "title": "Свинобразы - APM-усиление таверны",
-   "description": "Разыгрывайте заклинания, чтобы поглощать усиленную таверну.",
+   "title": "Нежить - APM-нежить",
+   "description": "Раскачивайте атаку нежити с бесконечным золотом",
    "tier": "S",
    "difficulty": "Лёгкая",
    "avgPlacement": "",
    "whenToCommit": "",
-   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/76/svinobrazy-apm-usilenie-taverny/",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/3/nezhit-apm-nezhit/",
    "coreCards": [
     {
-     "id": "BG28_633",
-     "dbfId": 110664,
-     "name": "Felboar",
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Handless Forsaken",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG35_883",
-     "dbfId": 130298,
-     "name": "Balinda Stonehearth",
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Snazzy Phantom",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG_LOE_077",
-     "dbfId": 96786,
-     "name": "Brann Bronzebeard",
+     "id": "BG34_692",
+     "dbfId": 126733,
+     "name": "Forsaken Weaver",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_825",
+     "dbfId": 122520,
+     "name": "Proud Privateer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_823",
+     "dbfId": 122516,
+     "name": "Sky Admiral Rogers",
      "count": 1,
      "role": "CORE"
     }
@@ -189,23 +203,37 @@
    "enablerCards": [],
    "cards": [
     {
-     "id": "BG28_633",
-     "dbfId": 110664,
-     "name": "Felboar",
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Handless Forsaken",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG35_883",
-     "dbfId": 130298,
-     "name": "Balinda Stonehearth",
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Snazzy Phantom",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG_LOE_077",
-     "dbfId": 96786,
-     "name": "Brann Bronzebeard",
+     "id": "BG34_692",
+     "dbfId": 126733,
+     "name": "Forsaken Weaver",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_825",
+     "dbfId": 122520,
+     "name": "Proud Privateer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_823",
+     "dbfId": 122516,
+     "name": "Sky Admiral Rogers",
      "count": 1,
      "role": "CORE"
     }
