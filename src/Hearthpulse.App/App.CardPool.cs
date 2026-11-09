@@ -66,6 +66,23 @@ public partial class App
             }
         }
 
+        // N'Zoth in hand with two Deathrattle minions summoned: the "this game" list and his four abilities as two blocks;
+        // then the hover card of the list's N'Zoth row with the abilities in a grid beside it.
+        if (_session.RelatedCardsOf("BE_017") is { Count: > 0 } abilities)
+        {
+            string Name(string id) => _cards.Get(id)?.Name ?? id;
+            var list = new MatchListView("BE_017", Name("BE_017"), Core.Localization.Loc.T("Pool.List.Summoned"), 2,
+                [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("CORE_FP1_001", Name("CORE_FP1_001"), 1, "COMMON", 1)]);
+            var related = new MatchListView("BE_017", Name("BE_017"), Core.Localization.Loc.T("Related.Title"), abilities.Count, abilities);
+            ShowLists(list, related, new CardPoolAnchor(PoolAnchorZone.Hand, 2, 5));
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-nzoth.png"), 1920, 1080, 0);
+            if (_overlay.PreviewHost.ShowFirst(_overlay, e => Controls.CardPreview.GetCardId(e) == "BE_017"))
+            {
+                await RenderBrowserAsync(Path.Combine(folder, "overlay-card-preview-related.png"));
+                _overlay.PreviewHost.Hide();
+            }
+        }
+
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);
         _overlayViewModel.ToggleCardPoolFilters.Execute(null);
@@ -83,6 +100,18 @@ public partial class App
                 CardPool = view,
                 CardPoolAnchor = anchor,
                 DiscoverPicks = picks,
+            };
+            var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+        }
+
+        void ShowLists(MatchListView list, MatchListView related, CardPoolAnchor anchor)
+        {
+            var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
+            {
+                MatchList = list,
+                RelatedList = related,
+                CardPoolAnchor = anchor,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
             _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
