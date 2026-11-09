@@ -48,7 +48,13 @@ public sealed class UpdateLoopTests
     {
         using var loop = new UpdateLoop();
         var never = new TaskCompletionSource();
-        loop.Start(_ => never.Task);
+        using var started = new ManualResetEventSlim();
+        loop.Start(_ =>
+        {
+            started.Set();
+            return never.Task;
+        });
+        Assert.True(started.Wait(TimeSpan.FromSeconds(10)));
 
         Assert.False(loop.Stop(TimeSpan.FromMilliseconds(100)));
 

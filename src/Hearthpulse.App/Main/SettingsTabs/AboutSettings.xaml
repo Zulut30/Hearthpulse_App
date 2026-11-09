@@ -32,7 +32,7 @@
             <!-- The link carries its state in its name; the chevron is a Run of the same line, not a control of its own. -->
             <TextBlock FontSize="12" Margin="0,8,0,0" Visibility="{Binding HasReleaseNotes, Converter={StaticResource Vis}}"
                        AutomationProperties.Name="{Binding ReleaseNotesTitle}"><Hyperlink x:Name="ReleaseNotesToggle" Command="{Binding ToggleReleaseNotes}" Foreground="{DynamicResource Accent}"
-                           AutomationProperties.Name="{Binding ReleaseNotesToggleName}"><Run Text="{Binding ReleaseNotesTitle, Mode=OneWay}" /></Hyperlink><Run x:Name="ReleaseNotesGlyph" Text="{Binding ReleaseNotesGlyph, Mode=OneWay}"
+                           AutomationProperties.Name="{Binding ReleaseNotesToggleName}"><Run Text="{Binding ReleaseNotesTitle, Mode=OneWay}" /></Hyperlink><Run Text=" " /><Run x:Name="ReleaseNotesGlyph" Text="{Binding ReleaseNotesGlyph, Mode=OneWay}"
                            FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{DynamicResource Accent}" BaselineAlignment="Center" /></TextBlock>
             <StackPanel Margin="0,4,0,0" Visibility="{Binding ReleaseNotesShown, Converter={StaticResource Vis}}">
                 <TextBlock x:Name="ReleaseNotesText" Text="{Binding ReleaseNotesText}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" />
