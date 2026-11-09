@@ -260,22 +260,23 @@ public static partial class UpdateService
             {
                 // Released, but the file for this platform is not uploaded yet (or was not built): not "up to date".
                 Diag.Info($"Update check: {tag} has no {AssetName(tag, target, RuntimeArchitecture(), LinuxFlavor())} yet.");
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.NoFileYet", tag));
+                return UpdateCheck.Of(UpdateCheckOutcome.UpToDate, null, () => Loc.F("Core.Update.NoFileYet", tag));
             }
 
             if (info is null || (!IsNewer(info.Version) && !repair))
             {
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.UpToDate", CurrentVersion));
+                return UpdateCheck.Of(UpdateCheckOutcome.UpToDate, null, () => Loc.F("Core.Update.UpToDate", CurrentVersion));
             }
 
             Diag.Info($"Update available: {info.Version} ({info.AssetName}){(info.Sha256 is null ? ", no SHA-256 published" : string.Empty)}.");
-            return new UpdateCheck(UpdateCheckOutcome.Available, info,
-                info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
+            return UpdateCheck.Of(UpdateCheckOutcome.Available, info,
+                () => info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidOperationException)
         {
             Diag.Info($"Update check skipped: {ex.Message}");
-            return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.Failed", ex.Message));
+            var reason = ex.Message;
+            return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, () => Loc.F("Core.Update.Failed", reason));
         }
     }
 
@@ -298,22 +299,21 @@ public static partial class UpdateService
             _ => response.ReasonPhrase ?? "error",
         };
         Diag.Info($"Update check: GitHub answered {status} ({reason}) for {LatestApi}.");
-        var shownReason = reason switch
+        string Message() => Loc.F("Core.Update.GitHubFailed", status, reason switch
         {
             "no published release" => Loc.T("Core.Update.NoRelease"),
             "rate limited" => Loc.T("Core.Update.RateLimited"),
             "forbidden" => Loc.T("Core.Update.Forbidden"),
             _ => reason,
-        };
-        var message = Loc.F("Core.Update.GitHubFailed", status, shownReason);
+        });
         if (!limited)
         {
-            return new UpdateCheck(UpdateCheckOutcome.Failed, null, message);
+            return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, Message);
         }
 
         var retryAfter = RateLimitEnd(response, now);
         Diag.Info($"Update check: GitHub's limit allows the next request at {retryAfter.ToString("u", CultureInfo.InvariantCulture)}.");
-        return new UpdateCheck(UpdateCheckOutcome.Failed, null, message + " " + TryLaterText(retryAfter)) { RetryAfter = retryAfter };
+        return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, () => Message() + " " + TryLaterText(retryAfter)) with { RetryAfter = retryAfter };
     }
 
     /// <summary>The latest a limit reply can push the next check: a far-off or bogus reset never stops the checks for long.</summary>

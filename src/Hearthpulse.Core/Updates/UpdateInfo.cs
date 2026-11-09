@@ -58,8 +58,24 @@ public enum UpdateCheckOutcome
 }
 
 /// <summary>The result of one update check, with a sentence for the settings page.</summary>
+/// <param name="Message">The sentence in the language of the moment of the check (logs, tests).</param>
 public sealed record UpdateCheck(UpdateCheckOutcome Outcome, UpdateInfo? Update, string Message)
 {
     /// <summary>GitHub's limit: no request before this moment (Retry-After / X-RateLimit-Reset); null otherwise.</summary>
     public DateTimeOffset? RetryAfter { get; init; }
+
+    /// <summary>The same sentence built on each call, so the settings page follows a language switch; by default
+    /// <see cref="Message"/> as it is.</summary>
+    public Func<string> Text { get; init; } = () => Message;
+
+    /// <summary>A check whose sentence is <paramref name="text"/>, built now for <see cref="Message"/> and again on
+    /// each <see cref="Text"/> call.</summary>
+    internal static UpdateCheck Of(UpdateCheckOutcome outcome, UpdateInfo? update, Func<string> text) =>
+        new(outcome, update, text()) { Text = text };
+
+    /// <summary>Equal by what was found and said; <see cref="Text"/> is how the sentence is built, not part of it.</summary>
+    public bool Equals(UpdateCheck? other) =>
+        other is not null && Outcome == other.Outcome && Equals(Update, other.Update) && Message == other.Message && RetryAfter == other.RetryAfter;
+
+    public override int GetHashCode() => HashCode.Combine(Outcome, Update, Message, RetryAfter);
 }

@@ -25,7 +25,21 @@
             <TextBlock Text="{i:Loc Settings.Sources.Text}" Style="{StaticResource Caption}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
             <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
             <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
-            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <TextBlock x:Name="UpdateStatusLine" Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <Button Style="{StaticResource GhostButton}" x:Name="UpdateCheckButton" Content="{i:Loc Settings.About.CheckNow}" Command="{Binding CheckUpdatesNow}" IsEnabled="{Binding CanCheckUpdates}"
+                    ToolTip="{i:Loc Settings.About.CheckNowTip}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                    Visibility="{Binding UpdateCheckSupported, Converter={StaticResource Vis}}" />
+            <!-- The link carries its state in its name; the chevron is a Run of the same line, not a control of its own. -->
+            <TextBlock FontSize="12" Margin="0,8,0,0" Visibility="{Binding HasReleaseNotes, Converter={StaticResource Vis}}"
+                       AutomationProperties.Name="{Binding ReleaseNotesTitle}"><Hyperlink x:Name="ReleaseNotesToggle" Command="{Binding ToggleReleaseNotes}" Foreground="{DynamicResource Accent}"
+                           AutomationProperties.Name="{Binding ReleaseNotesToggleName}"><Run Text="{Binding ReleaseNotesTitle, Mode=OneWay}" /></Hyperlink><Run Text=" " /><Run x:Name="ReleaseNotesGlyph" Text="{Binding ReleaseNotesGlyph, Mode=OneWay}"
+                           FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{DynamicResource Accent}" BaselineAlignment="Center" /></TextBlock>
+            <StackPanel Margin="0,4,0,0" Visibility="{Binding ReleaseNotesShown, Converter={StaticResource Vis}}">
+                <TextBlock x:Name="ReleaseNotesText" Text="{Binding ReleaseNotesText}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock FontSize="11" Margin="0,4,0,0" Visibility="{Binding ReleasePageShown, Converter={StaticResource Vis}}">
+                    <Hyperlink x:Name="ReleasePageLink" Command="{Binding OpenReleasePage}" Foreground="{DynamicResource Accent}"><Run Text="{i:Loc Settings.About.AllChanges}" /></Hyperlink>
+                </TextBlock>
+            </StackPanel>
             <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"
                        Visibility="{Binding ParseErrorsText, Converter={StaticResource Vis}}" />
         </StackPanel>
