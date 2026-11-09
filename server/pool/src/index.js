@@ -102,10 +102,9 @@ export async function prune(env, today = Math.floor(Date.now() / DAY)) {
  */
 async function withinQuota(env, today, rows) {
   const limit = Number(env.DAILY_WRITES ?? DAILY_WRITES);
-  const used = (await env.DB.prepare("SELECT n FROM quota WHERE day = ?1").bind(today).first())?.n ?? 0;
-  if (used + rows > limit) return false;
-  await env.DB.prepare("INSERT INTO quota (day, n) VALUES (?1, ?2) ON CONFLICT(day) DO UPDATE SET n = n + ?2").bind(today, rows).run();
-  return true;
+  const result = await env.DB.prepare(`INSERT INTO quota (day, n) SELECT ?1, ?2 WHERE ?2 <= ?3
+    ON CONFLICT(day) DO UPDATE SET n = n + ?2 WHERE n + ?2 <= ?3`).bind(today, rows, limit).run();
+  return (result?.meta?.changes ?? result?.changes ?? 0) === 1;
 }
 
 const QUOTA_FULL = () => reply({ error: "the pool is full for today, try tomorrow" }, 503, { "retry-after": "3600" });
@@ -302,34 +301,34 @@ export function validateConstructed(g, today) {
 // ---- Reading ---------------------------------------------------------------------------------------------
 
 async function stats(request, env, ctx, url) {
-  const cache = caches.default;
-  const hit = await cache.match(request);
+  const cache = env.CACHE ?? globalThis.caches?.default;
+  const hit = cache ? await cache.match(request) : null;
   if (hit) return hit;
 
   const mode = url.searchParams.get("mode") === "duos" ? "duos" : "solo";
-  const row = await env.DB.prepare("SELECT body FROM snap WHERE mode = ?1").bind(mode).first();
-  let body = row?.body ?? (await rebuild(env, mode, true));
+  const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = ?1").bind(mode).first();
+  let body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuild(env, mode, true);
   if (url.pathname === "/v1/heroes") {
     const s = JSON.parse(body);
     body = JSON.stringify({ mode: s.mode, days: s.days, minRating: 0, updated: s.updated, games: s.games, heroes: s.heroes });
   }
 
   const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
-  ctx.waitUntil(cache.put(request, response.clone()));
+  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
   return response;
 }
 
 /** What Constructed players pick from each Discover-style card, over the last 30 days of one format. */
 async function choices(request, env, ctx, url) {
-  const cache = caches.default;
-  const hit = await cache.match(request);
+  const cache = env.CACHE ?? globalThis.caches?.default;
+  const hit = cache ? await cache.match(request) : null;
   if (hit) return hit;
 
   const format = url.searchParams.get("format") === "wild" ? "wild" : "standard";
-  const row = await env.DB.prepare("SELECT body FROM snap WHERE mode = ?1").bind(`choices-${format}`).first();
-  const body = row?.body ?? (await rebuildChoices(env, format, true));
+  const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = ?1").bind(`choices-${format}`).first();
+  const body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuildChoices(env, format, true);
   const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
-  ctx.waitUntil(cache.put(request, response.clone()));
+  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
   return response;
 }
 
@@ -388,15 +387,15 @@ const round = (x) => (x === null || x === undefined ? null : Math.round(x * 1000
  * chunks (one D1 row each). The worker makes no third-party stats calls.
  */
 async function meta(request, env, ctx) {
-  const cache = caches.default;
-  const hit = await cache.match(request);
+  const cache = env.CACHE ?? globalThis.caches?.default;
+  const hit = cache ? await cache.match(request) : null;
   if (hit) return hit;
 
   const { results } = await env.DB.prepare("SELECT body FROM meta ORDER BY seq").all();
   if (results.length === 0) return reply({ error: "meta not imported" }, 503);
 
   const response = reply(results.map((row) => row.body).join(""), 200, { "cache-control": "public, max-age=1800" });
-  ctx.waitUntil(cache.put(request, response.clone()));
+  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
   return response;
 }
 

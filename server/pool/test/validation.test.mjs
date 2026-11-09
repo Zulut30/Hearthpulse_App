@@ -21,7 +21,7 @@ function database() {
       prepare(sql) {
         // The daily write budget: nothing counted yet.
         if (sql.startsWith("SELECT n FROM quota")) return { bind: () => ({ first: async () => null }) };
-        if (sql.startsWith("INSERT INTO quota")) return { bind: () => ({ run: async () => {} }) };
+        if (sql.startsWith("INSERT INTO quota")) return { bind: () => ({ run: async () => ({ meta: { changes: 1 } }) }) };
         assert.match(sql, /^INSERT OR IGNORE INTO g /);
         return {
           bind(json) {
