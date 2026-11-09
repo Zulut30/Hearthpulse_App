@@ -83,7 +83,6 @@ public sealed class UpdateLoopTests
     {
         // An exception the check does not expect (here UnauthorizedAccessException from the handler): "Check now"
         // still gets Checked, then Failed, and a later request runs a new round.
-        Loc.Instance.SetLanguage(Loc.English);
         var now = DateTimeOffset.UtcNow;
         var trigger = new UpdateTrigger(() => now);
         var events = new UpdateTests.Events();
@@ -112,6 +111,17 @@ public sealed class UpdateLoopTests
         }
     }
 
+    private sealed class Throwing : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new UnauthorizedAccessException("locked by the test");
+    }
+}
+
+/// <summary>A check's sentence follows a language switch (review m2); it switches the global language, so it runs alone.</summary>
+[Collection(nameof(GlobalLanguage))]
+public sealed class UpdateCheckLanguageTests
+{
     [Fact]
     public async Task A_check_s_sentence_follows_the_language()
     {
@@ -131,12 +141,6 @@ public sealed class UpdateLoopTests
         {
             Loc.Instance.SetLanguage(Loc.English);
         }
-    }
-
-    private sealed class Throwing : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            throw new UnauthorizedAccessException("locked by the test");
     }
 
     private sealed class NotFound : HttpMessageHandler
