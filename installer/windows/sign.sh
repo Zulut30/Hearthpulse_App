@@ -68,7 +68,7 @@ fetch_jsign() {
 }
 
 make_selftest_pfx() {
-  # A throwaway two-level chain valid for two days, as a real certificate is: a root CA and a code-signing certificate
+  # A throwaway two-level chain valid from a day ago for three days, as a real certificate is: a root CA and a code-signing certificate
   # it issued. jsign leaves self-signed (root) certificates out of the signature, so a lone self-signed certificate
   # gave a signature without any certificate and osslsigncode could not find the signer. The private keys never
   # leave this folder; the root (selftest-ca.pem) is what --show trusts.
