@@ -14,6 +14,7 @@ namespace Hearthpulse.Tests;
 /// an earlier failure) leaves the full setup to update. The helper script swaps by renames and puts everything back
 /// when a rename fails; on Windows it is run for real against a scratch folder.
 /// </summary>
+[Collection(nameof(UpdateStagingCollection))]
 public sealed class DeltaUpdateTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"hp-delta-{Guid.NewGuid():N}");

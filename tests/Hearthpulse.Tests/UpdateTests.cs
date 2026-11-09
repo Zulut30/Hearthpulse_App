@@ -10,6 +10,7 @@ namespace Hearthpulse.Tests;
 /// file without a published SHA-256 is never downloaded. The version compare and the install helper are pure, so they
 /// are checked here directly.
 /// </summary>
+[Collection(nameof(UpdateStagingCollection))]
 public sealed class UpdateTests
 {
     private const string AllTargetsReply = """
