@@ -63,7 +63,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             Assert.Equal(SourceWorkerCommand.Serialize(first), SourceWorkerCommand.Serialize(again));
         }
         finally { CultureInfo.CurrentCulture = original; }
-        Assert.Equal("source-v1.2", first.ParserVersion);
+        Assert.Equal("source-v2.0", first.ParserVersion);
         Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source))), first.SourceSha256);
         var reordered = await Parse(source.Replace("\"v\":1,\"seq\":0", "\"seq\":0,\"v\":1", StringComparison.Ordinal));
         Assert.NotEqual(first.SourceSha256, reordered.SourceSha256);
@@ -104,7 +104,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             9 => Source(Start(), End(1), Action(2, "play")),
             10 => Source(Start()),
             11 => valid.Replace("\"v\":1", "\"v\":1,\"v\":1", StringComparison.Ordinal),
-            12 => valid.Replace("\"v\":1", "\"v\":2", StringComparison.Ordinal),
+            12 => valid.Replace("\"v\":1", "\"v\":3", StringComparison.Ordinal),
             13 => valid.Replace("\"turn\":0", "\"turn\":1001", StringComparison.Ordinal),
             14 => valid.Replace("\"entity\":0", "\"entity\":1000001", StringComparison.Ordinal),
             15 => valid.Replace("\"seq\":0", "\"seq\":0.5", StringComparison.Ordinal),
@@ -375,7 +375,7 @@ public sealed class SourceCaptureParserTests : IDisposable
         await File.WriteAllTextAsync(input, Source(Start(), Line(1, "gap", """{"reason":"unsupported","count":2}"""), End(2)), new UTF8Encoding(false));
         using var status = new StringWriter(CultureInfo.InvariantCulture);
         Assert.Equal(0, await SourceWorkerCommand.RunAsync(["--input", input, "--output", output], status));
-        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v1.2","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
+        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v2.0","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
         using var json = JsonDocument.Parse(await File.ReadAllTextAsync(output));
         Assert.Equal("incomplete", json.RootElement.GetProperty("summary").GetProperty("captureStatus").GetString());
         Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("summary").GetProperty("result").ValueKind);

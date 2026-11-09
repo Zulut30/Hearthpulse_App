@@ -33,6 +33,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     private bool _catchingUp;
     private int _choice;
     private string? _choiceSource;
+    private string _choiceType = "other";
     private string[] _options = [];
     private int[] _optionEntities = [];
     private bool _choiceOpen;
@@ -73,7 +74,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     public void NoteGap(string reason, int count = 1)
     {
         if (_capture is null || _stopped) return;
-        var safe = reason is "late_attach" or "rotation" or "source_missing" or "unsupported" or "limit" or "invalid" or "shutdown" ? reason : "unsupported";
+        var safe = reason is "late_attach" or "rotation" or "source_missing" or "unsupported" or "limit" or "invalid" or "shutdown" or "combat_view" ? reason : "unsupported";
         _gaps += Math.Max(1, count);
         Emit("gap", new { reason = safe, count = Math.Max(1, count) });
     }
@@ -96,12 +97,14 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         // The same ambiguity guard as the live replay: never invert visibility when local resolution looks wrong.
         if (game.Controlled(game.OpponentPlayerId, "HAND").Count(e => e.CardId.Length > 0 && e.CreatedTurn == 0) >= 2
             && !game.Controlled(game.LocalPlayerId, "HAND").Any(e => e.CardId.Length > 0)) return false;
-        Begin("game", mode, DateOnly.FromDateTime(game.StartedAt).DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber, game.BuildNumber > 0 ? game.BuildNumber : null);
+        Begin("game", mode, DateOnly.FromDateTime(game.StartedAt).DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber, game.BuildNumber > 0 ? game.BuildNumber : null,
+            Format(game, mode), mode == "arena" ? game.GameType == "GT_UNDERGROUND_ARENA" ? "underground" : "normal" : null);
         _combat = Combat(game);
         if (_late || game.Turn > 1) NoteGap("late_attach");
         if (_pendingInputGaps > 0) { NoteGap("unsupported", _pendingInputGaps); _pendingInputGaps = 0; }
-        // Source GameState is ahead of the displayed BG combat. It is explicitly partial, never claimed to be a UI replay.
-        if (game.IsBattlegrounds) NoteGap("source_missing");
+        // Source GameState is ahead of the displayed BG combat. It is explicitly partial, never claimed to be a UI replay;
+        // v2 names this one structural gap so other missing observations stay distinguishable (ADR 0013).
+        if (game.IsBattlegrounds) NoteGap("combat_view");
         _initializing = true;
         foreach (var player in game.Players.Values)
         {
@@ -122,10 +125,16 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         "GT_BATTLEGROUNDS_DUO" or "GT_BATTLEGROUNDS_DUOS" => "duos", _ => null,
     };
 
-    private void Begin(string kind, string mode, int day, int? build)
+    // Public format of the game itself; only Ranked/Casual Constructed has one in the v2 contract.
+    private static string? Format(GameState game, string mode) => mode is "ranked" or "casual" ? game.FormatType switch
+    {
+        "FT_STANDARD" => "standard", "FT_WILD" => "wild", "FT_CLASSIC" => "classic", "FT_TWIST" => "twist", _ => null,
+    } : null;
+
+    private void Begin(string kind, string mode, int day, int? build, string? format, string? arena)
     {
         _capture = Guid.NewGuid().ToString("N"); _kind = kind; _mode = mode; _day = day; _seq = 0; _gaps = 0; _stopped = false;
-        Emit("start", new { captureKind = kind, mode, day, build });
+        Emit("start", new { captureKind = kind, mode, day, build, format, arena });
     }
 
     private void Emit(string kind, object data, string side = "none", int entity = 0, string? card = null, int target = 0)
@@ -348,6 +357,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         if (choiceType == "MULLIGAN" && options.Any(e => e.Controller != 0 && e.Controller != game.LocalPlayerId)) { Stop("unsupported"); _stopped = true; return; }
         if (!Ready(game)) return;
         _choice++; _picked.Clear(); _choiceSource = Visible(source)?.Card;
+        _choiceType = choiceType switch { "MULLIGAN" => "mulligan", "GENERAL" => "general", _ => "other" };
         _choiceOpen = true;
         var valid = options.Take(64).Where(e => SourceCaptureTokens.Card(e.CardId)).ToArray();
         _options = valid.Select(e => e.CardId).ToArray();
@@ -368,7 +378,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _choiceOpen = false;
         _picked.Add(chosen.CardId); WriteChoice(true);
     }
-    private void WriteChoice(bool resolved) => Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved }, "local");
+    private void WriteChoice(bool resolved) => Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved, choiceType = _choiceType }, "local");
 
     public void OnGameEnded(GameState game)
     {
@@ -392,7 +402,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     {
         if (!_enabled) return;
         Stop("rotation");
-        Begin("draft", "arena", day.DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber, null);
+        Begin("draft", "arena", day.DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber, null, null,
+            offer?.Underground switch { true => "underground", false => "normal", null => null });
         NoteGap("source_missing"); // Live Arena offers have not been screen-verified; never claim complete draft coverage.
         var valid = offer is { CardIds.Count: > 0 and <= 64 } && offer.CardIds.All(SourceCaptureTokens.Card)
             && Enumerable.Range(0, offer.CardIds.Count).All(i => offer.PackageOf(i).Count <= 64 && offer.PackageOf(i).All(SourceCaptureTokens.Card));

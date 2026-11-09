@@ -100,17 +100,34 @@ internal static class SourceCaptureSchema
         foreach (var c in list.EnumerateArray()) Require(Card(c) is not null);
     }
 
-    internal static void Validate(SourceCaptureEvent e)
+    /// <summary>Validates one record against its wire version; v2 adds start context, choice type and combat_view.</summary>
+    internal static void Validate(SourceCaptureEvent e, int version)
     {
         var d = e.Data;
+        bool v2 = version == 2;
         switch (e.Kind)
         {
             case "start":
-                Fields(d, "captureKind", "mode", "day", "build");
+                if (v2) Fields(d, "captureKind", "mode", "day", "build", "format", "arena");
+                else Fields(d, "captureKind", "mode", "day", "build");
                 OneOf(d.GetProperty("captureKind"), "game", "draft");
-                OneOf(d.GetProperty("mode"), "ranked", "casual", "arena", "brawl", "bg", "duos");
+                string mode = OneOf(d.GetProperty("mode"), "ranked", "casual", "arena", "brawl", "bg", "duos");
                 Number(d.GetProperty("day"), 0, 100_000);
                 NullableNumber(d.GetProperty("build"), 1, int.MaxValue);
+                if (v2)
+                {
+                    // Format exists only for Constructed Ranked/Casual, the Arena kind only for Arena.
+                    if (d.GetProperty("format").ValueKind != JsonValueKind.Null)
+                    {
+                        OneOf(d.GetProperty("format"), "standard", "wild", "classic", "twist");
+                        Require(mode is "ranked" or "casual");
+                    }
+                    if (d.GetProperty("arena").ValueKind != JsonValueKind.Null)
+                    {
+                        OneOf(d.GetProperty("arena"), "normal", "underground");
+                        Require(mode == "arena");
+                    }
+                }
                 Require(e.Side == "none" && e.Entity == 0 && e.Target == 0 && e.Card is null && e.Turn == 0);
                 break;
             case "end":
@@ -145,7 +162,12 @@ internal static class SourceCaptureSchema
                 Require(e.Side == "local" || e.Card is null);
                 break;
             case "choice":
-                Fields(d, "choiceId", "sourceCard", "options", "picked", "resolved");
+                if (v2)
+                {
+                    Fields(d, "choiceId", "sourceCard", "options", "picked", "resolved", "choiceType");
+                    OneOf(d.GetProperty("choiceType"), "mulligan", "general", "other");
+                }
+                else Fields(d, "choiceId", "sourceCard", "options", "picked", "resolved");
                 Require(e.Side == "local");
                 Number(d.GetProperty("choiceId"));
                 Card(d.GetProperty("sourceCard"));
@@ -201,7 +223,8 @@ internal static class SourceCaptureSchema
                 break;
             case "gap":
                 Fields(d, "reason", "count");
-                OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown");
+                if (v2) OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown", "combat_view");
+                else OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown");
                 Number(d.GetProperty("count"), 1);
                 Neutral(e);
                 break;
