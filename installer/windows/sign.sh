@@ -110,13 +110,17 @@ current_mode() {
 }
 
 azure_token() {
-  # Client-credentials token for Azure Trusted Signing; the response is parsed without printing it.
+  # Client-credentials token for Azure Trusted Signing; the response is parsed without printing it. The request body
+  # (with the client secret) is built by python3 from the environment and reaches curl on stdin, never in argv.
   local token
-  token="$(curl -fsS --retry 3 -X POST "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" \
-    --data-urlencode "grant_type=client_credentials" \
-    --data-urlencode "client_id=$AZURE_CLIENT_ID" \
-    --data-urlencode "client_secret=$AZURE_CLIENT_SECRET" \
-    --data-urlencode "scope=https://codesigning.azure.net/.default" \
+  token="$(python3 -c 'import os, sys, urllib.parse
+sys.stdout.write(urllib.parse.urlencode({
+    "grant_type": "client_credentials",
+    "client_id": os.environ["AZURE_CLIENT_ID"],
+    "client_secret": os.environ["AZURE_CLIENT_SECRET"],
+    "scope": "https://codesigning.azure.net/.default"}))' \
+    | curl -fsS --retry 3 -X POST -H "Content-Type: application/x-www-form-urlencoded" --data @- \
+      "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" \
     | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')"
   [ -n "${GITHUB_ACTIONS:-}" ] && echo "::add-mask::$token" >&2
   printf '%s' "$token"
