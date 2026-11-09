@@ -10,16 +10,51 @@ namespace Hearthpulse.Core.Arena;
 /// <param name="Cards">Card ids in the drafted deck, in pick order (a card picked twice is listed twice).</param>
 /// <param name="Mode">The client's draft mode (DRAFTING, ACTIVE_DRAFT_DECK, IN_REWARDS, REDRAFTING, NO_ACTIVE_DRAFT...), or null.</param>
 /// <param name="HeroPowerCardId">The hero power picked after the hero, or null.</param>
-public sealed record ArenaDraftState(string? HeroCardId, long DeckId, IReadOnlyList<string> Cards, string? Mode, string? HeroPowerCardId = null)
+/// <param name="Revision">The deck's revision in this run: 0 for the first draft, one more for each redraft.</param>
+/// <param name="Incomplete">The deck is known to be short, or not listed yet after a redraft: shown as n/30, not filled in.</param>
+/// <param name="Variant">The run's Arena: <see cref="NormalVariant"/>, <see cref="UndergroundVariant"/> or null while unknown.</param>
+public sealed record ArenaDraftState(
+    string? HeroCardId,
+    long DeckId,
+    IReadOnlyList<string> Cards,
+    string? Mode,
+    string? HeroPowerCardId = null,
+    int Revision = 0,
+    bool Incomplete = false,
+    string? Variant = null)
 {
+    public const string NormalVariant = "normal";
+
+    public const string UndergroundVariant = "underground";
+
     public static ArenaDraftState Empty { get; } = new(null, 0, [], null);
+
+    /// <summary>The run is Underground Arena (true), normal Arena (false) or not known yet (null).</summary>
+    public bool? Underground => Variant switch
+    {
+        UndergroundVariant => true,
+        NormalVariant => false,
+        _ => null,
+    };
 }
+
+/// <summary>How the deck a game of the run started with compared with the tracked one.</summary>
+/// <param name="Tracked">Cards the tracker had.</param>
+/// <param name="Game">Cards in the game's deck (the truth).</param>
+/// <param name="Differed">The two differed and the game's deck replaced the tracked one.</param>
+public sealed record ArenaGameDeckCheck(int Tracked, int Game, bool Differed);
 
 /// <summary>
 /// Follows an Arena draft through Arena.log: the hero and hero power picks, every card the player takes and the deck
 /// the client lists when the Arena screen opens. The log does not name the offered cards; they come from the game's
 /// memory (<see cref="Memory.HearthstoneMemory.GetArenaDraftChoices"/>). The lines are the client's DraftManager lines
 /// of Arena.log (docs/arena-draft.md), not yet checked against a log written on a live draft.
+/// <para>
+/// A redraft (<c>SetDraftMode - REDRAFTING</c>) starts the next revision of the deck: the client's next list of the
+/// deck is its base and only the picks of that revision are added to it; picks of earlier revisions never come back,
+/// so a card taken out stays out even when the list misses copies (the state then says <c>Incomplete</c>). The deck a
+/// game of the run starts with (Decks.log) is the truth: <see cref="ApplyGameDeck"/>.
+/// </para>
 /// </summary>
 public sealed partial class ArenaDraftTracker
 {
@@ -32,9 +67,23 @@ public sealed partial class ArenaDraftTracker
 
     /// <summary>
     /// The client's latest list of the deck (<c>Draft deck contains card</c>). It is not always whole: the real log of
-    /// 2026-10-28 lists 27 of 30 cards, missing copies. So it only adds to the picks, card by card (the larger count).
+    /// 2026-10-28 lists 27 of 30 cards, missing copies. So it only adds to the picks of the same revision, card by card
+    /// (the larger count).
     /// </summary>
     private readonly List<string> _listed = [];
+
+    /// <summary>The deck's revision: one more after each redraft. <see cref="_picked"/> holds this revision's picks only.</summary>
+    private int _revision;
+
+    /// <summary>The client listed the deck in this revision (always true for the first draft, which starts empty).</summary>
+    private bool _baseListed = true;
+
+    private string? _variant;
+
+    /// <summary>Cards of the deck the run's latest game started with (0 before one): that many is a whole deck.</summary>
+    private int _gameDeckCount;
+
+    private const string Redrafting = "REDRAFTING";
 
     private string? _lastPick;
 
@@ -115,6 +164,7 @@ public sealed partial class ArenaDraftTracker
             _deckId = deckId;
             _hero = deck.Groups["hero"].Value;
             _listed.Clear();
+            _baseListed = true;
             return Publish();
         }
 
@@ -163,10 +213,23 @@ public sealed partial class ArenaDraftTracker
 
         if (DraftModeRegex().Match(line) is { Success: true } mode)
         {
+            var previous = _mode;
             _mode = mode.Groups["mode"].Value;
             if (_mode == "NO_ACTIVE_DRAFT")
             {
                 NewRun(null);
+            }
+            else if (_mode == Redrafting && previous != Redrafting)
+            {
+                // A redraft: the cards it takes out are not named, so the deck so far is no base any more; the client's
+                // next list is. No merge with the earlier picks: that would bring the removed cards back.
+                _revision++;
+                _picked.Clear();
+                _listed.Clear();
+                _baseListed = false;
+                _gameDeckCount = 0;
+                _lastPick = null;
+                _lastPickPackage = false;
             }
 
             return Publish();
@@ -189,6 +252,67 @@ public sealed partial class ArenaDraftTracker
         _picked.AddRange(cardIds);
         _lastPickPackage = true;
         return Publish();
+    }
+
+    /// <summary>
+    /// The run's Arena as an offer from memory or a game of the run said. A new run forgets it, so one run's offer or
+    /// game never sets another's.
+    /// </summary>
+    public bool SetVariant(bool underground)
+    {
+        var variant = underground ? ArenaDraftState.UndergroundVariant : ArenaDraftState.NormalVariant;
+        if (variant == _variant)
+        {
+            return false;
+        }
+
+        _variant = variant;
+        return Publish();
+    }
+
+    /// <summary>
+    /// A game of the run started with this deck (Decks.log, decoded to card ids, a card once per copy): it is the truth.
+    /// Applied only to the run of the same deck id, or to an empty tracker that knows no run yet; a differing tracked
+    /// deck is replaced, keeping the pick order of the cards both have. Returns null when the deck is another run's.
+    /// </summary>
+    public ArenaGameDeckCheck? ApplyGameDeck(long deckId, IReadOnlyList<string> cardIds, bool? underground)
+    {
+        var empty = _deckId == 0 && _hero is null && _picked.Count + _listed.Count == 0;
+        if (cardIds.Count == 0 || !((deckId != 0 && deckId == _deckId) || empty))
+        {
+            return null;
+        }
+
+        if (underground is { } u)
+        {
+            _variant = u ? ArenaDraftState.UndergroundVariant : ArenaDraftState.NormalVariant;
+        }
+
+        var tracked = Deck();
+        var differed = !SameCards(tracked, cardIds);
+        if (differed)
+        {
+            var left = cardIds.GroupBy(id => id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+            var deck = new List<string>(cardIds.Count);
+            foreach (var id in tracked.Concat(cardIds))
+            {
+                if (left.GetValueOrDefault(id) > 0)
+                {
+                    left[id]--;
+                    deck.Add(id);
+                }
+            }
+
+            _picked.Clear();
+            _picked.AddRange(deck);
+            _listed.Clear();
+        }
+
+        _deckId = deckId != 0 ? deckId : _deckId;
+        _baseListed = true;
+        _gameDeckCount = cardIds.Count;
+        Publish();
+        return new ArenaGameDeckCheck(tracked.Count, cardIds.Count, differed);
     }
 
     /// <summary>Hero portraits and their skins are HERO_xx cards; a drafted card never is.</summary>
@@ -234,6 +358,10 @@ public sealed partial class ArenaDraftTracker
         _listed.Clear();
         _lastPick = null;
         _lastPickPackage = false;
+        _revision = 0;
+        _baseListed = true;
+        _variant = null;
+        _gameDeckCount = 0;
     }
 
     private void Chose(string? id)
@@ -244,9 +372,32 @@ public sealed partial class ArenaDraftTracker
 
     private bool Publish()
     {
-        State = new ArenaDraftState(_hero, _deckId, Deck(), _mode, _heroPower);
+        var deck = Deck();
+        State = new ArenaDraftState(_hero, _deckId, deck, _mode, _heroPower, _revision, IsIncomplete(deck.Count), _variant);
         return true;
     }
+
+    /// <summary>
+    /// The deck is short of what it should hold: a redraft not listed yet, or a draft the client says is done (the deck
+    /// is ready) with fewer cards than a deck has. A draft in progress is not short; a game's deck is whole.
+    /// </summary>
+    private bool IsIncomplete(int count)
+    {
+        if (_gameDeckCount > 0 && count >= _gameDeckCount)
+        {
+            return false;
+        }
+
+        if (_revision > 0 && !_baseListed)
+        {
+            return true;
+        }
+
+        return count < ArenaDraft.DeckSize && _mode is "ACTIVE_DRAFT_DECK" or "IN_REWARDS";
+    }
+
+    private static bool SameCards(IReadOnlyList<string> a, IReadOnlyList<string> b) =>
+        a.Count == b.Count && a.Order(StringComparer.Ordinal).SequenceEqual(b.Order(StringComparer.Ordinal), StringComparer.Ordinal);
 
     /// <summary>The client's list in its order, then the picks it misses: each card as many times as either has it.</summary>
     private List<string> Deck()

@@ -7,6 +7,7 @@ export function openDatabase(file) {
   sqlite.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA secure_delete=ON;');
   sqlite.exec(readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../migrations/0008_captures.sql', import.meta.url), 'utf8'));
+  sqlite.exec(readFileSync(new URL('../migrations/0009_analytics.sql', import.meta.url), 'utf8'));
   function statement(sql, args = []) {
     const execute = () => {
       const s = sqlite.prepare(sql);
