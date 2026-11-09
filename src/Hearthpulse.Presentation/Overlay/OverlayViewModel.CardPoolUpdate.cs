@@ -43,6 +43,14 @@ public sealed partial class OverlayViewModel
             return;
         }
 
+        // An open browser belongs to its card until the player closes it (×, Esc, right-click, the turn): the pointer
+        // crossing another hand card or the hover running out keeps it; a new "show the pool" request replaces it.
+        if (CardPoolBrowserOpen && _cardPool is not null && view is not null && settings.ShowCardPool
+            && (pool is null || (pool.SourceCardId != _cardPool.SourceCardId && !IsNewRequest(pool))))
+        {
+            return;
+        }
+
         // The panel stands next to its card; it stays where it is while the player reads it (above).
         CardPoolAnchor = pool is null && list is null ? null : view?.CardPoolAnchor;
         UpdateMatchList(list, pool is not null);
@@ -62,7 +70,7 @@ public sealed partial class OverlayViewModel
             return;
         }
 
-        if (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId || _cardPool.Count != pool.Count)
+        if (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId)
         {
             _cardPoolSelected.Clear();
             _cardPoolSection = null;
@@ -71,7 +79,7 @@ public sealed partial class OverlayViewModel
 
         // "Show the pool for this card" (deck or hand row) opens the browser right away.
         var requested = pool.Trigger == PoolTrigger.Request && pool.Uncomputed is null ? pool.SourceCardId : null;
-        if (requested is not null && requested != _lastRequestedPool)
+        if (IsNewRequest(pool))
         {
             OpenBrowser();
         }
@@ -115,6 +123,10 @@ public sealed partial class OverlayViewModel
         RebuildCardPoolBrowser();
         ShowCardPool = true;
     }
+
+    /// <summary>"Show the pool for this card" for a card other than the last request (it opens the browser).</summary>
+    private bool IsNewRequest(CardPoolView pool) =>
+        pool.Trigger == PoolTrigger.Request && pool.Uncomputed is null && pool.SourceCardId != _lastRequestedPool;
 
     /// <summary>
     /// The pick hint rows: rebuilt only when a number, the options or the language changed, since the session hands a

@@ -26,11 +26,15 @@ public partial class CardPoolPanel : UserControl
     private bool _shown;
     private string _revealKey = string.Empty;
     private Control? _previewRow;
+    private readonly List<(Control Row, Rect Bounds)> _rows = [];
+    private bool _rowsDirty = true;
 
     public CardPoolPanel()
     {
         InitializeComponent();
         _reveal.Tick += (_, _) => StepReveal();
+        // Any layout pass may move, add or hide a row: the cached rows are collected again on the next update over the panel.
+        Card.LayoutUpdated += (_, _) => _rowsDirty = true;
         SizeChanged += (_, _) => Place();
         PropertyChanged += (_, e) =>
         {
@@ -188,7 +192,7 @@ public partial class CardPoolPanel : UserControl
     /// </summary>
     private void PreviewRowAt(Point? inCard)
     {
-        var row = inCard is { } at ? RowAt(Card, at) : null;
+        var row = inCard is { } at ? RowAt(at) : null;
         if (row == _previewRow)
         {
             return;
@@ -206,22 +210,45 @@ public partial class CardPoolPanel : UserControl
         }
     }
 
-    private Control? RowAt(Visual node, Point inCard)
+    /// <summary>
+    /// The row with a preview at a point of <see cref="Card"/>. The rows and their bounds are collected once per layout
+    /// pass (<see cref="_rowsDirty"/>), not by walking the panel's tree on every pointer update.
+    /// </summary>
+    private Control? RowAt(Point inCard)
     {
-        if (node is Control { IsEffectivelyVisible: true } control && CardPreview.HasPreview(control) && control.Bounds.Width > 0)
+        if (_rowsDirty)
         {
-            return Card.TranslatePoint(inCard, control) is { } local && local.X >= 0 && local.Y >= 0 && local.X <= control.Bounds.Width
-                && local.Y <= control.Bounds.Height ? control : null;
+            _rowsDirty = false;
+            _rows.Clear();
+            CollectRows(Card);
         }
 
-        foreach (var child in node.GetVisualChildren())
+        foreach (var (row, bounds) in _rows)
         {
-            if (RowAt(child, inCard) is { } found)
+            if (bounds.Contains(inCard))
             {
-                return found;
+                return row;
             }
         }
 
         return null;
+    }
+
+    private void CollectRows(Visual node)
+    {
+        if (node is Control { IsEffectivelyVisible: true } control && CardPreview.HasPreview(control) && control.Bounds.Width > 0)
+        {
+            if (control.TranslatePoint(default, Card) is { } origin)
+            {
+                _rows.Add((control, new Rect(origin, control.Bounds.Size)));
+            }
+
+            return;
+        }
+
+        foreach (var child in node.GetVisualChildren())
+        {
+            CollectRows(child);
+        }
     }
 }

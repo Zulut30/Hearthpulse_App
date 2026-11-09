@@ -25,6 +25,8 @@ public partial class CardPoolPanel : UserControl
     private OverlayViewModel? _subscribed;
     private string _revealKey = string.Empty;
     private FrameworkElement? _previewRow;
+    private readonly List<(FrameworkElement Row, Rect Bounds)> _rows = [];
+    private bool _rowsDirty = true;
 
     public CardPoolPanel()
     {
@@ -68,6 +70,8 @@ public partial class CardPoolPanel : UserControl
             }
         };
         DataContextChanged += (_, _) => Subscribe();
+        // Any layout pass may move, add or hide a row: the cached rows are collected again on the next poll over the panel.
+        Card.LayoutUpdated += (_, _) => _rowsDirty = true;
     }
 
     // The layer an anchored panel follows while it is loaded.
@@ -149,24 +153,33 @@ public partial class CardPoolPanel : UserControl
 
     private void Poll()
     {
-        if (ViewModel is not { } vm || PresentationSource.FromVisual(Card) is null || PoolInput.Cursor() is not { } cursor)
+        if (PoolInput.Cursor() is { } cursor)
+        {
+            PollAt(new Point(cursor.X, cursor.Y), PoolInput.IsDown(PoolInput.LeftButton), PoolInput.WasPressed(PoolInput.RightButton));
+        }
+    }
+
+    /// <summary>One poll with the cursor at <paramref name="screen"/> (screen pixels) and the buttons given (the bench).</summary>
+    private void PollAt(Point screen, bool leftDown, bool rightPressed)
+    {
+        if (ViewModel is not { } vm || PresentationSource.FromVisual(Card) is null)
         {
             return;
         }
 
-        var point = Card.PointFromScreen(new Point(cursor.X, cursor.Y));
+        var point = Card.PointFromScreen(screen);
         var over = point.X >= 0 && point.Y >= 0 && point.X <= Card.ActualWidth && point.Y <= Card.ActualHeight;
-        vm.UpdateCardPoolPointer(over, PoolInput.IsDown(PoolInput.LeftButton), PoolInput.WasPressed(PoolInput.RightButton));
-        PreviewRowAt(over ? new Point(cursor.X, cursor.Y) : null);
+        vm.UpdateCardPoolPointer(over, leftDown, rightPressed);
+        PreviewRowAt(over ? point : null);
     }
 
     /// <summary>
     /// The full card of the row under the pointer (rows of this game, related cards, Excavate): the panel takes no mouse,
     /// so the poll does what a hover would. The preview leaves with the pointer.
     /// </summary>
-    private void PreviewRowAt(Point? screen)
+    private void PreviewRowAt(Point? inCard)
     {
-        var row = screen is { } at ? RowAt(Card, at) : null;
+        var row = inCard is { } at ? RowAt(at) : null;
         if (row == _previewRow)
         {
             return;
@@ -184,22 +197,41 @@ public partial class CardPoolPanel : UserControl
         }
     }
 
-    private static FrameworkElement? RowAt(DependencyObject node, Point screen)
+    /// <summary>
+    /// The row with a preview at a point of <see cref="Card"/>. The rows and their bounds are collected once per layout
+    /// pass (<see cref="_rowsDirty"/>), not by walking the panel's tree on every poll.
+    /// </summary>
+    private FrameworkElement? RowAt(Point inCard)
     {
-        if (node is FrameworkElement { IsVisible: true } element && CardPreview.HasPreview(element) && element.ActualWidth > 0)
+        if (_rowsDirty)
         {
-            var local = element.PointFromScreen(screen);
-            return local.X >= 0 && local.Y >= 0 && local.X <= element.ActualWidth && local.Y <= element.ActualHeight ? element : null;
+            _rowsDirty = false;
+            _rows.Clear();
+            CollectRows(Card);
         }
 
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        foreach (var (row, bounds) in _rows)
         {
-            if (RowAt(VisualTreeHelper.GetChild(node, i), screen) is { } found)
+            if (bounds.Contains(inCard))
             {
-                return found;
+                return row;
             }
         }
 
         return null;
+    }
+
+    private void CollectRows(DependencyObject node)
+    {
+        if (node is FrameworkElement { IsVisible: true } element && CardPreview.HasPreview(element) && element.ActualWidth > 0)
+        {
+            _rows.Add((element, element.TransformToAncestor(Card).TransformBounds(new Rect(element.RenderSize))));
+            return;
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            CollectRows(VisualTreeHelper.GetChild(node, i));
+        }
     }
 }

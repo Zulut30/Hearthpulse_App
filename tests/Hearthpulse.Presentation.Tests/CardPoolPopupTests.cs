@@ -74,6 +74,52 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
+    public void An_open_browser_stays_open_until_the_player_closes_it_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            var list = new MatchListView("OTHER_LIST", "Other", "Your minions that died", 1, [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1)]);
+            foreach (var vm in Models())
+            {
+                vm.Show(Pool("TEST_GEN", 40));
+                vm.Pointer(true, false, false, T0);
+                vm.Pointer(true, false, false, T0 + Rested);
+                vm.Pointer(true, false, true, T0 + Rested);
+                Assert.True(vm.BrowserOpen, vm.Name);
+                vm.Pointer(false, false, false, T0 + Rested * 2);
+
+                // (a) The wiki list comes for the same card: the pool's count changes, the browser shows the new list.
+                vm.Show(Pool("TEST_GEN", 42));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+
+                // (b) The hovered card's linger ran out: no pool, no list.
+                vm.Show(null);
+                Assert.True(vm.BrowserOpen, vm.Name);
+
+                // (c) The pointer crossed another hand card with a pool, or with only a "this game" list.
+                vm.Show(Pool("OTHER_GEN", 12));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+                vm.Show(null, list);
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+
+                // Only the player closes it (×, Esc, right-click again, the turn): then the current card's pool is back.
+                vm.Close();
+                Assert.False(vm.BrowserOpen, vm.Name);
+                Assert.True(vm.Popup, vm.Name);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
     public void A_held_pool_lets_go_on_a_left_press_and_when_the_pointer_leaves()
     {
         foreach (var vm in Models())
@@ -275,6 +321,8 @@ public sealed class CardPoolPopupTests
         public required Func<bool> HeldNow { get; init; }
         public required Func<bool> BrowserNow { get; init; }
         public required Func<bool> PopupNow { get; init; }
+        public required Func<string> BrowserTitleNow { get; init; }
+        public required Action CloseBrowser { get; init; }
         public required Func<IReadOnlyList<(string, string)>> Averages { get; init; }
         public required Func<IReadOnlyList<(string, string, int, string)>> Top { get; init; }
         public required Func<(string, string, string)> ListHeader { get; init; }
@@ -288,6 +336,9 @@ public sealed class CardPoolPopupTests
         public bool Held => HeldNow();
         public bool BrowserOpen => BrowserNow();
         public bool Popup => PopupNow();
+        public string BrowserTitle => BrowserTitleNow();
+
+        public void Close() => CloseBrowser();
 
         public void Raise(string? name) => Changed?.Invoke(name);
     }
@@ -303,6 +354,8 @@ public sealed class CardPoolPopupTests
             HeldNow = () => wpf.CardPoolHeld,
             BrowserNow = () => wpf.CardPoolBrowserOpen,
             PopupNow = () => wpf.ShowCardPoolPopup,
+            BrowserTitleNow = () => wpf.CardPoolBrowserTitle,
+            CloseBrowser = () => wpf.CloseCardPoolBrowser.Execute(null),
             Averages = () => wpf.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
             Top = () => wpf.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
             ListHeader = () => (wpf.CardPoolTitle, wpf.CardPoolPhrase, wpf.CardPoolListTitle),
@@ -323,6 +376,8 @@ public sealed class CardPoolPopupTests
             HeldNow = () => ava.CardPoolHeld,
             BrowserNow = () => ava.CardPoolBrowserOpen,
             PopupNow = () => ava.ShowCardPoolPopup,
+            BrowserTitleNow = () => ava.CardPoolBrowserTitle,
+            CloseBrowser = () => ava.CloseCardPoolBrowser.Execute(null),
             Averages = () => ava.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
             Top = () => ava.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
             ListHeader = () => (ava.CardPoolTitle, ava.CardPoolPhrase, ava.CardPoolListTitle),
