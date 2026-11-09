@@ -33,7 +33,10 @@ public sealed partial class AppHost : IDisposable
     private readonly DispatcherTimer _metaRefresh;
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
-    private UpdateInfo? _stagedUpdate;
+    // Written by the update loop on the pool, read on the UI thread.
+    private volatile UpdateInfo? _stagedUpdate;
+    private readonly UpdateTrigger _updateTrigger = new();
+    private readonly UpdateLoop _updateLoop = new();
     private readonly AppServices _services;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
@@ -290,35 +293,66 @@ public sealed partial class AppHost : IDisposable
     }
 
     /// <summary>
-    /// Looks for a newer release shortly after startup and every six hours after that. A downloaded Windows update
-    /// installs by itself when the app closes, so keeping Hearthpulse current never needs a download or setup run by hand.
+    /// Looks for a newer release shortly after startup and every six hours after that (with automatic updates off, only
+    /// on "Check now"). A downloaded Windows update installs by itself when the app closes. Called once at start: it also
+    /// reads how the install the previous run started went, and a failure is told once, in a notification and in About.
+    /// Off-screen renders and phones run no checks.
     /// </summary>
     private void StartUpdateChecks()
     {
-        if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        if (_rendering)
+        {
+            return;
+        }
+
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             Main.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
-        _ = Task.Run(() => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly,
+        if (UpdateService.TakeInstallReport() is { Succeeded: false } report)
+        {
+            Main.SetInstallFailed(report.Version, report.Message);
+            Notification?.Invoke(Loc.T("Host.Update.InstallFailedTitle"), report.Message());
+        }
+
+        if (!Settings.AutoUpdate)
+        {
+            Main.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
+        }
+
+        // The loop reports a version once (again only for a newer one), so each notification below is once a version;
+        // results of a check, "Check now" included, go only to the status line.
+        var callbacks = new UpdateCallbacks(
             // The portable version and an AppImage never install anything: they only say a new version is out.
-            available: info =>
+            Available: info =>
             {
+                Dispatcher.UIThread.Post(() => Main.SetReleaseNotes(info.Version, info.Notes, info.PageUrl));
                 var text = UpdateService.IsAppImage ? "Host.Update.AvailableAppImage" : "Host.Update.AvailablePortable";
                 Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F(text, info.Version));
             },
-            staged: info =>
+            Staged: info =>
             {
                 _stagedUpdate = info;
                 Dispatcher.UIThread.Post(() =>
                 {
                     Main.SetUpdateReady(info.Version);
+                    Main.SetReleaseNotes(info.Version, info.Notes, info.PageUrl);
                 });
                 Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
             },
-            // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-            failed: status => Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status))));
+            // Failed check, unverifiable file, failed download or a version left to a manual install: About only.
+            Failed: status => Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status)),
+            Checked: check => Dispatcher.UIThread.Post(() => Main.UpdateCheckFinished(() => check.Message)));
+        Main.UpdateCheckRequested += () =>
+        {
+            if (!_updateTrigger.Request())
+            {
+                Main.UpdateCheckRefused(_updateTrigger.RefusalMessage);
+            }
+        };
+        _updateLoop.Start(stop => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly, Settings.AutoUpdate, callbacks, _updateTrigger, stop));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now. Windows restarts into the new version,
@@ -330,20 +364,37 @@ public sealed partial class AppHost : IDisposable
             return;
         }
 
+        StopUpdateLoop();
+        // Read after the loop has stopped: the newest staged version, whose file nothing deletes any more.
+        if (_stagedUpdate is not { } staged)
+        {
+            return;
+        }
+
         if (!OperatingSystem.IsWindows())
         {
-            if (UpdateService.StagedFileMatches(_stagedUpdate))
+            if (UpdateService.StagedFileMatches(staged))
             {
-                UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+                UpdateService.OpenInstaller(UpdateService.StagedPath(staged));
             }
 
             return;
         }
 
-        if (UpdateService.ApplyStaged(_stagedUpdate, relaunch: true))
+        if (UpdateService.ApplyStaged(staged, relaunch: true))
         {
             _stagedUpdate = null;
             ExitRequested?.Invoke();
+        }
+    }
+
+    /// <summary>Stops the update loop and waits for it (bounded) before a staged update is installed: a download still
+    /// running would otherwise replace the staged file under the installer. The loop stays off for this run.</summary>
+    private void StopUpdateLoop()
+    {
+        if (!_updateLoop.Stop(UpdateLoop.StopWait))
+        {
+            Diag.Info($"Update: the update loop did not end within {UpdateLoop.StopWait.TotalSeconds:0} s; installing anyway.");
         }
     }
 
@@ -490,7 +541,9 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();
-        if (_stagedUpdate is not null && UpdateService.ApplyStaged(_stagedUpdate, relaunch: false))
+        StopUpdateLoop();
+        _updateLoop.Dispose();
+        if (_stagedUpdate is { } staged && UpdateService.ApplyStaged(staged, relaunch: false))
         {
             _stagedUpdate = null;
         }

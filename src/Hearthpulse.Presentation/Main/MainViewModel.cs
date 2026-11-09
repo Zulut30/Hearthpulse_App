@@ -15,7 +15,6 @@ using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
-using Hearthpulse.Core.Updates;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -69,53 +68,6 @@ public sealed partial class MainViewModel : Observable
     }
 
     public RelayCommand SetCardTier { get; }
-
-    // ---- updates --------------------------------------------------------------------------
-
-    /// <summary>The player asked to install a downloaded update right away (the app installs it and restarts).</summary>
-    public event Action? UpdateRequested;
-
-    private bool _updateReady;
-    private string? _updateVersion;
-    private Func<string>? _updateStatus;
-
-    /// <summary>A newer version has been downloaded: it installs by itself when Hearthpulse closes.</summary>
-    public bool UpdateReady
-    {
-        get => _updateReady;
-        private set => Set(ref _updateReady, value);
-    }
-
-    /// <summary>The downloaded update in a sentence; built on read so it follows a language change.</summary>
-    public string UpdateText => _updateVersion is null ? string.Empty : Loc.F("Main.Update.Downloaded", _updateVersion);
-
-    public RelayCommand InstallUpdate { get; }
-
-    /// <summary>Tells the dashboard that a downloaded update is waiting for the next restart.</summary>
-    public void SetUpdateReady(string version)
-    {
-        _updateVersion = version;
-        _updateStatus = null;
-        Raise(nameof(UpdateText));
-        UpdateReady = true;
-        Raise(nameof(UpdateStatus));
-    }
-
-    /// <summary>The last update check in a sentence for Settings → About (up to date, failed and why, unverified file).</summary>
-    public string UpdateStatus => _updateStatus?.Invoke() ?? (_updateVersion is null ? Loc.T("Main.Update.NotChecked") : UpdateText);
-
-    /// <summary>Shows what the last update check found.</summary>
-    public void SetUpdateStatus(string status) => SetUpdateStatus(() => status);
-
-    /// <summary>The update status as a text maker: a language switch shows it again in the new language.</summary>
-    public void SetUpdateStatus(Func<string> status)
-    {
-        _updateStatus = status;
-        Raise(nameof(UpdateStatus));
-    }
-
-    /// <summary>The running version, for Settings → About.</summary>
-    public string VersionText => $"Hearthpulse {UpdateService.CurrentVersion}";
 
     public AppSettings Settings { get; }
 

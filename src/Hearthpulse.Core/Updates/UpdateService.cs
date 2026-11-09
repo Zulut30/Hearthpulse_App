@@ -148,6 +148,8 @@ public static partial class UpdateService
             var deltaName = target == UpdateTarget.WindowsInstalled ? DeltaUpdate.AssetName(installedVersion, version) : null;
             UpdateInfo? found = null;
             DeltaAsset? delta = null;
+            string? sumsUrl = null;
+            string? signatureUrl = null;
             foreach (var asset in assets.EnumerateArray())
             {
                 if (asset.ValueKind != JsonValueKind.Object || GetString(asset, "browser_download_url") is not { Length: > 0 } url)
@@ -169,79 +171,30 @@ public static partial class UpdateService
                 {
                     delta = new DeltaAsset(name, url, sha256);
                 }
+                else if (name == UpdateSignature.ChecksumsName)
+                {
+                    sumsUrl = url;
+                }
+                else if (name == UpdateSignature.SignatureName)
+                {
+                    signatureUrl = url;
+                }
             }
 
-            return found is null ? null : found with { Delta = delta };
+            return found is null
+                ? null
+                : found with
+                {
+                    Delta = delta,
+                    Notes = ReleaseNotes.ToPlainText(GetString(root, "body")),
+                    PageUrl = ReleaseNotes.Page(GetString(root, "html_url")),
+                    ChecksumsUrl = sumsUrl,
+                    SignatureUrl = signatureUrl,
+                };
         }
         catch (JsonException)
         {
             return null;
-        }
-    }
-
-    /// <summary>
-    /// The update loop both apps run in the background: 20 seconds after it starts, then every six hours, asks GitHub
-    /// for a newer release. One this copy must not install itself (<paramref name="notifyOnly"/>, or an update that would not
-    /// fit it, <see cref="InstallsItself"/>) goes to
-    /// <paramref name="available"/>, one downloaded and verified to <paramref name="staged"/>; either ends the loop. A
-    /// failed check, an unverifiable file or a failed download goes to <paramref name="failed"/> as the text to show
-    /// (read when shown, so it follows the language) and is tried again later. Callbacks run on a pool thread.
-    /// </summary>
-    public static Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed) =>
-        WatchAsync(http, notifyOnly, available, staged, failed, TimeSpan.FromSeconds(20), DetectTarget(), AppContext.BaseDirectory, File.Exists);
-
-    /// <summary>
-    /// <see cref="WatchAsync(HttpClient, bool, Action{UpdateInfo}, Action{UpdateInfo}, Action{Func{string}})"/> with the
-    /// first wait and this copy's target and folder passed in (tests). A copy the update would not fit
-    /// (<see cref="InstallsItself"/>) is only told about it, as with <paramref name="notifyOnly"/>.
-    /// </summary>
-    internal static async Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed,
-        TimeSpan firstWait, UpdateTarget target, string appDirectory, Func<string, bool> exists)
-    {
-        await Task.Delay(firstWait).ConfigureAwait(false);
-        if (target == UpdateTarget.WindowsInstalled)
-        {
-            DeltaUpdate.CleanUp(appDirectory, CurrentVersion);
-        }
-
-        while (true)
-        {
-            try
-            {
-                // A delta that could not put its old files back left a folder of two versions: the full setup of the
-                // newest release repairs it, even when that is the version this copy reports.
-                var repair = target == UpdateTarget.WindowsInstalled && DeltaUpdate.IsBroken(appDirectory);
-                var check = await CheckForUpdateAsync(http, target, CancellationToken.None, repair).ConfigureAwait(false);
-                var info = repair && check.Update is { } broken ? broken with { Delta = null } : check.Update;
-                if (info is not null && (notifyOnly || !InstallsItself(target, appDirectory, exists)))
-                {
-                    available(info);
-                    return;
-                }
-
-                // The delta first (a few MB); when it does not fit this copy or fails, the full setup as before.
-                if (info is { Sha256: not null, Delta: not null } && target == UpdateTarget.WindowsInstalled
-                    && await DeltaUpdate.PrepareAsync(http, info, appDirectory, CurrentVersion).ConfigureAwait(false))
-                {
-                    staged(info);
-                    return;
-                }
-
-                if (info is { Sha256: not null } && await DownloadAsync(http, info).ConfigureAwait(false) is not null)
-                {
-                    staged(info);
-                    return;
-                }
-
-                var message = check.Message;
-                failed(info is { Sha256: not null } ? () => Loc.F("Host.Update.DownloadFailed", info.Version) : () => message);
-            }
-            catch (Exception ex)
-            {
-                Diag.Error("Update check failed", ex);
-            }
-
-            await Task.Delay(TimeSpan.FromHours(6)).ConfigureAwait(false);
         }
     }
 
@@ -256,9 +209,18 @@ public static partial class UpdateService
     public static Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, CancellationToken cancellationToken = default) =>
         CheckForUpdateAsync(http, DetectTarget(), cancellationToken);
 
-    /// <summary><see cref="CheckForUpdateAsync(HttpClient, CancellationToken)"/> for a given kind of copy (the update loop, tests).</summary>
+    /// <summary><see cref="CheckForUpdateAsync(HttpClient, CancellationToken)"/> for a given kind of copy (tests).</summary>
     /// <param name="repair">Offer the newest release even when it is not newer (a folder a failed delta left half-updated).</param>
-    internal static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, CancellationToken cancellationToken, bool repair = false)
+    internal static Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, CancellationToken cancellationToken, bool repair = false) =>
+        CheckForUpdateAsync(http, target, UpdateContext.Default(), cancellationToken, repair);
+
+    /// <summary>
+    /// The check with its state folder and clock passed in (the loop, tests). The last 200 answer is kept with its ETag
+    /// in update-state/latest-release.json and sent back as If-None-Match, so an unchanged release costs GitHub nothing
+    /// (a 304 does not count against the limit); a rate-limit answer says when to ask again (<see cref="UpdateCheck.RetryAfter"/>).
+    /// </summary>
+    internal static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, UpdateContext context,
+        CancellationToken cancellationToken, bool repair = false)
     {
         try
         {
@@ -267,58 +229,127 @@ public static partial class UpdateService
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + CurrentVersion);
             }
 
+            var cached = ReleaseCache.Read(context.StateDirectory);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(20));
             using var request = new HttpRequestMessage(HttpMethod.Get, LatestApi);
             request.Headers.TryAddWithoutValidation("Accept", "application/vnd.github+json");
-            using var response = await http.SendAsync(request, cts.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            if (cached is not null)
             {
-                var status = (int)response.StatusCode;
-                // 404: the repository has no published release yet (or is private); 403/429: GitHub's rate limit.
-                var reason = status switch
-                {
-                    404 => "no published release",
-                    429 => "rate limited",
-                    403 when response.Headers.TryGetValues("X-RateLimit-Remaining", out var left) && left.FirstOrDefault() == "0" => "rate limited",
-                    403 => "forbidden",
-                    _ => response.ReasonPhrase ?? "error",
-                };
-                Diag.Info($"Update check: GitHub answered {status} ({reason}) for {LatestApi}.");
-                var shownReason = reason switch
-                {
-                    "no published release" => Loc.T("Core.Update.NoRelease"),
-                    "rate limited" => Loc.T("Core.Update.RateLimited"),
-                    "forbidden" => Loc.T("Core.Update.Forbidden"),
-                    _ => reason,
-                };
-                return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.GitHubFailed", status, shownReason));
+                request.Headers.TryAddWithoutValidation("If-None-Match", cached.ETag);
             }
 
-            var json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+            using var response = await http.SendAsync(request, cts.Token).ConfigureAwait(false);
+            string json;
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified && cached is not null)
+            {
+                json = cached.Body;
+            }
+            else if (!response.IsSuccessStatusCode)
+            {
+                return FailedAnswer(response, context.Now());
+            }
+            else
+            {
+                json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+                ReleaseCache.Write(context.StateDirectory, response.Headers.ETag?.ToString(), json);
+            }
+
             var info = ParseLatest(json, target, RuntimeArchitecture(), LinuxFlavor());
             if (info is null && LatestTag(json) is { } tag && IsNewer(tag))
             {
                 // Released, but the file for this platform is not uploaded yet (or was not built): not "up to date".
                 Diag.Info($"Update check: {tag} has no {AssetName(tag, target, RuntimeArchitecture(), LinuxFlavor())} yet.");
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.NoFileYet", tag));
+                return UpdateCheck.Of(UpdateCheckOutcome.UpToDate, null, () => Loc.F("Core.Update.NoFileYet", tag));
             }
 
             if (info is null || (!IsNewer(info.Version) && !repair))
             {
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.UpToDate", CurrentVersion));
+                return UpdateCheck.Of(UpdateCheckOutcome.UpToDate, null, () => Loc.F("Core.Update.UpToDate", CurrentVersion));
             }
 
             Diag.Info($"Update available: {info.Version} ({info.AssetName}){(info.Sha256 is null ? ", no SHA-256 published" : string.Empty)}.");
-            return new UpdateCheck(UpdateCheckOutcome.Available, info,
-                info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
+            return UpdateCheck.Of(UpdateCheckOutcome.Available, info,
+                () => info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidOperationException)
         {
             Diag.Info($"Update check skipped: {ex.Message}");
-            return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.Failed", ex.Message));
+            var reason = ex.Message;
+            return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, () => Loc.F("Core.Update.Failed", reason));
         }
     }
+
+    /// <summary>
+    /// An answer other than 200/304, as a failed check. 403 with no requests left (or with Retry-After) and 429 are
+    /// GitHub's limit: the check carries the moment GitHub allows the next request and says it.
+    /// </summary>
+    private static UpdateCheck FailedAnswer(HttpResponseMessage response, DateTimeOffset now)
+    {
+        var status = (int)response.StatusCode;
+        var limited = status == 429
+            || (status == 403 && ((response.Headers.TryGetValues("X-RateLimit-Remaining", out var left) && left.FirstOrDefault() == "0")
+                || response.Headers.RetryAfter is not null));
+        // 404: the repository has no published release yet (or is private); 403/429: GitHub's rate limit.
+        var reason = status switch
+        {
+            404 => "no published release",
+            _ when limited => "rate limited",
+            403 => "forbidden",
+            _ => response.ReasonPhrase ?? "error",
+        };
+        Diag.Info($"Update check: GitHub answered {status} ({reason}) for {LatestApi}.");
+        string Message() => Loc.F("Core.Update.GitHubFailed", status, reason switch
+        {
+            "no published release" => Loc.T("Core.Update.NoRelease"),
+            "rate limited" => Loc.T("Core.Update.RateLimited"),
+            "forbidden" => Loc.T("Core.Update.Forbidden"),
+            _ => reason,
+        });
+        if (!limited)
+        {
+            return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, Message);
+        }
+
+        var retryAfter = RateLimitEnd(response, now);
+        Diag.Info($"Update check: GitHub's limit allows the next request at {retryAfter.ToString("u", CultureInfo.InvariantCulture)}.");
+        return UpdateCheck.Of(UpdateCheckOutcome.Failed, null, () => Message() + " " + TryLaterText(retryAfter)) with { RetryAfter = retryAfter };
+    }
+
+    /// <summary>The latest a limit reply can push the next check: a far-off or bogus reset never stops the checks for long.</summary>
+    internal static readonly TimeSpan LongestLimit = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// When GitHub takes requests again: X-RateLimit-Reset (unix seconds), Retry-After (seconds or a date), else in an
+    /// hour; never later than <see cref="LongestLimit"/> from now.
+    /// </summary>
+    private static DateTimeOffset RateLimitEnd(HttpResponseMessage response, DateTimeOffset now)
+    {
+        var end = ReportedLimitEnd(response, now);
+        return end - now > LongestLimit ? now + LongestLimit : end;
+    }
+
+    private static DateTimeOffset ReportedLimitEnd(HttpResponseMessage response, DateTimeOffset now)
+    {
+        if (response.Headers.TryGetValues("X-RateLimit-Reset", out var reset)
+            && long.TryParse(reset.FirstOrDefault(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            && seconds > 0 && seconds < DateTimeOffset.MaxValue.ToUnixTimeSeconds())
+        {
+            var at = DateTimeOffset.FromUnixTimeSeconds(seconds);
+            return at > now ? at : now.AddMinutes(1);
+        }
+
+        return response.Headers.RetryAfter switch
+        {
+            { Delta: { } delta } => now + delta,
+            { Date: { } date } when date > now => date,
+            _ => now.AddHours(1),
+        };
+    }
+
+    /// <summary>"GitHub takes the next check after 14:05." in the player's local time.</summary>
+    internal static string TryLaterText(DateTimeOffset at) =>
+        Loc.F("Core.Update.TryLaterAt", at.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture));
 
     /// <summary>Why a release without a published checksum is not installed, for the log and the settings page.</summary>
     public static string UnverifiedMessage(UpdateInfo info) =>

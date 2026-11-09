@@ -140,8 +140,9 @@ three made-up games and the overlay over two made-up moments on 16:9, 16:10 and 
 `VisualBaseline` in Core). It renders on the fixture data folder `tests/visual/data`, isolated
 (`HEARTHPULSE_ISOLATED=1`: no network, no Hearthstone install, fixed text fonts), and compares with
 `tests/visual/baselines/<ui>/<theme>-<scene>.webp` (lossless WebP): a channel moved by more than 8 on over 0.02 % of the
-pixels fails; the app version under the sidebar is masked. CI job "Visual baselines" runs it on Windows and uploads
-`visual-renders` (renders and diff sheets) on any difference and on a manual run.
+pixels fails; the app version under the sidebar is masked. CI job "Visual baselines" runs it on Windows, a job per
+WPF theme (`--ui wpf --theme Tavern`, ...) and one for Avalonia, artifacts `visual-renders-<part>`; "Visual baselines
+(both UIs)" joins them into `visual-renders` (renders and diff sheets) on any difference and on a manual run.
 
 - Baselines are taken on the CI runner only. A wanted change: `gh workflow run ci.yml --ref <branch>`, download
   `visual-renders`, Read its `diff/` sheets, `python -B -I tools/visual/visual_check.py update <dir>`, commit with the
