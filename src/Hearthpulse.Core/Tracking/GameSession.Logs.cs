@@ -26,6 +26,7 @@ public sealed partial class GameSession
 
     private void OnSessionStartedCore(string sessionDir, DateTime sessionStart, bool attachedMidSession)
     {
+        _sourceCapture.Stop("rotation");
         _gameGeneration++;
         // The same folder again is a restarted watcher joining the session at its last game: the game goes on and is
         // replayed from its start, as in a resync.
@@ -58,6 +59,7 @@ public sealed partial class GameSession
         _parser.AddListener(_picks);
         _parser.AddListener(_secrets);
         _parser.AddListener(_replay);
+        _parser.AddListener(_sourceCapture);
         _parser.AddListener(_turnClock);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
@@ -80,6 +82,7 @@ public sealed partial class GameSession
 
     private void OnResyncCore()
     {
+        _sourceCapture.Stop("rotation");
         _gameGeneration++;
         _parser?.ResetGame();
         _scene = "UNKNOWN";
@@ -97,6 +100,7 @@ public sealed partial class GameSession
     private void OnLinesCore(string fileName, IReadOnlyList<string> lines, bool catchingUp)
     {
         _catchingUp = catchingUp;
+        _sourceCapture.SetCatchingUp(catchingUp);
         switch (fileName)
         {
             case "Power.log":
@@ -106,6 +110,7 @@ public sealed partial class GameSession
                     // exception dropped the rest of the batch, the game state went wrong and the overlay looked frozen.
                     try
                     {
+                        _sourceCapture.ObservePowerLine(line);
                         _parser?.Feed(line);
                     }
                     catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentException
@@ -139,6 +144,7 @@ public sealed partial class GameSession
         }
 
         _catchingUp = false;
+        _sourceCapture.SetCatchingUp(false);
         _dirty = true;
     }
 
@@ -148,6 +154,7 @@ public sealed partial class GameSession
     /// </summary>
     private void NoteParseError(string line, Exception ex)
     {
+        _sourceCapture.NoteGap("unsupported");
         var type = ex.GetType().Name;
         _parseErrors[type] = _parseErrors.GetValueOrDefault(type) + 1;
         _parseErrorTotal++;
@@ -295,6 +302,7 @@ public sealed partial class GameSession
         var match = SceneRegex().Match(line);
         if (match.Success)
         {
+            if (_scene == "DRAFT" && match.Groups["mode"].Value != "DRAFT") CaptureUnpickedDraftOffer();
             _scene = match.Groups["mode"].Value;
         }
     }
