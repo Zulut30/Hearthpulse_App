@@ -90,6 +90,22 @@ python-hearthstone (game tag names)
   Licence: MIT
   https://github.com/HearthSim/python-hearthstone
 
+Ed25519 signature check (src/Hearthpulse.Core/Updates) - ported from the reference implementation in RFC 8032,
+section 6 (S. Josefsson, I. Liusvaara)
+  Copyright (c) 2017 IETF Trust and the persons identified as the document authors
+  Licence: Revised BSD License (IETF Trust Legal Provisions, section 4)
+  https://www.rfc-editor.org/rfc/rfc8032
+
+Hearthstone Deck Tracker and Firestone: "Moving from HDT or Firestone" reads the data files those apps keep on this
+computer (their formats only); none of their code is used.
+
+Used only to build the release (not shipped in the apps):
+
+jsign (Authenticode signing of the Windows packages in the release workflow, downloaded with a pinned checksum)
+  Emmanuel Bourg and contributors
+  Licence: Apache-2.0
+  https://github.com/ebourg/jsign
+
 Used only by the test projects (not shipped in the apps):
 
 CsCheck (property-based tests)
@@ -315,6 +331,39 @@ BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
 FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
 ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
 PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+
+==============================================================================
+Revised BSD License - RFC 8032 reference code (Ed25519 signature check)
+==============================================================================
+Copyright (c) 2017 IETF Trust and the persons identified as the document authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+- Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+
+- Neither the name of Internet Society, IETF or IETF Trust, nor the
+  names of specific contributors, may be used to endorse or promote
+  products derived from this software without specific prior written
+  permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ==============================================================================
 BSD 3-Clause License - Skia
