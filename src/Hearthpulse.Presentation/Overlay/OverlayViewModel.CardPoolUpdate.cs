@@ -34,7 +34,7 @@ public sealed partial class OverlayViewModel
         }
 
         var pool = settings.ShowCardPool ? view?.CardPool : null;
-        var list = settings.ShowCardPool ? view?.MatchList : null;
+        var (list, related) = settings.ShowCardPool ? SplitLists(view, pool is not null) : (null, null);
         UpdateCardPoolPicks(pool is null ? null : view?.DiscoverPicks);
         if (pool is null && list is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen)
             && (_cardPool is not null || ShowCardPoolList))
@@ -54,6 +54,7 @@ public sealed partial class OverlayViewModel
         // The panel stands next to its card; it stays where it is while the player reads it (above).
         CardPoolAnchor = pool is null && list is null ? null : view?.CardPoolAnchor;
         UpdateMatchList(list, pool is not null);
+        UpdateRelated(related);
         if (pool is null)
         {
             _cardPool = null;
@@ -100,29 +101,41 @@ public sealed partial class OverlayViewModel
         CardPoolSource = pool.SourceName;
         CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : pool.Description;
         CardPoolHasCards = pool.Uncomputed is null;
-        // The generator's name in the player's language (the parsed phrase is English card text), then "classes · format".
+        // The generator's name in the player's language (the parsed phrase is English card text).
         CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.SourceName;
-        CardPoolMeta = pool.Uncomputed is null ? pool.Description : string.Empty;
+        // Next to its card the popup does not repeat the card's name: "classes · format", or why it is not computed.
+        CardPoolMeta = pool.Uncomputed is { } cause ? Loc.F("Pool.NotComputed.Reason", PoolDisplay.Reason(cause)) : pool.Description;
+        CardPoolSourceNote = string.IsNullOrEmpty(CardPoolMeta) ? pool.SourceName : $"{pool.SourceName} · {CardPoolMeta}";
         UpdateSectionChips();
         UpdateExcavate(pool.Excavate);
         CardPoolAverages = pool.Uncomputed is not null || pool.Excavate is not null ? []
             : CardPoolStats
-                .Select(stat => PoolStats.Average(pool.Cards, stat) is { } value ? new PoolAverage(PoolDisplay.Stat(stat), AverageText(value)) : null)
+                .Select(stat => PoolStats.Average(pool.Cards, stat) is { } value ? new PoolAverage(AverageLabel(stat), AverageText(value)) : null)
                 .OfType<PoolAverage>()
                 .ToList();
-        CardPoolMechanicRows = pool.Excavate is not null ? [] : pool.Mechanics.Take(MechanicChipCount).Select(PoolDisplay.Mechanic)
-            .Select(m => new PoolMechanicRow(m.Label, m.PercentText))
+        // Whole percent: a tenth of a percent is noise on a pool of a few dozen cards.
+        CardPoolMechanicRows = pool.Excavate is not null || pool.Uncomputed is not null ? [] : pool.Mechanics.Take(MechanicChipCount).Select(PoolDisplay.Mechanic)
+            .Select(m => new PoolMechanicRow(m.Label, OverlayFormat.Percent(m.Percent / 100)))
             .ToList();
+        CardPoolSummary = [.. CardPoolAverages, .. CardPoolMechanicRows.Select(m => new PoolAverage(m.Label, m.PercentText))];
         var top = PoolStats.TopCards(pool, TopCardCount);
         var metaGames = Math.Max(1, pool.Cards.Sum(c => (long)c.MetaGames));
         CardPoolTopCards = top
-            .Select(c => new PoolTopRow(c.CardId, c.Name, c.Cost, c.Rarity, OverlayFormat.Percent((double)c.MetaGames / metaGames)))
+            .Select(c => new PoolListRow(c.CardId, c.Name, c.Cost, c.Rarity, OverlayFormat.Percent((double)c.MetaGames / metaGames)))
             .ToList();
         CardPoolFeatured = pool.Featured;
         CardPoolFeaturedNote = PoolDisplay.FeaturedReason(pool.FeaturedReason);
         RebuildCardPoolBrowser();
         ShowCardPool = true;
     }
+
+    /// <summary>"Average cost", "Average attack", "Average health".</summary>
+    private static string AverageLabel(string stat) => stat switch
+    {
+        "Attack" => Loc.T("Pool.Avg.Attack"),
+        "Health" => Loc.T("Pool.Avg.Health"),
+        _ => Loc.T("Pool.Avg.Cost"),
+    };
 
     /// <summary>"Show the pool for this card" for a card other than the last request (it opens the browser).</summary>
     private bool IsNewRequest(CardPoolView pool) =>
@@ -188,6 +201,38 @@ public sealed partial class OverlayViewModel
             : string.Empty;
     }
 
+    /// <summary>
+    /// The hovered card's "this game" list and its related cards. The view hands the related cards in
+    /// <see cref="ConstructedView.MatchList"/> when the card has no "this game" rule; they go to their own zone at the
+    /// bottom, except for a card with nothing else, whose panel they are.
+    /// </summary>
+    private static (MatchListView? List, MatchListView? Related) SplitLists(ConstructedView? view, bool withPool)
+    {
+        var match = view?.MatchList;
+        var matchIsRelated = match is not null && match.Title == Loc.T("Related.Title");
+        var related = matchIsRelated ? match : null;
+        var list = matchIsRelated ? null : match;
+        return list is null && !withPool ? (related, null) : (list, related);
+    }
+
+    /// <summary>The related cards' zone: rebuilt only when a card or the language changed.</summary>
+    private void UpdateRelated(MatchListView? related)
+    {
+        var key = related is null || related.Rows.Count == 0 ? string.Empty
+            : $"{related.SourceCardId}|{related.Total}|{string.Join(',', related.Rows.Select(r => r.CardId))}|{Loc.Instance.Language}";
+        if (key == _cardPoolRelatedKey)
+        {
+            return;
+        }
+
+        _cardPoolRelatedKey = key;
+        IReadOnlyList<MatchListRow> rows = key.Length == 0 ? [] : related!.Rows;
+        ShowCardPoolRelated = rows.Count > 0;
+        CardPoolRelatedTitle = rows.Count > 0 ? ListHeadline(related!) : string.Empty;
+        CardPoolRelated = rows.Take(RelatedRowCount).Select(r => new PoolListRow(r.CardId, r.Name, r.Cost, r.Rarity, string.Empty)).ToList();
+        CardPoolRelatedNote = rows.Count > RelatedRowCount ? Loc.F("Pool.List.More", rows.Count - RelatedRowCount) : string.Empty;
+    }
+
     /// <summary>"Your minions that died · Deathrattle: 3".</summary>
     private static string ListHeadline(MatchListView list) => $"{list.Title}: {list.Total.ToString(CultureInfo.CurrentCulture)}";
 
@@ -199,11 +244,13 @@ public sealed partial class OverlayViewModel
         CardPoolPhrase = list.SourceName;
         CardPoolDescription = string.Empty;
         CardPoolMeta = string.Empty;
+        CardPoolSourceNote = list.SourceName;
         CardPoolHasCards = false;
         CardPoolSections = [];
         UpdateExcavate(null);
         CardPoolAverages = [];
         CardPoolMechanicRows = [];
+        CardPoolSummary = [];
         CardPoolTopCards = [];
         CardPoolFeatured = null;
         CardPoolFeaturedNote = string.Empty;

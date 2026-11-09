@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -14,7 +15,8 @@ namespace Hearthpulse.App.Overlay;
 /// clicks through to the game: the pointer and mouse buttons are read while it is shown and handed to
 /// <see cref="OverlayViewModel.UpdateCardPoolPointer(bool, bool, bool)"/> (hold the pool, right-click opens the pool
 /// browser). With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
-/// It fades in when it appears or its pool changes (<see cref="Reveal"/>).
+/// It fades in when it first appears (<see cref="Reveal"/>); another card's pool replaces it without a fade, so the
+/// layered overlay window repaints less.
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
@@ -23,7 +25,6 @@ public partial class CardPoolPanel : UserControl
     // Input priority: the poll must not starve behind rendering, or a short right-click falls between two ticks.
     private readonly DispatcherTimer _poll = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(40) };
     private OverlayViewModel? _subscribed;
-    private string _revealKey = string.Empty;
     private FrameworkElement? _previewRow;
     private readonly List<(FrameworkElement Row, Rect Bounds)> _rows = [];
     private bool _rowsDirty = true;
@@ -31,6 +32,7 @@ public partial class CardPoolPanel : UserControl
     public CardPoolPanel()
     {
         InitializeComponent();
+        ApplyAnchored();
         _poll.Tick += (_, _) => Poll();
         IsVisibleChanged += (_, _) =>
         {
@@ -80,7 +82,37 @@ public partial class CardPoolPanel : UserControl
     private void OnLayerSizeChanged(object sender, SizeChangedEventArgs e) => Place();
 
     /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
-    public bool Anchored { get; set; }
+    public bool Anchored
+    {
+        get => _anchored;
+        set
+        {
+            _anchored = value;
+            ApplyAnchored();
+        }
+    }
+
+    private bool _anchored;
+    private ScaleTransform? _floor;
+
+    /// <summary>
+    /// The popup's header note leaves out the card's name (the card stands beside it) and its fill does not fade with the
+    /// overlay opacity; the panel at its own spot names the card and fades like the others.
+    /// </summary>
+    private void ApplyAnchored()
+    {
+        var (shown, hidden, path) = _anchored ? (PopupNote, PanelNote, nameof(OverlayViewModel.CardPoolMeta)) : (PanelNote, PopupNote, nameof(OverlayViewModel.CardPoolSourceNote));
+        hidden.Visibility = Visibility.Collapsed;
+        shown.SetBinding(VisibilityProperty, new Binding(path) { Converter = (IValueConverter)FindResource("Vis") });
+        if (_anchored)
+        {
+            Card.SetResourceReference(Border.BackgroundProperty, "OverlayPopupSolid");
+        }
+        else
+        {
+            Card.ClearValue(Border.BackgroundProperty);
+        }
+    }
 
     private OverlayViewModel? ViewModel => DataContext as OverlayViewModel;
 
@@ -109,25 +141,15 @@ public partial class CardPoolPanel : UserControl
             case nameof(OverlayViewModel.CardPoolAnchor):
                 Place();
                 break;
-            case nameof(OverlayViewModel.CardPoolTitle) or nameof(OverlayViewModel.CardPoolPhrase) or nameof(OverlayViewModel.CardPoolSource):
-                if (IsVisible && RevealKey() != _revealKey)
-                {
-                    Reveal();
-                }
-
-                break;
         }
     }
 
-    private string RevealKey() => ViewModel is { } vm ? $"{vm.CardPoolSource}|{vm.CardPoolTitle}|{vm.CardPoolPhrase}" : string.Empty;
-
     /// <summary>
-    /// A short fade (ease-out, opacity only) when the panel appears or shows another pool; nothing when Windows'
-    /// animation setting is off. The position is set before, so the panel never slides.
+    /// A short fade (ease-out, opacity only) when the panel appears; nothing when Windows' animation setting is off. The
+    /// position is set before, so the panel never slides.
     /// </summary>
     private void Reveal()
     {
-        _revealKey = RevealKey();
         if (!Infrastructure.Motion.On)
         {
             Card.BeginAnimation(OpacityProperty, null);
@@ -146,7 +168,15 @@ public partial class CardPoolPanel : UserControl
             return;
         }
 
-        var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth, ActualHeight);
+        // Drawn no smaller than PoolPlacement.MinPopupScale of a game card, whatever the player's overlay scale.
+        var floor = PoolPlacement.PopupFloor(vm.CardPoolOverlayScale);
+        if (floor != (_floor?.ScaleX ?? 1))
+        {
+            _floor = floor == 1 ? null : new ScaleTransform(floor, floor);
+            RenderTransform = _floor ?? Transform.Identity;
+        }
+
+        var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth * floor, ActualHeight * floor);
         Canvas.SetLeft(this, x);
         Canvas.SetTop(this, y);
     }

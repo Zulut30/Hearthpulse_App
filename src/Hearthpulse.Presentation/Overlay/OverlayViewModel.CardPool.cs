@@ -15,16 +15,13 @@ namespace Hearthpulse.App.Overlay;
 namespace Hearthpulse.UI.Overlay;
 #endif
 
-/// <summary>One average of the pool's line "Mana 6 · Attack 4.2 · Health 5.1": the stat's name and its value.</summary>
+/// <summary>One cell of the pool's summary grid, "Average cost 2.9" or "Excavate 14%": the label and its value.</summary>
 public sealed record PoolAverage(string Label, string Value) : IImmutableView;
 
 /// <summary>
-/// One pool card played most in meta decks, drawn like a tracker row: cost gem, the whole name over a strip of art and
-/// its share of the meta-deck games of the pool's listed cards.
+/// One card row of the pool panel (this game, Excavate treasures, most played in meta decks, related cards), drawn like a
+/// tracker row: cost gem, name over a strip of art, and on the right "×2" when it counts twice or a meta share ("13%").
 /// </summary>
-public sealed record PoolTopRow(string CardId, string Name, int Cost, string Rarity, string ShareText) : IImmutableView;
-
-/// <summary>One card of this game the hovered card looks back at, as a tracker row: cost gem, name, "×2" when it counts twice.</summary>
 public sealed record PoolListRow(string CardId, string Name, int Cost, string Rarity, string CountText) : IImmutableView;
 
 /// <summary>One Excavate tier after the next one, on one quiet line: "T3  Collapse!, Motherlode Drake, …".</summary>
@@ -55,8 +52,8 @@ public sealed record PoolPickRowModel(string CardId, string Name, string PickTex
 /// </summary>
 public sealed partial class OverlayViewModel
 {
-    /// <summary>The most common mechanics, shown on one line.</summary>
-    private const int MechanicChipCount = 4;
+    /// <summary>The most common mechanics, in the summary grid.</summary>
+    private const int MechanicChipCount = 3;
 
     /// <summary>Width of a pick bar's track; an option taken every time it is offered fills it.</summary>
     private const double PickTrack = 150;
@@ -65,6 +62,9 @@ public sealed partial class OverlayViewModel
 
     /// <summary>Rows of the "this game" list at most; the rest is "+N more".</summary>
     private const int ListRowCount = 8;
+
+    /// <summary>Rows of the related cards at the bottom of the panel at most; the rest is "+N more" (the preview shows them all).</summary>
+    private const int RelatedRowCount = 6;
 
     private static readonly string[] CardPoolStats = ["Cost", "Attack", "Health"];
 
@@ -81,9 +81,16 @@ public sealed partial class OverlayViewModel
     private string _cardPoolDescription = string.Empty;
     private string _cardPoolPhrase = string.Empty;
     private string _cardPoolMeta = string.Empty;
+    private string _cardPoolSourceNote = string.Empty;
     private IReadOnlyList<PoolAverage> _cardPoolAverages = [];
     private IReadOnlyList<PoolMechanicRow> _cardPoolMechanicRows = [];
-    private IReadOnlyList<PoolTopRow> _cardPoolTopCards = [];
+    private IReadOnlyList<PoolAverage> _cardPoolSummary = [];
+    private IReadOnlyList<PoolListRow> _cardPoolTopCards = [];
+    private bool _showCardPoolRelated;
+    private IReadOnlyList<PoolListRow> _cardPoolRelated = [];
+    private string _cardPoolRelatedTitle = string.Empty;
+    private string _cardPoolRelatedNote = string.Empty;
+    private string _cardPoolRelatedKey = string.Empty;
     private IReadOnlyList<PoolListRow> _cardPoolList = [];
     private string _cardPoolListTitle = string.Empty;
     private string _cardPoolListNote = string.Empty;
@@ -180,17 +187,41 @@ public sealed partial class OverlayViewModel
     /// <summary>The generator's words: "Discover a Battlecry minion" (or why the pool is not computed).</summary>
     public string CardPoolPhrase { get => _cardPoolPhrase; private set => Set(ref _cardPoolPhrase, value); }
 
-    /// <summary>One line under the title: classes, format and source, "Shaman + Neutral · Standard · pool: card text".</summary>
+    /// <summary>
+    /// The popup's line under the title: classes and format ("Shaman + Neutral · Standard"), or why the pool is not
+    /// computed ("Reason: …"); empty for a card with only a list (its title says it).
+    /// </summary>
     public string CardPoolMeta { get => _cardPoolMeta; private set => Set(ref _cardPoolMeta, value); }
+
+    /// <summary>The same line at the panel's own spot, where no card stands beside it: "Arkedas · Warrior + Neutral · Standard".</summary>
+    public string CardPoolSourceNote { get => _cardPoolSourceNote; private set => Set(ref _cardPoolSourceNote, value); }
 
     /// <summary>Average mana cost, attack and health of the pool's cards; a stat no pool card has is left out.</summary>
     public IReadOnlyList<PoolAverage> CardPoolAverages { get => _cardPoolAverages; private set => Set(ref _cardPoolAverages, value); }
 
-    /// <summary>The most common mechanics, highest share first.</summary>
+    /// <summary>The most common mechanics, highest share first, in whole percent.</summary>
     public IReadOnlyList<PoolMechanicRow> CardPoolMechanicRows { get => _cardPoolMechanicRows; private set => Set(ref _cardPoolMechanicRows, value); }
 
-    /// <summary>The pool cards played in the most meta-deck games, as tracker rows; empty without meta data.</summary>
-    public IReadOnlyList<PoolTopRow> CardPoolTopCards { get => _cardPoolTopCards; private set => Set(ref _cardPoolTopCards, value); }
+    /// <summary>The summary grid, two cells a row: the averages, then the mechanics; empty hides it.</summary>
+    public IReadOnlyList<PoolAverage> CardPoolSummary { get => _cardPoolSummary; private set => Set(ref _cardPoolSummary, value); }
+
+    /// <summary>The pool cards played in the most meta-deck games, as tracker rows with their share; empty without meta data.</summary>
+    public IReadOnlyList<PoolListRow> CardPoolTopCards { get => _cardPoolTopCards; private set => Set(ref _cardPoolTopCards, value); }
+
+    /// <summary>
+    /// The hovered card's related cards (tokens, Choose One options, Old God abilities) in their own zone at the bottom of
+    /// the panel, under the pool or the "this game" list; a card with nothing else shows them as the panel itself.
+    /// </summary>
+    public bool ShowCardPoolRelated { get => _showCardPoolRelated; private set => Set(ref _showCardPoolRelated, value); }
+
+    /// <summary>The related cards, cost then name, at most six rows.</summary>
+    public IReadOnlyList<PoolListRow> CardPoolRelated { get => _cardPoolRelated; private set => Set(ref _cardPoolRelated, value); }
+
+    /// <summary>"Related cards: 4".</summary>
+    public string CardPoolRelatedTitle { get => _cardPoolRelatedTitle; private set => Set(ref _cardPoolRelatedTitle, value); }
+
+    /// <summary>"+3 more" past six rows; empty otherwise.</summary>
+    public string CardPoolRelatedNote { get => _cardPoolRelatedNote; private set => Set(ref _cardPoolRelatedNote, value); }
 
     /// <summary>The hovered card's look back at this game ("Your minions that died · Deathrattle") is shown.</summary>
     public bool ShowCardPoolList { get => _showCardPoolList; private set => Set(ref _showCardPoolList, value); }
