@@ -101,8 +101,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
     without the card data, by the repeat alone (then a common taken twice in a row counts once: one card short beats a
     package counted twice); with the card data a common taken twice in a row is two picks;
   - the client's deck list (`Draft deck contains card`) is not always whole: 27 of 30 cards, copies missing. It adds to
-    the picks card by card (the larger count) instead of replacing them; without picks in this session (the app opened
-    after the draft) it is the deck as listed;
+    the picks of the same revision card by card (the larger count) instead of replacing them; without picks in this
+    session (the app opened after the draft) it is the deck as listed, marked `Incomplete` when short of 30;
   - no `OnChosen(): heroPower=` line in that run.
 - Heroes, hero powers and cards are told apart by the card data (`HERO` not collectible, `HERO_POWER`, anything else;
   a collectible hero card is a card), else by the id (`HERO_08`, `HERO_08bp`): `ArenaDraftTracker.KindOf`. A hero
@@ -117,10 +117,29 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   card** until a different one arrives. When the memory read already has the next offer as the log line arrives, that
   offer stays (no blank pick); when no offer was known yet, the first one read that holds the chosen card is the
   stale one. The cards of a picked package are added to the deck right away (the log names only the clicked card).
-- The run's mode comes from the offer and is kept while the draft screen is open.
-- Out of scope here: Underground redraft (A4: `REDRAFTING` is followed only as a mode; cards taken out in a redraft
-  stay counted until Hearthstone restarts (a new Arena.log) and lists the deck again), Discover scoring in Arena games (A5),
-  synergy (A3).
+- **The run's Arena** (`ArenaDraftState.Variant`: `normal` / `underground` / null) is learned from the offer on screen
+  (`m_choicesAreUnderground`) and from the game type of a game of the run (`GT_UNDERGROUND_ARENA` / `GT_ARENA`, only
+  when the game's Decks.log deck id is the run's). A new run (a new `OnBegin` deck id, a new hero, `NO_ACTIVE_DRAFT`)
+  forgets it, so one run's offer or game never sets another's. `ArenaDraft.Build` scores with the slice of the run's
+  Arena; the server has one slice (Underground), so a normal run keeps the slice note and an unknown run gets none.
+- **Revisions and the redraft** (A1, 2026-11-09; rule, not yet checked on a live log: no Arena.log with `REDRAFTING`
+  exists). `SetDraftMode - REDRAFTING` (a change into it; the line repeated is the same redraft) starts revision r+1
+  (`ArenaDraftState.Revision`): the deck so far is dropped, the client's next list (`Draft Deck ID` + `Draft deck
+  contains card`) is the revision's base, and only the picks of this revision are added to it (the larger count per
+  card). Picks of earlier revisions never come back: no "max" merge with them, which would return the removed cards.
+  Until that list arrives the deck is the redraft's picks only and `Incomplete` is true; a list short of 30 after
+  the client says the deck is ready (`ACTIVE_DRAFT_DECK` / `IN_REWARDS`) stays short (n/30) with `Incomplete` true.
+  Fixture `Fixtures/Arena/redraft-synthetic.log` (synthetic, real line formats), `ArenaDraftRedraftTests`.
+- **The game's deck is the truth.** When a game of the run starts (`GT_ARENA` / `GT_UNDERGROUND_ARENA`, game under
+  way), the deck Decks.log announced for it (`Starting Arena Game With Deck`) is compared with the tracked one, once
+  per game and per announcement; a difference replaces the tracked deck (pick order kept for the cards both have),
+  `Incomplete` turns false and `hearthpulse.log` gets one line with the two counts and no deck id
+  (`Arena draft: the game's deck differs from the tracked draft (27 cards tracked, 30 in the game); using the game's
+  deck`). A deck of another deck id is another run's and changes nothing; a finished game read again after a restart
+  is not applied, so it cannot undo a later redraft.
+- **Restart**: the draft state is not saved; the app rebuilds it by reading Arena.log again (the same log read twice
+  gives the same deck), and after a game restart from the client's list and the next game's Decks.log deck.
+- Out of scope here: Discover scoring in Arena games (A5), synergy (A3), the pick advice (A2).
 
 ## Before the beta label goes
 

@@ -1,0 +1,108 @@
+D 20:00:01.0000000 SetDraftMode - NO_ACTIVE_DRAFT
+D 20:00:02.0000000 DraftManager.OnBegin - Got new draft deck with ID: 900000001
+D 20:00:02.0000000 SetDraftMode - DRAFTING
+D 20:00:03.0000000 Client chooses: Gul'dan (HERO_07)
+D 20:00:04.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL
+D 20:00:05.0000000 Client chooses: Card C01 (TST_C01)
+D 20:00:06.0000000 Client chooses: Card C02 (TST_C02)
+D 20:00:07.0000000 Client chooses: Card C02 (TST_C02)
+D 20:00:08.0000000 Client chooses: Card C03 (TST_C03)
+D 20:00:09.0000000 Client chooses: Card C04 (TST_C04)
+D 20:00:10.0000000 Client chooses: Card C05 (TST_C05)
+D 20:00:11.0000000 Client chooses: Card C06 (TST_C06)
+D 20:00:12.0000000 Client chooses: Card C07 (TST_C07)
+D 20:00:13.0000000 Client chooses: Card C08 (TST_C08)
+D 20:00:14.0000000 Client chooses: Card C09 (TST_C09)
+D 20:00:15.0000000 Client chooses: Card C10 (TST_C10)
+D 20:00:16.0000000 Client chooses: Card L01 (TST_L01)
+D 20:00:17.0000000 Client chooses: Card L01 (TST_L01)
+D 20:00:18.0000000 Client chooses: Card C11 (TST_C11)
+D 20:00:19.0000000 Client chooses: Card C12 (TST_C12)
+D 20:00:20.0000000 Client chooses: Card C13 (TST_C13)
+D 20:00:21.0000000 Client chooses: Card C14 (TST_C14)
+D 20:00:22.0000000 Client chooses: Card C15 (TST_C15)
+D 20:00:23.0000000 Client chooses: Card C16 (TST_C16)
+D 20:00:24.0000000 Client chooses: Card C17 (TST_C17)
+D 20:00:25.0000000 Client chooses: Card C18 (TST_C18)
+D 20:00:26.0000000 Client chooses: Card C19 (TST_C19)
+D 20:00:27.0000000 Client chooses: Card C20 (TST_C20)
+D 20:00:28.0000000 Client chooses: Card C21 (TST_C21)
+D 20:00:29.0000000 Client chooses: Card C22 (TST_C22)
+D 20:00:30.0000000 Client chooses: Card C23 (TST_C23)
+D 20:00:31.0000000 Client chooses: Card R01 (TST_R01)
+D 20:00:32.0000000 Client chooses: Card R02 (TST_R02)
+D 20:00:33.0000000 Client chooses: Card R03 (TST_R03)
+D 20:00:34.0000000 Client chooses: Card R04 (TST_R04)
+D 20:00:35.0000000 Client chooses: Card R05 (TST_R05)
+D 20:00:36.0000000 SetDraftMode - ACTIVE_DRAFT_DECK
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: 900000001, Hero Card = HERO_07
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C01
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C02
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C02
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C03
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C04
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C05
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C06
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C07
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C08
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C09
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C10
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_L01
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C11
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C12
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C13
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C14
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C15
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C16
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C17
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C18
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C19
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C20
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C21
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C22
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C23
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_R01
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_R02
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_R03
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_R04
+D 20:00:37.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_R05
+D 20:00:37.0000000 SetDraftMode - ACTIVE_DRAFT_DECK
+D 20:00:38.0000000 SetDraftMode - REDRAFTING
+D 20:00:39.0000000 Client chooses: Card N01 (TST_N01)
+D 20:00:40.0000000 Client chooses: Card N02 (TST_N02)
+D 20:00:41.0000000 Client chooses: Card N03 (TST_N03)
+D 20:00:42.0000000 Client chooses: Card N04 (TST_N04)
+D 20:00:43.0000000 Client chooses: Card N05 (TST_N05)
+D 20:00:44.0000000 SetDraftMode - ACTIVE_DRAFT_DECK
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: 900000001, Hero Card = HERO_07
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C01
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C02
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C02
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C03
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C04
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C05
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C06
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C07
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C08
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C09
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C10
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_L01
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C11
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C12
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C13
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C14
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C15
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C16
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C17
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C18
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C19
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C20
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C21
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C22
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_C23
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N01
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N02
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N03
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N04
+D 20:00:45.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N05
+D 20:00:45.0000000 SetDraftMode - ACTIVE_DRAFT_DECK
