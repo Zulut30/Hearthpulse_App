@@ -36,6 +36,13 @@ public sealed partial class Fight
             return 0;
         }
 
+        if (target.AttackDepth > 0 && target.ImmuneWhileAttacking)
+        {
+            // Immune: no damage, so Divine Shield stays and Poisonous/Venomous do not apply.
+            if (Tracing) Trace($"{Name(target)} is immune");
+            return 0;
+        }
+
         if (target.DivineShield)
         {
             target.DivineShield = false;

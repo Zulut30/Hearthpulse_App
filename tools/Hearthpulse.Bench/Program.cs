@@ -30,6 +30,7 @@ internal static class Program
                     HP_BENCH_DROPART=1: image caches emptied before each count; HP_BENCH_SOFTWARE=1: overlay SoftwareOnly)
           simcover  combat simulator coverage: Battlegrounds fights of the logs (Power*.log at any depth) without "not
                     simulated", what was not, result accuracy and Brier; popular minions without an effect
+          simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
@@ -121,6 +122,9 @@ internal static class Program
                 break;
             case "simcover":
                 SimCoverBench.Run(options);
+                break;
+            case "simmatrix":
+                SimMatrix.Run();
                 break;
             case "pages":
                 WpfBench.Pages(options);

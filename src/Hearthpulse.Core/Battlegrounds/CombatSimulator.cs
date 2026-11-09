@@ -131,6 +131,17 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     /// <summary>Numeric tags of the player entity at capture, by the name Power.log prints (player-wide counters).</summary>
     public IReadOnlyDictionary<string, int> Tags { get; init; } = EmptyTags;
 
+    /// <summary>
+    /// Numeric tags of the player-level cards in <see cref="Extras"/> at capture, by card id (a hero power's or trinket's
+    /// value that grows over the game). A card missing here has no captured value: effects that need one report
+    /// <see cref="UnsimulatedReason.MissingInput"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> ExtraTags { get; init; } = EmptyExtraTags;
+
+    /// <summary>A numeric tag of the player-level card <paramref name="cardId"/> at capture, or null when it was not seen.</summary>
+    public int? ExtraTag(string cardId, string tag) =>
+        ExtraTags.TryGetValue(cardId, out var tags) && tags.TryGetValue(tag, out var value) ? value : null;
+
     public int TavernTier { get; init; }
 
     /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
@@ -140,6 +151,9 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     public int Turn { get; init; }
 
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
+
+    internal static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> EmptyExtraTags =
+        new Dictionary<string, IReadOnlyDictionary<string, int>>();
 }
 
 public sealed record SimOptions
@@ -196,6 +210,26 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
 
     /// <summary>The combat damage cap the damage was capped at; 0 = none.</summary>
     public int DamageCap { get; init; }
+}
+
+/// <summary>Why something in a captured fight is "not simulated" (the coverage matrix uses the same words).</summary>
+public enum UnsimulatedReason
+{
+    /// <summary>The card acts in combat and no effect is registered for it.</summary>
+    MissingEffect,
+
+    /// <summary>The effect exists but a value it needs is not in the capture (a growing value, the opponent's hidden hand).</summary>
+    MissingInput,
+
+    /// <summary>No table knows the card (newer than the data): its effect cannot be classified.</summary>
+    Unknown,
+}
+
+/// <summary>One "not simulated" minion or player-level card of a side.</summary>
+public sealed record UnsimulatedItem(string CardId, bool Golden, bool IsOpponent, UnsimulatedReason Reason, bool Extra)
+{
+    /// <summary>The reason as the matrix and simcover write it: missing_effect, missing_input, unknown.</summary>
+    public string Code => SimCoverage.Code(Reason);
 }
 
 /// <summary>One simulated fight: +1 we won, -1 we lost, 0 tie; the surviving minions and (when traced) a log.</summary>
@@ -346,14 +380,73 @@ public static class CombatSimulator
     }
 
     /// <summary>
-    /// Minions with unknown effects, plus player-level extras that change a fight without a registered effect: those the
-    /// tables mark as acting in combat, and those no table knows (every hero power, trinket, quest reward and anomaly of
-    /// the card data has a row, so an unknown one is newer than the data and its effect cannot be known).
+    /// Minions with unknown effects, plus player-level extras that change a fight without a registered effect (those the
+    /// tables mark as acting in combat, and those no table knows: every hero power, trinket, quest reward and anomaly of
+    /// the card data has a row, so an unknown one is newer than the data) or whose effect lacks a captured value.
     /// </summary>
     private static int Unsimulated(SimSide side, bool isOpponent, EffectRegistry effects) =>
-        side.Minions.Count(m => m.HasUnsimulatedEffect)
-        + side.Extras.Count(id => CombatRelevance.Find(id) is null or { Relevance: Relevance.Relevant }
-                                  && !effects.Implements(id, golden: false, isOpponent));
+        side.Minions.Count(m => m.HasUnsimulatedEffect) + side.Extras.Count(id => ExtraReason(side, id, isOpponent, effects) is not null);
+
+    /// <summary>
+    /// Why a side is "not simulated": one entry per flagged minion and per player-level card, with the reason. The count
+    /// equals what <see cref="CombatOdds.Unsimulated"/> counts for this side.
+    /// </summary>
+    public static IReadOnlyList<UnsimulatedItem> Explain(SimSide side, bool isOpponent, EffectRegistry? effects = null)
+    {
+        effects ??= EffectRegistry.Default;
+        var items = new List<UnsimulatedItem>();
+        foreach (var m in side.Minions.Where(m => m.HasUnsimulatedEffect))
+        {
+            items.Add(new UnsimulatedItem(m.CardId, m.Golden, isOpponent, MinionReason(m, isOpponent, effects), Extra: false));
+        }
+
+        foreach (var id in side.Extras)
+        {
+            if (ExtraReason(side, id, isOpponent, effects) is { } reason)
+            {
+                items.Add(new UnsimulatedItem(id, Golden: false, isOpponent, reason, Extra: true));
+            }
+        }
+
+        return items;
+    }
+
+    private static UnsimulatedReason? ExtraReason(SimSide side, string id, bool isOpponent, EffectRegistry effects)
+    {
+        var row = CombatRelevance.Find(id);
+        if (row is not null && row.Relevance != Relevance.Relevant)
+        {
+            return null;
+        }
+
+        if (effects.Get(id, golden: false) is { } effect)
+        {
+            return isOpponent && effect.NeedsHand ? UnsimulatedReason.MissingInput
+                : effect.HasInputs(side, id) ? null
+                : UnsimulatedReason.MissingInput;
+        }
+
+        return row is null ? UnsimulatedReason.Unknown
+            : SimCoverage.InputGap(id) is not null ? UnsimulatedReason.MissingInput
+            : UnsimulatedReason.MissingEffect;
+    }
+
+    private static UnsimulatedReason MinionReason(SimMinion m, bool isOpponent, EffectRegistry effects)
+    {
+        if (effects.Get(m.CardId, m.Golden) is { NeedsHand: true } && isOpponent)
+        {
+            return UnsimulatedReason.MissingInput;
+        }
+
+        if (CombatRelevance.Find(m.CardId) is null && !effects.Implements(m.CardId, m.Golden, isOpponent))
+        {
+            return UnsimulatedReason.Unknown;
+        }
+
+        return SimCoverage.InputGap(m.CardId) is not null || m.Enchantments.Any(e => SimCoverage.InputGap(e) is not null)
+            ? UnsimulatedReason.MissingInput
+            : UnsimulatedReason.MissingEffect;
+    }
 
     /// <summary>Runs one fight with the given random source and returns the survivors (and a log when <paramref name="trace"/>).</summary>
     /// <remarks>Tests can pass a <see cref="Random"/> subclass overriding <see cref="Random.Next(int)"/> to script every random pick.</remarks>

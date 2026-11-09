@@ -113,6 +113,7 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
 
         var actual = $"fights {Fingerprint(text)}";
         output.WriteLine(actual);
-        Assert.Equal("fights 6C3E80D601C5A873", actual);
+        // 2026-11-09 (S1): four new effect ids change the random boards; without them the fingerprint is still 6C3E80D601C5A873.
+        Assert.Equal("fights 4B6145B26A89595C", actual);
     }
 }
