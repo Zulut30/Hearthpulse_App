@@ -26,13 +26,19 @@ public sealed class CardPoolEngine
     private readonly ConcurrentDictionary<string, byte> _logged = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, bool> _excavates = new(StringComparer.Ordinal);
 
-    // Views are rebuilt on every overlay update while a pool is up; the same pool must come back as the same object
-    // (cheap, and the UI keeps its list and scroll position). A wiki answer that arrives later makes a new key.
-    private readonly ConcurrentDictionary<(string CardId, PoolContext Context, PoolTrigger Trigger, bool Wiki), CardPoolView> _views = new();
+    // Views are asked for on every overlay update (each card in hand, up to 10 a second); the same pool must come back
+    // as the same object (cheap, and the UI keeps its list and scroll position), and a card without one must not walk
+    // the catalog again: no view (null) is kept too. The key's wiki is the card's wiki answer (null while none applies
+    // or it is loading), so an answer that arrives later makes a new key. Per trigger, and once per pool for all
+    // triggers (_pools), so another trigger of the same pool reuses its lists.
+    private readonly ConcurrentDictionary<(string CardId, PoolContext Context, PoolTrigger Trigger, CardWiki? Wiki), CardPoolView?> _views = new();
+    private readonly ConcurrentDictionary<(string CardId, PoolContext Context, CardWiki? Wiki), CardPoolView?> _pools = new();
     private readonly IReadOnlyDictionary<string, int> _metaGames;
     private readonly CardDb _cards;
     private readonly WikiPoolSource? _wiki;
     private string _viewsLanguage = Loc.Instance.Language;
+    private int _catalogWalks;
+    private int _wikiListBuilds;
 
     /// <param name="metaGames">Games of meta decks running each card id (see <see cref="MetaGames"/>); may be empty.</param>
     /// <param name="wiki">Hearthstone Wiki pools; without it only the card text is read.</param>
@@ -45,6 +51,12 @@ public sealed class CardPoolEngine
     }
 
     public CardPoolCatalog Catalog { get; }
+
+    /// <summary>How many times <see cref="Pool"/> walked the whole catalog; for tests and the bench.</summary>
+    internal int CatalogWalks => Volatile.Read(ref _catalogWalks);
+
+    /// <summary>How many times a card's wiki pools were matched against the catalog; for tests and the bench.</summary>
+    internal int WikiListBuilds => Volatile.Read(ref _wikiListBuilds);
 
     /// <summary>The generator text of a card: exception table, then the catalog's English text, then the generated table.</summary>
     public PoolParse Parse(string cardId) => _parsed.GetOrAdd(cardId, static (id, self) =>
@@ -73,6 +85,7 @@ public sealed class CardPoolEngine
             return null;
         }
 
+        Interlocked.Increment(ref _catalogWalks);
         var generatorClass = Catalog.Get(cardId)?.Classes.FirstOrDefault(c => c != "NEUTRAL") ?? _cards.Get(cardId)?.CardClass;
         return Catalog.Cards.Where(c => generator.Query.Matches(c, context, generator.Verb, generatorClass)).ToList();
     }
@@ -82,15 +95,20 @@ public sealed class CardPoolEngine
     /// pools queried for the player's class. Null while the answer is loading or when there are none; a pool's cards that
     /// are not in Standard any more are left out.
     /// </summary>
-    public IReadOnlyList<(WikiPool Pool, IReadOnlyList<PoolCard> Cards)>? WikiPoolsOf(string cardId, PoolContext context)
-    {
-        // A pool from your deck or hand, or a copy, is not a list the wiki can know.
-        if (_wiki is null || !context.IsStandard || Catalog.Count == 0 || Parse(cardId).Status is PoolParseStatus.NotGenerator or PoolParseStatus.NotPool
-            || !_wiki.TryGet(cardId, out var wiki))
-        {
-            return null;
-        }
+    public IReadOnlyList<(WikiPool Pool, IReadOnlyList<PoolCard> Cards)>? WikiPoolsOf(string cardId, PoolContext context) =>
+        WikiOf(cardId, context) is { } wiki ? WikiPoolsOf(wiki, context) : null;
 
+    /// <summary>The card's wiki answer when one applies to this game and has arrived (asking for it otherwise); cheap.</summary>
+    private CardWiki? WikiOf(string cardId, PoolContext context) =>
+        // A pool from your deck or hand, or a copy, is not a list the wiki can know.
+        _wiki is null || !context.IsStandard || Catalog.Count == 0 || Parse(cardId).Status is PoolParseStatus.NotGenerator or PoolParseStatus.NotPool
+        || !_wiki.TryGet(cardId, out var wiki)
+            ? null
+            : wiki;
+
+    private List<(WikiPool Pool, IReadOnlyList<PoolCard> Cards)>? WikiPoolsOf(CardWiki wiki, PoolContext context)
+    {
+        Interlocked.Increment(ref _wikiListBuilds);
         var pools = wiki.Pools
             .Where(p => p.Format is null || p.Format.Equals("Standard", StringComparison.OrdinalIgnoreCase))
             .Where(p => p.HeroClasses.Count == 0 || context.OwnClass is null || p.HeroClasses.Contains(context.OwnClass))
@@ -113,6 +131,7 @@ public sealed class CardPoolEngine
         {
             _viewsLanguage = Loc.Instance.Language;
             _views.Clear();
+            _pools.Clear();
         }
 
         // Only an Excavate pool depends on the player's Excavate tier: other pools keep one view through the game.
@@ -121,23 +140,17 @@ public sealed class CardPoolEngine
             context = context with { Excavate = null };
         }
 
-        var wiki = WikiPoolsOf(cardId, context);
-        var key = (cardId, context, trigger, wiki is not null);
+        var wiki = WikiOf(cardId, context);
+        var key = (cardId, context, trigger, wiki);
         if (_views.TryGetValue(key, out var known))
         {
             return known;
         }
 
-        // Another trigger of the same pool reuses its lists; the view itself is cached per trigger, so it stays the
-        // same object on every overlay update.
-        var same = _views.FirstOrDefault(v => v.Key.CardId == cardId && v.Key.Context == context && v.Key.Wiki == key.Item4).Value;
-        var built = same is not null ? same with { Trigger = trigger } : BuildCore(cardId, context, trigger, wiki);
-        if (built is not null)
-        {
-            _views[key] = built;
-        }
-
-        return built;
+        var pool = _pools.GetOrAdd((cardId, context, wiki), static (k, state) =>
+            state.Self.BuildCore(k.CardId, k.Context, state.Trigger, k.Wiki is { } w ? state.Self.WikiPoolsOf(w, k.Context) : null), (Self: this, Trigger: trigger));
+        var built = pool is null || pool.Trigger == trigger ? pool : pool with { Trigger = trigger };
+        return _views.GetOrAdd(key, built);
     }
 
     private CardPoolView? BuildCore(string cardId, PoolContext context, PoolTrigger trigger, IReadOnlyList<(WikiPool Pool, IReadOnlyList<PoolCard> Cards)>? wiki)

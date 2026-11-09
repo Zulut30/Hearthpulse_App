@@ -24,6 +24,10 @@ public sealed class CardPoolTracker : IPowerListener
     private string? _hovered;
     private string? _lingering;
     private DateTime _lingerUntil;
+
+    // The hovered card the overlay last showed (HoverCard): only leaving it starts a linger, so crossing a neighbour
+    // with nothing to show on the way to the panel keeps the shown card's pool.
+    private string? _shown;
     private string? _requested;
 
     /// <summary>Set by the host once the catalog is loaded; without it nothing is shown.</summary>
@@ -37,6 +41,7 @@ public sealed class CardPoolTracker : IPowerListener
             _openChoice = null;
             _hovered = null;
             _lingering = null;
+            _shown = null;
             _requested = null;
         }
     }
@@ -123,7 +128,10 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand count.</summary>
-    /// <param name="utcNow">Now (UTC); a card the mouse left stays for <see cref="HoverLinger"/>.</param>
+    /// <param name="utcNow">
+    /// Now (UTC); a shown card the mouse left stays for <see cref="HoverLinger"/>, also while the mouse crosses cards
+    /// with nothing to show (the neighbours in the hand on the way to the panel).
+    /// </param>
     /// <returns>Whether what is shown may have changed (a new card, or the linger ran out).</returns>
     public bool SetHovered(string? cardId, DateTime utcNow)
     {
@@ -140,8 +148,12 @@ public sealed class CardPoolTracker : IPowerListener
                 return false;
             }
 
-            _lingering = cardId is null ? _hovered : null;
-            _lingerUntil = utcNow + HoverLinger;
+            if (_hovered is not null && _hovered == _shown)
+            {
+                _lingering = _hovered;
+                _lingerUntil = utcNow + HoverLinger;
+            }
+
             _hovered = cardId;
             return true;
         }
@@ -171,35 +183,61 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>The card under the mouse (or still lingering after it) when it is in your hand; null otherwise.</summary>
-    public string? HoveredInHand(GameState game)
+    public string? HoveredInHand(GameState game) => HoverCard(game, static _ => true);
+
+    /// <summary>
+    /// The hovered card the overlay shows: the card under the mouse when it is in your hand and <paramref name="shows"/>
+    /// something (a pool or a list), else - while nothing or a card of your hand is under the mouse - the card still
+    /// lingering, on the same terms; null otherwise. The card returned is the one whose leaving starts the next linger.
+    /// </summary>
+    public string? HoverCard(GameState game, Func<string, bool> shows)
     {
-        string? hovered;
+        string? hovered, lingering;
         lock (_gate)
         {
-            hovered = _hovered ?? (_lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null);
+            hovered = _hovered;
+            lingering = _lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null;
         }
 
-        return hovered is not null && InLocalHand(game, hovered) ? hovered : null;
+        // A card outside your hand (the board, the opponent's) ends the linger at once, as before: the mouse left the hand.
+        var inHand = hovered is null || InLocalHand(game, hovered);
+        var card = hovered is not null && inHand && shows(hovered) ? hovered
+            : inHand && lingering is not null && lingering != hovered && InLocalHand(game, lingering) && shows(lingering) ? lingering
+            : null;
+        lock (_gate)
+        {
+            _shown = card;
+            if (!inHand && _lingering == lingering)
+            {
+                _lingering = null;
+            }
+        }
+
+        return card;
     }
 
     /// <summary>Where a card in your hand sits (the leftmost copy), for a panel beside it; null when it is not there.</summary>
     public static CardPoolAnchor? HandAnchor(GameState game, string cardId) =>
         Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), cardId) is { } h ? new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count) : null;
 
-    /// <summary>The pool to show now, or null.</summary>
-    public CardPoolView? BuildView(GameState game, CardDb cards)
+    /// <summary>The pool to show now, or null; the hovered card is the one with a pool (see <see cref="HoverCard"/>).</summary>
+    public CardPoolView? BuildView(GameState game, CardDb cards) =>
+        Engine is not { } engine || game.IsBattlegrounds ? null
+        : BuildView(game, cards, HoverCard(game, id => engine.Build(id, ContextOf(game, cards), PoolTrigger.Hover) is not null));
+
+    /// <summary>The pool to show now, or null; <paramref name="hovered"/> is the card <see cref="HoverCard"/> chose.</summary>
+    public CardPoolView? BuildView(GameState game, CardDb cards, string? hovered)
     {
         if (Engine is not { } engine || game.IsBattlegrounds)
         {
             return null;
         }
 
-        string? choice, requested, hovered;
+        string? choice, requested;
         lock (_gate)
         {
             choice = _choiceSource;
             requested = _requested;
-            hovered = _hovered ?? (_lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null);
         }
 
         var context = ContextOf(game, cards);
@@ -213,7 +251,7 @@ public sealed class CardPoolTracker : IPowerListener
             return fromRequest;
         }
 
-        return hovered is not null && InLocalHand(game, hovered) ? engine.Build(hovered, context, PoolTrigger.Hover) : null;
+        return hovered is not null ? engine.Build(hovered, context, PoolTrigger.Hover) : null;
     }
 
     /// <summary>Game type, format, both classes of a game (classes from the heroes' cards) and the player's Excavate tier.</summary>
