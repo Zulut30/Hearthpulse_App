@@ -61,7 +61,7 @@ public partial class App
 
     /// <summary>
     /// Settings → About, updates (TASK-2026-11-09-update-delivery): checking, up to date, a downloaded update with
-    /// "What's new" folded and unfolded (<c>main-settings-about-*.png</c>).
+    /// "What's new" folded and unfolded, a failed install (<c>main-settings-about-*.png</c>).
     /// </summary>
     private async Task RenderAboutUpdatesAsync(string folder)
     {
@@ -82,6 +82,9 @@ public partial class App
         await SaveAboutAsync(folder, "notes");
         model.ToggleReleaseNotes.Execute(null);
         await SaveAboutAsync(folder, "notes-open");
+        var failed = new InstallReport("0.15.0", Succeeded: false, ExitCode: 2, FailedAttempts: 1, RolledBack: true);
+        model.SetInstallFailed(failed.Version, failed.Message);
+        await SaveAboutAsync(folder, "install-failed");
     }
 
     private async Task SaveAboutAsync(string folder, string state)

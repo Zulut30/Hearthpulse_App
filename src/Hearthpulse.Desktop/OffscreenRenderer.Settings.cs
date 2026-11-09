@@ -66,7 +66,7 @@ internal static partial class OffscreenRenderer
 
     /// <summary>
     /// Settings → About, updates (TASK-2026-11-09-update-delivery): checking, up to date, a downloaded update with
-    /// "What's new" folded and unfolded (<c>main-settings-about-*.png</c>).
+    /// "What's new" folded and unfolded, a failed install (<c>main-settings-about-*.png</c>).
     /// </summary>
     private static async Task RenderAboutUpdatesAsync(Window main, MainView view, MainViewModel model, string folder)
     {
@@ -86,6 +86,9 @@ internal static partial class OffscreenRenderer
         await SaveAboutAsync(main, folder, "notes");
         model.ToggleReleaseNotes.Execute(null);
         await SaveAboutAsync(main, folder, "notes-open");
+        var failed = new InstallReport("0.15.0", Succeeded: false, ExitCode: 2, FailedAttempts: 1, RolledBack: true);
+        model.SetInstallFailed(failed.Version, failed.Message);
+        await SaveAboutAsync(main, folder, "install-failed");
     }
 
     private static async Task SaveAboutAsync(Window main, string folder, string state)

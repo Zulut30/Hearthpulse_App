@@ -34,6 +34,8 @@ public sealed partial class AppHost : IDisposable
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
     private UpdateInfo? _stagedUpdate;
+    private readonly UpdateTrigger _updateTrigger = new();
+    private readonly CancellationTokenSource _updateStop = new();
     private readonly AppServices _services;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
@@ -290,35 +292,67 @@ public sealed partial class AppHost : IDisposable
     }
 
     /// <summary>
-    /// Looks for a newer release shortly after startup and every six hours after that. A downloaded Windows update
-    /// installs by itself when the app closes, so keeping Hearthpulse current never needs a download or setup run by hand.
+    /// Looks for a newer release shortly after startup and every six hours after that (with automatic updates off, only
+    /// on "Check now"). A downloaded Windows update installs by itself when the app closes. Called once at start: it also
+    /// reads how the install the previous run started went, and a failure is told once, in a notification and in About.
+    /// Off-screen renders and phones run no checks.
     /// </summary>
     private void StartUpdateChecks()
     {
-        if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        if (_rendering)
+        {
+            return;
+        }
+
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             Main.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
-        _ = Task.Run(() => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly,
+        if (UpdateService.TakeInstallReport() is { Succeeded: false } report)
+        {
+            Main.SetInstallFailed(report.Version, report.Message);
+            Notification?.Invoke(Loc.T("Host.Update.InstallFailedTitle"), report.Message());
+        }
+
+        if (!Settings.AutoUpdate)
+        {
+            Main.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
+        }
+
+        // The loop reports a version once (again only for a newer one), so each notification below is once a version;
+        // results of a check, "Check now" included, go only to the status line.
+        var callbacks = new UpdateCallbacks(
             // The portable version and an AppImage never install anything: they only say a new version is out.
-            available: info =>
+            Available: info =>
             {
+                Dispatcher.UIThread.Post(() => Main.SetReleaseNotes(info.Version, info.Notes, info.PageUrl));
                 var text = UpdateService.IsAppImage ? "Host.Update.AvailableAppImage" : "Host.Update.AvailablePortable";
                 Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F(text, info.Version));
             },
-            staged: info =>
+            Staged: info =>
             {
                 _stagedUpdate = info;
                 Dispatcher.UIThread.Post(() =>
                 {
                     Main.SetUpdateReady(info.Version);
+                    Main.SetReleaseNotes(info.Version, info.Notes, info.PageUrl);
                 });
                 Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
             },
-            // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-            failed: status => Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status))));
+            // Failed check, unverifiable file, failed download or a version left to a manual install: About only.
+            Failed: status => Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status)),
+            Checked: check => Dispatcher.UIThread.Post(() => Main.UpdateCheckFinished(() => check.Message)));
+        Main.UpdateCheckRequested += () =>
+        {
+            if (!_updateTrigger.Request())
+            {
+                Main.UpdateCheckRefused(_updateTrigger.RefusalMessage);
+            }
+        };
+        var stop = _updateStop.Token;
+        _ = Task.Run(() => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly, Settings.AutoUpdate, callbacks, _updateTrigger, stop), stop);
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now. Windows restarts into the new version,
@@ -490,6 +524,8 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();
+        _updateStop.Cancel();
+        _updateStop.Dispose();
         if (_stagedUpdate is not null && UpdateService.ApplyStaged(_stagedUpdate, relaunch: false))
         {
             _stagedUpdate = null;
