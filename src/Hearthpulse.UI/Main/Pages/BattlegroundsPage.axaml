@@ -49,8 +49,8 @@
                                      ToolTip.Tip="{i:Loc Main.Bg.MyHeroesTip}" />
                         <RadioButton Name="TabHeroes" Classes="segment" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab"
                                      ToolTip.Tip="{i:Loc Main.Bg.HeroesTip}" />
-                        <RadioButton Name="TabComps" Classes="segment" Content="{i:Loc Main.Bg.Comps}" GroupName="BgTab"
-                                     ToolTip.Tip="{i:Loc Main.Bg.CompCaptionComps}" />
+                        <RadioButton Name="TabComps" Classes="segment" Content="{Binding CompTabLabel}" GroupName="BgTab"
+                                     ToolTip.Tip="{Binding CompCaption}" />
                         <RadioButton Name="TabTrinkets" Classes="segment" Content="{i:Loc Main.Bg.Trinkets}" GroupName="BgTab"
                                      ToolTip.Tip="{i:Loc Main.Bg.TrinketsTip}" />
                         <RadioButton Name="TabCards" Classes="segment" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab"

@@ -133,7 +133,7 @@
                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Top" Margin="0,2,0,0" />
                                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
                                         <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="{StaticResource FontSizeLabel}" /></TextBlock>
-                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Muted}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding KeyCards, Converter={StaticResource Truthy}}"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Muted}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
                                         <TextBlock Text="{Binding Commit}" FontSize="{StaticResource FontSizeLabel}" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.85"
                                                    IsVisible="{Binding Commit, Converter={StaticResource Truthy}}" />
                                     </StackPanel>
@@ -155,7 +155,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Text="{Binding CompEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
-                           IsVisible="{Binding CompTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                           IsVisible="{Binding HasCompTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
@@ -243,9 +243,9 @@
                             <Border Classes="row" Padding="8,4">
                                 <Grid ColumnDefinitions="40,64,*,230,100">
                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" ClipToBounds="True" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
-                                        <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
-                                    </Border>
+                                    <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
+                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                            ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding Kind}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />

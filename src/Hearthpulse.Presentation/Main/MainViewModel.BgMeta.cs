@@ -24,6 +24,34 @@ namespace Hearthpulse.UI.Main;
 
 public sealed partial class MainViewModel
 {
+    private bool _tribeRows;
+
+    /// <summary>The "Comps" tab's name: the stats pool groups final boards by tribe; downloaded stats have comps.</summary>
+    public string CompTabLabel => _tribeRows ? Loc.T("Main.Bg.Tribes") : Loc.T("Main.Bg.Comps");
+
+    public string CompCaption => _tribeRows ? Loc.T("Main.Bg.CompCaptionTribes") : Loc.T("Main.Bg.CompCaptionComps");
+
+    public bool HasCompTiers => _compTiers.Count > 0;
+
+    /// <summary>Final boards grouped by main tribe, from the stats pool, best average placement first.</summary>
+    private List<MetaCompRow> TribeRows(BattlegroundsMeta meta)
+    {
+        var tribes = meta.Tribes.OrderBy(t => t.AveragePlacement).ToList();
+        var best = tribes[0].AveragePlacement;
+        var worst = tribes[^1].AveragePlacement;
+        return tribes.Select((t, i) => new MetaCompRow(
+                i + 1,
+                t.Tribe == "MIXED" ? Loc.T("Main.Bg.Mixed") : Races.Display(t.Tribe, _cards.Locale),
+                Loc.P("Main.Bg.TribeGames", t.Games),
+                BattlegroundsAdvisor.TierOf(t.AveragePlacement),
+                string.Empty,
+                t.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
+                worst - best < 0.01 ? 1 : 1 - ((t.AveragePlacement - best) / (worst - best) * 0.85),
+                Loc.F("Main.Bg.TribeRates", t.Top4Rate, t.FirstRate),
+                string.Empty))
+            .ToList();
+    }
+
     private void RebuildMeta()
     {
         if (_meta is not { } meta || _cards.Count == 0)
@@ -65,10 +93,11 @@ public sealed partial class MainViewModel
                 h.DataPoints))
             .ToList();
 
-        var tribeRows = UseTribeRows(meta);
+        // Stats without comps that have the pool's tribes show those instead, in both UIs.
+        var tribeRows = meta.Comps.Count == 0 && meta.Tribes.Count > 0;
         if (tribeRows)
         {
-            RebuildTribeRows(meta);
+            CompTiers = TribeRows(meta);
         }
         else
         {
@@ -92,7 +121,12 @@ public sealed partial class MainViewModel
                 .ToList();
         }
 
-        OnCompRowsRebuilt(tribeRows);
+        if (_tribeRows != tribeRows)
+        {
+            _tribeRows = tribeRows;
+            Raise(nameof(CompTabLabel));
+            Raise(nameof(CompCaption));
+        }
 
         var trinkets = meta.Trinkets.Values
             .Select(t => (Trinket: t, Stats: meta.Trinket(t.CardId, Bracket)))
