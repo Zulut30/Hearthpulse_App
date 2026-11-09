@@ -278,6 +278,34 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
+    public void A_this_game_list_and_related_cards_show_as_two_blocks_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            // N'Zoth in hand, two Deathrattle minions summoned: the rule's list on top, its four abilities in their zone.
+            var list = new MatchListView("BE_017", "N'Zoth", "Minions you summoned · Deathrattle", 2,
+                [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
+            var related = Related("BE_017", 4) with { Rows = [.. new[] { "BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6" }.Select(id => new MatchListRow(id, id, 0, "", 1))] };
+            foreach (var vm in Models())
+            {
+                vm.Show(null, list, related);
+                Assert.True(vm.Popup, vm.Name);
+                Assert.Equal("Minions you summoned · Deathrattle: 2", vm.ListHeader().Item1);
+                Assert.Equal([("DR_1", ""), ("DR_2", "")], vm.ListRows());
+                var (title, rows, _) = vm.Related();
+                Assert.Equal("Related cards: 4", title);
+                Assert.Equal(["BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6"], rows);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
     public void The_popup_header_names_classes_and_format_and_the_movable_panel_names_the_card_too()
     {
         var previous = Loc.Instance.Language;
@@ -380,7 +408,7 @@ public sealed class CardPoolPopupTests
     private sealed class Model
     {
         public required string Name { get; init; }
-        public required Action<CardPoolView?, MatchListView?> ShowWith { get; init; }
+        public required Action<CardPoolView?, MatchListView?, MatchListView?> ShowWith { get; init; }
         public required Action<bool, bool, bool, DateTime> Pointer { get; init; }
         public required Func<bool> HeldNow { get; init; }
         public required Func<bool> BrowserNow { get; init; }
@@ -398,7 +426,7 @@ public sealed class CardPoolPopupTests
         public required Func<(string Title, string Next, IReadOnlyList<string> Rows, IReadOnlyList<(string Label, string Names)> Tiers, bool Sections)> Excavate { get; init; }
         public event Action<string?>? Changed;
 
-        public void Show(CardPoolView? pool, MatchListView? list = null) => ShowWith(pool, list);
+        public void Show(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null) => ShowWith(pool, list, related);
 
         public bool Held => HeldNow();
         public bool BrowserOpen => BrowserNow();
@@ -417,7 +445,7 @@ public sealed class CardPoolPopupTests
         var a = new Model
         {
             Name = "WPF",
-            ShowWith = (pool, list) => wpf.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, related) => wpf.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
             BrowserNow = () => wpf.CardPoolBrowserOpen,
@@ -442,7 +470,7 @@ public sealed class CardPoolPopupTests
         var b = new Model
         {
             Name = "Avalonia",
-            ShowWith = (pool, list) => ava.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, related) => ava.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,
             BrowserNow = () => ava.CardPoolBrowserOpen,
@@ -464,12 +492,13 @@ public sealed class CardPoolPopupTests
         yield return b;
     }
 
-    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null)
+    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null)
     {
         var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
             MatchList = list,
+            RelatedList = related,
             CardPoolAnchor = pool is null && list is null ? null : new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5),
         };
         return LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };

@@ -1,9 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Hearthpulse.Core.CardPool;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Controls;
@@ -28,6 +31,20 @@ public static class CardPreview
     /// <summary>The card is a Battlegrounds one (minion or tavern spell): its Battlegrounds render, without a mana cost.</summary>
     public static readonly AttachedProperty<bool> BattlegroundsProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("Battlegrounds", typeof(CardPreview));
+
+    /// <summary>
+    /// False where the previewed card stands for a hidden one (the card that created a card in the opponent's hand):
+    /// its related cards would be a guess at that card, so the preview stays one card.
+    /// </summary>
+    public static readonly AttachedProperty<bool> ShowRelatedProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("ShowRelated", typeof(CardPreview), defaultValue: true);
+
+    /// <summary>Related cards of a previewed card id; set once by the host, null = no related block.</summary>
+    public static Func<string, IReadOnlyList<MatchListRow>>? Related { get; set; }
+
+    public static bool GetShowRelated(Control c) => c.GetValue(ShowRelatedProperty);
+
+    public static void SetShowRelated(Control c, bool value) => c.SetValue(ShowRelatedProperty, value);
 
     static CardPreview()
     {
@@ -84,12 +101,13 @@ public static class CardPreview
 /// The layer that draws the hover preview: a transparent canvas laid over the whole overlay surface (last child, so
 /// it sits on top). It never takes the pointer. The preview is placed beside the hovered control's panel (in a window
 /// page: beside the row's list, at the row), so it never covers the row being read, and is pulled back inside the
-/// canvas near the window edges.
+/// canvas near the window edges. The card's related cards (<see cref="CardPreview.Related"/>) stand in a grid beside it,
+/// on the side away from the row (<see cref="CardPreviewLayout.PlaceRelated"/>).
 /// </summary>
 public sealed class CardPreviewHost : Canvas
 {
-    private const double CardWidth = 236;
-    private const double CardHeight = CardWidth * 388 / 256;
+    private const double CardWidth = CardPreviewLayout.CardWidth;
+    private const double CardHeight = CardPreviewLayout.CardHeight;
 
     private static readonly List<WeakReference<CardPreviewHost>> Hosts = new();
 
@@ -99,6 +117,12 @@ public sealed class CardPreviewHost : Canvas
     private readonly Image _image;
     private readonly Image _bgImage;
     private readonly DispatcherTimer _hide;
+    private readonly StackPanel _related;
+    private readonly Border _relatedPlate;
+    private readonly TextBlock _relatedTitle;
+    private readonly Canvas _relatedGrid;
+    private readonly Image[] _relatedImages = new Image[CardPreviewLayout.MaxRelated];
+    private IReadOnlyList<MatchListRow> _relatedRows = [];
     private Control? _target;
 
     public CardPreviewHost()
@@ -116,6 +140,25 @@ public sealed class CardPreviewHost : Canvas
         _frame.Children.Add(_image);
         _frame.Children.Add(_bgImage);
         Children.Add(_frame);
+
+        // The related cards: a "Related cards" plate, then the renders in a grid (fixed sizes: a missing render leaves
+        // its place empty and the grid does not jump).
+        _relatedTitle = new TextBlock { FontWeight = FontWeight.SemiBold };
+        _relatedTitle.Bind(TextBlock.FontSizeProperty, _relatedTitle.GetResourceObservable("FontSizeLabel"));
+        _relatedTitle.Bind(TextBlock.ForegroundProperty, _relatedTitle.GetResourceObservable("Muted"));
+        _relatedPlate = new Border { Padding = new Thickness(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left, Child = _relatedTitle };
+        _relatedPlate.Classes.Add("overlayCard");
+        _relatedGrid = new Canvas { Margin = new Thickness(0, CardPreviewLayout.TightGap, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+        for (var i = 0; i < _relatedImages.Length; i++)
+        {
+            _relatedImages[i] = new Image { Stretch = Stretch.Uniform };
+            _relatedGrid.Children.Add(_relatedImages[i]);
+        }
+
+        _related = new StackPanel { IsVisible = false };
+        _related.Children.Add(_relatedPlate);
+        _related.Children.Add(_relatedGrid);
+        Children.Add(_related);
 
         // A short grace period: the pointer crossing the gap between two rows must not close and reopen the preview.
         _hide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
@@ -167,7 +210,63 @@ public sealed class CardPreviewHost : Canvas
         CardArt.SetCard(_image, battlegrounds ? null : cardId);
         CardArt.SetBattlegroundsCard(_bgImage, battlegrounds ? cardId : null);
         _frame.IsVisible = true;
+        ShowRelated(battlegrounds || string.IsNullOrEmpty(cardId) || !CardPreview.GetShowRelated(control) ? null : cardId);
         Place(control);
+    }
+
+    /// <summary>The card ids in the related grid now (empty when it is hidden).</summary>
+    internal IReadOnlyList<string> RelatedShown => _related.IsVisible ? _relatedRows.Select(r => r.CardId).ToList() : [];
+
+    /// <summary>The related grid's width of one card now (0 when hidden).</summary>
+    internal double RelatedCardWidth => _related.IsVisible ? _relatedImages[0].Width : 0;
+
+    /// <summary>The related cards' renders for <paramref name="cardId"/>; none for a Battlegrounds card, too many or none.</summary>
+    private void ShowRelated(string? cardId)
+    {
+        var rows = cardId is not null && CardPreview.Related is { } source ? source(cardId) : [];
+        _relatedRows = rows.Count <= CardPreviewLayout.MaxRelated ? rows : [];
+        _related.IsVisible = false;
+        _relatedTitle.Text = Loc.T("Related.Title");
+        for (var i = 0; i < _relatedImages.Length; i++)
+        {
+            CardArt.SetCard(_relatedImages[i], i < _relatedRows.Count ? _relatedRows[i].CardId : null);
+        }
+    }
+
+    /// <summary>The grid beside the placed big card, or hidden when it has no room (the preview stays one card).</summary>
+    private void PlaceRelated(PreviewRect row, double frameLeft, double frameTop)
+    {
+        _related.IsVisible = false;
+        if (_relatedRows.Count == 0 || !_image.IsVisible)
+        {
+            return;
+        }
+
+        var captionHeight = _captionPlate.IsVisible ? _captionPlate.DesiredSize.Height : 0;
+        var card = new PreviewRect(frameLeft, frameTop + captionHeight, CardWidth, CardHeight);
+        _relatedPlate.Measure(Size.Infinity);
+        // How large the host is drawn (the overlay surface scale; 1 in a window page).
+        var scale = this.TransformToVisual(RootOf(this)) is { } toRoot ? toRoot.M11 : 1;
+        if (CardPreviewLayout.PlaceRelated(_relatedRows.Count, card, row, Bounds.Width, Bounds.Height, _relatedPlate.DesiredSize.Height, scale) is not { } at)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _relatedImages.Length; i++)
+        {
+            var image = _relatedImages[i];
+            image.IsVisible = i < _relatedRows.Count;
+            image.Width = at.CardWidth;
+            image.Height = at.CardHeight;
+            SetLeft(image, i % at.Columns * (at.CardWidth + CardPreviewLayout.TightGap));
+            SetTop(image, i / at.Columns * (at.CardHeight + CardPreviewLayout.TightGap));
+        }
+
+        _relatedGrid.Width = (at.Columns * at.CardWidth) + ((at.Columns - 1) * CardPreviewLayout.TightGap);
+        _relatedGrid.Height = (at.Rows * at.CardHeight) + ((at.Rows - 1) * CardPreviewLayout.TightGap);
+        SetLeft(_related, at.Left);
+        SetTop(_related, at.Top);
+        _related.IsVisible = true;
     }
 
     /// <summary>Hides the preview shortly, unless another control takes it over first.</summary>
@@ -186,6 +285,7 @@ public sealed class CardPreviewHost : Canvas
         _hide.Stop();
         _target = null;
         _frame.IsVisible = false;
+        _related.IsVisible = false;
     }
 
     /// <summary>
@@ -222,6 +322,7 @@ public sealed class CardPreviewHost : Canvas
             () => ListOf(control, panel ??= PanelOf(control, surface)) is { } owner && BoundsIn(owner) is { } list ? list : row);
         SetLeft(_frame, left);
         SetTop(_frame, top);
+        PlaceRelated(row, left, top);
     }
 
     /// <summary>Where <paramref name="visual"/> is on this host; null when it cannot be mapped onto it.</summary>

@@ -203,14 +203,16 @@ public sealed partial class OverlayViewModel
 
     /// <summary>
     /// The hovered card's "this game" list and its related cards. The view hands the related cards in
-    /// <see cref="ConstructedView.MatchList"/> when the card has no "this game" rule; they go to their own zone at the
-    /// bottom, except for a card with nothing else, whose panel they are.
+    /// <see cref="ConstructedView.MatchList"/> when the card has no "this game" rule, else in
+    /// <see cref="ConstructedView.RelatedList"/>; they go to their own zone at the bottom, except for a card with
+    /// nothing else, whose panel they are.
     /// </summary>
     private static (MatchListView? List, MatchListView? Related) SplitLists(ConstructedView? view, bool withPool)
     {
         var match = view?.MatchList;
         var matchIsRelated = match is not null && match.Title == Loc.T("Related.Title");
-        var related = matchIsRelated ? match : null;
+        // A card with a "this game" rule (N'Zoth) hands its related cards in RelatedList: both show, in two blocks.
+        var related = view?.RelatedList ?? (matchIsRelated ? match : null);
         var list = matchIsRelated ? null : match;
         return list is null && !withPool ? (related, null) : (list, related);
     }
