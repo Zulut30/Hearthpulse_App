@@ -15,6 +15,7 @@
   "Host.Update.ReadyTitle": "Hearthpulse update ready",
   "Host.Update.Ready": "{0} is downloaded — it installs when you close Hearthpulse.",
   "Host.Update.DownloadFailed": "Version {0} could not be downloaded; Hearthpulse tries again later.",
+  "Host.Update.InstallFailedTitle": "The update didn't install",
   "Host.Notify.RestartTitle": "Restart Hearthstone",
   "Host.Notify.LogSettingsChanged": "Hearthpulse changed the game's log settings. Restart Hearthstone once so tracking starts and lasts whole games.",
   "Host.Notify.LogCapped": "Hearthstone stopped writing its game log at its 10 MB limit, so tracking stopped. Hearthpulse removed the limit: restart Hearthstone to keep tracking.",

@@ -31,7 +31,22 @@
             <TextBlock Text="{i:Loc Settings.Sources.Text}" Classes="caption" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
             <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
             <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
-            <TextBlock Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <TextBlock x:Name="UpdateStatusLine" Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <Button Classes="ghost" x:Name="UpdateCheckButton" Content="{i:Loc Settings.About.CheckNow}" Command="{Binding CheckUpdatesNow}" IsEnabled="{Binding CanCheckUpdates}"
+                    ToolTip.Tip="{i:Loc Settings.About.CheckNowTip}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                    IsVisible="{Binding UpdateCheckSupported}" />
+            <Button x:Name="ReleaseNotesToggle" Classes="bare" Command="{Binding ToggleReleaseNotes}" HorizontalAlignment="Left" Margin="0,8,0,0" IsVisible="{Binding HasReleaseNotes}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding ReleaseNotesTitle}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                    <TextBlock Text="{Binding ReleaseNotesGlyph}" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" Margin="2,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <StackPanel Margin="0,4,0,0" IsVisible="{Binding ReleaseNotesShown}">
+                <TextBlock x:Name="ReleaseNotesText" Text="{Binding ReleaseNotesText}" Classes="caption" FontSize="11" TextWrapping="Wrap" />
+                <Button x:Name="ReleasePageLink" Classes="bare" Command="{Binding OpenReleasePage}" HorizontalAlignment="Left" Margin="0,4,0,0" IsVisible="{Binding ReleasePageShown}">
+                    <TextBlock Text="{i:Loc Settings.About.AllChanges}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="11" />
+                </Button>
+            </StackPanel>
             <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"
                        IsVisible="{Binding ParseErrorsText, Converter={StaticResource Truthy}}" />
         </StackPanel>
