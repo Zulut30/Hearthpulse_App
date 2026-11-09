@@ -8,7 +8,7 @@ namespace Hearthpulse.Core.SourceCapture.Processing;
 public sealed class SourceCaptureParser
 {
     /// <summary>Changing derived semantics requires a new version; source bytes remain immutable.</summary>
-    public const string ParserVersion = "source-v1.2";
+    public const string ParserVersion = "source-v2.0";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly SourceCaptureLimits _limits;
 
@@ -43,7 +43,8 @@ public sealed class SourceCaptureParser
                 cancellationToken.ThrowIfCancellationRequested();
                 if (buffer[i] == (byte)'\n')
                 {
-                    state.Add(ParseLine(line.AsMemory(0, length)));
+                    var (record, version) = ParseLine(line.AsMemory(0, length));
+                    state.Add(record, version);
                     length = 0;
                 }
                 else
@@ -57,9 +58,9 @@ public sealed class SourceCaptureParser
         return state.Finish(Convert.ToHexStringLower(hash.GetHashAndReset()));
     }
 
-    private static SourceCaptureEvent ParseLine(ReadOnlyMemory<byte> line)
+    private static (SourceCaptureEvent Record, int Version) ParseLine(ReadOnlyMemory<byte> line)
     {
-        // Every v1 string is an enum, a field name, or an ASCII card/token ID. None contains whitespace.
+        // Every v1/v2 string is an enum, a field name, or an ASCII card/token ID. None contains whitespace.
         SourceCaptureSchema.Require(!line.IsEmpty && !line.Span.Contains((byte)'\r') &&
             !line.Span.Contains((byte)' ') && !line.Span.Contains((byte)'\t'));
         try
@@ -68,18 +69,18 @@ public sealed class SourceCaptureParser
             using var doc = JsonDocument.Parse(line, new JsonDocumentOptions { MaxDepth = 16 });
             var r = doc.RootElement;
             SourceCaptureSchema.Fields(r, "v", "seq", "kind", "turn", "side", "entity", "card", "target", "data");
-            if (SourceCaptureSchema.Number(r.GetProperty("v"), 1, int.MaxValue) != 1)
-                throw new SourceCaptureException("unsupported_version");
+            int version = SourceCaptureSchema.Number(r.GetProperty("v"), 1, int.MaxValue);
+            if (version is not (1 or 2)) throw new SourceCaptureException("unsupported_version");
             var e = new SourceCaptureEvent(SourceCaptureSchema.Number(r.GetProperty("seq"), 0, int.MaxValue),
                 SourceCaptureSchema.Text(r.GetProperty("kind")), SourceCaptureSchema.Number(r.GetProperty("turn"), 0, 1_000),
                 SourceCaptureSchema.Side(r.GetProperty("side")), SourceCaptureSchema.Number(r.GetProperty("entity")),
                 SourceCaptureSchema.Card(r.GetProperty("card")), SourceCaptureSchema.Number(r.GetProperty("target")), r.GetProperty("data"));
-            SourceCaptureSchema.Validate(e);
+            SourceCaptureSchema.Validate(e, version);
             // Stable data key order even when the source producer writes equivalent JSON differently.
             using var canonical = new MemoryStream();
             using (var writer = new Utf8JsonWriter(canonical)) WriteCanonical(writer, e.Data);
             using var data = JsonDocument.Parse(canonical.GetBuffer().AsMemory(0, (int)canonical.Length));
-            return e with { Data = data.RootElement.Clone() };
+            return (e with { Data = data.RootElement.Clone() }, version);
         }
         catch (JsonException) { throw new SourceCaptureException("invalid_source"); }
         catch (DecoderFallbackException) { throw new SourceCaptureException("invalid_source"); }
