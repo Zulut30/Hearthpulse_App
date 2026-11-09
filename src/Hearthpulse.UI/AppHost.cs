@@ -33,9 +33,10 @@ public sealed partial class AppHost : IDisposable
     private readonly DispatcherTimer _metaRefresh;
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
-    private UpdateInfo? _stagedUpdate;
+    // Written by the update loop on the pool, read on the UI thread.
+    private volatile UpdateInfo? _stagedUpdate;
     private readonly UpdateTrigger _updateTrigger = new();
-    private readonly CancellationTokenSource _updateStop = new();
+    private readonly UpdateLoop _updateLoop = new();
     private readonly AppServices _services;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
@@ -351,8 +352,7 @@ public sealed partial class AppHost : IDisposable
                 Main.UpdateCheckRefused(_updateTrigger.RefusalMessage);
             }
         };
-        var stop = _updateStop.Token;
-        _ = Task.Run(() => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly, Settings.AutoUpdate, callbacks, _updateTrigger, stop), stop);
+        _updateLoop.Start(stop => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly, Settings.AutoUpdate, callbacks, _updateTrigger, stop));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now. Windows restarts into the new version,
@@ -364,20 +364,37 @@ public sealed partial class AppHost : IDisposable
             return;
         }
 
+        StopUpdateLoop();
+        // Read after the loop has stopped: the newest staged version, whose file nothing deletes any more.
+        if (_stagedUpdate is not { } staged)
+        {
+            return;
+        }
+
         if (!OperatingSystem.IsWindows())
         {
-            if (UpdateService.StagedFileMatches(_stagedUpdate))
+            if (UpdateService.StagedFileMatches(staged))
             {
-                UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+                UpdateService.OpenInstaller(UpdateService.StagedPath(staged));
             }
 
             return;
         }
 
-        if (UpdateService.ApplyStaged(_stagedUpdate, relaunch: true))
+        if (UpdateService.ApplyStaged(staged, relaunch: true))
         {
             _stagedUpdate = null;
             ExitRequested?.Invoke();
+        }
+    }
+
+    /// <summary>Stops the update loop and waits for it (bounded) before a staged update is installed: a download still
+    /// running would otherwise replace the staged file under the installer. The loop stays off for this run.</summary>
+    private void StopUpdateLoop()
+    {
+        if (!_updateLoop.Stop(UpdateLoop.StopWait))
+        {
+            Diag.Info($"Update: the update loop did not end within {UpdateLoop.StopWait.TotalSeconds:0} s; installing anyway.");
         }
     }
 
@@ -524,9 +541,9 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();
-        _updateStop.Cancel();
-        _updateStop.Dispose();
-        if (_stagedUpdate is not null && UpdateService.ApplyStaged(_stagedUpdate, relaunch: false))
+        StopUpdateLoop();
+        _updateLoop.Dispose();
+        if (_stagedUpdate is { } staged && UpdateService.ApplyStaged(staged, relaunch: false))
         {
             _stagedUpdate = null;
         }

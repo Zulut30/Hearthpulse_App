@@ -57,11 +57,13 @@ public sealed class UpdateAboutContractTests
         Loc.Instance.SetLanguage(Loc.English);
         var model = Model(wpf);
         var reasonCalls = 0;
-        // The host's handler: the loop refused synchronously, nothing was sent.
+        var reason = "GitHub's limit is reached; try again after 14:05.";
+        // The host's handler: the loop refused synchronously, nothing was sent. The trigger's text is live: its next
+        // answer changes it, so the view model keeps the text of the moment of the refusal.
         model.UpdateCheckRequested += new Action(() => model.UpdateCheckRefused(new Func<string>(() =>
         {
             reasonCalls++;
-            return "GitHub's limit is reached; try again after 14:05.";
+            return reason;
         })));
 
         model.CheckUpdatesNow.Execute(null);
@@ -69,7 +71,46 @@ public sealed class UpdateAboutContractTests
         Assert.False((bool)model.UpdateChecking);
         Assert.True((bool)model.CanCheckUpdates);
         Assert.Equal("GitHub's limit is reached; try again after 14:05.", (string)model.UpdateStatus);
-        Assert.True(reasonCalls > 0);
+        reason = string.Empty;
+        Assert.Equal("GitHub's limit is reached; try again after 14:05.", (string)model.UpdateStatus);
+        Assert.Equal(1, reasonCalls);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_failure_without_a_check_result_ends_checking_and_gives_the_button_back(bool wpf)
+    {
+        // Review M2: a round that threw reports only Failed; "Checking…" must not stay.
+        Loc.Instance.SetLanguage(Loc.English);
+        var model = Model(wpf);
+        model.UpdateCheckRequested += new Action(() => { });
+        model.CheckUpdatesNow.Execute(null);
+        Assert.True((bool)model.UpdateChecking);
+
+        model.SetUpdateStatus(new Func<string>(() => "Could not check for updates: locked."));
+
+        Assert.False((bool)model.UpdateChecking);
+        Assert.True((bool)model.CanCheckUpdates);
+        Assert.Equal("Could not check for updates: locked.", (string)model.UpdateStatus);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_whats_new_link_names_its_state_for_a_screen_reader(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var model = Model(wpf);
+        Assert.Equal(string.Empty, (string)model.ReleaseNotesToggleName);
+        model.SetReleaseNotes("0.15.0", "Notes.", Page);
+
+        Assert.Equal("Что нового в 0.15.0, свёрнуто", (string)model.ReleaseNotesToggleName);
+        model.ToggleReleaseNotes.Execute(null);
+        Assert.Equal("Что нового в 0.15.0, развёрнуто", (string)model.ReleaseNotesToggleName);
+
+        Loc.Instance.SetLanguage(Loc.English);
+        Assert.Equal("What's new in 0.15.0, expanded", (string)model.ReleaseNotesToggleName);
     }
 
     [Theory]

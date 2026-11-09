@@ -65,9 +65,14 @@ public sealed partial class LocBindingTests
             Assert.True(toggle.IsEffectivelyVisible);
             Assert.False(notes.IsEffectivelyVisible);
             Assert.Contains(TextsIn(toggle), t => t == "What's new in 0.15.0");
+            // A screen reader hears the state from the button's name; the chevron glyph is not read.
+            Assert.Equal("What's new in 0.15.0, collapsed", Avalonia.Automation.AutomationProperties.GetName(toggle));
+            Assert.Equal(Avalonia.Automation.AccessibilityView.Raw,
+                Avalonia.Automation.AutomationProperties.GetAccessibilityView(Named<TextBlock>(view, "ReleaseNotesGlyph")));
 
             Click(toggle);
             Dispatcher.UIThread.RunJobs();
+            Assert.Equal("What's new in 0.15.0, expanded", Avalonia.Automation.AutomationProperties.GetName(toggle));
             Assert.True(notes.IsEffectivelyVisible);
             Assert.Equal("Check now button.", notes.Text);
             Assert.True(page.IsEffectivelyVisible);

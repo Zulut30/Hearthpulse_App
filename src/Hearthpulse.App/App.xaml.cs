@@ -76,9 +76,10 @@ public partial class App : Application
     private string? _renderDir;
     private ConstructedMetaLoader _constructedLoader = null!;
     private BattlegroundsMeta? _meta;
-    private UpdateInfo? _stagedUpdate;
+    // Written by the update loop on the pool, read on the UI thread.
+    private volatile UpdateInfo? _stagedUpdate;
     private readonly UpdateTrigger _updateTrigger = new();
-    private readonly CancellationTokenSource _updateStop = new();
+    private readonly UpdateLoop _updateLoop = new();
     private DispatcherTimer? _watchdog;
     private Forms.ToolStripMenuItem? _traySoftwareItem;
     private long _lastPending = -1;
@@ -364,9 +365,9 @@ public partial class App : Application
         }
 
         _memory?.Dispose();
-        _updateStop.Cancel();
-        _updateStop.Dispose();
-        if (_stagedUpdate is not null && UpdateService.ApplyStaged(_stagedUpdate, relaunch: false))
+        StopUpdateLoop();
+        _updateLoop.Dispose();
+        if (_stagedUpdate is { } staged && UpdateService.ApplyStaged(staged, relaunch: false))
         {
             _stagedUpdate = null;
         }
@@ -524,14 +525,30 @@ public partial class App : Application
                 _mainViewModel.UpdateCheckRefused(_updateTrigger.RefusalMessage);
             }
         };
-        var stop = _updateStop.Token;
-        _ = Task.Run(() => UpdateService.WatchAsync(_http, AppPaths.IsPortable, _settings.AutoUpdate, callbacks, _updateTrigger, stop), stop);
+        _updateLoop.Start(stop => UpdateService.WatchAsync(_http, AppPaths.IsPortable, _settings.AutoUpdate, callbacks, _updateTrigger, stop));
     }
 
-    /// <summary>The "Update ready" chip: install the downloaded update now and start the new version.</summary>
+    /// <summary>Stops the update loop and waits for it (bounded) before a staged update is installed: a download still
+    /// running would otherwise replace the staged file under the installer. The loop stays off for this run.</summary>
+    private void StopUpdateLoop()
+    {
+        if (!_updateLoop.Stop(UpdateLoop.StopWait))
+        {
+            Diag.Info($"Update: the update loop did not end within {UpdateLoop.StopWait.TotalSeconds:0} s; installing anyway.");
+        }
+    }
+
+    /// <summary>The "Update ready" chip: stop the update loop, install the downloaded update now and start the new version.</summary>
     private void OnInstallUpdateRequested()
     {
-        if (_stagedUpdate is null || !UpdateService.ApplyStaged(_stagedUpdate, relaunch: true))
+        if (_stagedUpdate is null)
+        {
+            return;
+        }
+
+        StopUpdateLoop();
+        // Read after the loop has stopped: the newest staged version, whose file nothing deletes any more.
+        if (_stagedUpdate is not { } staged || !UpdateService.ApplyStaged(staged, relaunch: true))
         {
             return;
         }

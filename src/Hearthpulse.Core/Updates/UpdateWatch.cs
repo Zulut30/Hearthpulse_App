@@ -227,16 +227,16 @@ public static partial class UpdateService
                 continue;
             }
 
-            if (!cleaned && options.Target == UpdateTarget.WindowsInstalled)
-            {
-                cleaned = true;
-                DeltaUpdate.CleanUp(options.AppDirectory, CurrentVersion);
-            }
-
             trigger.BeginCheck();
             DateTimeOffset? retryAfter = null;
             try
             {
+                if (!cleaned && options.Target == UpdateTarget.WindowsInstalled)
+                {
+                    cleaned = true;
+                    CleanUpDelta(options.AppDirectory);
+                }
+
                 retryAfter = (await round.RunAsync(cancellationToken).ConfigureAwait(false))?.RetryAfter;
             }
             catch (Exception ex)
@@ -245,6 +245,8 @@ public static partial class UpdateService
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     Diag.Error("Update check failed", ex);
+                    // The round still ends in a result: "Check now" waits for one, and the loop goes on.
+                    round.Fail(ex.Message);
                 }
             }
             finally
@@ -268,6 +270,19 @@ public static partial class UpdateService
         }
     }
 
+    /// <summary>The leftovers of an earlier delta install; a folder that cannot be cleaned is logged, not fatal.</summary>
+    private static void CleanUpDelta(string appDirectory)
+    {
+        try
+        {
+            DeltaUpdate.CleanUp(appDirectory, CurrentVersion);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Diag.Error("Update: the earlier delta install could not be cleaned up", ex);
+        }
+    }
+
     /// <summary>The longest wait between automatic checks, whatever a reply said (Task.Delay takes at most ~49 days).</summary>
     internal static readonly TimeSpan LongestWait = TimeSpan.FromDays(1);
 
@@ -282,8 +297,7 @@ public static partial class UpdateService
         {
             if (check.Outcome == UpdateCheckOutcome.UpToDate)
             {
-                var message = check.Message;
-                failed(() => message);
+                failed(check.Text);
             }
         });
 
@@ -296,23 +310,48 @@ public static partial class UpdateService
     {
         private string? _available;
         private string? _staged;
+        private bool _checked;
+
+        /// <summary>The round threw: before its check is reported, a failed check; after, a failure. A callback that
+        /// throws here is logged, so the loop still goes on.</summary>
+        public void Fail(string reason)
+        {
+            try
+            {
+                Func<string> text = () => Loc.F("Core.Update.Failed", reason);
+                if (_checked)
+                {
+                    callbacks.Failed(text);
+                }
+                else
+                {
+                    callbacks.Checked(UpdateCheck.Of(UpdateCheckOutcome.Failed, null, text));
+                    callbacks.Failed(text);
+                }
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Update: reporting a failed check failed", ex);
+            }
+        }
 
         /// <summary>One round; once <paramref name="cancellationToken"/> is cancelled no callback runs any more.</summary>
         public async Task<UpdateCheck?> RunAsync(CancellationToken cancellationToken)
         {
+            _checked = false;
             // A delta that could not put its old files back left a folder of two versions: the full setup of the
             // newest release repairs it, even when that is the version this copy reports.
             var repair = options.Target == UpdateTarget.WindowsInstalled && DeltaUpdate.IsBroken(options.AppDirectory);
             var check = await CheckForUpdateAsync(http, options.Target, options.Context, cancellationToken, repair).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             var info = repair && check.Update is { } broken ? broken with { Delta = null } : check.Update;
+            _checked = true;
             callbacks.Checked(check);
             if (info is null)
             {
                 if (check.Outcome == UpdateCheckOutcome.Failed)
                 {
-                    var message = check.Message;
-                    callbacks.Failed(() => message);
+                    callbacks.Failed(check.Text);
                 }
 
                 return check;
@@ -334,11 +373,11 @@ public static partial class UpdateService
                 return check;
             }
 
-            await StageAsync(info, check.Message, cancellationToken).ConfigureAwait(false);
+            await StageAsync(info, check.Text, cancellationToken).ConfigureAwait(false);
             return check;
         }
 
-        private async Task StageAsync(UpdateInfo info, string checkMessage, CancellationToken cancellationToken)
+        private async Task StageAsync(UpdateInfo info, Func<string> checkText, CancellationToken cancellationToken)
         {
             if (InstallState.FailedAttempts(options.Context.StateDirectory, info.Version) >= InstallState.MaxAttempts)
             {
@@ -349,9 +388,9 @@ public static partial class UpdateService
 
             if (info.Sha256 is null)
             {
-                Diag.Info(checkMessage);
+                Diag.Info(checkText());
                 TryDelete(StagedPath(info));
-                callbacks.Failed(() => checkMessage);
+                callbacks.Failed(checkText);
                 return;
             }
 

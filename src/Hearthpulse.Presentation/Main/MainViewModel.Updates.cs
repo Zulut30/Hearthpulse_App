@@ -96,10 +96,12 @@ public sealed partial class MainViewModel
     public void SetUpdateStatus(string status) => SetUpdateStatus(() => status);
 
     /// <summary>The update status as a text maker: a language switch shows it again in the new language. While a
-    /// downloaded update waits, the line keeps saying so (a later failure or "up to date" changes nothing visible).</summary>
+    /// downloaded update waits, the line keeps saying so (a later failure or "up to date" changes nothing visible).
+    /// A failure also ends a running "Check now": the round is over even when it never reported its check.</summary>
     public void SetUpdateStatus(Func<string> status)
     {
         _updateStatus = status;
+        UpdateChecking = false;
         Raise(nameof(UpdateStatus));
     }
 
@@ -150,10 +152,11 @@ public sealed partial class MainViewModel
     });
 
     /// <summary>The loop refused the check (GitHub's limit, a check moments ago): its reason in the status line and the
-    /// button back. Nothing was sent.</summary>
+    /// button back. Nothing was sent. The reason is read once, now: the trigger's text changes with its next answer.</summary>
     public void UpdateCheckRefused(Func<string> reason)
     {
-        _updateStatus = reason;
+        var text = reason();
+        _updateStatus = () => text;
         UpdateChecking = false;
         Raise(nameof(UpdateStatus));
     }
@@ -182,6 +185,7 @@ public sealed partial class MainViewModel
         _notesPage = page;
         Raise(nameof(HasReleaseNotes));
         Raise(nameof(ReleaseNotesTitle));
+        Raise(nameof(ReleaseNotesToggleName));
         Raise(nameof(ReleaseNotesText));
         Raise(nameof(HasReleasePage));
         Raise(nameof(ReleaseNotesShown));
@@ -193,6 +197,12 @@ public sealed partial class MainViewModel
 
     /// <summary>"What's new in 0.15.0"; built on read so it follows a language change (the notes stay English).</summary>
     public string ReleaseNotesTitle => _notesVersion is null ? string.Empty : Loc.F("Settings.About.WhatsNew", _notesVersion);
+
+    /// <summary>The "What's new" link's accessible name with its state ("…, collapsed" / "…, expanded"), since the link
+    /// and its chevron alone do not tell a screen reader whether the notes are open.</summary>
+    public string ReleaseNotesToggleName => _notesVersion is null
+        ? string.Empty
+        : Loc.F(ReleaseNotesExpanded ? "Settings.About.WhatsNewExpanded" : "Settings.About.WhatsNewCollapsed", _notesVersion);
 
     /// <summary>The notes as plain text (Core cuts them to 1500 characters).</summary>
     public string ReleaseNotesText => _notesText ?? string.Empty;
@@ -211,6 +221,7 @@ public sealed partial class MainViewModel
                 Raise(nameof(ReleaseNotesShown));
                 Raise(nameof(ReleasePageShown));
                 Raise(nameof(ReleaseNotesGlyph));
+                Raise(nameof(ReleaseNotesToggleName));
             }
         }
     }

@@ -157,6 +157,8 @@
   "Settings.About.CheckNowTip": "Ask GitHub whether a new version is out. Works with automatic updates off too.",
   "Settings.About.Checking": "Checking for updates…",
   "Settings.About.WhatsNew": "What's new in {0}",
+  "Settings.About.WhatsNewCollapsed": "What's new in {0}, collapsed",
+  "Settings.About.WhatsNewExpanded": "What's new in {0}, expanded",
   "Settings.About.AllChanges": "All changes on GitHub",
   "Settings.Data.GameStats": "Send my games to Hearthpulse statistics",
   "Settings.Data.GameStatsTip": "Cleaned match and draft journals: visible offers, choices, cards played and received, buys and sells, tavern refreshes, resources, shown board states and the result. Opponent cards only once shown in the game. Incomplete observations are marked; the server can reprocess saved journals to refine statistics.",
