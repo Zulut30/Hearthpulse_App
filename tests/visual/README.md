@@ -27,7 +27,8 @@ pixels changed or its size did. The app version under the sidebar is masked (`MA
 ## A wanted change
 
 1. Push the branch and start CI on it: `gh workflow run ci.yml --ref <branch>`.
-2. Download its artifact `visual-renders`: `gh run download <run-id> -n visual-renders -D <dir>`.
+2. Download its artifact `visual-renders` (both UIs; each part also uploads its own, `visual-renders-wpf-tavern`
+   ... `-ava`): `gh run download <run-id> -n visual-renders -D <dir>`.
 3. Read the sheets in `<dir>/diff/`: each changed frame, before | after | changed pixels in red.
 4. `python -B -I tools/visual/visual_check.py update <dir>` (or `--scene Tavern-main-overview` for one frame), and commit
    the baselines with the change.
