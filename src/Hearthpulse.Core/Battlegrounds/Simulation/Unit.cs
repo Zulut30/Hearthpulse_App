@@ -16,6 +16,7 @@ public sealed class Unit
         foreach (var effect in effects)
         {
             Hooks |= effect.Hooks;
+            ImmuneWhileAttacking |= effect.ImmuneWhileAttacking;
         }
 
         Tribes = spec.Tribes;
@@ -116,6 +117,12 @@ public sealed class Unit
 
     public bool IsRally => (Spec.Mechanics & CardMechanic.Rally) != 0;
 
+    /// <summary>An effect on it makes it Immune while it attacks (Invulnerability).</summary>
+    public bool ImmuneWhileAttacking { get; private set; }
+
+    /// <summary>Attacks of this unit being resolved right now (more than one only for nested attacks); 0 = not attacking.</summary>
+    internal int AttackDepth { get; set; }
+
     public bool Is(Tribe tribe) => tribe == Tribe.All || (Tribes & tribe) != 0;
 
     /// <summary><paramref name="golden"/> for a golden minion, else <paramref name="normal"/> (read the golden card's own text).</summary>
@@ -141,6 +148,7 @@ public sealed class Unit
         effects[^1] = effect;
         _effects = effects;
         Hooks |= effect.Hooks;
+        ImmuneWhileAttacking |= effect.ImmuneWhileAttacking;
         Side.InvalidateHooks();
     }
 

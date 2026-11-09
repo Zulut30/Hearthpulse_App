@@ -16,6 +16,9 @@ public sealed partial class Fight
 
         var previous = Attacking;
         Attacking = attacker.Side;
+        // Counted, not a single "current attacker": a nested attack (Rally, "attack immediately") keeps the outer
+        // attacker attacking.
+        attacker.AttackDepth++;
         _depth++;
         _attacks++;
         try
@@ -87,6 +90,7 @@ public sealed partial class Fight
         {
             _depth--;
             Attacking = previous;
+            attacker.AttackDepth--;
         }
     }
 

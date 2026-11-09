@@ -77,8 +77,10 @@ public sealed class DarkGiftsTests
         Assert.True(Unsimulated(["BACON_RALLY", "DEATHRATTLE"], charisma, "BG35_MagicItem_740e"));
         // An unknown enchantment explains nothing.
         Assert.True(Unsimulated(["DEATHRATTLE"], "BG36_UNKNOWN_e"));
-        // Invulnerability ("Immune while attacking") changes the fight and has no effect yet: flagged even without a marker.
-        Assert.True(Unsimulated([], "BG36_MidGameEffect_000t60e"));
+        // Invulnerability ("Immune while attacking") changes the fight: flagged without its effect even with no marker,
+        // simulated with it.
+        Assert.True(CombatRelevance.IsUnsimulated("X", false, false, [], ["BG36_MidGameEffect_000t60e"], isOpponent: false, EffectRegistry.Empty));
+        Assert.False(Unsimulated([], "BG36_MidGameEffect_000t60e"));
         // The sacrifices are simulated: their deathrattle is explained.
         Assert.False(Unsimulated(["DEATHRATTLE"], Offensive, "BG36_MidGameEffect_000te3"));
     }
@@ -86,8 +88,8 @@ public sealed class DarkGiftsTests
     [Fact]
     public void Relevant_player_cards_without_an_effect_count_as_not_simulated()
     {
-        // Tentacular (hero power) has no effect yet: the fight is an estimate. Ceremonial Sword (trinket) is simulated.
-        var ours = Side(Minion(1, 1)) with { Extras = ["BG23_HERO_201p", "BG30_MagicItem_925"] };
+        // Rapid Reanimation (hero power) has no effect yet: the fight is an estimate. Ceremonial Sword (trinket) is simulated.
+        var ours = Side(Minion(1, 1)) with { Extras = ["BG25_HERO_103p", "BG30_MagicItem_925"] };
         var odds = CombatSimulator.Run(ours, Side(Minion(1, 1)), true, new SimOptions { Runs = 10 });
 
         Assert.Equal(1, odds.Unsimulated);

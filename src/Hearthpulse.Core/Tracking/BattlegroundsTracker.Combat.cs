@@ -121,6 +121,9 @@ public sealed partial class BattlegroundsTracker
         var opponentHero = LeaderboardHero(game, _combatOpponent);
         var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat, Turn = game.BattlegroundsTurn };
         var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat, Turn = game.BattlegroundsTurn };
+        // Only our own cards' values: whether the client shows the opponent's is not established, so theirs stay out
+        // (their effects that need one report missing_input).
+        ours = ours with { ExtraTags = ExtraTagsOf(game, game.LocalPlayerId, ours.Extras) };
         if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
         {
             theirs = theirs with { TavernTier = opponentTier };
@@ -137,6 +140,36 @@ public sealed partial class BattlegroundsTracker
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
         StartSimulation(ours, theirs, oursFirst, options);
+    }
+
+    /// <summary>
+    /// The local player's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id: only
+    /// the tags effects read (<see cref="CombatEffect.CapturedTags"/>), values that grow over the game (Fang Anklet,
+    /// Tentacular...). A card not in play, or without such a tag, has no value, so its effect reports missing_input.
+    /// </summary>
+    private static Dictionary<string, IReadOnlyDictionary<string, int>> ExtraTagsOf(GameState game, int controller, IReadOnlyList<string> extras)
+    {
+        var tags = new Dictionary<string, IReadOnlyDictionary<string, int>>(StringComparer.Ordinal);
+        if (extras.Count == 0)
+        {
+            return tags;
+        }
+
+        foreach (var entity in game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0 && extras.Contains(e.CardId)).OrderBy(e => e.Id))
+        {
+            var wanted = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var tag in CombatEffect.CapturedTags)
+            {
+                if (entity.Tags.ContainsKey(tag))
+                {
+                    wanted[tag] = entity.GetInt(tag);
+                }
+            }
+
+            tags.TryAdd(entity.CardId, wanted);
+        }
+
+        return tags;
     }
 
     /// <summary>
