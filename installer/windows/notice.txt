@@ -29,6 +29,25 @@ HOW IT WORKS
 - It never changes the game, never sends input to it and never shows hidden
   information such as your opponent's hand or deck.
 - Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
+- Moving from Hearthstone Deck Tracker or Firestone (Settings > Data): when
+  you ask, it reads the games and decks those apps saved on this computer.
+  It never changes their files and uses none of their code.
+- Discord status (off by default): it talks only to the Discord app on this
+  computer, which shows your current mode and matchup on your profile.
+
+UPDATES
+- Hearthpulse asks GitHub (github.com/Zulut30/Hearthpulse_App) for the newest
+  release every 6 hours, or when you press "Check now" in Settings > About.
+  Only that ordinary request is sent; the last answer is kept on this
+  computer so an unchanged release is not downloaded again.
+- Updates are checked by signature: a download is installed only when its
+  SHA-256 matches the one GitHub publishes and, in builds that carry the
+  project's update key, the release's list of checksums (SHA256SUMS.txt) is
+  signed with that key (Ed25519). Anything else is not installed.
+- Before the setup runs, the app folder is copied aside; if the setup fails
+  twice, the copy is put back and the app tells you on its next start. Your
+  history and settings are not touched. Turn automatic updates off in
+  Settings > About.
 
 GAME STATISTICS
 - On by default; expanded source sending starts only after the updated in-app
@@ -80,6 +99,9 @@ DATA AND CREDITS
   creativecommons.org/licenses/by/3.0), drawn in gold: "house" by Delapouite;
   "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
   "fist", "hourglass" and "cog" by Lorc.
+- Update signature check: ported from the reference code in RFC 8032
+  (c) IETF Trust and the document authors, Revised BSD License; the full
+  text is in THIRD-PARTY-NOTICES.txt.
 
 Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment.
 Hearthstone is a trademark of Blizzard Entertainment, Inc.

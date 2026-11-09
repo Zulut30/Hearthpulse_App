@@ -9,7 +9,7 @@
 # (the release workflow builds the two on separate runners at the same time).
 set -euo pipefail
 
-VERSION="${1:-0.14.0}"
+VERSION="${1:-0.15.0}"
 PART="${2:-all}"
 case "$PART" in all|app|preview) ;; *) echo "unknown part '$PART' (all, app or preview)" >&2; exit 2 ;; esac
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -18,10 +18,20 @@ WORK="$DIST/work/windows"
 rm -rf "$WORK"
 mkdir -p "$WORK" "$DIST"
 
+# Authenticode (sign.sh): with signing secrets every Hearthpulse.exe, the uninstaller and the setup are signed with a
+# timestamp; without them the packages are built unsigned and the log says so once.
+SIGN="$ROOT/installer/windows/sign.sh"
+export HEARTHPULSE_SIGN_DIR="$WORK/sign"
+trap 'rm -rf "$HEARTHPULSE_SIGN_DIR"' EXIT
+bash "$SIGN" --prepare
+SIGN_MODE="$(bash "$SIGN" --mode)"
+
 if [ "$PART" != preview ]; then
 echo "== Publishing the Windows app (win-x64, self-contained)"
 dotnet publish "$ROOT/src/Hearthpulse.App/Hearthpulse.App.csproj" -c Release -r win-x64 --self-contained true \
   -p:EnableWindowsTargeting=true -p:Version="$VERSION" -o "$WORK/app" -nologo -v q
+# Before the manifest, the portable zip and the setup: all three must carry the signed exe.
+bash "$SIGN" "$WORK/app/Hearthpulse.exe"
 
 # The uninstaller removes exactly the files the setup installed (deepest folders last), never a whole folder.
 python3 - "$WORK/app" "$WORK/uninstall-files.nsh" <<'PY'
@@ -83,8 +93,13 @@ PORTABLE_PID=$!
 
 echo "== Building the setup wizard"
 SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
+NSIS_SIGN=()
+# The uninstaller is signed inside makensis (!uninstfinalize, NSIS 3.08+) before it is packed into the setup.
+[ "$SIGN_MODE" = none ] || NSIS_SIGN=(-DSIGN_SCRIPT="$SIGN")
 makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
-  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
+  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" ${NSIS_SIGN[@]+"${NSIS_SIGN[@]}"} "$ROOT/installer/windows/hearthpulse.nsi"
+bash "$SIGN" "$SETUP"
+bash "$SIGN" --show "$SETUP" "$WORK/app/Hearthpulse.exe"
 echo "wrote $SETUP"
 wait "$PORTABLE_PID" || { echo "the portable zip was not built" >&2; exit 1; }
 fi
@@ -93,6 +108,8 @@ if [ "$PART" != app ]; then
 echo "== Publishing the cross-platform app preview (win-x64)"
 dotnet publish "$ROOT/src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj" -c Release -r win-x64 --self-contained true \
   -p:Version="$VERSION" -o "$WORK/preview/Hearthpulse" -nologo -v q
+bash "$SIGN" "$WORK/preview/Hearthpulse/Hearthpulse.exe"
+bash "$SIGN" --show "$WORK/preview/Hearthpulse/Hearthpulse.exe"
 cp "$ROOT/installer/windows/notice.txt" "$WORK/preview/Hearthpulse/README.txt"
 PREVIEW="$DIST/Hearthpulse-Preview-$VERSION-win-x64.zip"
 rm -f "$PREVIEW"

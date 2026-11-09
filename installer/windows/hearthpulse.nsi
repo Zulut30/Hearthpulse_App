@@ -11,7 +11,7 @@ Unicode true
 !include "WinVer.nsh"
 
 !ifndef VERSION
-  !define VERSION "0.14.0"
+  !define VERSION "0.15.0"
 !endif
 !ifndef SOURCE_DIR
   !error "Pass /DSOURCE_DIR=<folder with the published app>"
@@ -21,6 +21,11 @@ Unicode true
 !endif
 !ifndef UNINSTALL_LIST
   !error "Pass /DUNINSTALL_LIST=<generated list of installed files>"
+!endif
+; build.sh passes /DSIGN_SCRIPT=<installer/windows/sign.sh> only when it signs (Authenticode): the uninstaller is signed
+; before it is packed into the setup; the setup itself is signed by build.sh afterwards.
+!ifdef SIGN_SCRIPT
+  !uninstfinalize 'bash "${SIGN_SCRIPT}" "%1"' = 0
 !endif
 
 !define APP_NAME "Hearthpulse"

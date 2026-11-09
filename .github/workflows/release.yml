@@ -10,13 +10,17 @@ on:
       version:
         description: Version to build and publish (for example 0.2.0)
         required: true
-        default: "0.14.0"
+        default: "0.15.0"
       publish:
         description: Publish the GitHub Release (off - a trial run - builds and checks every installer, publishes nothing)
         type: boolean
         default: true
       simulate_previous:
         description: Trial runs only - stand in a previous release with a manifest, so the delta package is built and checked
+        type: boolean
+        default: false
+      sign_selftest:
+        description: Trial runs only - sign with throwaway keys (Authenticode self-signed .pfx, Ed25519 for SHA256SUMS.txt) and show the result
         type: boolean
         default: false
 
@@ -86,6 +90,7 @@ jobs:
         env:
           INPUT_VERSION: ${{ inputs.version }}
           SIMULATE: ${{ inputs.simulate_previous }}
+          SELFTEST: ${{ inputs.sign_selftest }}
           PUBLISH: ${{ inputs.publish }}
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
@@ -95,12 +100,18 @@ jobs:
           if [ "$SIMULATE" = "true" ] && [ "$PUBLISH" != "false" ]; then
             echo "::error::simulate_previous is for trial runs: set publish to false"; exit 1
           fi
+          if [ "$SELFTEST" = "true" ] && [ "$PUBLISH" != "false" ]; then
+            echo "::error::sign_selftest is for trial runs: set publish to false"; exit 1
+          fi
       - name: Packaging tools
         if: matrix.apt
         env:
           APT: ${{ matrix.apt }}
           APPIMAGE: ${{ matrix.appimage }}
+          # The signing selftest shows each signer with osslsigncode (Windows jobs only).
+          SELFTEST_TOOLS: ${{ inputs.sign_selftest && startsWith(matrix.id, 'windows') && 'osslsigncode' || '' }}
         run: |
+          APT="$APT $SELFTEST_TOOLS"
           # The image's package lists usually still resolve; refreshing them first cost up to ~35 s. Refresh only on failure.
           # shellcheck disable=SC2086
           sudo apt-get install -y -qq $APT || { sudo apt-get update -qq && sudo apt-get install -y -qq $APT; }
@@ -116,11 +127,24 @@ jobs:
           # installer/windows/previous.sh asks for the previous release's manifest (delta package).
           GH_TOKEN: ${{ github.token }}
           SIMULATE_PREVIOUS: ${{ inputs.simulate_previous }}
+          # Authenticode (installer/windows/sign.sh): a .pfx, else Azure Trusted Signing, else unsigned with a warning.
+          # Only the Windows jobs see the secrets.
+          SIGN_SELFTEST: ${{ startsWith(matrix.id, 'windows') && inputs.sign_selftest || '' }}
+          WINDOWS_SIGN_PFX: ${{ startsWith(matrix.id, 'windows') && secrets.WINDOWS_SIGN_PFX || '' }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ startsWith(matrix.id, 'windows') && secrets.WINDOWS_SIGN_PFX_PASSWORD || '' }}
+          AZURE_SIGNING_ENDPOINT: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_SIGNING_ENDPOINT || '' }}
+          AZURE_SIGNING_ACCOUNT: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_SIGNING_ACCOUNT || '' }}
+          AZURE_SIGNING_PROFILE: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_SIGNING_PROFILE || '' }}
+          AZURE_TENANT_ID: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_TENANT_ID || '' }}
+          AZURE_CLIENT_ID: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_CLIENT_ID || '' }}
+          AZURE_CLIENT_SECRET: ${{ startsWith(matrix.id, 'windows') && secrets.AZURE_CLIENT_SECRET || '' }}
         run: ${{ matrix.build }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.id }}
           if-no-files-found: error
+          # Every file is already compressed (exe/zip/dmg/pkg/deb/rpm/tar.gz/AppImage): zipping again only costs time.
+          compression-level: 0
           path: |
             dist/*.exe
             dist/*.zip
@@ -143,11 +167,16 @@ jobs:
         id: v
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          SELFTEST: ${{ inputs.sign_selftest }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
           v="${v#v}"
           [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
+          if [ "$SELFTEST" = "true" ] && [ "$PUBLISH" != "false" ]; then
+            echo "::error::sign_selftest is for trial runs: set publish to false"; exit 1
+          fi
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -158,7 +187,8 @@ jobs:
           V: ${{ steps.v.outputs.version }}
         run: |
           # Delta updates: this version's manifest always; the delta package exactly when the previous release has a
-          # manifest (none for 0.14.0 and older). 23 files without a delta, 24 with one, SHA256SUMS.txt included.
+          # manifest (none for 0.14.0 and older). 23 files without a delta, 24 with one, SHA256SUMS.txt included;
+          # one more with SHA256SUMS.txt.sig ("Sign the checksums").
           # The Windows job found the previous release once (installer/windows/previous.sh) and says which.
           test -f dist/work/delta-previous.txt || { echo "::error::the Windows job did not say which delta it made"; exit 1; }
           prev="$(cat dist/work/delta-previous.txt)"
@@ -188,6 +218,20 @@ jobs:
           n=$(find . -maxdepth 1 -type f | wc -l)
           [ "$n" -eq "$expected" ] || { echo "::error::$n release files, expected $expected"; exit 1; }
           echo "$n release files"
+      # Ed25519 signature of SHA256SUMS.txt (SHA256SUMS.txt.sig) with the UPDATE_SIGNING_KEY secret, checked against the
+      # keys the app carries (src/Hearthpulse.Core/Updates/update-signing-key.pub). A release without the secret fails
+      # when the app carries a key; a trial run only warns.
+      - name: Sign the checksums
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+          PUBLISHING: ${{ github.event_name == 'push' || inputs.publish }}
+          SIGN_SELFTEST: ${{ inputs.sign_selftest }}
+        run: |
+          bash installer/sign-sums.sh dist src/Hearthpulse.Core/Updates/update-signing-key.pub
+          n=$(find dist -maxdepth 1 -type f | wc -l)
+          if [ -f dist/SHA256SUMS.txt.sig ]; then want=$((expected + 1)); else want=$expected; fi
+          [ "$n" -eq "$want" ] || { echo "::error::$n release files, expected $want"; exit 1; }
+          echo "$n release files with the signature"
       - uses: softprops/action-gh-release@v2
         if: github.event_name == 'push' || inputs.publish
         with:
