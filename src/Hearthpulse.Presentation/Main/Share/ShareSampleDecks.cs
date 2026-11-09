@@ -8,7 +8,8 @@ namespace Hearthpulse.UI.Main.Share;
 
 /// <summary>
 /// Fixed Warrior decks for the share pictures' render scenes (<c>--render-ui</c>, group <c>sharecards</c>): 21 rows as
-/// on the owner's screenshot (TASK-2026-11-09-deck-cover), 30 different cards with the longest names, and 15 rows.
+/// on the owner's screenshot (TASK-2026-11-09-deck-cover), 30 different cards with the longest names, and 15, 12 and 8
+/// rows (the first ones of the 21).
 /// Cards missing from the card data are left out.
 /// </summary>
 public static class ShareSampleDecks
@@ -22,7 +23,7 @@ public static class ShareSampleDecks
         ("CATA_580", 2),
     ];
 
-    /// <summary>The decks by their row count: 21, 30 and 15.</summary>
+    /// <summary>The decks by their row count: 21, 30, 15, 12 and 8.</summary>
     public static IEnumerable<(int Rows, IReadOnlyDictionary<string, int> Deck)> All(CardDb cards)
     {
         ArgumentNullException.ThrowIfNull(cards);
@@ -38,6 +39,9 @@ public static class ShareSampleDecks
             .Take(30);
         yield return (30, longest.ToDictionary(c => c.Id, _ => 1));
 
-        yield return (15, known.Take(15).ToDictionary(c => c.Id, c => c.Copies));
+        foreach (var rows in (int[])[15, 12, 8])
+        {
+            yield return (rows, known.Take(rows).ToDictionary(c => c.Id, c => c.Copies));
+        }
     }
 }

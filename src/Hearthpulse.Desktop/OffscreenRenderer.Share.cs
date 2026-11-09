@@ -52,7 +52,8 @@ internal static partial class OffscreenRenderer
 
     /// <summary>
     /// <c>HEARTHPULSE_RENDER_ONLY=sharecards</c>: every share picture on fixed decks (TASK-2026-11-09-deck-cover): the
-    /// session recap, the year, and a Warrior deck of 21, 30 and 15 rows in both layouts, long card names included.
+    /// session recap, the year, and a Warrior deck of 21, 30, 15, 12 and 8 rows in both layouts, long card names included.
+    /// Each layout gets a fresh model: a model is never changed after its window closed (TASK-2026-11-09-deck-cover, M2).
     /// </summary>
     private static async Task RenderShareCardsAsync(AppHost host, string folder)
     {
@@ -67,8 +68,9 @@ internal static partial class OffscreenRenderer
             if (DeckString.Encode(deck, "WARRIOR", "Standard", host.Cards) is { } code && host.Main.DeckShare(code, string.Empty, "WARRIOR") is { } share)
             {
                 await RenderSharePictureAsync(share, folder, $"share-deck-list-{rows}.png");
-                share.Cover = true;
-                await RenderSharePictureAsync(share, folder, $"share-deck-cover-{rows}.png");
+                var cover = host.Main.DeckShare(code, string.Empty, "WARRIOR")!;
+                cover.Cover = true;
+                await RenderSharePictureAsync(cover, folder, $"share-deck-cover-{rows}.png");
             }
         }
     }

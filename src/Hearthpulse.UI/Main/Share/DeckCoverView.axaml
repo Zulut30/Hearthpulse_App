@@ -43,18 +43,20 @@
                 </StackPanel>
             </DockPanel>
 
-            <!-- Two columns of even rows over the whole height of the field (476): both start at its top and end on the same
-                 line. Up to 15 rows a column the rows grow to fill it; a longer deck (40 cards) shrinks as a whole to fit. -->
+            <!-- Two columns of even rows from the field's top, both ending on one line (DeckPictureCard.CoverList*): rows grow
+                 from 28 to 36 while the field has room; a longer deck (over 15 rows a column) is laid out wider and shrinks as
+                 a whole to the field. One name size a column (ShareTextFit.Scope), never under 9 as shown. -->
             <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Grid Width="520" Height="{Binding Deck.CoverListHeight}" ColumnDefinitions="*,8,*">
-                    <ItemsControl ItemsSource="{Binding Deck.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
+                <Grid Width="{Binding Deck.CoverListWidth}" Height="{Binding Deck.CoverListHeight}" ColumnDefinitions="*,8,*"
+                      s:ShareTextFit.MinFontSize="{Binding Deck.CoverNameMinFontSize}">
+                    <ItemsControl ItemsSource="{Binding Deck.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="1" Rows="{Binding Deck.ColumnRows}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
-                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Deck.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Deck.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="1" Rows="{Binding Deck.ColumnRows}" />

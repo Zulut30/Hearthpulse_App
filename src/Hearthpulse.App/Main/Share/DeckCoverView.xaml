@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:s="clr-namespace:Hearthpulse.App.Main.Share"
              Width="960" Height="540">
     <!-- The deck picture, 16:9 cover for video thumbnails (proposal C1): the class art fading in from the left under the name,
          the facts and the curve; the cards in two columns on the right. 960 × 540 DIP, saved at 1920 × 1080. -->
@@ -39,18 +40,20 @@
                 </StackPanel>
             </DockPanel>
 
-            <!-- Two columns of even rows over the whole height of the field (476): both start at its top and end on the same
-                 line. Up to 15 rows a column the rows grow to fill it; a longer deck (40 cards) shrinks as a whole to fit. -->
+            <!-- Two columns of even rows from the field's top, both ending on one line (DeckPictureCard.CoverList*): rows grow
+                 from 28 to 36 while the field has room; a longer deck (over 15 rows a column) is laid out wider and shrinks as
+                 a whole to the field. One name size a column (ShareTextFit.Scope), never under 9 as shown. -->
             <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Grid Width="520" Height="{Binding Card.CoverListHeight}">
+                <Grid Width="{Binding Card.CoverListWidth}" Height="{Binding Card.CoverListHeight}" s:ShareTextFit.MinFontSize="{Binding Card.CoverNameMinFontSize}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="8" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <ItemsControl ItemsSource="{Binding Card.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" ItemsPanel="{StaticResource CoverColumn}" Focusable="False" />
+                    <ItemsControl ItemsSource="{Binding Card.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" ItemsPanel="{StaticResource CoverColumn}" Focusable="False"
+                                  s:ShareTextFit.Scope="True" />
                     <ItemsControl Grid.Column="2" ItemsSource="{Binding Card.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" ItemsPanel="{StaticResource CoverColumn}"
-                                  Focusable="False" />
+                                  Focusable="False" s:ShareTextFit.Scope="True" />
                 </Grid>
             </Viewbox>
         </Grid>

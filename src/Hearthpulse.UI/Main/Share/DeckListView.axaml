@@ -29,11 +29,11 @@
                     </StackPanel>
                 </DockPanel>
 
-                <ItemsControl ItemsSource="{Binding Deck.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
-                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them -->
+                <ItemsControl ItemsSource="{Binding Deck.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
+                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them. One name size for the list. -->
                     <ItemsControl.Styles>
                         <Style Selector="ItemsControl > ContentPresenter">
-                            <Setter Property="Height" Value="30" />
+                            <Setter Property="Height" Value="{x:Static s:DeckPictureCard.RowPitch}" />
                         </Style>
                     </ItemsControl.Styles>
                 </ItemsControl>

@@ -31,6 +31,8 @@
             <TextBlock Text="{i:Loc Growth.Timestamps.Range}" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" />
             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal">
+                    <!-- No GroupName: the buttons group by their panel. A named group is kept in a WPF-wide table with closed, not yet collected buttons, the likely cause of a
+                         stack overflow in the render scenes (not confirmed by a test; TASK-2026-11-09-deck-cover M2). Avalonia keeps its GroupName. -->
                     <RadioButton x:Name="RangeSession" Style="{StaticResource Tab}" Content="{i:Loc Growth.Timestamps.RangeSession}"
                                  AutomationProperties.Name="{i:Loc Growth.Timestamps.RangeSession}" IsChecked="{Binding RangeSession}" />
                     <RadioButton x:Name="RangeToday" Style="{StaticResource Tab}" Content="{i:Loc Growth.Timestamps.RangeToday}"

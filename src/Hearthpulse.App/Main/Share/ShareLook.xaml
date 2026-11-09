@@ -96,8 +96,8 @@
 
     <!-- A deck card as the tracker lists it: cost gem, name over the art, copies or the legendary star, rarity edge -->
     <DataTemplate x:Key="ShareDeckRow" DataType="{x:Type d:DeckListRow}">
-        <!-- 28 high in the list; the cover's even rows stretch it up to 36 -->
-        <Grid MinHeight="28" MaxHeight="36" Margin="0,0,0,2">
+        <!-- 28 high in the list; the cover's even rows stretch it up to 36 (DeckPictureCard.Row*; the margin is RowGap) -->
+        <Grid MinHeight="{x:Static s:DeckPictureCard.RowHeight}" MaxHeight="{x:Static s:DeckPictureCard.RowMaxHeight}" Margin="0,0,0,2">
             <Border Background="{StaticResource Row}" CornerRadius="{StaticResource RadiusPill}" c:RoundClip.Radius="14">
                 <Grid>
                     <Grid Width="180" HorizontalAlignment="Right">

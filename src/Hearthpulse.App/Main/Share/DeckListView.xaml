@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:s="clr-namespace:Hearthpulse.App.Main.Share"
              Width="420">
     <!-- The deck picture, vertical list (proposal C1): class portrait and name, the rows as the tracker lists them, the
          curve, the code. DataContext: ShareViewModel; Card is a DeckPictureCard. Art from the card art cache, free. -->
@@ -25,11 +26,11 @@
                     </StackPanel>
                 </DockPanel>
 
-                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False">
-                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them -->
+                <ItemsControl ItemsSource="{Binding Card.Rows}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
+                    <!-- The list keeps its rows 28 high (and the gap); only the cover stretches them. One name size for the list. -->
                     <ItemsControl.ItemContainerStyle>
                         <Style TargetType="ContentPresenter">
-                            <Setter Property="Height" Value="30" />
+                            <Setter Property="Height" Value="{x:Static s:DeckPictureCard.RowPitch}" />
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
