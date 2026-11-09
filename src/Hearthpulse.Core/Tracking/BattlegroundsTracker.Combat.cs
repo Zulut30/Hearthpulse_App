@@ -121,8 +121,9 @@ public sealed partial class BattlegroundsTracker
         var opponentHero = LeaderboardHero(game, _combatOpponent);
         var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat, Turn = game.BattlegroundsTurn };
         var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat, Turn = game.BattlegroundsTurn };
+        // Only our own cards' values: whether the client shows the opponent's is not established, so theirs stay out
+        // (their effects that need one report missing_input).
         ours = ours with { ExtraTags = ExtraTagsOf(game, game.LocalPlayerId, ours.Extras) };
-        theirs = theirs with { ExtraTags = ExtraTagsOf(game, game.OpponentPlayerId, theirs.Extras) };
         if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
         {
             theirs = theirs with { TavernTier = opponentTier };
@@ -142,9 +143,9 @@ public sealed partial class BattlegroundsTracker
     }
 
     /// <summary>
-    /// Numeric tags of a side's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id:
-    /// values that grow over the game (Broodmother's Whelp, Fang Anklet...). Tags the client shows for either player
-    /// (the card text on hover reads them); a card that is not in play has no entry, so its effect reports missing_input.
+    /// The local player's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id: only
+    /// the tags effects read (<see cref="CombatEffect.CapturedTags"/>), values that grow over the game (Fang Anklet,
+    /// Tentacular...). A card not in play, or without such a tag, has no value, so its effect reports missing_input.
     /// </summary>
     private static Dictionary<string, IReadOnlyDictionary<string, int>> ExtraTagsOf(GameState game, int controller, IReadOnlyList<string> extras)
     {
@@ -156,7 +157,16 @@ public sealed partial class BattlegroundsTracker
 
         foreach (var entity in game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0 && extras.Contains(e.CardId)).OrderBy(e => e.Id))
         {
-            tags.TryAdd(entity.CardId, NumericTags(entity));
+            var wanted = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var tag in CombatEffect.CapturedTags)
+            {
+                if (entity.Tags.ContainsKey(tag))
+                {
+                    wanted[tag] = entity.GetInt(tag);
+                }
+            }
+
+            tags.TryAdd(entity.CardId, wanted);
         }
 
         return tags;

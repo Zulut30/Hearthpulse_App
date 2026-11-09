@@ -165,13 +165,14 @@ public sealed class CaptureTests
     [Fact]
     public void Player_card_values_reach_the_side_and_a_missing_one_is_missing_input()
     {
-        // Fang Anklet on both sides: ours shows its grown value in the trinket's tags, theirs does not.
+        // Fang Anklet on both sides with its value in the trinket's tags: ours is read (only the effect tags), theirs is
+        // not (whether the client shows it is not established), so their anklet is missing_input.
         var log = new PowerLog()
             .BattlegroundsGame()
             .Minion(30, "BG36_207", Me, 1, 3, 6)
             .Minion(40, "BG36_207", Them, 1, 3, 6)
-            .Entity(70, "BG35_MagicItem_701", Me, "PLAY", "BATTLEGROUND_TRINKET", ("TAG_SCRIPT_DATA_NUM_1", "2"))
-            .Entity(71, "BG35_MagicItem_701", Them, "PLAY", "BATTLEGROUND_TRINKET")
+            .Entity(70, "BG35_MagicItem_701", Me, "PLAY", "BATTLEGROUND_TRINKET", ("TAG_SCRIPT_DATA_NUM_1", "2"), ("TAG_SCRIPT_DATA_NUM_4", "43"))
+            .Entity(71, "BG35_MagicItem_701", Them, "PLAY", "BATTLEGROUND_TRINKET", ("TAG_SCRIPT_DATA_NUM_1", "5"))
             .CombatStarts()
             .Block("ATTACK", Ref(30, "Wolf Pup", "BG36_207", Me));
 
@@ -179,6 +180,9 @@ public sealed class CaptureTests
         var capture = tracker.LastCapture!;
 
         Assert.Equal(2, capture.Ours.ExtraTag("BG35_MagicItem_701", "TAG_SCRIPT_DATA_NUM_1"));
+        Assert.Null(capture.Ours.ExtraTag("BG35_MagicItem_701", "TAG_SCRIPT_DATA_NUM_4"));
+        Assert.Null(capture.Ours.ExtraTag("BG35_MagicItem_701", "CONTROLLER"));
+        Assert.Empty(capture.Theirs.ExtraTags);
         Assert.Empty(CombatSimulator.Explain(capture.Ours, isOpponent: false));
         Assert.Null(capture.Theirs.ExtraTag("BG35_MagicItem_701", "TAG_SCRIPT_DATA_NUM_1"));
         var missing = Assert.Single(CombatSimulator.Explain(capture.Theirs, isOpponent: true));

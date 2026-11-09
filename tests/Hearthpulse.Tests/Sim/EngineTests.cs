@@ -308,6 +308,18 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Immune_attacker_stays_immune_during_a_nested_attack()
+    {
+        // Our immune minion's attack makes a friendly helper attack first; the helper's attack hits the immune minion for
+        // 5. The outer attack is still going on, so the immune minion takes nothing.
+        var result = Fight(Side(Minion(4, 4, cardId: "IMMUNE_CALLER"), Minion(1, 1, cardId: "HELPER")), Side(Minion(0, 50, cardId: "T")),
+                           oursFirst: true, Effects(typeof(ImmuneCaller), typeof(HelperHitsCaller)));
+
+        Assert.Contains("our IMMUNE_CALLER 4/4 is immune", result.Log);
+        Assert.DoesNotContain(result.Log, l => l.StartsWith("our IMMUNE_CALLER", StringComparison.Ordinal) && l.Contains(" takes ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Start_of_combat_resolved_before_capture_is_not_applied_again()
     {
         // Fang Anklet's Start of Combat buff (+X/+X to Beasts) is already in the captured 4/4: the fight must not add it
@@ -438,6 +450,32 @@ public sealed class EngineTests
     private sealed class ImmuneAttacker : CombatEffect
     {
         public override bool ImmuneWhileAttacking => true;
+    }
+
+    [CardEffect("IMMUNE_CALLER")]
+    private sealed class ImmuneCaller : CombatEffect
+    {
+        public override bool ImmuneWhileAttacking => true;
+
+        public override void OnAttack(Fight fight, Unit self, Unit target)
+        {
+            if (self.Counter++ == 0 && fight.Alive(self.Side, except: self).FirstOrDefault() is { } helper)
+            {
+                fight.AttackNow(helper, target);
+            }
+        }
+    }
+
+    [CardEffect("HELPER")]
+    private sealed class HelperHitsCaller : CombatEffect
+    {
+        public override void OnAttack(Fight fight, Unit self, Unit target)
+        {
+            if (self.Counter++ == 0 && fight.Alive(self.Side, except: self).FirstOrDefault(u => u.CardId == "IMMUNE_CALLER") is { } caller)
+            {
+                fight.DealDamage(self, caller, 5);
+            }
+        }
     }
 
     [CardEffect("INPUT")]

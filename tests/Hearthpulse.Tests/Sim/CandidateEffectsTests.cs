@@ -67,14 +67,30 @@ public sealed class CandidateEffectsTests
     }
 
     [Fact]
-    public void Broodmother_without_its_captured_value_is_missing_input_and_summons_nothing()
+    public void Broodmother_improves_the_next_whelp_by_one_one_each_trigger()
     {
+        // Seven 1/1s and the first Whelp die to their 1/100: deaths 4 and 8 trigger, the second Whelp is +1/+1 bigger.
+        var ours = WithExtra(Side(Enumerable.Range(0, 7).Select(i => Minion(1, 1, cardId: $"M{i}")).ToArray()), Broodmother, Growth21);
+        var whelps = Fight(ours, Side(Minion(1, 100, cardId: "WALL")), oursFirst: true).Lines("summoned our BG22_HERO_305t");
+
+        Assert.True(whelps.Count >= 2, string.Join('\n', whelps));
+        Assert.StartsWith("summoned our BG22_HERO_305t 3/2", whelps[0], StringComparison.Ordinal);
+        Assert.StartsWith("summoned our BG22_HERO_305t 4/3", whelps[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Broodmother_is_missing_input_until_its_avenge_progress_is_captured()
+    {
+        // Without its value it summons nothing; with it the Whelps come, but the Avenge progress made before the capture
+        // is in no known tag, so the fight stays an estimate either way.
         var ours = WithExtra(Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1)), Broodmother);
         var item = Assert.Single(CombatSimulator.Explain(ours, isOpponent: false));
         Assert.Equal((Broodmother, UnsimulatedReason.MissingInput, "missing_input"), (item.CardId, item.Reason, item.Code));
         Assert.Empty(Fight(ours, Side(Minion(1, 100)), oursFirst: true).Lines("summoned our BG22_HERO_305t"));
         Assert.Equal(1, CombatSimulator.Run(ours, Side(Minion(1, 100)), true, new SimOptions { Runs = 10 }).Unsimulated);
-        Assert.Empty(CombatSimulator.Explain(WithExtra(ours, Broodmother, Growth21), isOpponent: true));
+        var grown = WithExtra(ours, Broodmother, Growth21);
+        Assert.Equal(UnsimulatedReason.MissingInput, Assert.Single(CombatSimulator.Explain(grown, isOpponent: false)).Reason);
+        Assert.Equal(1, CombatSimulator.Run(grown, Side(Minion(1, 100)), true, new SimOptions { Runs = 10 }).Unsimulated);
     }
 
     // ------------------------------------------------------------------------------------------- Tentacular

@@ -109,7 +109,8 @@ public static class SimCoverage
     }
 
     private static Coverage Implemented(CombatEffect effect, string note) =>
-        effect.NeedsHand ? new Coverage(CoverageStatus.Implemented, $"{note}; у соперника missing_input (рука скрыта)")
+        effect.UncapturedInput is { } missing ? new Coverage(CoverageStatus.MissingInput, $"{note}; эффект есть, но нет в снимке: {missing}")
+        : effect.NeedsHand ? new Coverage(CoverageStatus.Implemented, $"{note}; у соперника missing_input (рука скрыта)")
         : effect.CapturedInput is { } input ? new Coverage(CoverageStatus.Implemented, $"{note}; величина: {input}, без неё missing_input")
         : new Coverage(CoverageStatus.Implemented, note);
 

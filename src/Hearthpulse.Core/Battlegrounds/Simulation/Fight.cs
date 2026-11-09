@@ -90,9 +90,6 @@ public sealed partial class Fight
     /// <summary>The side whose attack is being resolved; its deaths resolve first.</summary>
     public Side Attacking { get; private set; }
 
-    /// <summary>The minion whose attack is being resolved (innermost one for nested attacks), else null.</summary>
-    public Unit? CurrentAttacker { get; private set; }
-
     public bool Tracing => _log is not null;
 
     public IReadOnlyList<string> Log => (IReadOnlyList<string>?)_log ?? Array.Empty<string>();

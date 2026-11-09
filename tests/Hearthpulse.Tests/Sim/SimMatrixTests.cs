@@ -28,10 +28,12 @@ public sealed partial class SimMatrixTests
             var effective = CombatRelevance.Find(row.CardId)!;
             var kind = effective.Origin == Origin.Player ? CoverageKind.Trinket : CoverageKind.Minion;
             var status = SimCoverage.Classify(row.CardId, kind).Status;
-            var implemented = Registry.Get(row.CardId, golden: false) is not null;
+            var effect = Registry.Get(row.CardId, golden: false);
+            var implemented = effect is not null;
             var expected = effective.Relevance switch
             {
                 Relevance.Resolved => CoverageStatus.Resolved,
+                _ when effect?.UncapturedInput is not null => CoverageStatus.MissingInput,
                 _ when implemented => CoverageStatus.Implemented,
                 Relevance.Relevant or Relevance.Conditional => SimCoverage.InputGap(row.CardId) is not null ? CoverageStatus.MissingInput : CoverageStatus.MissingEffect,
                 _ => CoverageStatus.NoEffect,
@@ -46,13 +48,16 @@ public sealed partial class SimMatrixTests
         foreach (var id in Registry.NormalCardIds)
         {
             var status = SimCoverage.Classify(id, CoverageKind.Minion).Status;
-            Assert.True(status is CoverageStatus.Implemented or CoverageStatus.Resolved, $"{id}: {status}");
+            var ok = Registry.Get(id, golden: false)!.UncapturedInput is null
+                ? status is CoverageStatus.Implemented or CoverageStatus.Resolved
+                : status == CoverageStatus.MissingInput;
+            Assert.True(ok, $"{id}: {status}");
         }
     }
 
     [Theory]
     [InlineData("BG36_MidGameEffect_000t60e", CoverageStatus.Implemented)] // Invulnerability
-    [InlineData("BG22_HERO_305p", CoverageStatus.Implemented)] // Broodmother
+    [InlineData("BG22_HERO_305p", CoverageStatus.MissingInput)] // Broodmother: Avenge progress before the capture
     [InlineData("BG23_HERO_201p", CoverageStatus.Implemented)] // Tentacular
     [InlineData("BG35_MagicItem_701", CoverageStatus.Implemented)] // Fang Anklet
     [InlineData("BG30_MagicItem_442", CoverageStatus.MissingInput)] // Blood Golem Sticker
@@ -63,7 +68,9 @@ public sealed partial class SimMatrixTests
     [Fact]
     public void Growing_values_say_what_they_need()
     {
-        Assert.Contains("missing_input", SimCoverage.Classify("BG22_HERO_305p", CoverageKind.HeroPower).Note, StringComparison.Ordinal);
+        Assert.Contains("missing_input", SimCoverage.Classify("BG23_HERO_201p", CoverageKind.HeroPower).Note, StringComparison.Ordinal);
+        Assert.Contains("допущение", SimCoverage.Classify("BG35_MagicItem_701", CoverageKind.Trinket).Note, StringComparison.Ordinal);
+        Assert.Contains("Avenge", SimCoverage.Classify("BG22_HERO_305p", CoverageKind.HeroPower).Note, StringComparison.Ordinal);
         Assert.Contains("рука скрыта", SimCoverage.Classify("BG34_140", CoverageKind.Minion).Note, StringComparison.Ordinal);
     }
 

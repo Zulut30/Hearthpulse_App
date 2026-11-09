@@ -83,10 +83,22 @@ public abstract class CombatEffect
     public virtual string? CapturedInput => null;
 
     /// <summary>
+    /// A value the effect needs that the capture never holds (e.g. Avenge progress made before the boards were
+    /// captured): the fight is always "not simulated" with <see cref="UnsimulatedReason.MissingInput"/>. Null = none.
+    /// </summary>
+    public virtual string? UncapturedInput => null;
+
+    /// <summary>
+    /// The tags of the local player's player-level cards the capture keeps (<see cref="SimSide.ExtraTags"/>); nothing
+    /// else is read, and nothing of the opponent's.
+    /// </summary>
+    public static IReadOnlyList<string> CapturedTags { get; } = ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2"];
+
+    /// <summary>
     /// False when the value this effect needs is not in the capture of <paramref name="side"/>: the fight is then
     /// "not simulated" with the reason <see cref="UnsimulatedReason.MissingInput"/> instead of using a silent 0.
     /// </summary>
-    public virtual bool HasInputs(SimSide side, string cardId) => true;
+    public virtual bool HasInputs(SimSide side, string cardId) => UncapturedInput is null;
 
     // ---- Fight start -------------------------------------------------------------------------------------------
 

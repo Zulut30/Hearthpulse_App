@@ -2,16 +2,17 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Player;
 
 // Hero powers and trinkets whose number grows over the game (English card text, patch 37.0). The number is read from the
 // card's own entity at capture (SimSide.ExtraTags): TAG_SCRIPT_DATA_NUM_1 = Attack gained, TAG_SCRIPT_DATA_NUM_2 =
-// Health gained (NUM_1 for both when NUM_2 is absent), on top of the printed value. Not checked against a real log of
-// these cards (the owner's logs have none in combat): when the tag is not in the capture the fight is "not simulated"
-// with missing_input instead of guessing the printed value.
+// Health gained (NUM_1 for both when NUM_2 is absent), on top of the printed value. ASSUMPTION, not checked against a
+// real log of these cards (the owner's logs have none in combat): when the tag is not in the capture the fight is "not
+// simulated" with missing_input instead of guessing the printed value. Only the local player's cards are captured, so the
+// opponent's always report missing_input.
 
 /// <summary>The captured growth of a player-level card.</summary>
 internal static class GrowingValue
 {
     public const string AttackTag = "TAG_SCRIPT_DATA_NUM_1";
     public const string HealthTag = "TAG_SCRIPT_DATA_NUM_2";
-    public const string Description = "TAG_SCRIPT_DATA_NUM_1/2 карты игрока (рост с начала игры)";
+    public const string Description = "TAG_SCRIPT_DATA_NUM_1/2 своей карты как рост с начала игры (допущение, не сверено с логом; у соперника не читается)";
 
     /// <summary>Attack and Health gained, or null when the card's tags were not captured.</summary>
     public static (int Attack, int Health)? Growth(SimSide side, string cardId) =>
@@ -23,7 +24,9 @@ internal static class GrowingValue
 /// <summary>
 /// Broodmother (BG22_HERO_305p, Onyxia): "Avenge (4): Summon a 1/1 Whelp that attacks immediately. Improve this by +1/+1."
 /// The Whelp (a Dragon) is summoned at the right end and attacks right after the attack in progress; every trigger in the
-/// fight improves the next Whelp by +1/+1. Avenge progress from before the capture is not read (starts at 0).
+/// fight improves the next Whelp by +1/+1. The Whelp is the 1/1 token BG22_HERO_305t (English text and the token card;
+/// the ruRU text of 2026-11-07 says 2/2). Avenge progress from before the capture (and whether it carries over between
+/// combats) is in no known tag, so the fight is always missing_input: the effect runs, the odds are an estimate.
 /// </summary>
 [CardEffect("BG22_HERO_305p")]
 internal sealed class Broodmother : AvengeEffect
@@ -32,7 +35,7 @@ internal sealed class Broodmother : AvengeEffect
 
     public override string CapturedInput => GrowingValue.Description;
 
-    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Growth(side, cardId) is not null;
+    public override string UncapturedInput => "прогресс Avenge (4) до снимка";
 
     protected override int Threshold(Unit self) => 4;
 

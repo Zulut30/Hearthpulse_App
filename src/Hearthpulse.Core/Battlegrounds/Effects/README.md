@@ -66,7 +66,8 @@ Properties: `NeedsHand` (the effect reads its owner's hand; stays "not simulated
 `ImmuneWhileAttacking` (the engine prevents all damage to the unit while its own attack resolves: Invulnerability),
 `HasInputs(side, cardId)` + `CapturedInput` (a player-level card whose value grows over the game reads it from
 `side.Info.ExtraTag(cardId, tag)`, the card's own tags at capture; false = "not simulated" with `missing_input`, never a
-silent printed value).
+silent printed value; only `CombatEffect.CapturedTags` of the local player's cards are captured, never the opponent's),
+`UncapturedInput` (a value no capture holds, e.g. Avenge progress before the capture: always `missing_input`).
 
 `AvengeEffect`: override `Threshold(self)` and `Avenge(f, self)`; it counts friendly deaths while self is alive.
 The counter starts at 0 each fight (start-of-combat deaths before capture are not counted: progress is not read

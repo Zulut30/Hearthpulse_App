@@ -11,11 +11,11 @@
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Существа | 224 | 10 | 67 | 18 | 0 | 3 | 322 |
-| Силы героя | 102 | 7 | 6 | 1 | 0 | 0 | 116 |
+| Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
 | Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 568 | 37 | 89 | 28 | 1 | 5 | 728 |
+| **Без «вне пула»** | 568 | 37 | 88 | 28 | 2 | 5 | 728 |
 
 ## Существа
 
@@ -457,13 +457,13 @@
 | TB_BaconShop_HP_086 | Swatting Insects | resolved | да | Al'Akir; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_037a | Wax Warband | resolved | да | Queen Wagtoggle; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_069 | Wingmen | resolved | да | Illidan Stormrage; Start of Combat: разрешилось до снимка |
-| BG22_HERO_305p | Broodmother | implemented | да | Onyxia; HP_AVENGE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 карты игрока (рост с начала игры), без неё missing_input |
 | BG22_HERO_002p | Frostwolf Fervor | implemented | да | Drek'Thar; HP_SPACE_SUMMON |
 | BG20_HERO_100p | Glory of Combat | implemented | да | Rokara; HP_KILL_BUFF |
 | TB_BaconShop_HP_107 | Sprout It Out! | implemented | да | Greybough; HP_SUMMON_BUFF |
 | BG22_HERO_003p | Stormpike Strength | implemented | да | Vanndar Stormpike; HP_SPACE_SUMMON |
-| BG23_HERO_201p | Tentacular | implemented | да | Ozumat; HP_SPACE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 карты игрока (рост с начала игры), без неё missing_input |
+| BG23_HERO_201p | Tentacular | implemented | да | Ozumat; HP_SPACE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты как рост с начала игры (допущение, не сверено с логом; у соперника не читается), без неё missing_input |
 | BG25_HERO_103p | Rapid Reanimation | missing_effect | да | Teron Gorefiend; HP_RELEVANT |
+| BG22_HERO_305p | Broodmother | missing_input | да | Onyxia; HP_AVENGE_SUMMON; эффект есть, но нет в снимке: прогресс Avenge (4) до снимка |
 
 ## Тринкеты
 
@@ -851,7 +851,7 @@
 | BG35_MagicItem_731 | Deathtouch Apple | implemented | вне пула | TR_REBORN_KEYWORD |
 | BG36_MagicItem_205 | Deathwhisper Sticker | implemented | вне пула | TR_REBORN_BUFF |
 | BG32_MagicItem_363 | Faerie Dragon Scale | implemented | да | TR_ATTACK_KEYWORD |
-| BG35_MagicItem_701 | Fang Anklet | implemented | да | TR_SUMMON_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 карты игрока (рост с начала игры), без неё missing_input |
+| BG35_MagicItem_701 | Fang Anklet | implemented | да | TR_SUMMON_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты как рост с начала игры (допущение, не сверено с логом; у соперника не читается), без неё missing_input |
 | BG30_MagicItem_880 | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG30_MagicItem_880t | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG30_MagicItem_864 | Gilnean Thorned Rose | implemented | вне пула | TR_AVENGE_BUFF |
