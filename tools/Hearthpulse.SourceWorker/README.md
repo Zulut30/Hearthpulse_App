@@ -38,7 +38,7 @@ Use distinct source/result paths and a separate output per job. The worker never
 Stdout is exactly one safe JSON status line; stderr is empty. Success example:
 
 ```json
-{"ok":true,"status":"parsed","parserVersion":"source-v1.2","records":4,"unsupported":0,"gaps":0}
+{"ok":true,"status":"parsed","parserVersion":"source-v2.0","records":4,"unsupported":0,"gaps":0}
 ```
 
 Failure example:
@@ -66,15 +66,16 @@ Namespace: `Hearthpulse.Core.SourceCapture.Processing`.
 ```csharp
 new SourceCaptureParser(SourceCaptureLimits? limits = null);
 Task<SourceCaptureResult> ParseAsync(Stream input, CancellationToken cancellationToken = default);
-SourceCaptureParser.ParserVersion; // "source-v1.2"
+SourceCaptureParser.ParserVersion; // "source-v2.0"
 SourceWorkerCommand.Serialize(SourceCaptureResult result); // stable camelCase JSON
 Task<int> SourceWorkerCommand.RunAsync(string[] args, TextWriter stdout,
     CancellationToken cancellationToken = default);
 ```
 
 The parser leaves the input open, keeps no state between jobs, and throws `SourceCaptureException`
-with a fixed `Code` on invalid source. `SourceCaptureResult` contains `v`, `parserVersion`,
-`sourceSha256`, `status`, `records`, `unsupported`, `gaps`, `events`, `summary`.
+with a fixed `Code` on invalid source. `SourceCaptureResult` (result `v:2`) contains, in this order, `v`,
+`parserVersion`, `sourceVersion`, `sourceSha256`, `status`, `records`, `unsupported`, `gaps`, `events`, `summary`,
+`context`, `eligibility`, `facts` (see "Source v2 and result v2" below).
 `sourceSha256` hashes the original bytes, including LF; derived data keys are sorted ordinally.
 Reprocessing the same bytes with this version gives byte-identical output, independent of path/time/culture.
 No aggregation store is touched. The server owns replacement of the old contribution and generation/revoke checks.
@@ -113,6 +114,43 @@ This implementation conservatively reports partial for incomplete capture even w
 observations, not missing source rows. An OTHER block, unknown action or an archived future record
 with empty data yields partial; unknown kind is normalized to `unsupported` and is not echoed.
 Arbitrary future data is rejected. New uploads should use the specified `gap/unsupported` shape.
+
+## Source v2 and result v2
+
+The parser reads source `v:1` and `v:2`. All records of one source carry the same `v`, equal to the upload's
+`manifest.sourceVersion`; a mix, or `v` other than 1/2 (`unsupported_version`), fails closed. Source v2 differs from v1
+only in three places, and each v2-only field is rejected in a v1 record:
+
+- `start.data` has exactly `captureKind, mode, day, build, format, arena`. `format` is `standard|wild|classic|twist`
+  or null and may be non-null only for `ranked`/`casual`; `arena` is `normal|underground` or null and may be non-null
+  only for `arena` (game or draft capture).
+- `choice.data` adds `choiceType`: `mulligan|general|other`. It may not change between records of one `choiceId`.
+- `gap.reason` may be `combat_view`: the Power state runs ahead of the displayed BG combat. It is a structural marker
+  written once in the header of every v2 `bg`/`duos` game capture (before any observation); it is still a gap, so such a
+  source stays `partial` and `completeForAggregation=false`.
+
+Result v2 keeps `events` and `summary` exactly as before and adds the per-metric layer (ADR 0013):
+
+```jsonc
+"context":     { "mode": "bg", "day": 20766, "build": 123, "format": null, "arena": null },   // from start; v1: format/arena null
+"eligibility": { "outcome": true, "offers": true, "reasons": [] },
+"facts":       { "outcome": { "result": "L", "placement": 3 },                               // null when outcome=false
+                 "offers": [ { "seq": 3, "kind": "bg_hero", "options": ["..."], "picked": ["..."] } ] } // [] when offers=false
+```
+
+`reasons` come from `source_v1, draft, no_end, end_reason, lifecycle_gap, no_outcome, no_offer, offer_unresolved,
+offer_shape`, in that order, without repeats.
+
+- `outcome` (v2 game): an `end` with `reason:"normal"`, no `late_attach|rotation|shutdown` gap and a mode outcome
+  (`bg` place 1–8, `duos` 1–4, otherwise W/L/T). Other gaps (`combat_view`, `unsupported`, `limit`, `invalid`,
+  `source_missing`) do not spoil it. v1: `outcome = summary.completeForAggregation`, except BG/Duos v1, which is always
+  `false` with `source_v1` (v1 cannot tell the structural BG gap from a real one).
+- `offers` (v2 `bg`/`duos` only): the same lifecycle rules without the outcome; the first choice by `choiceId` is typed
+  `mulligan`, its last record is resolved with 2–4 options and exactly one pick. The fact keeps the options at the
+  moment of the pick (heroes rerolled away are not in it) and `seq` of that resolving record. Other modes: `no_offer`.
+- Draft captures: `outcome=false, offers=false, reasons=["draft"]` (v1 drafts add `source_v1`).
+
+The server re-checks every fact against the source rows before storing it (task contract C2).
 
 ## Budgets and validation
 

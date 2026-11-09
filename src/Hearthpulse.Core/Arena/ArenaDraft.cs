@@ -119,7 +119,8 @@ public static class ArenaDraft
     public static ArenaDraftView Build(ArenaDraftState state, ArenaDraftOffer? offer, ArenaMeta? meta, CardDb cards, bool? underground = null)
     {
         meta ??= ArenaMeta.Empty;
-        var mode = offer?.Underground ?? underground;
+        // The run's own Arena picks the slice: the offer's, the caller's, else the one the run's state learned.
+        var mode = offer?.Underground ?? underground ?? state.Underground;
         // The community class numbers have no Underground split: an Underground run shows none rather than the regular
         // Arena's (the card scores keep their own slice and say when it is the other Arena's).
         if (mode == true)

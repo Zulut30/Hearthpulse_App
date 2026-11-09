@@ -18,9 +18,13 @@ public sealed record SourceCaptureSummary(int Plays, int Buys, int Sells, int Ch
     int ShopSnapshots, int Resources, int DraftChoices, string CaptureKind, string Mode,
     string CaptureStatus, bool HasEnd, bool CompleteForAggregation, string? Result, int? Placement);
 
-/// <summary>One replaceable derived contribution, identified by exact source bytes and parser version.</summary>
-public sealed record SourceCaptureResult(int V, string ParserVersion, string SourceSha256, string Status,
-    int Records, int Unsupported, int Gaps, IReadOnlyList<SourceCaptureEvent> Events, SourceCaptureSummary Summary);
+/// <summary>
+/// One replaceable derived contribution (result v2), identified by exact source bytes and parser version. Summary keeps
+/// the v1 meaning; Context, Eligibility and Facts are the per-metric layer of ADR 0013.
+/// </summary>
+public sealed record SourceCaptureResult(int V, string ParserVersion, int SourceVersion, string SourceSha256, string Status,
+    int Records, int Unsupported, int Gaps, IReadOnlyList<SourceCaptureEvent> Events, SourceCaptureSummary Summary,
+    SourceCaptureContext Context, SourceCaptureEligibility Eligibility, SourceCaptureFacts Facts);
 
 /// <summary>A safe machine error; neither its message nor its code contains input contents.</summary>
 public sealed class SourceCaptureException : Exception

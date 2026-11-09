@@ -175,11 +175,12 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
         {
             if (frame.Record.Kind != "start" || frame.Record.Seq != 0) { Drop(frame.CaptureId, "invalid"); return; }
             Directory.CreateDirectory(CaptureDir(frame.CaptureId));
-            manifest = new(_store.Iid!, _store.Generation!, frame.CaptureId, frame.CaptureKind, frame.Mode, frame.Day, "incomplete", 0, false, []);
+            manifest = new(_store.Iid!, _store.Generation!, frame.CaptureId, frame.CaptureKind, frame.Mode, frame.Day, "incomplete", 0, false, [], frame.Record.V);
             _manifests[frame.CaptureId] = manifest;
             SaveManifest(manifest);
         }
-        if (manifest.Finalized) { Drop(frame.CaptureId, "invalid"); return; }
+        // One source, one wire version: the decoder rejects a capture that mixes them.
+        if (manifest.Finalized || frame.Record.V != manifest.SourceVersion) { Drop(frame.CaptureId, "invalid"); return; }
         var files = ChunkFiles(frame.CaptureId);
         var index = files.Length == 0 ? 0 : int.Parse(Path.GetFileNameWithoutExtension(files[^1]), CultureInfo.InvariantCulture);
         var path = ChunkPath(frame.CaptureId, index);
@@ -247,8 +248,9 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
         {
             var seq = tail.RootElement.GetProperty("seq").GetInt32() + 1;
             var turn = tail.RootElement.GetProperty("turn").GetInt32();
-            var suffix = new SourceCaptureRecord(seq, "gap", turn, "none", 0, null, 0, new { reason = "shutdown", count = 1 }).ToJson() + "\n"
-                + new SourceCaptureRecord(seq + 1, "end", turn, "none", 0, null, 0, new { status = "incomplete", result = (string?)null, placement = (int?)null, reason = "shutdown" }).ToJson() + "\n";
+            var v = manifest.SourceVersion; // A capture spooled before an update is sealed in its own wire version.
+            var suffix = new SourceCaptureRecord(seq, "gap", turn, "none", 0, null, 0, new { reason = "shutdown", count = 1 }, v).ToJson() + "\n"
+                + new SourceCaptureRecord(seq + 1, "end", turn, "none", 0, null, 0, new { status = "incomplete", result = (string?)null, placement = (int?)null, reason = "shutdown" }, v).ToJson() + "\n";
             using var append = new FileStream(last, FileMode.Append, FileAccess.Write); append.Write(Encoding.UTF8.GetBytes(suffix)); append.Flush(true);
         }
         FinalizeCapture(manifest);

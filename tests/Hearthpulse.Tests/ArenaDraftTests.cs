@@ -544,6 +544,106 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.True(underground.Underground);
     }
 
+    /// <summary>AC24: a run's Arena is forgotten by a new run (a new deck id, a new hero) and learned again.</summary>
+    [Fact]
+    public void A_new_run_forgets_the_Arena_of_the_previous_one()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 21:00:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: 5", Cards);
+        tracker.Feed("D 21:00:01.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL", Cards);
+        Assert.Null(tracker.State.Variant);
+        Assert.True(tracker.SetVariant(underground: true));
+        Assert.Equal(ArenaDraftState.UndergroundVariant, tracker.State.Variant);
+        Assert.False(tracker.SetVariant(underground: true));
+
+        // The same deck again (back on the screen) is the same run.
+        tracker.Feed("D 21:00:02.0000000 DraftManager.OnBegin - Got new draft deck with ID: 5", Cards);
+        Assert.True(tracker.State.Underground);
+
+        tracker.Feed("D 22:00:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: 6", Cards);
+        Assert.Null(tracker.State.Variant);
+        tracker.SetVariant(underground: false);
+        Assert.Equal(ArenaDraftState.NormalVariant, tracker.State.Variant);
+
+        // A new hero without OnBegin is a new run too.
+        tracker.Feed("D 22:00:01.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+        tracker.Feed("D 23:00:00.0000000 DraftManager.OnChosen(): hero=HERO_08 premium=NORMAL", Cards);
+        Assert.Null(tracker.State.Variant);
+    }
+
+    /// <summary>AC24: the game of one run does not set another run's Arena; the game of its own run does.</summary>
+    [Fact]
+    public void Only_a_game_of_the_run_names_its_Arena()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 21:00:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: 6", Cards);
+        tracker.Feed("D 21:00:01.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL", Cards);
+        tracker.Feed("D 21:00:02.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+
+        Assert.Null(tracker.ApplyGameDeck(5, ["BE_085"], underground: true));
+        Assert.Null(tracker.State.Variant);
+
+        Assert.NotNull(tracker.ApplyGameDeck(6, ["BE_085"], underground: false));
+        Assert.Equal(ArenaDraftState.NormalVariant, tracker.State.Variant);
+    }
+
+    /// <summary>
+    /// AC24 in the session: an Underground offer names the run; a new run starts unknown and its normal offer names it
+    /// normal, so the scores' slice note follows the run, not the screen's last offer.
+    /// </summary>
+    [Fact]
+    public void An_offer_names_its_own_run_only()
+    {
+        using var draft = Session();
+        draft.Session.SetDraftOffer(["TIME_063", "BE_090", "VAC_301"], underground: true);
+        draft.Tick();
+        Assert.True(draft.Session.ArenaDraftState.Underground);
+        Assert.True(draft.Session.Current.ArenaDraft!.Underground);
+
+        draft.Session.OnLines("Arena.log", ["D 22:00:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: 77"], catchingUp: false);
+        draft.Session.SetDraftOffer(null);
+        draft.Tick();
+        Assert.Null(draft.Session.ArenaDraftState.Variant);
+        Assert.Null(draft.Session.Current.ArenaDraft!.Underground);
+
+        draft.Session.SetDraftOffer(["HERO_07", "HERO_08", "HERO_10"], underground: false);
+        draft.Tick();
+        Assert.False(draft.Session.ArenaDraftState.Underground);
+    }
+
+    /// <summary>
+    /// AC24: the view takes the run's own Arena from the state when the caller does not say; with the server's
+    /// Underground slice a normal run still gets the slice note, an unknown run none (today's behaviour).
+    /// </summary>
+    [Fact]
+    public void The_view_takes_the_runs_Arena_from_the_state()
+    {
+        var meta = new ArenaMeta(Meta().Cards, Meta().Classes, underground: true);
+
+        var normal = ArenaDraft.Build(State(["BE_085"]) with { Variant = ArenaDraftState.NormalVariant }, (ArenaDraftOffer?)null, meta, Cards);
+        var underground = ArenaDraft.Build(State(["BE_085"]) with { Variant = ArenaDraftState.UndergroundVariant }, (ArenaDraftOffer?)null, meta, Cards);
+        var unknown = ArenaDraft.Build(State(["BE_085"]), (ArenaDraftOffer?)null, meta, Cards);
+
+        Assert.True(normal.ScoresFromOtherMode);
+        Assert.False(normal.Underground);
+        Assert.False(underground.ScoresFromOtherMode);
+        Assert.True(underground.Underground);
+        Assert.False(unknown.ScoresFromOtherMode);
+        Assert.Null(unknown.Underground);
+    }
+
+    /// <summary>AC23: a common taken twice in a row is two cards when the card data knows it.</summary>
+    [Fact]
+    public void Two_copies_in_a_row_are_two_cards_with_the_card_data()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 21:00:01.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL", Cards);
+        tracker.Feed("D 21:00:02.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+        tracker.Feed("D 21:00:03.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+
+        Assert.Equal(["BE_085", "BE_085"], tracker.State.Cards);
+    }
+
     private static ArenaDraftState State(IReadOnlyList<string> cards) => new("HERO_07", 0, cards, "DRAFTING");
 
     private static ArenaMeta Meta()

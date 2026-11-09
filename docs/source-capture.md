@@ -15,6 +15,13 @@ with ordered alternatives, actions, visible board/shop snapshots, draft choices 
 a contiguous sequence number, turn, scoped references and versioned payload. Repeated alternatives remain repeated;
 a card instance is distinct from its card definition. Draft captures are independent of completed matches.
 
+Source v2 (current recorder) adds only public context and labels: the game's format for Ranked/Casual
+(`standard|wild|classic|twist`), the Arena kind (`normal|underground`, also on draft captures), the client's choice
+type (`mulligan|general|other`) and a named `combat_view` gap that marks every Battlegrounds game source as not a
+replay of the displayed combat. All records of a capture share one version, recorded as `manifest.sourceVersion`; a
+capture spooled by an older app is finished and sent as v1 unchanged. Contract details: the
+[CLI contract](../tools/Hearthpulse.SourceWorker/README.md#source-v2-and-result-v2).
+
 There is no player name, BattleTag, account id, deck name, chat, authentication/network log or machine path in the
 wire format. Other players' hidden cards, shop or future post-game reveals are not a source. References across
 opponent conceal/reveal boundaries must be renewed so an entity cannot track a hidden shuffled card.
@@ -61,6 +68,12 @@ Structural completeness and completed-game eligibility are separate. `completeFo
 complete game without unresolved observations and the appropriate outcome: W/L/T for Ranked/Casual/Arena/Brawl,
 placement 1–8 for solo Battlegrounds, or team placement 1–4 for Duos. A complete source without that outcome can
 still preserve actions but cannot enter completed-match result aggregates. A draft is never a completed match.
+
+Result v2 (`source-v2.0`) keeps that flag unchanged and adds per-metric eligibility ([ADR 0013](adr/0013-per-metric-eligibility.md)):
+`eligibility.outcome` and `eligibility.offers` with fixed reasons, plus the `facts` they admit (the visible result or
+place; the Battlegrounds hero offer at the moment of the pick). A v2 Battlegrounds game can be fit for the place and
+the hero offer while remaining `partial`; v1 Battlegrounds sources are never fit (`source_v1`). Metric definitions:
+[analytics-metrics.md](analytics-metrics.md).
 
 ## Verification boundaries
 
