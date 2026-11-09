@@ -85,6 +85,25 @@ public sealed class AnalyticsCatalogTests
         Assert.All(metrics.Where(m => m.TryGetProperty("rulesVersion", out _)), m => Assert.Equal("implemented", Text(m, "status")));
     }
 
+    // The pool publishes no number made of fewer than 5 installations (docs/analytics-api.md); the catalog says so per metric.
+    [Fact]
+    public void Every_small_sample_rule_carries_the_five_installation_threshold()
+    {
+        using var doc = Catalog();
+        var metrics = doc.RootElement.GetProperty("metrics").EnumerateArray().ToDictionary(m => Text(m, "id"), m => Text(m, "smallSample"), StringComparer.Ordinal);
+        foreach (var (id, rule) in metrics)
+        {
+            var resolved = rule.StartsWith("as ", StringComparison.Ordinal) ? metrics[rule[3..]] : rule;
+            Assert.Contains("5", resolved, StringComparison.Ordinal);
+            Assert.Contains("installations", resolved, StringComparison.Ordinal);
+            Assert.Contains("10", resolved, StringComparison.Ordinal);
+            Assert.False(resolved.StartsWith("as ", StringComparison.Ordinal), $"{id}: chained reference");
+        }
+        string hero = metrics["bg.hero.offer_pick_placement"];
+        foreach (var part in new[] { "ANALYTICS_MIN_SOURCES", "ANALYTICS_MIN_CELL", "owner", "suppressed", "picked and pickRate", "placement, top4 and first", "dist" })
+            Assert.Contains(part, hero, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_markdown_page_lists_every_metric_of_the_json()
     {

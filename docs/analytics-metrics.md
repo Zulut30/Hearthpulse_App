@@ -14,8 +14,10 @@ computation of an implemented metric is a new `rulesVersion`.
   `completeForAggregation` is not loosened for it. An observation that is not fit is left out of both numerator and
   denominator.
 - **Patch.** The group is `start.build`; `null` is its own "unknown" group. Builds are never mixed to reach a sample.
-- **Small samples.** Shown honestly as missing (`null` with `small_sample`), never padded. Thresholds are the ones of
-  the stats pool: hidden below 5 independent generations, value `null` below 10 in the denominator.
+- **Small samples.** Shown honestly as missing (`null` with `small_sample`), never padded. Every published number
+  covers games of at least 5 installations (`owner`, the hash of the install id), counted among the observations that
+  number is made of; below that the number is `null`. Above it, a value with fewer than 10 in its denominator keeps
+  its counts but its value, interval and distribution are `null`. Server rules: [analytics-api.md](analytics-api.md).
 - **Uncertainty.** Shares carry a Wilson interval (z = 1.96); means carry mean ± 1.96·s/√n and are `null` below n = 2.
 - **Hidden information.** Only what the local player saw: their own offers, picks, results and places, the public
   format, Arena kind and build. No names, BattleTag, account, game or deck ids.
@@ -50,8 +52,11 @@ Unit: one Battlegrounds solo game capture. Window: `start.day` in [today − 30,
 - `picked(h)` — of those, captures whose pick is `h`; `pickRate = picked / offered`.
 - `placement.n(h)` — captures fit for `offers` and `outcome` whose pick is `h`; `mean` place; `dist[0..7]` counts places
   1..8; `top4 = #(place ≤ 4) / n`; `first = #(place = 1) / n`.
-- A hero is hidden (`suppressed`) when fewer than 5 distinct generations offered it; `value/low/high` are `null` when
-  the denominator is below 10; a row is `small_sample` when any of its values is hidden.
+- Every number needs 5 distinct installations (`owner`) among its own captures: the hero row — installations it was
+  offered to (else it is not listed, only counted in `suppressed`); `picked`/`pickRate` — installations that picked it;
+  `placement`/`top4`/`first` — installations that picked it and have a place. Below that the number is `null`.
+- Above that, a value with fewer than 10 games in its denominator keeps `num`/`den` (`n`), but `value/low/high`
+  (`mean`) and `dist` are `null`; a row is `small_sample` when any of its values is `null`.
 - Limit: the offer is the one at the moment of the pick. Heroes rerolled away are not in `offered(h)`, so their offer
   frequency is understated; that is a separate metric later.
 

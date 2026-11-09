@@ -59,6 +59,27 @@ public sealed class SourceCaptureV2Tests : IDisposable
         Assert.False(result.Summary.CompleteForAggregation);
     }
 
+    // AC3 through the live recorder on the real BG game: switched on mid-game, or closed by shutdown.
+    [Theory]
+    [InlineData(true, true, "lifecycle_gap")]
+    [InlineData(false, false, "end_reason")]
+    public async Task Live_recorder_late_attach_or_shutdown_gives_no_outcome_and_no_offers(bool late, bool end, string reason)
+    {
+        var (frames, _) = RecordFixture(end, late);
+        Assert.NotEmpty(frames);
+        var capture = frames.GroupBy(f => f.CaptureId).Last().ToArray();
+        Assert.Equal("start", capture[0].Record.Kind);
+        if (late) Assert.Contains(capture, f => f.Record.Kind == "gap" && Data(f).GetProperty("reason").GetString() == "late_attach");
+        else Assert.Equal("shutdown", Data(capture[^1]).GetProperty("reason").GetString());
+        var result = await Decode(capture);
+        Assert.False(result.Eligibility.Outcome);
+        Assert.False(result.Eligibility.Offers);
+        Assert.Contains(reason, result.Eligibility.Reasons);
+        Assert.Contains("lifecycle_gap", result.Eligibility.Reasons);
+        Assert.Null(result.Facts.Outcome);
+        Assert.Empty(result.Facts.Offers);
+    }
+
     // AC3: a late attach or a shutdown makes neither fact eligible.
     [Theory]
     [InlineData("late_attach", "normal", "lifecycle_gap")]
@@ -308,13 +329,18 @@ public sealed class SourceCaptureV2Tests : IDisposable
         }
     }
 
-    private static (List<SourceCaptureFrame> Frames, GameState Game) RecordFixture(bool end)
+    // late: the player switches capture on during turn 3 of the live game (the recorder writes late_attach).
+    private static (List<SourceCaptureFrame> Frames, GameState Game) RecordFixture(bool end, bool late = false)
     {
         var parser = new PowerParser(new DateOnly(2026, 10, 23)); var recorder = new SourceCaptureRecorder();
-        var frames = new List<SourceCaptureFrame>(); recorder.Recorded += frames.Add; recorder.SetEnabled(true); parser.AddListener(recorder);
+        var frames = new List<SourceCaptureFrame>(); recorder.Recorded += frames.Add; recorder.SetEnabled(!late); parser.AddListener(recorder);
         using var file = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", "BattlegroundsGame", "power.log.gz"));
         using var gzip = new GZipStream(file, CompressionMode.Decompress); using var reader = new StreamReader(gzip);
-        while (reader.ReadLine() is { } line) parser.Feed(line);
+        while (reader.ReadLine() is { } line)
+        {
+            parser.Feed(line);
+            if (late && !recorder.Enabled && parser.Game is { Turn: >= 3 }) recorder.SetEnabled(true);
+        }
         parser.Flush();
         var game = parser.Game!;
         if (end)
