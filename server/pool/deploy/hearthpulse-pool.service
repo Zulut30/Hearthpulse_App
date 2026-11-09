@@ -1,0 +1,37 @@
+[Unit]
+Description=Hearthpulse private source capture API (isolated Node 24)
+After=network.target
+
+[Service]
+Type=simple
+User=hearthpulse-pool
+Group=hearthpulse-pool
+WorkingDirectory=/opt/hearthpulse-pool/app
+EnvironmentFile=/etc/hearthpulse-pool/pool.env
+ExecStart=/opt/hearthpulse-pool/runtime/node-v24.19.0-linux-x64/bin/node server/pool/node/server.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hearthpulse-pool
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=768M
+TasksMax=48
+CPUQuota=150%
+LimitNOFILE=1024
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

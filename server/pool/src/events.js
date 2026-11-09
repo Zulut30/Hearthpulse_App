@@ -168,9 +168,9 @@ export async function submitEvents(body, env, reply) {
   if (records.length === 0) return reply({ error: "invalid game" }, 400);
 
   const limit = Number(env.EVENTS_DAILY ?? EVENTS_DAILY);
-  const used = (await env.DB.prepare("SELECT n FROM equota WHERE day = ?1").bind(today).first())?.n ?? 0;
-  if (used + records.length > limit) return reply({ error: "full for today, try tomorrow" }, 503, { "retry-after": "3600" });
-  await env.DB.prepare("INSERT INTO equota (day, n) VALUES (?1, ?2) ON CONFLICT(day) DO UPDATE SET n = n + ?2").bind(today, records.length).run();
+  const quota = await env.DB.prepare(`INSERT INTO equota (day, n) SELECT ?1, ?2 WHERE ?2 <= ?3
+    ON CONFLICT(day) DO UPDATE SET n = n + ?2 WHERE n + ?2 <= ?3`).bind(today, records.length, limit).run();
+  if ((quota?.meta?.changes ?? quota?.changes ?? 0) !== 1) return reply({ error: "full for today, try tomorrow" }, 503, { "retry-after": "3600" });
   await env.DB.prepare(INSERT).bind(JSON.stringify(records), body.iid).run();
   return reply({ ok: true, stored: records.length });
 }
@@ -179,6 +179,7 @@ export async function submitEvents(body, env, reply) {
 export async function forgetEvents(body, env, reply) {
   if (typeof body?.iid !== "string" || !HEX32.test(body.iid)) return reply({ error: "send {iid}" }, 400);
   const result = await env.DB.prepare("DELETE FROM e WHERE iid = ?1").bind(body.iid).run();
+  await env.DB.prepare("DELETE FROM snap WHERE mode = 'events'").run();
   return reply({ ok: true, deleted: result?.meta?.changes ?? result?.changes ?? 0 });
 }
 
@@ -187,6 +188,7 @@ export async function pruneEvents(env, today = Math.floor(Date.now() / DAY)) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM e WHERE day < ?1").bind(today - KEEP_DAYS),
     env.DB.prepare("DELETE FROM equota WHERE day < ?1").bind(today - 7),
+    env.DB.prepare("DELETE FROM snap WHERE mode = 'events'"),
   ]);
 }
 
@@ -197,8 +199,8 @@ export async function rebuildEvents(env, force) {
   const since = Math.floor(Date.now() / DAY) - WINDOW_DAYS;
   const last = (await env.DB.prepare("SELECT COUNT(*) AS n FROM e").first())?.n ?? 0;
   if (!force) {
-    const snap = await env.DB.prepare("SELECT last_row FROM snap WHERE mode = 'events'").first();
-    if (snap && snap.last_row === last) return null;
+    const snap = await env.DB.prepare("SELECT last_row, built FROM snap WHERE mode = 'events'").first();
+    if (snap && snap.last_row === last && Math.floor(snap.built / DAY) === Math.floor(Date.now() / DAY)) return null;
   }
 
   const days = (await env.DB.prepare(
@@ -233,14 +235,11 @@ export async function rebuildEvents(env, force) {
   return body;
 }
 
-/** GET /v1/events/summary: the published view, cached at the edge for 30 minutes. */
+/** GET /v1/events/summary: a deletion-sensitive published view, never served from an edge cache. */
 export async function eventsSummary(request, env, ctx, reply) {
-  const cache = globalThis.caches?.default;
-  const hit = cache ? await cache.match(request) : null;
-  if (hit) return hit;
-  const row = await env.DB.prepare("SELECT body FROM snap WHERE mode = 'events'").first();
-  const body = row?.body ?? (await rebuildEvents(env, true));
-  const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
-  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
+  // Deletion-sensitive aggregates must never survive a forget in an unpurgeable public cache.
+  const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = 'events'").first();
+  const body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuildEvents(env, true);
+  const response = reply(body, 200, { "cache-control": "no-store" });
   return response;
 }
