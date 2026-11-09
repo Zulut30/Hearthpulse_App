@@ -94,4 +94,6 @@ test('source v2 lines: contract fields accepted, v2 fields never valid in v1, un
   const bg = s2({ mode: 'bg', format: null });
   assert.throws(() => addRecords(streamState(), [bg, combat, { ...combat, seq: 2 }]), e => e.code === 'invalid_combat_view');
   addRecords(streamState(), [bg, combat]);
+  assert.throws(() => addRecords(streamState(), [bg, v2(record(1, 'tag', { tag: 'TURN', value: 1 }, { turn: 1 })), { ...combat, seq: 2, turn: 1 }]), e => e.code === 'invalid_combat_view');
+  assert.throws(() => addRecords(streamState(), [bg, { ...combat, data: { reason: 'combat_view', count: 2 } }]), e => e.code === 'invalid_combat_view');
 });

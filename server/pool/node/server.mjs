@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import legacy, { prune } from '../src/index.js';
 import { pruneEvents } from '../src/events.js';
 import { CaptureArchive } from './archive.mjs';
-import { bgHeroesResponse } from './analytics.mjs';
+import { bgHeroesResponse, thresholds } from './analytics.mjs';
 import { openDatabase, ResponseCache, SerialQueue } from './sqlite.mjs';
 import { CaptureError, fail, MiB, int, parseJson } from './validation.mjs';
 
@@ -46,6 +46,7 @@ function takeLock(root) {
 export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, operatorToken = '',
   maxRequests = 4, archive: archiveOptions = {}, legacyEnv = {}, schedule = true } = {}) {
   if (!dataDir || !path.isAbsolute(dataDir) || !int(port, 0, 65535) || !int(maxRequests, 1, 32)) throw new Error('invalid_service_config');
+  thresholds(); // An invalid ANALYTICS_MIN_* stops the start instead of failing every later rebuild silently.
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const unlock = takeLock(dataDir);
   const queue = new SerialQueue();
@@ -132,7 +133,7 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
   if (schedule) {
     timers.push(setInterval(() => { archive.tick().catch(() => {}); }, 1000));
     // At most once a minute, and only when nothing is published, the snapshot is stale/withdrawn or the day moved.
-    timers.push(setInterval(() => { archive.refreshAnalytics().catch(() => {}); }, 60_000));
+    timers.push(setInterval(() => { archive.refreshAnalytics().catch(reportFailure('analytics_refresh_failed')); }, 60_000));
     timers.push(setInterval(() => {
       archive.maintain().then(() => queue.run(async () => {
         await prune(env); await pruneEvents(env); cache.clear();
@@ -155,6 +156,11 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
       })();
     },
   };
+}
+
+/** Logs a background failure as one technical line: a code and the error name/message, never source content. */
+export function reportFailure(code, log = console.error) {
+  return error => log(JSON.stringify({ ok: false, error: code, cause: String(error?.message ?? error).slice(0, 200) }));
 }
 
 function envInt(name, fallback, min, max) {

@@ -345,7 +345,11 @@ export class CaptureArchive {
         task = { row, id, input, output, ...process };
         this.active.set(row.key, task);
       } catch (e) {
-        if (!(e instanceof CaptureError && e.status === 503)) this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=?").run(row.key);
+        // A failed source re-check (reprocess) contributes nothing either: facts of an earlier result go with it.
+        if (!(e instanceof CaptureError && e.status === 503)) transaction(this.db, () => {
+          this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=?").run(row.key);
+          if (removeFacts(this.db, [row.key])) withdrawSnapshot(this.db);
+        });
         fs.rmSync(input, { force: true });
       }
     });
@@ -370,7 +374,7 @@ export class CaptureArchive {
           this.db.prepare("DELETE FROM snap WHERE mode='source'").run();
           // AC10: the capture's facts are replaced together with derived. Replacing published facts withdraws the
           // snapshot; new facts only mark it stale, the old one stays correct to serve.
-          const replaced = replaceFacts(this.db, task.row.key, task.row.generation, result.parserVersion, JSON.parse(task.row.manifest).sourceVersion, facts);
+          const replaced = replaceFacts(this.db, task.row.key, task.row.generation, task.row.owner, result.parserVersion, JSON.parse(task.row.manifest).sourceVersion, facts);
           if (replaced) withdrawSnapshot(this.db); else if (facts) markSnapshotStale(this.db);
         });
       } catch {

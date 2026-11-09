@@ -164,16 +164,18 @@ export function validateManifest(b) {
   }
 }
 
-export function streamState() { return { version: null, combatView: 0, seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
+export function streamState() { return { version: null, combatView: 0, header: true, seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
 export function addRecords(state, list) {
   for (const r of list) {
     if (r.seq !== state.seq++ || state.ended || (r.kind === 'start' && r.seq !== 0)) fail(400, 'invalid_sequence');
     state.version ??= r.v;
     if (r.v !== state.version) fail(400, 'mixed_source_version');
+    // C1, same rule as the decoder: combat_view belongs to the capture header (only start/gap records before it),
+    // once, count 1, only in a Battlegrounds/Duos game; finishStream requires it in every v2 BG/Duos game.
+    if (r.kind !== 'start' && r.kind !== 'gap') state.header = false;
     if (r.kind === 'gap' && r.data.reason === 'combat_view') {
-      // C1: one marker, only in a Battlegrounds/Duos game capture.
       const s = state.first?.data;
-      if (++state.combatView > 1 || s?.captureKind !== 'game' || !['bg', 'duos'].includes(s?.mode)) fail(400, 'invalid_combat_view');
+      if (!state.header || r.data.count !== 1 || ++state.combatView > 1 || s?.captureKind !== 'game' || !['bg', 'duos'].includes(s?.mode)) fail(400, 'invalid_combat_view');
     }
     if (r.turn < state.turn || (r.seq === 0 && r.kind !== 'start')) fail(400, 'invalid_sequence');
     state.turn = r.turn;
@@ -219,6 +221,7 @@ export function finishStream(state, b) {
   const start = state.first;
   if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps
     || state.version !== b.sourceVersion) fail(400, 'manifest_source_mismatch');
+  if (state.version === 2 && start.data.captureKind === 'game' && ['bg', 'duos'].includes(start.data.mode) && state.combatView !== 1) fail(400, 'invalid_combat_view');
   const end = state.last;
   if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported
     || state.blocks.length || [...state.choices.values()].some(x => !x.resolved))) fail(400, 'incomplete_stream');

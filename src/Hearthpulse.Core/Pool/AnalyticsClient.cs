@@ -6,12 +6,18 @@ namespace Hearthpulse.Core.Pool;
 /// <summary>A share with its Wilson interval; <see cref="Value"/>/<see cref="Low"/>/<see cref="High"/> are null for a small sample.</summary>
 public sealed record AnalyticsRate(int Numerator, int Denominator, double? Value, double? Low, double? High);
 
-/// <summary>Placements of the games where the hero was picked: count, mean with its interval, and places 1..8.</summary>
-public sealed record AnalyticsPlacement(int Count, double? Mean, double? Low, double? High, IReadOnlyList<int> Distribution);
+/// <summary>
+/// Placements of the games where the hero was picked: count, mean with its interval, and places 1..8
+/// (<see cref="Distribution"/> is null below the minimum number of games, like the mean).
+/// </summary>
+public sealed record AnalyticsPlacement(int Count, double? Mean, double? Low, double? High, IReadOnlyList<int>? Distribution);
 
-/// <summary>One hero of metric <c>bg.hero.offer_pick_placement</c>; <see cref="Quality"/> is "ok" or "small_sample".</summary>
-public sealed record BgHeroAnalyticsRow(string HeroCardId, int Offered, int Picked, AnalyticsRate PickRate,
-    AnalyticsPlacement Placement, AnalyticsRate Top4, AnalyticsRate First, string Quality);
+/// <summary>
+/// One hero of metric <c>bg.hero.offer_pick_placement</c>; <see cref="Quality"/> is "ok" or "small_sample". Picks and
+/// placements are null when too few installations stand behind them (the server publishes no count then).
+/// </summary>
+public sealed record BgHeroAnalyticsRow(string HeroCardId, int Offered, int? Picked, AnalyticsRate? PickRate,
+    AnalyticsPlacement? Placement, AnalyticsRate? Top4, AnalyticsRate? First, string Quality);
 
 /// <summary>One game build (null = unknown); <see cref="Suppressed"/> heroes were offered by too few sources to show.</summary>
 public sealed record BgHeroAnalyticsGroup(int? Build, int Captures, int Sources, int Suppressed, IReadOnlyList<BgHeroAnalyticsRow> Heroes);
@@ -81,14 +87,13 @@ public static class AnalyticsClient
                 var heroes = new List<BgHeroAnalyticsRow>();
                 foreach (var hero in group.GetProperty("heroes").EnumerateArray())
                 {
-                    var placement = hero.GetProperty("placement");
+                    var picked = hero.GetProperty("picked");
                     heroes.Add(new BgHeroAnalyticsRow(
                         hero.GetProperty("hero").GetString() ?? throw new FormatException("hero"),
                         hero.GetProperty("offered").GetInt32(),
-                        hero.GetProperty("picked").GetInt32(),
+                        picked.ValueKind == JsonValueKind.Null ? null : picked.GetInt32(),
                         Rate(hero.GetProperty("pickRate")),
-                        new AnalyticsPlacement(placement.GetProperty("n").GetInt32(), Number(placement, "mean"), Number(placement, "low"),
-                            Number(placement, "high"), [.. placement.GetProperty("dist").EnumerateArray().Select(x => x.GetInt32())]),
+                        Placement(hero.GetProperty("placement")),
                         Rate(hero.GetProperty("top4")),
                         Rate(hero.GetProperty("first")),
                         hero.GetProperty("quality").GetString() ?? throw new FormatException("quality")));
@@ -116,8 +121,18 @@ public static class AnalyticsClient
             groups);
     }
 
-    private static AnalyticsRate Rate(JsonElement x) =>
-        new(x.GetProperty("num").GetInt32(), x.GetProperty("den").GetInt32(), Number(x, "value"), Number(x, "low"), Number(x, "high"));
+    private static AnalyticsRate? Rate(JsonElement x) => x.ValueKind == JsonValueKind.Null
+        ? null
+        : new(x.GetProperty("num").GetInt32(), x.GetProperty("den").GetInt32(), Number(x, "value"), Number(x, "low"), Number(x, "high"));
+
+    private static AnalyticsPlacement? Placement(JsonElement x)
+    {
+        if (x.ValueKind == JsonValueKind.Null)
+            return null;
+        var dist = x.GetProperty("dist");
+        return new(x.GetProperty("n").GetInt32(), Number(x, "mean"), Number(x, "low"), Number(x, "high"),
+            dist.ValueKind == JsonValueKind.Null ? null : [.. dist.EnumerateArray().Select(d => d.GetInt32())]);
+    }
 
     private static double? Number(JsonElement x, string name)
     {

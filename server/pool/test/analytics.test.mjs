@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { DAY, record, jsonl, chunk, manifest, setup, workerConfig } from './capture-fixture.mjs';
 import { identity } from '../node/validation.mjs';
-import { startPool } from '../node/server.mjs';
+import { reportFailure, startPool } from '../node/server.mjs';
 
 const hex = n => n.toString(16).padStart(32, '0');
 const ids = (generation, capture) => ({ v: 1, iid: hex(0x100 + generation), generation: hex(0x200 + generation), captureId: hex(0x300 + capture) });
@@ -37,7 +37,8 @@ async function heroes(f, query = '?mode=solo') {
   return { status: response.status, headers: response.headers, body: await response.json() };
 }
 
-// Hand-checked set (AC9): 7 BG solo captures from 5 generations A..E.
+// Hand-checked set (AC9): 7 BG solo captures from 5 installations A..E (one generation each).
+// Thresholds 1/1 here; publication rules at the production thresholds are tested separately (LEGAL L-M1).
 //  #1 A b1000 [H1 H2 H3 H4] -> H1, place 1      #2 A b1000 [H1 H2 H5 H6] -> H1, place 4
 //  #3 B b1000 [H1 H3 H5 H7] -> H3, place 6      #4 C b1000 [H1 H2 H3 H8] -> H1, place 2
 //  #5 D b1000 [H2 H3 H4 H5] -> H2, no place (offers=true, outcome=false)
@@ -46,9 +47,9 @@ async function heroes(f, query = '?mode=solo') {
 //  H1 offered 4 (#1-#4), picked 3 (#1 #2 #4), places 1 4 2: n 3, mean 7/3 = 2.333, s = sqrt(14/3 / 2) = 1.528,
 //     mean CI 2.333 -+ 1.96*1.528/sqrt3 = 0.605..4.062; dist [1,1,0,1,0,0,0,0]; top4 3/3; first 1/3.
 //     pickRate 3/4: Wilson z=1.96 -> centre (0.75 + 0.4802)/1.9604 = 0.6275, half 0.3269 -> 0.301..0.954.
-//  H2 offered 4 (#1 #2 #4 #5), picked 1 (#5, outcome false) -> placement n 0, every placement value null.
+//  H2 offered 4 (#1 #2 #4 #5), picked 1 (#5, outcome false) -> nobody placed it: placement, top4, first null.
 //  H3 offered 4 (#1 #3 #4 #5), picked 1 (#3) -> n 1, mean 6, no interval (n < 2), top4 0/1, first 0/1.
-//  H4 offered 2 (#1 #5), H5 offered 3 (#2 #3 #5), H6 1, H7 1, H8 1, none picked.
+//  H4 offered 2 (#1 #5), H5 offered 3 (#2 #3 #5), H6 1, H7 1, H8 1: nobody picked them -> picked and every rate null.
 // Build 999: capture #6 only; H4 picked, place 8.
 const SET = [
   [0, 1, { options: ['H1', 'H2', 'H3', 'H4'], picked: 'H1', placement: 1 }],
@@ -85,28 +86,31 @@ function independent(sqlite, minCell = 1, minSources = 1) {
     const rows = [];
     for (const hero of names) {
       const seen = list.filter(g => g.options.includes(hero));
-      if (new Set(seen.map(g => g.generation)).size < minSources) { suppressed++; continue; }
+      const installs = list => new Set(list.map(g => g.owner)).size;
+      if (installs(seen) < minSources) { suppressed++; continue; }
       const mine = seen.filter(g => g.pick === hero);
-      const places = mine.filter(g => g.outcome_ok).map(g => g.placement);
+      const placed = mine.filter(g => g.outcome_ok);
+      const places = placed.map(g => g.placement);
       const n = places.length;
-      const dist = [1, 2, 3, 4, 5, 6, 7, 8].map(p => places.filter(x => x === p).length);
-      let placement = { n, mean: null, low: null, high: null, dist };
+      let placement = { n, mean: null, low: null, high: null, dist: null };
       if (n >= minCell && n > 0) {
         const mean = places.reduce((a, b) => a + b, 0) / n;
-        placement = { n, mean: r3(mean), low: null, high: null, dist };
+        placement = { n, mean: r3(mean), low: null, high: null, dist: [1, 2, 3, 4, 5, 6, 7, 8].map(p => places.filter(x => x === p).length) };
         if (n >= 2) {
           const sd = Math.sqrt(places.reduce((a, p) => a + (p - mean) ** 2, 0) / (n - 1));
           placement.low = r3(mean - 1.96 * sd / Math.sqrt(n));
           placement.high = r3(mean + 1.96 * sd / Math.sqrt(n));
         }
       }
-      const row = { hero, offered: seen.length, picked: mine.length, pickRate: wil(mine.length, seen.length), placement,
-        top4: wil(places.filter(p => p <= 4).length, n), first: wil(places.filter(p => p === 1).length, n) };
-      row.quality = [row.pickRate.value, placement.mean, row.top4.value, row.first.value].includes(null) ? 'small_sample' : 'ok';
+      const picks = installs(mine) >= minSources, results = installs(placed) >= minSources;
+      const row = { hero, offered: seen.length, picked: picks ? mine.length : null, pickRate: picks ? wil(mine.length, seen.length) : null,
+        placement: results ? placement : null, top4: results ? wil(places.filter(p => p <= 4).length, n) : null,
+        first: results ? wil(places.filter(p => p === 1).length, n) : null };
+      row.quality = [row.pickRate?.value, row.placement?.mean, row.top4?.value, row.first?.value].some(v => v == null) ? 'small_sample' : 'ok';
       rows.push(row);
     }
     rows.sort((a, b) => b.offered - a.offered || (a.hero < b.hero ? -1 : 1));
-    return { build, captures: list.length, sources: new Set(list.map(g => g.generation)).size, suppressed, heroes: rows };
+    return { build, captures: list.length, sources: new Set(list.map(g => g.owner)).size, suppressed, heroes: rows };
   });
 }
 
@@ -129,17 +133,60 @@ test('AC9 hand-checked BG solo set publishes exact counts, rates and intervals t
   assert.deepEqual(body.groups.map(g => [g.build, g.captures, g.sources, g.suppressed]), [[1000, 5, 4, 0], [999, 1, 1, 0]]);
   const h = Object.fromEntries(body.groups[0].heroes.map(x => [x.hero, x]));
   assert.deepEqual(body.groups[0].heroes.map(x => [x.hero, x.offered, x.picked]),
-    [['H1', 4, 3], ['H2', 4, 1], ['H3', 4, 1], ['H5', 3, 0], ['H4', 2, 0], ['H6', 1, 0], ['H7', 1, 0], ['H8', 1, 0]]);
+    [['H1', 4, 3], ['H2', 4, 1], ['H3', 4, 1], ['H5', 3, null], ['H4', 2, null], ['H6', 1, null], ['H7', 1, null], ['H8', 1, null]]);
+  assert.deepEqual([h.H5.pickRate, h.H5.placement, h.H5.top4, h.H5.first, h.H5.quality], [null, null, null, null, 'small_sample']);
   assert.deepEqual(h.H1.pickRate, { num: 3, den: 4, value: 0.75, low: 0.301, high: 0.954 });
   assert.deepEqual(h.H1.placement, { n: 3, mean: 2.333, low: 0.605, high: 4.062, dist: [1, 1, 0, 1, 0, 0, 0, 0] });
   assert.deepEqual([h.H1.top4.num, h.H1.top4.den, h.H1.top4.value, h.H1.first.num, h.H1.first.value], [3, 3, 1, 1, 0.333]);
   assert.equal(h.H1.quality, 'ok');
-  assert.deepEqual(h.H2.placement, { n: 0, mean: null, low: null, high: null, dist: [0, 0, 0, 0, 0, 0, 0, 0] });
+  assert.deepEqual(h.H2.pickRate, { num: 1, den: 4, value: 0.25, low: 0.046, high: 0.699 });
+  assert.deepEqual([h.H2.placement, h.H2.top4, h.H2.first], [null, null, null]);
   assert.equal(h.H2.quality, 'small_sample');
   assert.deepEqual(h.H3.placement, { n: 1, mean: 6, low: null, high: null, dist: [0, 0, 0, 0, 0, 1, 0, 0] });
   assert.deepEqual([h.H3.top4.value, h.H3.first.value], [0, 0]);
   assert.deepEqual(body.groups[1].heroes.find(x => x.hero === 'H4').placement.dist, [0, 0, 0, 0, 0, 0, 0, 1]);
   assert.deepEqual(body.groups, independent(f.pool.store.sqlite));
+});
+
+test('LEGAL L-M1 at the production thresholds (5 installations, 10 games): one picker reveals no count, place or distribution', async t => {
+  const saved = [process.env.ANALYTICS_MIN_CELL, process.env.ANALYTICS_MIN_SOURCES];
+  delete process.env.ANALYTICS_MIN_CELL; delete process.env.ANALYTICS_MIN_SOURCES;
+  t.after(() => { [process.env.ANALYTICS_MIN_CELL, process.env.ANALYTICS_MIN_SOURCES] = saved; });
+  const f = await setup(t, { archive: { worker: workerConfig('result-v2') } });
+  // HX is offered to 6 installations (0..5) and picked by one (5, place 7). HY is offered to the same 6 and picked
+  // by 5 installations once each: enough installations, but only 5 games (< 10), so counts yes, values and dist no.
+  // HZ is offered to 4 installations only: suppressed.
+  const set = [];
+  for (let i = 0; i < 6; i++) set.push([i, i, { options: i < 4 ? ['HX', 'HY', 'HZ'] : ['HX', 'HY'], picked: i === 5 ? 'HX' : 'HY', placement: i === 5 ? 7 : 1 + i }]);
+  await loadSet(f, set);
+  await f.pool.archive.publishAnalytics();
+  const { body } = await heroes(f);
+  const g = body.groups[0];
+  assert.deepEqual([g.captures, g.sources, g.suppressed, g.heroes.map(x => x.hero)], [6, 6, 1, ['HX', 'HY']]);
+  const [hx, hy] = g.heroes;
+  assert.deepEqual(hx, { hero: 'HX', offered: 6, picked: null, pickRate: null, placement: null, top4: null, first: null, quality: 'small_sample' });
+  assert.deepEqual(hy.picked, 5);
+  assert.deepEqual(hy.pickRate, { num: 5, den: 6, value: null, low: null, high: null });
+  assert.deepEqual(hy.placement, { n: 5, mean: null, low: null, high: null, dist: null });
+  assert.deepEqual(hy.top4, { num: 4, den: 5, value: null, low: null, high: null });
+  assert.equal(hy.quality, 'small_sample');
+  assert.doesNotMatch(JSON.stringify(body), /"dist":\[/, 'no distribution of fewer than 10 games anywhere');
+  assert.deepEqual(body.groups, independent(f.pool.store.sqlite, 10, 5));
+});
+
+test('LEGAL L-m1 sources are installations: one install switching generations is one source', async t => {
+  const f = await setup(t, { archive: { worker: workerConfig('result-v2') } });
+  const same = (generation, capture) => ({ ...ids(generation, capture), iid: hex(0x999) });
+  for (const [generation, capture] of [[0, 1], [1, 2], [2, 3]]) await submit(f, same(generation, capture), bgSource({ options: ['H1', 'H2'], picked: 'H1', placement: 2 }));
+  await drain(f);
+  await f.pool.archive.publishAnalytics();
+  const g = (await heroes(f)).body.groups[0];
+  assert.deepEqual([g.captures, g.sources], [3, 1]);
+  assert.equal(new Set(f.pool.store.sqlite.prepare('SELECT generation FROM source_fact_game').all().map(r => r.generation)).size, 3);
+  process.env.ANALYTICS_MIN_SOURCES = '2';
+  t.after(() => { process.env.ANALYTICS_MIN_SOURCES = '1'; });
+  await f.pool.archive.publishAnalytics();
+  assert.deepEqual((await heroes(f)).body.groups[0].heroes, [], 'three generations of one install stay below two sources');
 });
 
 test('AC12 offers without an outcome count only in offered/picked, offers=false and Duos count nowhere in solo', async t => {
@@ -195,6 +242,27 @@ test('AC10 repeated chunks, manifest and reprocess with the same or another pars
   assert.equal(f.pool.archive.row(key).status, 'failed');
   assert.equal(count(f.pool, 'source_fact_offer', `WHERE capture='${key}'`), 0);
   assert.equal((await heroes(f)).body.reason, 'rebuilding');
+});
+
+test('a reprocess whose source re-check fails (changed or lost chunk) withdraws the facts and the snapshot', async t => {
+  const f = await setup(t, { operatorToken: 'op', archive: { worker: workerConfig('result-v2') } });
+  await loadSet(f);
+  await f.pool.archive.publishAnalytics();
+  const [generation, capture] = SET[0];
+  const id = ids(generation, capture);
+  const key = identity(id).key;
+  assert.equal(count(f.pool, 'source_fact_offer', `WHERE capture='${key}'`), 4);
+  assert.equal((await f.post('reprocess', id, { authorization: 'Bearer op' })).status, 202);
+  fs.writeFileSync(f.pool.archive.chunkPath(identity(id), 0), 'lost');
+  await f.pool.archive.tick();
+  assert.equal(f.pool.archive.row(key).status, 'failed');
+  assert.equal(count(f.pool, 'source_fact_game', `WHERE capture='${key}'`), 0);
+  assert.equal(count(f.pool, 'source_fact_offer', `WHERE capture='${key}'`), 0);
+  assert.equal(count(f.pool, 'source_fact_game'), 6, 'other captures keep their facts');
+  assert.equal((await heroes(f)).body.reason, 'rebuilding');
+  await f.pool.archive.publishAnalytics();
+  const h1 = (await heroes(f)).body.groups[0].heroes.find(x => x.hero === 'H1');
+  assert.deepEqual([h1.offered, h1.picked, h1.placement.n], [3, 2, 2]);
 });
 
 test('AC11 forget and retention delete facts and the snapshot together; a late worker result brings nothing back', async t => {
@@ -353,10 +421,22 @@ test('AC14 strict v2 intake: accepted contract lines, rejected cross-version fie
   const bg = ok.bytes.toString().trimEnd().split('\n').map(JSON.parse);
   const twice = [bg[0], bg[1], { ...bg[1], seq: 2 }, { ...bg[2], seq: 3 }, { ...bg[3], seq: 4 }];
   assert.equal(await reject(twice, { ...ok.overrides, gaps: 2 }, 'complete'), 400);
-  const progression = type => [bg[0], { ...bg[2], seq: 1, data: { ...bg[2].data, resolved: false, picked: [] } },
-    { ...bg[2], seq: 2, data: { ...bg[2].data, choiceType: type } }, { ...bg[3], seq: 3 }];
-  assert.equal(await reject(progression('mulligan'), { ...ok.overrides, gaps: 0 }, 'complete'), 202);
-  assert.equal(await reject(progression('general'), { ...ok.overrides, gaps: 0 }, 'complete'), 400, 'choiceType cannot change within one choice');
+  const progression = type => [bg[0], bg[1], { ...bg[2], seq: 2, data: { ...bg[2].data, resolved: false, picked: [] } },
+    { ...bg[2], seq: 3, data: { ...bg[2].data, choiceType: type } }, { ...bg[3], seq: 4 }];
+  assert.equal(await reject(progression('mulligan'), ok.overrides, 'complete'), 202);
+  assert.equal(await reject(progression('general'), ok.overrides, 'complete'), 400, 'choiceType cannot change within one choice');
+  // combat_view, as the decoder requires it (P1 a5d9bfce): exactly one in every v2 BG/Duos game, in the header
+  // (only start/gap records before it), count 1. Missing, late or counted twice -> 400.
+  const late = [bg[0], { ...bg[2], seq: 1 }, { ...bg[1], seq: 2 }, { ...bg[3], seq: 3 }];
+  const afterGap = [bg[0], v2(1, 'gap', { reason: 'late_attach', count: 1 }), { ...bg[1], seq: 2 }, { ...bg[2], seq: 3 }, { ...bg[3], seq: 4 }];
+  assert.equal(await reject(afterGap, { ...ok.overrides, gaps: 2 }, 'complete'), 202, 'header may hold other gaps first');
+  assert.equal(await reject(late, ok.overrides, 'complete'), 400, 'combat_view after an observation');
+  assert.equal(await reject([bg[0], { ...bg[2], seq: 1 }, { ...bg[3], seq: 2 }], { ...ok.overrides, gaps: 0 }, 'complete'), 400, 'missing combat_view');
+  const duos = bgSource({ mode: 'duos', options: ['H1', 'H2'], picked: 'H1', placement: 1 }).bytes.toString().trimEnd().split('\n').map(JSON.parse);
+  assert.equal(await reject([duos[0], { ...duos[2], seq: 1 }, { ...duos[3], seq: 2 }], { ...ok.overrides, mode: 'duos', gaps: 0 }, 'complete'), 400, 'missing in Duos');
+  assert.equal(await reject([bg[0], { ...bg[1], data: { reason: 'combat_view', count: 2 } }, bg[2], bg[3]], { ...ok.overrides, gaps: 2 }, 'complete'), 400, 'count other than 1');
+  const v1bg = [record(0, 'start', { captureKind: 'game', mode: 'bg', day: DAY, build: null }), record(1, 'end', { status: 'complete', result: null, placement: 2, reason: 'normal' })];
+  assert.equal(await reject(v1bg, { mode: 'bg' }, 'complete'), 202, 'v1 BG never carries the marker');
 });
 
 test('AC16 migration 0009 on a 0008 database is additive and idempotent; a failed rebuild publishes nothing; 10 000 captures rebuild', async t => {
@@ -404,14 +484,32 @@ test('AC16 migration 0009 on a 0008 database is additive and idempotent; a faile
   assert.equal(body.groups.reduce((n, g) => n + g.captures, 0), 10_000);
 });
 
+test('invalid ANALYTICS_MIN_* stops the start, and a failed background rebuild is logged, not swallowed', async t => {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'hp-analytics-cfg-'));
+  t.after(() => { process.env.ANALYTICS_MIN_CELL = '1'; process.env.ANALYTICS_MIN_SOURCES = '1'; rmSync(dataDir, { recursive: true, force: true }); });
+  for (const [name, value] of [['ANALYTICS_MIN_CELL', '0'], ['ANALYTICS_MIN_CELL', 'ten'], ['ANALYTICS_MIN_SOURCES', '-1'], ['ANALYTICS_MIN_SOURCES', '1.5']]) {
+    process.env.ANALYTICS_MIN_CELL = '1'; process.env.ANALYTICS_MIN_SOURCES = '1';
+    process.env[name] = value;
+    await assert.rejects(startPool({ dataDir, port: 0, schedule: false, archive: { minFreeBytes: 0 } }), /invalid_environment/, `${name}=${value}`);
+  }
+  process.env.ANALYTICS_MIN_CELL = '1'; process.env.ANALYTICS_MIN_SOURCES = '1';
+  const pool = await startPool({ dataDir, port: 0, schedule: false, archive: { minFreeBytes: 0 } });
+  await pool.close();
+  const lines = [];
+  reportFailure('analytics_refresh_failed', line => lines.push(line))(new Error('invalid_environment'));
+  assert.deepEqual(lines.map(JSON.parse), [{ ok: false, error: 'analytics_refresh_failed', cause: 'invalid_environment' }]);
+  const server = fs.readFileSync(new URL('../node/server.mjs', import.meta.url), 'utf8');
+  assert.match(server, /refreshAnalytics\(\)\.catch\(reportFailure\('analytics_refresh_failed'\)\)/);
+});
+
 function insertSynthetic(db, n) {
   db.exec('BEGIN');
-  const game = db.prepare(`INSERT INTO source_fact_game(capture,generation,parser_version,source_version,mode,day,build,outcome_ok,offers_ok,result,placement)
-    VALUES(?,?,'synthetic',2,'bg',?,?,1,1,NULL,?)`);
+  const game = db.prepare(`INSERT INTO source_fact_game(capture,generation,owner,parser_version,source_version,mode,day,build,outcome_ok,offers_ok,result,placement)
+    VALUES(?,?,?,'synthetic',2,'bg',?,?,1,1,NULL,?)`);
   const offer = db.prepare("INSERT INTO source_fact_offer(capture,seq,kind,slot,card,picked) VALUES(?,3,'bg_hero',?,?,?)");
   for (let i = 0; i < n; i++) {
     const capture = i.toString(16).padStart(64, '0');
-    game.run(capture, (i % 997).toString(16).padStart(64, 'a'), DAY - (i % 20), 200000 + (i % 3), 1 + (i % 8));
+    game.run(capture, (i % 997).toString(16).padStart(64, 'a'), (i % 499).toString(16).padStart(64, 'b'), DAY - (i % 20), 200000 + (i % 3), 1 + (i % 8));
     for (let slot = 0; slot < 4; slot++) offer.run(capture, slot, `HERO_${(i * 7 + slot * 13) % 90}`, slot === i % 4 ? 1 : 0);
   }
   db.exec('COMMIT');

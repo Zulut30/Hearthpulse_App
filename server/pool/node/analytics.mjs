@@ -76,12 +76,12 @@ export function checkResultV2(r, manifest, src) {
 }
 
 /** Replaces the facts of one capture; returns true when it had facts before (a replacement, not an addition). */
-export function replaceFacts(db, capture, generation, parserVersion, sourceVersion, facts) {
+export function replaceFacts(db, capture, generation, owner, parserVersion, sourceVersion, facts) {
   const had = removeFacts(db, [capture]);
   if (facts) {
     const g = facts.game;
-    db.prepare(`INSERT INTO source_fact_game(capture,generation,parser_version,source_version,mode,day,build,outcome_ok,offers_ok,result,placement)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(capture, generation, parserVersion, sourceVersion, g.mode, g.day, g.build, g.outcome ? 1 : 0, g.offers ? 1 : 0, g.result, g.placement);
+    db.prepare(`INSERT INTO source_fact_game(capture,generation,owner,parser_version,source_version,mode,day,build,outcome_ok,offers_ok,result,placement)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(capture, generation, owner, parserVersion, sourceVersion, g.mode, g.day, g.build, g.outcome ? 1 : 0, g.offers ? 1 : 0, g.result, g.placement);
     const insert = db.prepare('INSERT INTO source_fact_offer(capture,seq,kind,slot,card,picked) VALUES(?,?,?,?,?,?)');
     for (const o of facts.offers) {
       const pickedSlot = o.options.indexOf(o.picked);
@@ -139,9 +139,10 @@ function rate(num, den, minCell) {
 }
 function placement(places, minCell) {
   const n = places.length;
+  // The distribution of fewer than minCell games is as revealing as the places themselves (LEGAL L-M1): not shown.
+  if (n < minCell || n === 0) return { n, mean: null, low: null, high: null, dist: null };
   const dist = [0, 0, 0, 0, 0, 0, 0, 0];
   for (const p of places) dist[p - 1]++;
-  if (n < minCell || n === 0) return { n, mean: null, low: null, high: null, dist };
   const mean = places.reduce((a, b) => a + b, 0) / n;
   if (n < 2) return { n, mean: round(mean), low: null, high: null, dist };
   const s = Math.sqrt(places.reduce((a, p) => a + (p - mean) ** 2, 0) / (n - 1));
@@ -158,10 +159,16 @@ function threshold(name, fallback) {
 }
 export const thresholds = () => ({ minCell: threshold('ANALYTICS_MIN_CELL', 10), minSources: threshold('ANALYTICS_MIN_SOURCES', 5) });
 
-/** C4: one BG solo game capture is one observation; groups by build, newest first, unknown build last. */
+/**
+ * C4: one BG solo game capture is one observation; groups by build, newest first, unknown build last.
+ * Sources are installations (owner = hash of the install id, stable across generations; LEGAL L-m1). Every published
+ * number needs minSources installations behind it (LEGAL L-M1): the row needs them among those offered the hero,
+ * picked/pickRate among those who picked it, placement/top4/first among picks with a result. Below that the value is
+ * null (no counts, no distribution) and the row is small_sample.
+ */
 export function buildBgHeroes(db, { today, minCell, minSources }) {
   const fromDay = today - WINDOW_DAYS;
-  const games = db.prepare(`SELECT capture,generation,build,outcome_ok,placement FROM source_fact_game
+  const games = db.prepare(`SELECT capture,owner,build,outcome_ok,placement FROM source_fact_game
     WHERE mode='bg' AND offers_ok=1 AND day BETWEEN ? AND ?`).all(fromDay, today);
   const offers = db.prepare(`SELECT o.capture,o.card,o.picked FROM source_fact_offer o JOIN source_fact_game g ON g.capture=o.capture
     WHERE g.mode='bg' AND g.offers_ok=1 AND g.day BETWEEN ? AND ? AND o.kind='bg_hero'`).all(fromDay, today);
@@ -174,18 +181,19 @@ export function buildBgHeroes(db, { today, minCell, minSources }) {
   const groups = new Map();
   for (const g of byCapture.values()) {
     const key = g.build ?? null;
-    if (!groups.has(key)) groups.set(key, { build: key, captures: 0, generations: new Set(), heroes: new Map() });
+    if (!groups.has(key)) groups.set(key, { build: key, captures: 0, owners: new Set(), heroes: new Map() });
     const group = groups.get(key);
     group.captures++;
-    group.generations.add(g.generation);
+    group.owners.add(g.owner);
     for (const hero of g.options) {
-      if (!group.heroes.has(hero)) group.heroes.set(hero, { offered: 0, picked: 0, generations: new Set(), places: [] });
+      if (!group.heroes.has(hero)) group.heroes.set(hero, { offered: 0, picked: 0, offeredTo: new Set(), pickedBy: new Set(), placedBy: new Set(), places: [] });
       const h = group.heroes.get(hero);
       h.offered++;
-      h.generations.add(g.generation);
+      h.offeredTo.add(g.owner);
       if (g.picked === hero) {
         h.picked++;
-        if (g.outcome_ok && int(g.placement, 1, 8)) h.places.push(g.placement);
+        h.pickedBy.add(g.owner);
+        if (g.outcome_ok && int(g.placement, 1, 8)) { h.places.push(g.placement); h.placedBy.add(g.owner); }
       }
     }
   }
@@ -196,20 +204,22 @@ export function buildBgHeroes(db, { today, minCell, minSources }) {
       let suppressed = 0;
       const heroes = [];
       for (const [hero, h] of group.heroes) {
-        if (h.generations.size < minSources) { suppressed++; continue; }
+        if (h.offeredTo.size < minSources) { suppressed++; continue; }
         const n = h.places.length;
+        const picks = h.pickedBy.size >= minSources;
+        const places = h.placedBy.size >= minSources;
         const row = {
-          hero, offered: h.offered, picked: h.picked,
-          pickRate: rate(h.picked, h.offered, minCell),
-          placement: placement(h.places, minCell),
-          top4: rate(h.places.filter(p => p <= 4).length, n, minCell),
-          first: rate(h.places.filter(p => p === 1).length, n, minCell),
+          hero, offered: h.offered, picked: picks ? h.picked : null,
+          pickRate: picks ? rate(h.picked, h.offered, minCell) : null,
+          placement: places ? placement(h.places, minCell) : null,
+          top4: places ? rate(h.places.filter(p => p <= 4).length, n, minCell) : null,
+          first: places ? rate(h.places.filter(p => p === 1).length, n, minCell) : null,
         };
-        const hidden = [row.pickRate.value, row.placement.mean, row.top4.value, row.first.value].some(v => v === null);
+        const hidden = [row.pickRate?.value, row.placement?.mean, row.top4?.value, row.first?.value].some(v => v == null);
         heroes.push({ ...row, quality: hidden ? 'small_sample' : 'ok' });
       }
       heroes.sort((a, b) => b.offered - a.offered || (a.hero < b.hero ? -1 : a.hero > b.hero ? 1 : 0));
-      return { build: group.build, captures: group.captures, sources: group.generations.size, suppressed, heroes };
+      return { build: group.build, captures: group.captures, sources: group.owners.size, suppressed, heroes };
     }),
   };
 }

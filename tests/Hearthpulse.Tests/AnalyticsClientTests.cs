@@ -35,14 +35,23 @@ public sealed class AnalyticsClientTests
         var hero = group.Heroes[0];
         Assert.Equal(("TB_BaconShop_HERO_xx", 40, 12, "ok"), (hero.HeroCardId, hero.Offered, hero.Picked, hero.Quality));
         Assert.Equal(new AnalyticsRate(12, 40, 0.3, 0.181, 0.454), hero.PickRate);
-        Assert.Equal((12, 3.92, 3.05, 4.79), (hero.Placement.Count, hero.Placement.Mean, hero.Placement.Low, hero.Placement.High));
+        Assert.Equal((12, 3.92, 3.05, 4.79), (hero.Placement!.Count, hero.Placement.Mean, hero.Placement.Low, hero.Placement.High));
         Assert.Equal([2, 1, 2, 2, 1, 2, 1, 1], hero.Placement.Distribution);
         Assert.Equal(new AnalyticsRate(7, 12, 0.583, 0.320, 0.807), hero.Top4);
         Assert.Equal(new AnalyticsRate(2, 12, 0.167, 0.047, 0.448), hero.First);
         var small = group.Heroes[1];
-        Assert.Equal("small_sample", small.Quality);
-        Assert.Equal(new AnalyticsRate(1, 6, null, null, null), small.PickRate);
+        Assert.Equal(("small_sample", 5), (small.Quality, small.Picked));
+        Assert.Equal(new AnalyticsRate(5, 9, null, null, null), small.PickRate);
+        Assert.Equal(5, small.Placement!.Count);
         Assert.Null(small.Placement.Mean);
+        Assert.Null(small.Placement.Distribution);
+        var hidden = group.Heroes[2];
+        Assert.Equal(("TB_BaconShop_HERO_zz", 6, "small_sample"), (hidden.HeroCardId, hidden.Offered, hidden.Quality));
+        Assert.Null(hidden.Picked);
+        Assert.Null(hidden.PickRate);
+        Assert.Null(hidden.Placement);
+        Assert.Null(hidden.Top4);
+        Assert.Null(hidden.First);
         Assert.Null(result.Groups[1].Build);
         Assert.Empty(result.Groups[1].Heroes);
     }

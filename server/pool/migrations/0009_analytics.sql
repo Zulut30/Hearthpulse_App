@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS source_fact_game (
   capture TEXT PRIMARY KEY,
   generation TEXT NOT NULL,
+  -- owner = source_captures.owner (hash of the install id): counts installations, deleted with the generation.
+  owner TEXT NOT NULL,
   parser_version TEXT NOT NULL,
   source_version INTEGER NOT NULL,
   mode TEXT NOT NULL,
