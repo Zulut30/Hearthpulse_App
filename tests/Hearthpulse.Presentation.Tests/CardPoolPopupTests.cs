@@ -107,6 +107,14 @@ public sealed class CardPoolPopupTests
                 Assert.True(vm.BrowserOpen, vm.Name);
                 Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
 
+                // A Discover of another card starts while the browser is open: the browser keeps its pool (the coordinator's
+                // decision, 2026-11-09); the Discover panel shows once the player closes it.
+                vm.Show(Pool("DISCOVER_GEN", 9) with { Trigger = PoolTrigger.Choice });
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+                Assert.False(vm.Popup, vm.Name);
+                vm.Show(null, list);
+
                 // Only the player closes it (×, Esc, right-click again, the turn): then the current card's pool is back.
                 vm.Close();
                 Assert.False(vm.BrowserOpen, vm.Name);

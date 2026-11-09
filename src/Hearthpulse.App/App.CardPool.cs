@@ -83,6 +83,22 @@ public partial class App
             }
         }
 
+        // Arkedas in hand: his pool, then his hammer in the related cards' zone under it; Wrath alone: the related cards
+        // are the panel; Arkedas again at overlay scale 0.8 (the popup is drawn at 0.85 at least).
+        if (engine.Build("BE_055", new PoolContext("FT_STANDARD", "WARRIOR", "ROGUE"), PoolTrigger.Hover) is { } arkedas)
+        {
+            ShowLists(RelatedOf("BE_055"), null, new CardPoolAnchor(PoolAnchorZone.Hand, 3, 5), arkedas);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-related.png"), 1920, 1080, 0);
+            var scale = _settings.OverlayScale;
+            _settings.OverlayScale = 0.8;
+            ShowLists(RelatedOf("BE_055"), null, new CardPoolAnchor(PoolAnchorZone.Hand, 2, 5), arkedas);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-scale08.png"), 1920, 1080, 0);
+            _settings.OverlayScale = scale;
+        }
+
+        ShowLists(RelatedOf("CORE_EX1_154"), null, new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5));
+        await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-related-only.png"), 1920, 1080, 0);
+
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);
         _overlayViewModel.ToggleCardPoolFilters.Execute(null);
@@ -105,10 +121,15 @@ public partial class App
             _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
         }
 
-        void ShowLists(MatchListView list, MatchListView related, CardPoolAnchor anchor)
+        // A card without a "this game" rule: the view hands its related cards in MatchList.
+        MatchListView RelatedOf(string cardId) =>
+            new(cardId, _cards.Get(cardId)?.Name ?? cardId, Core.Localization.Loc.T("Related.Title"), _session.RelatedCardsOf(cardId).Count, _session.RelatedCardsOf(cardId));
+
+        void ShowLists(MatchListView list, MatchListView? related, CardPoolAnchor anchor, CardPoolView? pool = null)
         {
             var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
             {
+                CardPool = pool,
                 MatchList = list,
                 RelatedList = related,
                 CardPoolAnchor = anchor,

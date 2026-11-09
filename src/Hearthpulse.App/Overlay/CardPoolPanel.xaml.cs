@@ -55,6 +55,12 @@ public partial class CardPoolPanel : UserControl
         SizeChanged += (_, _) => Place();
         Loaded += (_, _) =>
         {
+            // Any layout pass may move, add or hide a row: the cached rows are collected again on the next poll over the
+            // panel. Only while loaded: the layout manager holds the handler strongly, and a theme change rebuilds the
+            // overlay, so an old panel must let go of it (Unloaded).
+            Card.LayoutUpdated -= OnCardLayoutUpdated;
+            Card.LayoutUpdated += OnCardLayoutUpdated;
+            _rowsDirty = true;
             // The game window was resized: the surface (and the card's spot on it) changes, the panel does not.
             if (Anchored && _layer is null && Parent is FrameworkElement layer)
             {
@@ -65,6 +71,7 @@ public partial class CardPoolPanel : UserControl
         // A theme change rebuilds the overlay: the old layer must not keep this panel (and place it) after that.
         Unloaded += (_, _) =>
         {
+            Card.LayoutUpdated -= OnCardLayoutUpdated;
             if (_layer is not null)
             {
                 _layer.SizeChanged -= OnLayerSizeChanged;
@@ -72,14 +79,14 @@ public partial class CardPoolPanel : UserControl
             }
         };
         DataContextChanged += (_, _) => Subscribe();
-        // Any layout pass may move, add or hide a row: the cached rows are collected again on the next poll over the panel.
-        Card.LayoutUpdated += (_, _) => _rowsDirty = true;
     }
 
     // The layer an anchored panel follows while it is loaded.
     private FrameworkElement? _layer;
 
     private void OnLayerSizeChanged(object sender, SizeChangedEventArgs e) => Place();
+
+    private void OnCardLayoutUpdated(object? sender, EventArgs e) => _rowsDirty = true;
 
     /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
     public bool Anchored

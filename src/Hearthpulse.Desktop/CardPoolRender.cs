@@ -87,6 +87,35 @@ internal static class CardPoolRender
             await save(Path.Combine(folder, "overlay-card-pool-nzoth.png"));
         }
 
+        // Arkedas in hand: his pool, then his hammer in the related cards' zone under it; Wrath alone: the related cards
+        // are the panel; Arkedas again at overlay scale 0.8 (the popup is drawn at 0.85 at least).
+        MatchListView RelatedOf(string cardId) =>
+            new(cardId, host.Cards.Get(cardId)?.Name ?? cardId, Hearthpulse.Core.Localization.Loc.T("Related.Title"), host.Session.RelatedCardsOf(cardId).Count, host.Session.RelatedCardsOf(cardId));
+        void ShowLists(MatchListView list, CardPoolAnchor anchor, CardPoolView? withPool = null) =>
+            host.Overlay.Update(
+                LiveSnapshot.Empty with
+                {
+                    Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED",
+                    Constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
+                    {
+                        CardPool = withPool, MatchList = list, CardPoolAnchor = anchor,
+                    },
+                },
+                host.Cards, settings, null, null);
+        if (engine.Build("BE_055", new PoolContext("FT_STANDARD", "WARRIOR", "ROGUE"), PoolTrigger.Hover) is { } arkedas)
+        {
+            ShowLists(RelatedOf("BE_055"), new CardPoolAnchor(PoolAnchorZone.Hand, 3, 5), arkedas);
+            await save(Path.Combine(folder, "overlay-card-pool-related.png"));
+            var scale = settings.OverlayScale;
+            settings.OverlayScale = 0.8;
+            ShowLists(RelatedOf("BE_055"), new CardPoolAnchor(PoolAnchorZone.Hand, 2, 5), arkedas);
+            await save(Path.Combine(folder, "overlay-card-pool-scale08.png"));
+            settings.OverlayScale = scale;
+        }
+
+        ShowLists(RelatedOf("CORE_EX1_154"), new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5));
+        await save(Path.Combine(folder, "overlay-card-pool-related-only.png"));
+
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);
         host.Overlay.ToggleCardPoolFilters.Execute(null);

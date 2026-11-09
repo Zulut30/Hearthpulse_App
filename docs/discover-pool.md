@@ -371,6 +371,12 @@ too).
   the catalog once, and a built view does not match its wiki lists again (2026-11-09; before, every publish of a hand
   with such a card walked the 6 501 cards again). Another trigger of the same pool reuses its lists.
 
+An open browser keeps its pool until the player closes it (×, Esc, a right-click on the panel) or the turn changes: the
+same card's pool getting a new count (the wiki list) updates it in place, while the hover running out, the pointer
+crossing another hand card and even a Discover of another card started meanwhile leave it as it is; the Discover's own
+panel shows once the browser is closed (2026-11-09). Only a new "show the pool" request from a deck or hand row
+replaces it.
+
 ### Card under the mouse (game memory)
 
 Found by reading the client's classes with `tools/Hearthpulse.Probe` (`class`, `hover`), no other tracker's code:
