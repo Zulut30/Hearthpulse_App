@@ -75,3 +75,23 @@ test('decompression accepts the exact four MiB bound and rejects the next byte a
   await assert.rejects(inflate(Buffer.from('not gzip')), e => e.status === 400);
   await assert.rejects(inflate(Buffer.concat([gzipSync(bytes), gzipSync(Buffer.from('B'))])), e => e.status === 413);
 });
+
+test('source v2 lines: contract fields accepted, v2 fields never valid in v1, unknown values and wrong modes rejected', () => {
+  const v2 = r => ({ ...r, v: 2 });
+  const s2 = (data = {}) => v2(record(0, 'start', { captureKind: 'game', mode: 'ranked', day: 1, build: 7, format: 'standard', arena: null, ...data }));
+  const c2 = (choiceType = 'mulligan') => v2({ ...choice(), data: { ...choice().data, choiceType } });
+  const combat = v2(record(1, 'gap', { reason: 'combat_view', count: 1 }));
+  for (const ok of [s2(), s2({ mode: 'casual', format: 'wild' }), s2({ format: 'classic' }), s2({ format: 'twist' }), s2({ format: null }),
+    s2({ mode: 'arena', format: null, arena: 'normal' }), s2({ mode: 'arena', format: null, arena: 'underground' }), s2({ mode: 'arena', format: null, arena: null }),
+    s2({ captureKind: 'draft', mode: 'arena', format: null, arena: 'underground' }), s2({ mode: 'bg', format: null }), s2({ mode: 'brawl', format: null }),
+    c2(), c2('general'), c2('other'), combat, v2(end()), v2(record(1, 'gap', { reason: 'late_attach', count: 1 }))]) assert.equal(validRecord(ok), true, JSON.stringify(ok));
+  for (const bad of [s2({ format: 'standard2' }), s2({ mode: 'bg' }), s2({ mode: 'arena' }), s2({ format: null, arena: 'normal' }),
+    s2({ mode: 'arena', format: null, arena: 'heroic' }), v2(start()), c2('discover'), v2(choice()),
+    { ...start(), data: { ...start().data, format: null, arena: null } }, { ...c2(), v: 1 }, { ...combat, v: 1 }, { ...s2(), v: 3 }])
+    assert.equal(validRecord(bad), false, JSON.stringify(bad));
+  assert.throws(() => records(jsonl([start(), v2(end(1))])), e => e.code === 'mixed_source_version');
+  assert.throws(() => addRecords(streamState(), [s2(), { ...combat }]), e => e.code === 'invalid_combat_view');
+  const bg = s2({ mode: 'bg', format: null });
+  assert.throws(() => addRecords(streamState(), [bg, combat, { ...combat, seq: 2 }]), e => e.code === 'invalid_combat_view');
+  addRecords(streamState(), [bg, combat]);
+});

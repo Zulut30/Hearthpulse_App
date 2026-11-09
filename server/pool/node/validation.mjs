@@ -22,6 +22,11 @@ const cards = (x, max) => Array.isArray(x) && x.length <= max && x.every(card);
 const number = x => int(x, -1_000_000, 1_000_000);
 const tags = x => object(x) && Object.keys(x).length <= TAGS.size && Object.entries(x).every(([k, v]) => TAGS.has(k) && number(v));
 const fields = (d, names) => exact(d, names.split(' '));
+export const FORMATS = ['standard', 'wild', 'classic', 'twist'];
+export const ARENAS = ['normal', 'underground'];
+export const CHOICE_TYPES = ['mulligan', 'general', 'other'];
+export const LIFECYCLE_GAPS = ['late_attach', 'rotation', 'shutdown'];
+const GAP_REASONS = ['late_attach', 'rotation', 'source_missing', 'unsupported', 'limit', 'invalid', 'shutdown'];
 const hidden = (side, zone) => side !== 'local' && ['HAND', 'DECK', 'SETASIDE', 'UNKNOWN'].includes(zone);
 function visibleEntity(x) {
   return SIDES.includes(x.side) && ZONES.includes(x.zone) && int(x.entity, 1) && int(x.position, 0, 1000)
@@ -31,15 +36,20 @@ function visibleEntity(x) {
     && (x.side !== 'opponent' || x.zone !== 'SHOP') && (x.side !== 'partner_public' || ['PLAY', 'GRAVEYARD'].includes(x.zone));
 }
 
-/** Strict allowlist, never a sanitizer of arbitrary raw log text. */
+/**
+ * Strict allowlist, never a sanitizer of arbitrary raw log text. Source v2 (TASK-2026-11-09 C1) adds start.format and
+ * start.arena, choice.choiceType and the gap reason combat_view; a v1 line carrying any of them is invalid.
+ */
 export function validRecord(r) {
-  if (!fields(r, 'v seq kind turn side entity card target data') || r.v !== 1 || !int(r.seq, 0, 10_000_000)
+  if (!fields(r, 'v seq kind turn side entity card target data') || (r.v !== 1 && r.v !== 2) || !int(r.seq, 0, 10_000_000)
     || !int(r.turn, 0, 1000) || !SIDES.includes(r.side) || !int(r.entity) || !int(r.target)
     || !nullable(r.card, card) || !object(r.data) || (r.side === 'none' && r.card !== null)) return false;
   const d = r.data;
   switch (r.kind) {
-    case 'start': return fields(d, 'captureKind mode day build') && ['game', 'draft'].includes(d.captureKind)
-      && MODES.includes(d.mode) && int(d.day, 0, 100000) && nullable(d.build, v => int(v, 1, 2147483647))
+    case 'start': return fields(d, r.v === 1 ? 'captureKind mode day build' : 'captureKind mode day build format arena')
+      && ['game', 'draft'].includes(d.captureKind) && MODES.includes(d.mode)
+      && (r.v === 1 || (nullable(d.format, v => FORMATS.includes(v) && ['ranked', 'casual'].includes(d.mode))
+        && nullable(d.arena, v => ARENAS.includes(v) && d.mode === 'arena'))) && int(d.day, 0, 100000) && nullable(d.build, v => int(v, 1, 2147483647))
       && r.turn === 0 && r.side === 'none' && r.entity === 0 && r.target === 0;
     case 'end': return fields(d, 'status result placement reason') && ['complete', 'incomplete'].includes(d.status)
       && nullable(d.result, v => ['W', 'L', 'T'].includes(v)) && nullable(d.placement, v => int(v, 1, 8))
@@ -50,7 +60,8 @@ export function validRecord(r) {
       && r.side !== 'shop' && (r.side === 'local' || r.card === null);
     case 'block_start': case 'block_end': return fields(d, 'block') && ['PLAY', 'POWER', 'TRIGGER', 'ATTACK', 'DEATHS', 'MOVE_MINION', 'OTHER'].includes(d.block)
       && (r.side === 'local' || r.card === null);
-    case 'choice': return fields(d, 'choiceId sourceCard options picked resolved') && r.side === 'local'
+    case 'choice': return fields(d, r.v === 1 ? 'choiceId sourceCard options picked resolved' : 'choiceId sourceCard options picked resolved choiceType')
+      && r.side === 'local' && (r.v === 1 || CHOICE_TYPES.includes(d.choiceType))
       && int(d.choiceId) && nullable(d.sourceCard, card) && cards(d.options, 64) && d.options.length > 0 && cards(d.picked, 16)
       && typeof d.resolved === 'boolean' && (d.resolved || d.picked.length === 0) && multisetSubset(d.picked, d.options);
     case 'action': return fields(d, 'action cost') && ['play', 'buy', 'sell', 'refresh', 'freeze', 'upgrade', 'move', 'hero_power', 'receive', 'draw', 'discard', 'unknown'].includes(d.action)
@@ -66,7 +77,7 @@ export function validRecord(r) {
       && Array.isArray(d.options) && d.options.length >= 1 && d.options.length <= 64
       && d.options.every(x => fields(x, 'card package') && card(x.card) && cards(x.package, 64))
       && nullable(d.picked, v => int(v, 0, d.options.length - 1)) && nullable(d.underground, v => typeof v === 'boolean');
-    case 'gap': return fields(d, 'reason count') && ['late_attach', 'rotation', 'source_missing', 'unsupported', 'limit', 'invalid', 'shutdown'].includes(d.reason) && int(d.count, 1, 1_000_000)
+    case 'gap': return fields(d, 'reason count') && (GAP_REASONS.includes(d.reason) || (r.v === 2 && d.reason === 'combat_view')) && int(d.count, 1, 1_000_000)
       && r.side === 'none' && r.entity === 0 && r.target === 0;
     default: return false;
   }
@@ -134,6 +145,8 @@ export function records(bytes) {
     let r;
     r = parseJson(line);
     if (!validRecord(r)) fail(400, 'invalid_record');
+    // One source has one wire version; the manifest later pins it (finishStream).
+    if (result.length && r.v !== result[0].v) fail(400, 'mixed_source_version');
     result.push(r);
   }
   return result;
@@ -144,17 +157,24 @@ export function validateManifest(b) {
   if (Array.isArray(b.chunks) && b.chunks.length > 64) fail(413, 'capture_limit');
   if (!fields(b, 'v iid generation captureId captureKind mode day sourceVersion captureStatus chunks gaps')
     || !['game', 'draft'].includes(b.captureKind) || !MODES.includes(b.mode) || !int(b.day, 0, 100000)
-    || b.sourceVersion !== 1 || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
+    || ![1, 2].includes(b.sourceVersion) || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
     || !Array.isArray(b.chunks) || !int(b.chunks.length, 1, 64)) fail(400, 'invalid_manifest');
   for (const [i, c] of b.chunks.entries()) {
     if (!fields(c, 'index sha256 uncompressedBytes') || c.index !== i || !HEX64.test(c.sha256 ?? '') || !int(c.uncompressedBytes, 1, 4 * MiB)) fail(400, 'invalid_manifest');
   }
 }
 
-export function streamState() { return { seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
+export function streamState() { return { version: null, combatView: 0, seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
 export function addRecords(state, list) {
   for (const r of list) {
     if (r.seq !== state.seq++ || state.ended || (r.kind === 'start' && r.seq !== 0)) fail(400, 'invalid_sequence');
+    state.version ??= r.v;
+    if (r.v !== state.version) fail(400, 'mixed_source_version');
+    if (r.kind === 'gap' && r.data.reason === 'combat_view') {
+      // C1: one marker, only in a Battlegrounds/Duos game capture.
+      const s = state.first?.data;
+      if (++state.combatView > 1 || s?.captureKind !== 'game' || !['bg', 'duos'].includes(s?.mode)) fail(400, 'invalid_combat_view');
+    }
     if (r.turn < state.turn || (r.seq === 0 && r.kind !== 'start')) fail(400, 'invalid_sequence');
     state.turn = r.turn;
     state.first ??= r;
@@ -174,6 +194,7 @@ export function addRecords(state, list) {
     }
     if (r.kind === 'choice') {
       const old = state.choices.get(r.data.choiceId);
+      if (old && old.choiceType !== r.data.choiceType) fail(400, 'invalid_choice_progression');
       if (old?.resolved && (JSON.stringify(old.options) !== JSON.stringify(r.data.options) || old.sourceCard !== r.data.sourceCard
         || !r.data.resolved || old.picked.some((x, i) => r.data.picked[i] !== x))) fail(400, 'invalid_choice_progression');
       state.choices.set(r.data.choiceId, r.data);
@@ -196,7 +217,8 @@ export function addRecords(state, list) {
 }
 export function finishStream(state, b) {
   const start = state.first;
-  if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps) fail(400, 'manifest_source_mismatch');
+  if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps
+    || state.version !== b.sourceVersion) fail(400, 'manifest_source_mismatch');
   const end = state.last;
   if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported
     || state.blocks.length || [...state.choices.values()].some(x => !x.resolved))) fail(400, 'incomplete_stream');

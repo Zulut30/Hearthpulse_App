@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import legacy, { prune } from '../src/index.js';
 import { pruneEvents } from '../src/events.js';
 import { CaptureArchive } from './archive.mjs';
+import { bgHeroesResponse } from './analytics.mjs';
 import { openDatabase, ResponseCache, SerialQueue } from './sqlite.mjs';
 import { CaptureError, fail, MiB, int, parseJson } from './validation.mjs';
 
@@ -71,6 +72,11 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
       if (route === '/healthz' && req.method === 'GET') {
         response = json({ ok: true, workerConfigured: !!archive.worker, archiveBytes: archive.usage(), archiveCapBytes: archive.maxArchiveBytes,
           statuses: store.sqlite.prepare('SELECT status,COUNT(*) AS n FROM source_captures GROUP BY status').all() });
+      } else if (route === '/v2/analytics/bg/heroes') {
+        // Reads the published row only; the numbers are built in the archive queue, never in a request.
+        if (req.method !== 'GET') fail(405, 'method_not_allowed');
+        const answer = bgHeroesResponse(store.sqlite, url.searchParams);
+        response = json(answer.body, answer.status);
       } else if (route.startsWith('/v1/captures/')) {
         if (req.method !== 'POST') fail(405, 'method_not_allowed');
         if (route === '/v1/captures/reprocess' && !operator(req, operatorToken)) fail(403, 'operator_only');
@@ -125,6 +131,8 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
   const timers = [];
   if (schedule) {
     timers.push(setInterval(() => { archive.tick().catch(() => {}); }, 1000));
+    // At most once a minute, and only when nothing is published, the snapshot is stale/withdrawn or the day moved.
+    timers.push(setInterval(() => { archive.refreshAnalytics().catch(() => {}); }, 60_000));
     timers.push(setInterval(() => {
       archive.maintain().then(() => queue.run(async () => {
         await prune(env); await pruneEvents(env); cache.clear();
