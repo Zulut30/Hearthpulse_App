@@ -1,0 +1,14 @@
+{
+  "_comment": "Made with openssl 3.5 and two one-off Ed25519 keys (private keys discarded); see UpdateSignatureTests for the commands.",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\r\nMCowBQYDK2VwAyEA8hs/d+ovXP8ndPLqnZz/EcmxhrmVSTTSMFHjo3hwdi8=\r\n-----END PUBLIC KEY-----\r\n",
+  "otherPublicKey": "-----BEGIN PUBLIC KEY-----\r\nMCowBQYDK2VwAyEADfwbQ+WhAO7e+2lcMUcXvAyJ/7BJtGTFBtLDyV/fz4M=\r\n-----END PUBLIC KEY-----\r\n",
+  "sums": "eb7c4a6d19df12267e456cc6baeee17bd0968e35e693dd05173e6e9671f77ec4  Hearthpulse-Delta-0.14.0-99.0.0-win-x64.zip\n602e35a92eec4bc0a2ec6ae113f07bfc6933322fb69fe8dee416e5a67217e2a2  Hearthpulse-Files-99.0.0-win-x64.json\ncb2bbeea3ccb93bce38ebd89e3d0843e1d278160de2e921193f98e671a18198f  Hearthpulse-Preview-99.0.0-win-x64.zip\n7bc4b378d39daf7e211fb4fdfa2444d8587fa827267faf1f4c0f2f7555dfd797  Hearthpulse-Setup-99.0.0-win-x64.exe\n",
+  "signature": "MPlbACZ2Jc3xEc0bihnhVuU7lyRqarw7Q7pVPKwtzluno3eRQTRSLT6K6RqdXndo9SvTHi0dSZL44P4Fx7BLBQ==",
+  "signatureByOtherKey": "yXw2YpluFVp6l6cw5iHkEWTQnexAYtZkJO7YAXm7MJ09VjTVMukMTwLCc7VJX3Wb3Ld0dbli0pnGUMpU9giQAg==",
+  "assets": {
+    "Hearthpulse-Setup-99.0.0-win-x64.exe": "signed setup 99.0.0",
+    "Hearthpulse-Delta-0.14.0-99.0.0-win-x64.zip": "signed delta 0.14.0 to 99.0.0",
+    "Hearthpulse-Files-99.0.0-win-x64.json": "{\"files\":[]}",
+    "Hearthpulse-Preview-99.0.0-win-x64.zip": "signed preview 99.0.0"
+  }
+}

@@ -8,6 +8,9 @@ namespace Hearthpulse.Core.Updates;
 
 public static partial class DeltaUpdate
 {
+    /// <summary>Where the helper's system tools are (expanded by cmd when it runs).</summary>
+    private const string SystemTools = "%SystemRoot%\\System32\\";
+
     /// <summary>
     /// The delta helper: waits for the app to exit, copies the new files next to the app folder (nothing is touched if
     /// that fails), then swaps by renames, keeping every old file in a backup folder. Every copy and rename is tried
@@ -33,9 +36,10 @@ public static partial class DeltaUpdate
             "chcp 65001 >nul",
             $"rem Hearthpulse delta update {plan.From} -> {plan.To}: waits for the app to close, then swaps the changed files.",
             ":wait",
-            $"tasklist /FI \"PID eq {pid}\" /NH 2>nul | find \"{pid}\" >nul",
+            // System tools by full path: a Git Bash find.exe earlier in PATH must not decide the wait.
+            $"\"{SystemTools}tasklist.exe\" /FI \"PID eq {pid}\" /NH 2>nul | \"{SystemTools}find.exe\" \"{pid}\" >nul",
             "if not errorlevel 1 (",
-            "  ping -n 2 127.0.0.1 >nul",
+            $"  \"{SystemTools}PING.EXE\" -n 2 127.0.0.1 >nul",
             "  goto wait",
             ")",
             // A backup folder left by an earlier failed rollback may hold the only old copies: never overwrite it.
@@ -80,7 +84,7 @@ public static partial class DeltaUpdate
         }
 
         // 3. Done: the version Apps & features shows, the uninstaller's list, clean-up.
-        lines.Add($"reg add \"HKCU\\{uninstallKey}\" /v DisplayVersion /t REG_SZ /d \"{plan.To}\" /f >nul 2>nul");
+        lines.Add($"\"{SystemTools}reg.exe\" add \"HKCU\\{uninstallKey}\" /v DisplayVersion /t REG_SZ /d \"{plan.To}\" /f >nul 2>nul");
         foreach (var file in plan.Added)
         {
             lines.Add($">>\"{app}\\{UninstallExtraFile}\" echo {Win(file.Path)}");
@@ -146,7 +150,7 @@ public static partial class DeltaUpdate
             lines.Add($":{label}");
             lines.Add($"{command} >nul 2>nul && goto {label}ok");
             lines.Add("set /a TRY+=1");
-            lines.Add($"if %TRY% lss {tries} ( ping -n 2 127.0.0.1 >nul & goto {label} )");
+            lines.Add($"if %TRY% lss {tries} ( \"{SystemTools}PING.EXE\" -n 2 127.0.0.1 >nul & goto {label} )");
             lines.Add(onFail);
             lines.Add($":{label}ok");
         }

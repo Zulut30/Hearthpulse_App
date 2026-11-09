@@ -21,6 +21,7 @@
     <!-- hearthpulse.net's archetype labels (Constructed/ArchetypeNames.cs). No ".ru." in the name: MSBuild would read it
          as a culture and move the file to a satellite assembly. -->
     <EmbeddedResource Include="Constructed\SiteArchetypeLabels.json" LogicalName="Hearthpulse.SiteArchetypeLabels.json" />
+    <EmbeddedResource Include="Updates\update-signing-key.pub" LogicalName="Hearthpulse.UpdateSigningKey.pub" />
   </ItemGroup>
 
   <ItemGroup>

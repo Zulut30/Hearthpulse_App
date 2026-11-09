@@ -1,0 +1,5 @@
+# Hearthpulse update signing key(s): the public half of the Ed25519 key that signs SHA256SUMS.txt of every release.
+# Built into Hearthpulse.Core (resource Hearthpulse.UpdateSigningKey.pub) and read by .github/workflows/release.yml.
+# Add a key with: openssl pkey -in hearthpulse-update-signing.pem -pubout >> src/Hearthpulse.Core/Updates/update-signing-key.pub
+# Several "-----BEGIN PUBLIC KEY-----" blocks are allowed (key rotation): a signature by any of them is accepted.
+# No block = this build carries no key and installs by GitHub's SHA-256 digest alone (the transition mode).
