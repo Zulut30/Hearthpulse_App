@@ -15,7 +15,9 @@ public sealed partial class Fight
         }
 
         var previous = Attacking;
+        var previousAttacker = CurrentAttacker;
         Attacking = attacker.Side;
+        CurrentAttacker = attacker;
         _depth++;
         _attacks++;
         try
@@ -87,6 +89,7 @@ public sealed partial class Fight
         {
             _depth--;
             Attacking = previous;
+            CurrentAttacker = previousAttacker;
         }
     }
 

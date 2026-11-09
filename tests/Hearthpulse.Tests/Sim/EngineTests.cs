@@ -293,6 +293,48 @@ public sealed class EngineTests
         Assert.Equal(300, odds.Runs);
     }
 
+    // ------------------------------------------------------------------------------------------- immunity and captured inputs
+
+    [Fact]
+    public void Immune_while_attacking_keeps_shield_and_health_only_during_its_own_attack()
+    {
+        // Our 4/4 Divine Shield (immune while attacking) hits their 5/5: no damage, the shield stays. Then their 5/5 attacks
+        // it: the shield breaks as usual.
+        var result = Fight(Side(Minion(4, 4, Keyword.DivineShield, "IMMUNE")), Side(Minion(5, 5, cardId: "T")), oursFirst: true,
+                           Effects(typeof(ImmuneAttacker)));
+
+        Assert.Equal(1, result.IndexOf("our IMMUNE 4/4 DivineShield is immune") - result.IndexOf("their T 5/1 takes 4"));
+        Assert.True(result.IndexOf("our IMMUNE 4/4 loses Divine Shield") > result.IndexOf("their T 5/1 attacks"), string.Join(Environment.NewLine, result.Log));
+    }
+
+    [Fact]
+    public void Start_of_combat_resolved_before_capture_is_not_applied_again()
+    {
+        // Fang Anklet's Start of Combat buff (+X/+X to Beasts) is already in the captured 4/4: the fight must not add it
+        // again; only Beasts summoned later get it.
+        var anklet = new Dictionary<string, IReadOnlyDictionary<string, int>> { ["BG35_MagicItem_701"] = new Dictionary<string, int> { ["TAG_SCRIPT_DATA_NUM_1"] = 3 } };
+        var ours = Side(Minion(4, 4, cardId: "BEAST", tribes: Tribe.Beast)) with { Extras = ["BG35_MagicItem_701"], ExtraTags = anklet };
+        var result = Fight(ours, Side(Minion(0, 100, cardId: "WALL")), oursFirst: true);
+
+        Assert.Equal("our BEAST 4/4 attacks their WALL 0/100", result.Log[0]);
+        Assert.Equal(4, result.Ours.Single().Attack);
+        Assert.Empty(CombatSimulator.Explain(ours, isOpponent: false));
+    }
+
+    [Fact]
+    public void A_missing_captured_value_is_counted_as_missing_input_not_a_silent_zero()
+    {
+        var side = Side(Minion(1, 1)) with { Extras = ["INPUT"] };
+        var effects = Effects(typeof(NeedsCapturedValue));
+        var odds = CombatSimulator.Run(side, Side(Minion(1, 1)), true, new SimOptions { Runs = 10, Effects = effects });
+
+        Assert.Equal(1, odds.Unsimulated);
+        Assert.Equal(UnsimulatedReason.MissingInput, Assert.Single(CombatSimulator.Explain(side, isOpponent: false, effects)).Reason);
+
+        var captured = side with { ExtraTags = new Dictionary<string, IReadOnlyDictionary<string, int>> { ["INPUT"] = new Dictionary<string, int> { ["VALUE"] = 0 } } };
+        Assert.Equal(0, CombatSimulator.Run(captured, Side(Minion(1, 1)), true, new SimOptions { Runs = 10, Effects = effects }).Unsimulated);
+    }
+
     // ------------------------------------------------------------------------------------------- test-only effects
 
     [CardEffect("DR")]
@@ -390,6 +432,18 @@ public sealed class EngineTests
     internal sealed class AuraPlusTwo : CombatEffect
     {
         public override StatDelta AuraFor(Fight fight, Unit self, Unit other) => other == self ? default : new StatDelta(2, 2);
+    }
+
+    [CardEffect("IMMUNE")]
+    private sealed class ImmuneAttacker : CombatEffect
+    {
+        public override bool ImmuneWhileAttacking => true;
+    }
+
+    [CardEffect("INPUT")]
+    private sealed class NeedsCapturedValue : CombatEffect
+    {
+        public override bool HasInputs(SimSide side, string cardId) => side.ExtraTag(cardId, "VALUE") is not null;
     }
 
     [CardEffect("HAND")]

@@ -761,7 +761,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         static string Print(string s) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(s)))[..16];
         var actual = $"events {Print(events)} text {Print(text)} view {Print(System.Text.Json.JsonSerializer.Serialize(view))} captures {Print(captures.ToString())}";
         output.WriteLine(actual);
-        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures A999F5C9B68FBBC3", actual);
+        // 2026-11-09 (S1): captures carry SimSide.ExtraTags; without that property the capture hash is still A999F5C9B68FBBC3.
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures 8B0B91AD54547507", actual);
     }
 
     [Fact]

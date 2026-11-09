@@ -62,6 +62,12 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `AuraFor(f, self, other) → StatDelta` | static aura onto a friendly minion; recomputed when minions enter or leave. Captured stats already include auras present at capture; the engine only applies changes (a lost Health aura lowers Health down to the new maximum only) |
 | `Refresh(f, self)` | re-check state-dependent keywords/thresholds ("Taunt while it has Divine Shield", "once this reaches 6 Attack") after stat changes and board changes |
 
+Properties: `NeedsHand` (the effect reads its owner's hand; stays "not simulated" for the opponent),
+`ImmuneWhileAttacking` (the engine prevents all damage to the unit while its own attack resolves: Invulnerability),
+`HasInputs(side, cardId)` + `CapturedInput` (a player-level card whose value grows over the game reads it from
+`side.Info.ExtraTag(cardId, tag)`, the card's own tags at capture; false = "not simulated" with `missing_input`, never a
+silent printed value).
+
 `AvengeEffect`: override `Threshold(self)` and `Avenge(f, self)`; it counts friendly deaths while self is alive.
 The counter starts at 0 each fight (start-of-combat deaths before capture are not counted: progress is not read
 from the log yet).
@@ -139,6 +145,11 @@ values as base stats (what Reborn brings back).
 - `RelevanceTests.Built_in_effects_register_cleanly` fails on duplicate registrations.
 
 ## "Not simulated"
+
+`CombatSimulator.Explain(side, isOpponent)` lists what a side counts, with the reason: `missing_effect`,
+`missing_input` (the effect needs a value the capture lacks, the opponent's hidden hand, or a card in
+`SimCoverage.InputGaps`), `unknown` (no table knows the card). `SimCoverage.Classify` gives every card one of six
+statuses with the same rules; `Hearthpulse.Bench simmatrix` writes them for the current pool to docs/bg-sim-matrix.md.
 
 A captured minion is counted in "N minion effects not simulated" when its card is combat-relevant
 (`CombatRelevance`) and `EffectRegistry.Implements(cardId, golden, isOpponent)` is false; when an enchantment gave it

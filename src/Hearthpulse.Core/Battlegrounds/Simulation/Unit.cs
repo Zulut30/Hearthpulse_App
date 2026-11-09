@@ -116,6 +116,23 @@ public sealed class Unit
 
     public bool IsRally => (Spec.Mechanics & CardMechanic.Rally) != 0;
 
+    /// <summary>An effect on it makes it Immune while it attacks (Invulnerability).</summary>
+    public bool ImmuneWhileAttacking
+    {
+        get
+        {
+            foreach (var effect in _effects)
+            {
+                if (effect.ImmuneWhileAttacking)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
     public bool Is(Tribe tribe) => tribe == Tribe.All || (Tribes & tribe) != 0;
 
     /// <summary><paramref name="golden"/> for a golden minion, else <paramref name="normal"/> (read the golden card's own text).</summary>

@@ -121,6 +121,8 @@ public sealed partial class BattlegroundsTracker
         var opponentHero = LeaderboardHero(game, _combatOpponent);
         var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat, Turn = game.BattlegroundsTurn };
         var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat, Turn = game.BattlegroundsTurn };
+        ours = ours with { ExtraTags = ExtraTagsOf(game, game.LocalPlayerId, ours.Extras) };
+        theirs = theirs with { ExtraTags = ExtraTagsOf(game, game.OpponentPlayerId, theirs.Extras) };
         if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
         {
             theirs = theirs with { TavernTier = opponentTier };
@@ -137,6 +139,27 @@ public sealed partial class BattlegroundsTracker
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
         StartSimulation(ours, theirs, oursFirst, options);
+    }
+
+    /// <summary>
+    /// Numeric tags of a side's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id:
+    /// values that grow over the game (Broodmother's Whelp, Fang Anklet...). Tags the client shows for either player
+    /// (the card text on hover reads them); a card that is not in play has no entry, so its effect reports missing_input.
+    /// </summary>
+    private static Dictionary<string, IReadOnlyDictionary<string, int>> ExtraTagsOf(GameState game, int controller, IReadOnlyList<string> extras)
+    {
+        var tags = new Dictionary<string, IReadOnlyDictionary<string, int>>(StringComparer.Ordinal);
+        if (extras.Count == 0)
+        {
+            return tags;
+        }
+
+        foreach (var entity in game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0 && extras.Contains(e.CardId)).OrderBy(e => e.Id))
+        {
+            tags.TryAdd(entity.CardId, NumericTags(entity));
+        }
+
+        return tags;
     }
 
     /// <summary>

@@ -10,9 +10,16 @@
 - **Реальные бои.** Каждая BG-игра из `Power*.log` (на любой глубине) проигрывается через `BattlegroundsTracker` с
   базой карт enUS — тем же путём, что в приложении. Печатаются: доля боёв без «not simulated», точность исхода
   (`BattlegroundsStats.SimAccuracy`, как на странице BG), попадание урона, Brier по шансам победы/ничьей/поражения
-  (0 — идеально, 0,67 — «всегда 1/3») и по каждой причине «not simulated» — карта, сторона, зачарования.
+  (0 — идеально, 0,67 — «всегда 1/3»), доля боёв без «not simulated» с интервалом Уилсона 95 % и по каждой причине —
+  код (`missing_effect`, `missing_input`, `unknown`; `CombatSimulator.Explain`), карта, сторона, зачарования.
 - **Популярность.** Существа из кэша API (`cache/api/bg-minions-all.json`, `popularity` — доля досок с существом):
   какие из combat-relevant без эффекта и вероятность, что доска (и бой — две доски) без них.
+
+**Матрица пула** — `Hearthpulse.Bench simmatrix` (копия данных в `HEARTHPULSE_DATA`) пишет
+[bg-sim-matrix.md](bg-sim-matrix.md): каждое существо пула, сила героя героев из списка API, тринкет, тёмный дар и
+боевое зачарование с одним из шести статусов (`SimCoverage`: `no_effect`, `resolved`, `implemented`, `missing_effect`,
+`missing_input`, `unknown`) и пометкой пула («да» — API или hsbg.cards, «вне пула», «пул не подтверждён»). Правила те
+же, что помечают бой. После патча или нового эффекта — перегенерировать; `SimMatrixTests` сверяет файл с кодом.
 
 История `combat_odds` в `history.db` хранит те же числа по боям, но пересчитать её новым реестром нельзя (доски не
 сохраняются), а у владельца в ней 2 BG-игры. Поэтому меряем на логах.
@@ -35,31 +42,56 @@ Blood Golem Sticker (1 бой). После правок ревью (M1, M2, m1) 
 пределах шума. Подгонки величин нет (эффекты написаны по тексту карт), но цель «≥ 90 %» нужно подтвердить на новых
 логах: повторить `simcover`, когда у владельца будут новые BG-игры, и записать результат сюда.
 
+## Замер на отложенной выборке (09.11.2026, S1)
+
+Логи владельца с 03.11.2026 (при разработке эффектов не использовались; копия в scratch, в репозиторий не попадают):
+6 BG-игр, 76 боёв. Кандидаты S1 выбраны до этого замера (по коду и плану), по нему не подбирались.
+
+| | До S1 | После S1 |
+|---|---|---|
+| Бои без «not simulated» | 66 / 76 = 87 % (Уилсон 95 %: 77–93 %) | **69 / 76 = 91 %** (82–96 %) |
+| Исход угадан (`SimAccuracy`) | 87 % | 87 % |
+| Урон в диапазоне | 88 % | 89 % |
+| Brier | 0,198 | 0,191 |
+| Существа по популярности: доска без неучтённых | 98 % | 98 % |
+
+Причины «до» (по захватам): 5 × Bassgill и Murcules (нет в таблице), 3 × Invulnerability на чужих существах, 2 × Blood
+Golem Sticker. «После»: `unknown` 8 — Murcules (BG27_023, в пуле, 2,1 % досок) и Bassgill (BG26_350, Timewarped): их нет
+в `CombatRelevance.g.cs` патча 37.0 — таблица отстала от пула; `missing_input` 2 — Blood Golem Sticker. Invulnerability
+больше не причина.
+
+Выборка мала: интервалы «до» и «после» перекрываются, рост на 3 боя — не доказательство, и это не подтверждение цели
+«≥ 90 %» на уровне 95 %. Brier здесь в 8 раз выше, чем на выборке разработки (0,19 против 0,024): прогноз на новых играх
+заметно хуже, чем показывали 22 боя разработки, и это важнее доли «not simulated». Следующие по частоте — Murcules и
+Bassgill (S2, с обновлением таблицы релевантности); замер повторить на новых логах.
+
 ## Что покрыто
 
 - **Существа пула**: все 302 размечены в `CombatRelevance.g.cs`; у всех `Relevant` есть эффект. По тексту enUS
   эвристика ещё помечает Tide Oracle Morgl (0,56 % досок) и Fishbait — их нет в таблице (вне пула патча таблицы).
 - **Тёмные дары** (`BG36_MidGameEffect_000*`, 47 вариантов) — таблица `PlayerCardTable`:
   - в бою, есть эффект: Offensive Sacrifice, Defensive Sacrifice, Persisting Horror, Toreth's Blessing, Golemancy;
-  - в бою, нет эффекта: Invulnerability («Immune while attacking» — нужна правка движка);
+  - в бою, есть эффект с S1: Invulnerability («Immune while attacking»: движок не наносит урон атакующему, пока идёт его
+    атака — `CombatEffect.ImmuneWhileAttacking`);
   - выданный хрип/раж только в таверне (не помечают бой): Charisma, Mystic Essence, Fresh Perspective, Demonology,
     Consanguinity;
   - остальные — «Начало боя» (разрешились до захвата досок), ключевые слова, характеристики или таверна.
 - **Силы героя** (герои из списка API, по пик-рейту): есть эффект — Stormpike Strength (37 %), Frostwolf Fervor (36 %),
-  Sprout It Out! (31 %), Glory of Combat (9 %); нет — Broodmother (14 %), Tentacular (9 %): их сила растёт по ходу игры,
-  а величину из лога ещё не сверяли.
+  Sprout It Out! (31 %), Glory of Combat (9 %), с S1 — Broodmother (14 %) и Tentacular (9 %): их величина растёт по ходу
+  игры и берётся из тегов силы героя в снимке (ниже, «Допущения»); без неё бой — `missing_input`. Нет эффекта — Rapid
+  Reanimation (Teron Gorefiend).
 - **Тринкеты** (данных о популярности нет — все с боевым текстом): есть эффект — Ceremonial Sword, Lionfish Portrait,
   Faerie Dragon Scale, Feral Talisman (обе версии), Reinforced Shield, Slamma Sticker, Bassgill Portrait, Blingtron's
   Sunglasses, Mechagon Adapter, Alliance Keychain (обе), Deathwhisper Sticker, Deathtouch Apple, Unholy Sanctum (обе),
   Deathly Phylactery, S'Thara Sticker, Bird Feeder (обе), Gilnean Thorned Rose, Staff of the Scourge, Beetle Band
-  (обе), Cloud Serpent Horn; нет — Tiger Carving, Belcher Portrait (нужны хуки «союзник получил урон / потерял
-  Ядовитость»), Blood Golem Sticker, Scrapsmith Portrait, Blood Amulet (кровавые самоцветы), All-Purpose Kibble,
+  (обе), Cloud Serpent Horn, с S1 — Fang Anklet; нет — Tiger Carving и Belcher Portrait (вне пула по hsbg.cards — кода
+  нет), Blood Golem Sticker (`missing_input`: размер Голема в реальном логе 67/51 не совпал ни с тегами Blood Gem
+  игрока, ни со статами умершего Иглошкура — источник величины не найден), Scrapsmith Portrait, Blood Amulet (кровавые самоцветы), All-Purpose Kibble,
   Dazzling Dagger, Hammer of Twilight (растущая величина), Battle Horn, Eternal Portrait (BG36), Evil Experiment,
   Soul Fermenter.
 
 Карта из таблицы с `Relevant` без эффекта теперь честно делает бой «not simulated» (раньше силы героя и тринкеты не
-считались вовсе). Bewitched Ribbon (+2/+2 после заклинания в бою) — есть эффект; Fang Anklet (аура «в этом бою» для
-призванных Зверей, растёт) — нет.
+считались вовсе). Bewitched Ribbon (+2/+2 после заклинания в бою) — есть эффект.
 
 **Полная разметка карт игрока.** Ручная таблица держит силы героев из списка API и тринкеты, найденные вручную.
 Остальные карты игрока — все силы героя, тринкеты с золотыми версиями, награды квестов, аномалии из HearthstoneJSON,
@@ -90,6 +122,17 @@ id) — теперь зачарования, заклинания и сущес�
   копия строится до призыва (`CombatEffect.RebornAs`), поэтому баффы призыва (Deathwhisper Sticker, Sprout It Out!)
   ложатся поверх.
 - «N раз за бой» считается с начала симулируемого боя (срабатывания до захвата досок не учтены).
+- Растущие величины (S1): Broodmother, Tentacular, Fang Anklet читают `TAG_SCRIPT_DATA_NUM_1` (Атака) и
+  `TAG_SCRIPT_DATA_NUM_2` (Здоровье; нет — как NUM_1) своей карты в зоне PLAY как прибавку к напечатанному (Whelp 1/1,
+  Tentacle 2/2, аура +1/+1). Ни одного лога с этими картами в бою у владельца нет — смысл тегов не сверен. Нет тега в
+  снимке — бой `missing_input`, а не напечатанное значение. Соперника видно так же: текст его силы героя и тринкетов
+  клиент показывает по этим тегам.
+- Fang Anklet: Start of Combat уже в статах захваченных Зверей и не применяется второй раз; +X/+X получают только Звери,
+  призванные в бою; улучшение «после призыва Зверя» — на следующие бои. Broodmother: прогресс Avenge до захвата не
+  читается (с 0), каждое срабатывание в бою улучшает следующего Whelp на +1/+1. Tentacular: одно Щупальце за бой; при
+  месте на старте оно уже на доске (`CREATOR`), тогда величина не нужна.
+- Invulnerability: иммунитет только на время своей атаки (ответный урон, урон по соседям, триггеры во время атаки); в
+  защите урон обычный; Divine Shield не тратится, Poisonous/Venomous не действуют.
 
 ## Правило «not simulated» для зачарований
 

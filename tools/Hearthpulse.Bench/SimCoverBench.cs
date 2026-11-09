@@ -129,34 +129,58 @@ internal static class SimCoverBench
 
         var accuracy = BattlegroundsStats.SimAccuracy(records);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[sim] fights without odds (not counted below) {noOdds}; fights with odds {fights}, without \"not simulated\" {clean} = {(fights > 0 ? clean / (double)fights : 0):P0}; result hit {accuracy.ResultRate:P0} of {accuracy.Fights}; damage in range {accuracy.DamageRate:P0}; Brier {(scored > 0 ? brier / scored : 0):N3} over {scored}"));
+            $"[sim] fights without odds (not counted below) {noOdds}; fights with odds {fights}, without \"not simulated\" {clean} = {(fights > 0 ? clean / (double)fights : 0):P0} (Wilson 95 % {Wilson(clean, fights).Low:P0}..{Wilson(clean, fights).High:P0}); result hit {accuracy.ResultRate:P0} of {accuracy.Fights}; damage in range {accuracy.DamageRate:P0}; Brier {(scored > 0 ? brier / scored : 0):N3} over {scored}"));
+        foreach (var (code, n) in reasons.GroupBy(r => r.Key[..r.Key.IndexOf(':', StringComparison.Ordinal)]).Select(g => (g.Key, g.Sum(r => r.Value))))
+        {
+            Console.WriteLine($"[sim]   reason {code}: {n}");
+        }
+
         foreach (var (reason, n) in reasons.OrderByDescending(r => r.Value).ThenBy(r => r.Key, StringComparer.Ordinal))
         {
             Console.WriteLine($"[sim]   {n,3} × {reason}");
         }
     }
 
-    /// <summary>Why a captured fight is "not simulated": one line per unsimulated minion and per relevant extra.</summary>
+    /// <summary>
+    /// Why a captured fight is "not simulated": one line per unsimulated minion and per player-level card, as
+    /// <see cref="CombatSimulator.Explain"/> counts them, led by the reason (missing_effect, missing_input, unknown).
+    /// </summary>
     private static IEnumerable<string> Reasons(BattlegroundsTracker.CombatCapture capture, CardDb cards)
     {
         foreach (var (side, isOpponent) in new[] { (capture.Ours, false), (capture.Theirs, true) })
         {
-            foreach (var m in side.Minions.Where(m => m.HasUnsimulatedEffect))
+            foreach (var item in CombatSimulator.Explain(side, isOpponent))
             {
+                var theirs = isOpponent ? " theirs" : string.Empty;
+                if (item.Extra)
+                {
+                    var known = CombatRelevance.Find(item.CardId) is null ? " (not in table)" : string.Empty;
+                    yield return $"{item.Code}: extra {item.CardId} {cards.Get(item.CardId)?.Name}{known}{theirs}";
+                    continue;
+                }
+
+                var m = side.Minions.First(x => x.HasUnsimulatedEffect && x.CardId == item.CardId && x.Golden == item.Golden);
                 var row = CombatRelevance.Find(m.CardId);
                 var what = row is null ? "not in table" : $"{row.Relevance} {row.Category}";
                 var enchantments = m.Enchantments.Count > 0 ? $" [{string.Join(' ', m.Enchantments)}]" : string.Empty;
-                yield return $"{m.CardId}{(m.Golden ? " golden" : string.Empty)} {cards.Get(m.CardId)?.Name} ({what}){enchantments}{(isOpponent ? " theirs" : string.Empty)}";
-            }
-
-            // as CombatSimulator counts them: relevant without an effect, or in no table (newer than the card data)
-            foreach (var extra in side.Extras.Where(id => CombatRelevance.Find(id) is null or { Relevance: Relevance.Relevant }
-                                                          && !EffectRegistry.Default.Implements(id, golden: false, isOpponent)))
-            {
-                var known = CombatRelevance.Find(extra) is null ? " (not in table)" : string.Empty;
-                yield return $"extra {extra} {cards.Get(extra)?.Name}{known}{(isOpponent ? " theirs" : string.Empty)}";
+                yield return $"{item.Code}: {m.CardId}{(m.Golden ? " golden" : string.Empty)} {cards.Get(m.CardId)?.Name} ({what}){enchantments}{theirs}";
             }
         }
+    }
+
+    /// <summary>Wilson score interval (95 %) of a share <paramref name="k"/> / <paramref name="n"/>.</summary>
+    private static (double Low, double High) Wilson(int k, int n)
+    {
+        if (n == 0)
+        {
+            return (0, 0);
+        }
+
+        const double z = 1.959964;
+        var p = k / (double)n;
+        var center = (p + z * z / (2 * n)) / (1 + z * z / n);
+        var half = z * Math.Sqrt(p * (1 - p) / n + z * z / (4.0 * n * n)) / (1 + z * z / n);
+        return (Math.Max(0, center - half), Math.Min(1, center + half));
     }
 
     private static void Popularity(CardDb cards)
