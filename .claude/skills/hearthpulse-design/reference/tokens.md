@@ -40,6 +40,7 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | Decor / DecorStrong | #0EE9B949 / #16E9B949 | decorative shapes |
 | OverlayPanel | #F0201510 | overlay panel fill |
 | OverlayPanelSolid | WPF: gradient #FA2C1F14→#FA1C130C; Avalonia: solid #FA201510 | opaque overlay panel |
+| OverlayPopupSolid | same as OverlayPanelSolid | the card pool popup beside a hand card; not in `OverlayViewModel.BackdropBrushes`, so the Overlay opacity setting never fades it (it lies over the busiest part of the board) |
 | OverlayBorder | #40E9B949 | overlay panel edge |
 | OverlayBadgeShade | #CC140D08 | shade behind overlay badges (both files) |
 | OverlayPlaceholder | #E6201510 | layout-mode placeholder (WPF only) |

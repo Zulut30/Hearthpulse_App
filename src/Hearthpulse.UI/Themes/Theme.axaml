@@ -150,6 +150,8 @@
             <SolidColorBrush x:Key="DecorStrong" Color="#16E9B949" />
             <SolidColorBrush x:Key="OverlayPanel" Color="#F0201510" />
             <SolidColorBrush x:Key="OverlayPanelSolid" Color="#FA201510" />
+            <!-- The same fill for the pool popup next to a hand card: not in BackdropBrushes, so the overlay opacity never fades it -->
+            <SolidColorBrush x:Key="OverlayPopupSolid" Color="#FA201510" />
             <SolidColorBrush x:Key="OverlayBorder" Color="#40E9B949" />
             <SolidColorBrush x:Key="ManaGem" Color="#3D7BE0" />
             <!-- Card pool chart: one colour per stat (mana gem, attack, health). Keys start with PoolStat: never recoloured by a theme. -->

@@ -36,6 +36,13 @@ public static class PoolPlacement
     private const double HandPreviewHalf = 150;
     private const double HandTop = 900;
 
+    // The game's keyword tooltips ("Battlecry", "Excavate") stand beside the enlarged preview on the side of the screen
+    // centre, about this wide (measured on a 1080p screenshot).
+    private const double TooltipColumn = 370;
+
+    /// <summary>The popup is drawn no smaller than this share of its size at overlay scale 1, so it stays readable.</summary>
+    public const double MinPopupScale = 0.85;
+
     // Discover: the options are about 300 apart, centred at about y 470.
     private const double ChoiceSlot = 300;
     private const double ChoiceRow = 470;
@@ -61,8 +68,13 @@ public static class PoolPlacement
             case PoolAnchorZone.Hand:
             {
                 var card = centre + SlotOffset(anchor);
-                // Towards the middle of the screen, beside the preview; the panel's bottom stays above the hand.
-                x = card <= centre ? card + HandPreviewHalf + Gap : card - HandPreviewHalf - Gap - panelWidth;
+                // Away from the middle of the screen, beside the preview: the game's keyword tooltips take the side towards
+                // the middle. If that side is off the screen, towards the middle past the tooltips; else clamped (below).
+                var right = card > centre;
+                var outer = right ? card + HandPreviewHalf + Gap : card - HandPreviewHalf - Gap - panelWidth;
+                var inner = right ? card - HandPreviewHalf - TooltipColumn - Gap - panelWidth : card + HandPreviewHalf + TooltipColumn + Gap;
+                x = Fits(outer, width, panelWidth) || !Fits(inner, width, panelWidth) ? outer : inner;
+                // The panel's bottom stays above the hand.
                 y = HandTop - Gap - panelHeight;
                 break;
             }
@@ -79,6 +91,18 @@ public static class PoolPlacement
 
         return (Math.Clamp(x, Edge, Math.Max(Edge, width - Edge - panelWidth)),
             Math.Clamp(y, Edge, Math.Max(Edge, ScreenHeight - Edge - panelHeight)));
+    }
+
+    private static bool Fits(double x, double width, double panelWidth) => x >= Edge && x <= width - Edge - panelWidth;
+
+    /// <summary>
+    /// The extra scale of the popup over the player's overlay <paramref name="scale"/>, so it is drawn at least at
+    /// <see cref="MinPopupScale"/>: 1 at scale 0.85 and above.
+    /// </summary>
+    public static double PopupFloor(double scale)
+    {
+        scale = AppSettings.ClampScale(scale);
+        return scale >= MinPopupScale ? 1 : MinPopupScale / scale;
     }
 
     /// <summary>

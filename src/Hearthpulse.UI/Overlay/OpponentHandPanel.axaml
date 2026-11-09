@@ -22,7 +22,7 @@
             <DataTemplate x:DataType="o:HandMark">
                 <Border Width="{x:Static o:OverlayViewModel.HandMarkWidth}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{Binding Offset}"
                         Padding="0,1,0,2" CornerRadius="6" Background="{DynamicResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
-                        o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}"
+                        o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}" c:CardPreview.ShowRelated="False"
                         c:CardPreview.Placement="Below">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="{Binding Label}" Classes="number" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center"

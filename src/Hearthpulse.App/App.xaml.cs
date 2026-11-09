@@ -321,6 +321,7 @@ public partial class App : Application
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += _feed.Publish;
+        Controls.CardPreview.Related = _session.RelatedCardsOf;
         _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => _constructedLoader.Ensure(format));
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>

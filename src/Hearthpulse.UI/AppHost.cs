@@ -118,6 +118,7 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += _feed.Publish;
+        Controls.CardPreview.Related = Session.RelatedCardsOf;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => _constructedLoader.Ensure(format));
         Main.ConstructedMetaRequested += format =>
         {

@@ -3,9 +3,10 @@
 
   "Pool.Title": "Pool of {1} card|Pool of {1} cards",
   "Pool.NotComputed": "Pool not computed",
+  "Pool.NotComputed.Reason": "Reason: {0}",
   "Pool.BrowserTitle": "{2} Pool: {1} card|{2} Pool: {1} cards",
   "Pool.Match": "{1} card matches|{1} cards match",
-  "Pool.RightClickHint": "Right-click the panel: the whole pool",
+  "Pool.RightClickHint": "Right-click the panel for the whole pool",
   "Pool.CloseEsc": "Close (Esc)",
   "Pool.Filters": "FILTERS",
   "Pool.FeaturedReason": "Most played in meta decks",
@@ -14,7 +15,9 @@
   "Pool.Picks.LowSample": "Faded: few games",
   "Pool.Picks.Few": "No Hearthpulse data for these cards yet",
 
-  "Pool.Average": "Average",
+  "Pool.Avg.Cost": "Average cost",
+  "Pool.Avg.Attack": "Average attack",
+  "Pool.Avg.Health": "Average health",
   "Pool.Stat.Cost": "Mana",
   "Pool.Stat.Attack": "Attack",
   "Pool.Stat.Health": "Health",
