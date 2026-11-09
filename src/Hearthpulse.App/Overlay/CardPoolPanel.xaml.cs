@@ -141,6 +141,18 @@ public partial class CardPoolPanel : UserControl
             case nameof(OverlayViewModel.CardPoolAnchor):
                 Place();
                 break;
+            case nameof(OverlayViewModel.CardPoolHeld):
+                // Held: a gold edge, the one sign that a right-click opens the whole pool.
+                if (ViewModel?.CardPoolHeld == true)
+                {
+                    Card.SetResourceReference(Border.BorderBrushProperty, "AccentLine");
+                }
+                else
+                {
+                    Card.ClearValue(Border.BorderBrushProperty);
+                }
+
+                break;
         }
     }
 

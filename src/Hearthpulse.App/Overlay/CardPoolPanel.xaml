@@ -54,17 +54,8 @@
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled.
          The opacity carries the short fade-in when the panel first appears. The popup's fill (OverlayPopupSolid, set in
-         code) does not fade with the overlay opacity; the edge turns gold while the pointer holds the pool. -->
-    <Border x:Name="Card" Width="300">
-        <Border.Style>
-            <Style TargetType="Border" BasedOn="{StaticResource OverlayCardSolid}">
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding CardPoolHeld}" Value="True">
-                        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </Border.Style>
+         code) does not fade with the overlay opacity; the edge turns gold while the pointer holds the pool (code). -->
+    <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" Width="300">
         <StackPanel>
             <!-- ===== Header: the pool's size (or the list's name), one line of classes · format ===== -->
             <Border Style="{StaticResource OverlayHeader}">
