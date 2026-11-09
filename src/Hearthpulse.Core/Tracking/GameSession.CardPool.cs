@@ -18,9 +18,9 @@ public sealed partial class GameSession
     private readonly CardPoolTracker _cardPool = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchRule?> _matchRules = new(StringComparer.Ordinal);
 
-    // The related cards of each card (RelatedCards), for the card data and interface language they were built with.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchListView?> _related = new(StringComparer.Ordinal);
-    private (CardDb Cards, CardPoolCatalog Catalog, string Language)? _relatedFor;
+    // The related cards of each card (RelatedCards), for the card data, catalog and interface language they were built
+    // with; read from the publish thread and the UI (RelatedCardsOf), so swapped whole.
+    private volatile RelatedCache? _related;
     private readonly Lock _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
@@ -128,14 +128,19 @@ public sealed partial class GameSession
         PrefetchWiki(engine, game);
         try
         {
-            var pool = _cardPool.BuildView(game, _cards);
-            // The hovered card's look back at this game, else its related cards (tokens, cards it names), above its own
+            // The hovered card is one with a pool or a list: a neighbour with neither, crossed on the way to the panel,
+            // keeps the card the mouse left (CardPoolTracker.HoverLinger).
+            var context = CardPoolTracker.ContextOf(game, _cards);
+            var hovered = _cardPool.HoverCard(game, id => engine.Build(id, context, PoolTrigger.Hover) is not null
+                                                          || MatchRuleOf(id) is not null || RelatedOf(id) is not null);
+            var pool = _cardPool.BuildView(game, _cards, hovered);
+            // The hovered card's look back at this game and its related cards (tokens, cards it names), above its own
             // pool; never over another card's pool (a Discover).
-            var list = _cardPool.HoveredInHand(game) is { } hovered && (pool is null || pool.SourceCardId == hovered)
+            var (list, related) = hovered is not null && (pool is null || pool.SourceCardId == hovered)
                 ? HoverList(hovered, MatchRuleOf(hovered), game, _constructed.Counters, _cards, RelatedOf)
-                : null;
+                : default;
             var anchor = _cardPool.AnchorOf(game, pool) ?? (list is null ? null : CardPoolTracker.HandAnchor(game, list.SourceCardId));
-            return view with { CardPool = pool, CardPoolAnchor = anchor, MatchList = list, DiscoverPicks = PicksOf(game, pool) };
+            return view with { CardPool = pool, CardPoolAnchor = anchor, MatchList = list, RelatedList = related, DiscoverPicks = PicksOf(game, pool) };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
         {
@@ -144,16 +149,26 @@ public sealed partial class GameSession
         }
     }
 
-    /// <summary>The list beside a hovered card in hand: its look back at this game when it has a rule, else its related cards.</summary>
-    internal static MatchListView? HoverList(string hovered, MatchRule? rule, GameState game, CounterTracker counters, CardDb cards,
+    /// <summary>
+    /// The lists beside a hovered card in hand: its look back at this game when it has a rule, with its related cards
+    /// beside it (N'Zoth: the minions summoned and his four abilities); without a rule its related cards are the list.
+    /// </summary>
+    internal static (MatchListView? List, MatchListView? Related) HoverList(string hovered, MatchRule? rule, GameState game, CounterTracker counters, CardDb cards,
         Func<string, MatchListView?> related) =>
-        rule is not null ? MatchLists.Build(hovered, rule, game, counters, cards) : related(hovered);
+        rule is not null ? (MatchLists.Build(hovered, rule, game, counters, cards), related(hovered)) : (related(hovered), null);
 
     /// <summary>Whether a card in your hand looks back at this game (then the card under the mouse is worth reading).</summary>
     private bool HandHasMatchList(GameState game) =>
         game.Controlled(game.LocalPlayerId, "HAND").Any(card => card.CardId.Length > 0 && (MatchRuleOf(card.CardId) is not null || RelatedOf(card.CardId) is not null));
 
-    /// <summary>The related cards of a card in hand (<see cref="RelatedCards"/>), cached; null when it has none.</summary>
+    /// <summary>
+    /// The related cards of any card by id, from the card data and the pool catalog only (no game state), in the
+    /// interface language, cost then name; empty when it has none or more than 12. Thread-safe, cached.
+    /// </summary>
+    public IReadOnlyList<MatchListRow> RelatedCardsOf(string cardId) =>
+        cardId is { Length: > 0 } && RelatedOf(cardId) is { } list ? list.Rows : [];
+
+    /// <summary>The related cards of a card (<see cref="RelatedCards"/>), cached; null when it has none.</summary>
     private MatchListView? RelatedOf(string cardId)
     {
         CardPoolCatalog catalog;
@@ -162,14 +177,22 @@ public sealed partial class GameSession
             catalog = _cardPoolCatalog;
         }
 
-        var key = (_cards, catalog, Loc.Instance.Language);
-        if (_relatedFor != key)
+        var cards = _cards;
+        var language = Loc.Instance.Language;
+        var cache = _related;
+        if (cache is null || !ReferenceEquals(cache.Cards, cards) || !ReferenceEquals(cache.Catalog, catalog) || cache.Language != language)
         {
-            _related.Clear();
-            _relatedFor = key;
+            cache = new RelatedCache(cards, catalog, language);
+            _related = cache;
         }
 
-        return _related.GetOrAdd(cardId, static (id, state) => RelatedCards.Of(id, state.Item1, state.Item2), (key.Item1, key.Item2));
+        return cache.Lists.GetOrAdd(cardId, static (id, c) => RelatedCards.Of(id, c.Cards, c.Catalog), cache);
+    }
+
+    /// <summary>Related lists by card id, for one card data, catalog and interface language.</summary>
+    private sealed record RelatedCache(CardDb Cards, CardPoolCatalog Catalog, string Language)
+    {
+        public System.Collections.Concurrent.ConcurrentDictionary<string, MatchListView?> Lists { get; } = new(StringComparer.Ordinal);
     }
 
     /// <summary>

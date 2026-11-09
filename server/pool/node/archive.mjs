@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { SerialQueue } from './sqlite.mjs';
 import { CaptureError, MiB, exact, fail, identity, inflate, int, HEX64, records, sha, validateManifest, streamState, addRecords, finishStream, validRecord } from './validation.mjs';
+import { checkResultV2, markSnapshotStale, publishBgHeroes, removeFacts, removeGenerationFacts, replaceFacts, snapshotDue, sourceFacts, withdrawSnapshot } from './analytics.mjs';
 
 function syncDirectory(dir) {
   if (process.platform === 'win32') return; // Windows fsync cannot open directory handles through node:fs.
@@ -246,6 +247,8 @@ export class CaptureArchive {
     transaction(this.db, () => {
       this.db.prepare('DELETE FROM source_captures WHERE generation=?').run(generation);
       this.db.prepare("DELETE FROM snap WHERE mode='source'").run();
+      // AC11: facts and the snapshot that may contain them go in the same transaction as the receipts.
+      if (removeGenerationFacts(this.db, generation)) withdrawSnapshot(this.db);
     });
     try {
       this.removeDirectory(path.join(this.captureRoot, generation));
@@ -282,6 +285,7 @@ export class CaptureArchive {
         transaction(this.db, () => {
           this.db.prepare("UPDATE source_captures SET status='deleted',manifest=NULL,source_sha=NULL,parser_version=NULL,derived=NULL,derived_bytes=0,records=0,gaps=0,unsupported=0,revision=revision+1 WHERE key=?").run(row.key);
           this.db.prepare('DELETE FROM source_chunks WHERE capture=?').run(row.key);
+          if (removeFacts(this.db, [row.key])) withdrawSnapshot(this.db);
         });
         const job = this.active.get(row.key);
         if (job) { job.stop(); await job.exited; }
@@ -294,6 +298,22 @@ export class CaptureArchive {
       this.db.prepare('DELETE FROM source_quota WHERE day<?').run(nowDay() - 7);
       // SQLite secure_delete scrubs rows; truncate WAL so a successful forget does not leave old facts in it.
       this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    });
+  }
+  /** Rebuilds the analytics snapshot now, in the queue and one transaction (tests and the timer). */
+  publishAnalytics() {
+    return this.queue.run(() => {
+      if (this.closed) return false;
+      transaction(this.db, () => publishBgHeroes(this.db, nowDay()));
+      return true;
+    });
+  }
+  /** Timer entry: rebuild only when nothing is published yet, the snapshot is stale or withdrawn, or the day moved. */
+  refreshAnalytics() {
+    return this.queue.run(() => {
+      if (this.closed || !snapshotDue(this.db, nowDay())) return false;
+      transaction(this.db, () => publishBgHeroes(this.db, nowDay()));
+      return true;
     });
   }
   async tick() {
@@ -325,7 +345,11 @@ export class CaptureArchive {
         task = { row, id, input, output, ...process };
         this.active.set(row.key, task);
       } catch (e) {
-        if (!(e instanceof CaptureError && e.status === 503)) this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=?").run(row.key);
+        // A failed source re-check (reprocess) contributes nothing either: facts of an earlier result go with it.
+        if (!(e instanceof CaptureError && e.status === 503)) transaction(this.db, () => {
+          this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=?").run(row.key);
+          if (removeFacts(this.db, [row.key])) withdrawSnapshot(this.db);
+        });
         fs.rmSync(input, { force: true });
       }
     });
@@ -339,17 +363,26 @@ export class CaptureArchive {
         const stat = fs.lstatSync(task.output);
         if (!stat.isFile() || stat.isSymbolicLink() || stat.size > this.maxWorkerOutputBytes) throw new Error('worker_output_limit');
         const result = JSON.parse(fs.readFileSync(task.output, 'utf8'));
-        await this.validateResult(result, task);
+        const facts = await this.validateResult(result, task);
         const data = JSON.stringify(result);
         this.pressure(Math.max(0, Buffer.byteLength(data) - latest.derived_bytes) - this.maxWorkerOutputBytes);
         transaction(this.db, () => {
           this.check(task.id);
-          this.db.prepare(`UPDATE source_captures SET status=?,parser_version=?,records=?,unsupported=?,gaps=?,derived=?,derived_bytes=?
+          const updated = this.db.prepare(`UPDATE source_captures SET status=?,parser_version=?,records=?,unsupported=?,gaps=?,derived=?,derived_bytes=?
             WHERE key=? AND revision=? AND status='processing'`).run(result.status, result.parserVersion, result.records, result.unsupported, result.gaps, data, Buffer.byteLength(data), task.row.key, task.row.revision);
+          if (Number(updated.changes) !== 1) throw new Error('capture_changed');
           this.db.prepare("DELETE FROM snap WHERE mode='source'").run();
+          // AC10: the capture's facts are replaced together with derived. Replacing published facts withdraws the
+          // snapshot; new facts only mark it stale, the old one stays correct to serve.
+          const replaced = replaceFacts(this.db, task.row.key, task.row.generation, task.row.owner, result.parserVersion, JSON.parse(task.row.manifest).sourceVersion, facts);
+          if (replaced) withdrawSnapshot(this.db); else if (facts) markSnapshotStale(this.db);
         });
       } catch {
-        this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=? AND status='processing' AND revision=?").run(task.row.key, task.row.revision);
+        transaction(this.db, () => {
+          const failed = this.db.prepare("UPDATE source_captures SET status='failed' WHERE key=? AND status='processing' AND revision=?").run(task.row.key, task.row.revision);
+          // A failed (re)parse contributes nothing: facts of an earlier result go with it.
+          if (Number(failed.changes) === 1 && removeFacts(this.db, [task.row.key])) withdrawSnapshot(this.db);
+        });
       } finally {
         this.active.delete(task.row.key);
         // No mkdir here: a late completion cannot recreate a deleted generation.
@@ -368,12 +401,14 @@ export class CaptureArchive {
     const counters = [...baseSummary, 'shopSnapshots', 'resources', 'draftChoices'];
     const fullSummary = [...counters, 'captureKind', 'mode', 'captureStatus', 'hasEnd', 'completeForAggregation', 'result', 'placement'];
     const manifest = JSON.parse(task.row.manifest);
-    if (!exact(r, ['v', 'parserVersion', 'sourceSha256', 'status', 'records', 'unsupported', 'gaps', 'events', 'summary'])
-      || r.v !== 1 || typeof r.parserVersion !== 'string' || !/^[A-Za-z0-9_.-]{1,64}$/.test(r.parserVersion)
+    // Result v1 (an older worker) is accepted as before and gives no facts; v2 adds context, eligibility and facts.
+    const v2 = r?.v === 2;
+    if (!(v2 ? Object.hasOwn(r, 'context') : exact(r, ['v', 'parserVersion', 'sourceSha256', 'status', 'records', 'unsupported', 'gaps', 'events', 'summary']))
+      || ![1, 2].includes(r.v) || typeof r.parserVersion !== 'string' || !/^[A-Za-z0-9_.-]{1,64}$/.test(r.parserVersion)
       || r.sourceSha256 !== task.row.source_sha || !['parsed', 'partial'].includes(r.status)
       || r.records !== task.row.records || !int(r.unsupported, 0, r.records) || !int(r.gaps)
       || r.gaps < task.row.gaps || ((r.gaps > 0 || r.unsupported > 0) && r.status !== 'partial')
-      || !Array.isArray(r.events) || r.events.length > r.records || !(exact(r.summary, baseSummary) || exact(r.summary, fullSummary))
+      || !Array.isArray(r.events) || r.events.length > r.records || !((!v2 && exact(r.summary, baseSummary)) || exact(r.summary, fullSummary))
       || !counters.filter(k => Object.hasOwn(r.summary, k)).every(k => int(r.summary[k], 0, Math.max(r.records, 1000)))) throw new Error('invalid_worker_output');
     if (Object.hasOwn(r.summary, 'captureKind')) {
       const s = r.summary;
@@ -393,8 +428,10 @@ export class CaptureArchive {
     }
     // Compare output to typed source; avoids accepting fields/identifiers invented by a faulty worker.
     let endClaim = null;
+    const typed = sourceFacts();
     for (const c of manifest.chunks) {
       for (const source of records(await inflate(fs.readFileSync(this.chunkPath(task.id, c.index))))) {
+        typed.add(source);
         if (source.kind === 'end') endClaim = source.data;
         const e = bySeq.get(source.seq);
         if (!e) continue;
@@ -409,6 +446,7 @@ export class CaptureArchive {
         || (s.captureStatus === 'complete' && endClaim?.status !== 'complete')
         || (s.completeForAggregation && manifest.captureStatus !== 'complete')) throw new Error('worker_summary_not_in_source');
     }
+    return v2 ? checkResultV2(r, manifest, typed.facts) : null;
   }
   async close() {
     this.closed = true;

@@ -8,9 +8,10 @@ namespace Hearthpulse.Core.CardPool;
 /// <summary>
 /// The cards a card in hand is about, shown beside it when hovered (<c>docs/discover-pool.md</c>, "Related cards"): the
 /// tokens it makes and the collectible cards its text names. From the card data only, no hand-made table: a token's id
-/// is its card's id with a suffix (<c>CS2_101</c> → <c>CS2_101t</c>; a <c>CORE_</c> reprint's tokens keep the original
-/// id), and a named card is a collectible card's English name in the English text, outside bold keywords (a keyword such
-/// as <b>Charge</b> is also a card's name). The same popup and rows as the "this game" list (<see cref="MatchLists"/>).
+/// is its card's id with a suffix (<c>CS2_101</c> → <c>CS2_101t</c>, <c>BE_017</c> → <c>BE_017t3</c>, Choose One options
+/// <c>EX1_154a</c> or <c>EDR_872A</c>; a <c>CORE_</c> or <c>Core_</c> reprint's tokens keep the original id), and a named
+/// card is a collectible card's English name in the English text, outside bold keywords (a keyword such as <b>Charge</b>
+/// is also a card's name). The same popup and rows as the "this game" list (<see cref="MatchLists"/>).
 /// </summary>
 public static partial class RelatedCards
 {
@@ -37,7 +38,7 @@ public static partial class RelatedCards
 
         var ids = new List<string>();
         var tokens = Tokens.GetValue(cards, BuildTokens);
-        foreach (var root in new[] { cardId, cardId.StartsWith("CORE_", StringComparison.Ordinal) ? cardId[5..] : null }.OfType<string>())
+        foreach (var root in new[] { cardId, cardId.StartsWith("CORE_", StringComparison.OrdinalIgnoreCase) ? cardId[5..] : null }.OfType<string>())
         {
             if (tokens.TryGetValue(root, out var made))
             {
@@ -57,13 +58,16 @@ public static partial class RelatedCards
             .Select(cards.Get)
             .OfType<Card>()
             .Where(c => Types.Contains(c.Type) && c.Id != cardId)
+            // The same name and text twice (C'Thun's two identical Eyes, BE_013t3/t6) is one row, the lowest id.
+            .GroupBy(c => (c.Name, c.Text))
+            .Select(g => g.MinBy(c => c.Id, StringComparer.Ordinal)!)
             .Select(c => new MatchListRow(c.Id, c.Name, c.Cost, c.Rarity, 1))
             .OrderBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
             .ToList();
         return rows.Count is 0 or > MaxRows ? null : new MatchListView(cardId, source.Name, Loc.T("Related.Title"), rows.Count, rows);
     }
 
-    /// <summary>Token ids by the id they hang off: <c>CS2_101t</c>, <c>CS2_101t2</c>, <c>EX1_506a</c> under their card.</summary>
+    /// <summary>Token ids by the id they hang off: <c>CS2_101t</c>, <c>CS2_101t2</c>, <c>EX1_506a</c>, <c>EDR_872A</c> under their card.</summary>
     private static Dictionary<string, List<string>> BuildTokens(CardDb cards)
     {
         var tokens = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -114,7 +118,7 @@ public static partial class RelatedCards
 
     private static bool IsWord(char c) => char.IsLetterOrDigit(c) || c is '\'' or '_';
 
-    [GeneratedRegex(@"^(?<root>[A-Za-z0-9_]+?)(?:t\d{0,2}[a-z]?|[ab])$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?<root>[A-Za-z0-9_]+?)(?:t\d{0,2}[a-z]?|[abAB])$", RegexOptions.CultureInvariant)]
     private static partial Regex TokenId();
 
     [GeneratedRegex(@"<b>.*?</b>", RegexOptions.CultureInvariant | RegexOptions.Singleline)]

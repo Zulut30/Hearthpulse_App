@@ -67,6 +67,14 @@ against its source and source hash, then replaces the active SQL result in a tra
 becomes `failed`; the archive remains for explicit reprocess. Restart requeues interrupted `processing` jobs.
 The test subprocess fixture is not a production parser and must never be configured in deployment.
 
+## Analytics snapshot
+
+Migration `0009_analytics.sql` (facts and `analytics_snap`) is applied automatically at start, additively and
+idempotently. The service rebuilds the `bg-heroes-solo` snapshot in its own queue at most once a minute when needed;
+`GET /v2/analytics/bg/heroes?mode=solo` only reads the published row (`docs/analytics-api.md`). Forget and retention
+withdraw the snapshot in the same transaction, so the route answers `rebuilding` until the next build. Do not set
+`ANALYTICS_MIN_CELL` / `ANALYTICS_MIN_SOURCES` in deployment.
+
 ## Proxy and synthetic verification
 
 P4 adds the scoped locations from `nginx-source-capture.conf` to the existing `api.kolodahearthstone.com` TLS server,

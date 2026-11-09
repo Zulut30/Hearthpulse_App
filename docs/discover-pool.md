@@ -196,7 +196,11 @@ and the mouse buttons are read globally - WPF while the panel is shown; Avalonia
 (`IOverlayPlatform.PointerPosition`/`MouseButtons`: `GetAsyncKeyState` on Windows, `CGEventSourceButtonState` on macOS,
 `XQueryPointer` on X11), the same way the other click-through panels get the pointer. Only the pool browser takes the
 mouse. A hovered card's pool stays 0.8 s after the mouse leaves the card (`CardPoolTracker.HoverLinger`), enough to
-reach the panel beside it; `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on
+reach the panel beside it. The way there crosses the neighbours in the hand fan: a neighbour with neither a pool nor a
+list keeps the left card's pool and does not restart its 0.8 s (`CardPoolTracker.HoverCard`: only leaving a card that
+was shown starts a linger); a neighbour with its own pool or list takes the panel, and a card outside the hand (the
+board, the opponent's) ends the linger at once (2026-11-09, `CardPoolHoverTests`). The card under the mouse is still
+read every 250 ms (`GameSession.HoverInterval`). `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on
 the panel for 200 ms with no button down (crossing the board does not keep a stale pool up). A left press ends the
 hold - the player is playing a card or aiming through the panel - so the popup never stays over the board after its
 card is played. A right-click on the panel opens or closes the browser, except while the left button is down
@@ -273,18 +277,25 @@ of its list, cut only by a full board.
 
 ## Related cards (hovered card in hand)
 
-A card in hand without a "this game" rule shows, when hovered, its related cards in the same popup and rows (header
-"Related cards: N", the card's name; above the pool's parts when it has a pool). `RelatedCards.Of`, from the card
+A card in hand shows, when hovered, its related cards in the same popup and rows (header "Related cards: N", the card's
+name; above the pool's parts when it has a pool). A card with a "this game" rule shows both lists (2026-11-09):
+`ConstructedView.MatchList` is the rule's list and `ConstructedView.RelatedList` its related cards (N'Zoth `BE_017`:
+the minions summoned and his four abilities `BE_017t3`-`t6`); a card without a rule has its related cards in
+`MatchList` and no `RelatedList`. `RelatedCards.Of`, from the card
 data only (no hand-made table):
 
 - **Tokens:** a card that is not collectible, of a drawable type (minion, spell, weapon, location, hero), in the same
-  set, whose id is the card's id with a suffix (`t`, `t2`, `ta`, `a`, `b`: `CS2_101` → `CS2_101t`); a `CORE_` reprint
-  takes the original's tokens.
+  set, whose id is the card's id with a suffix (`t`, `t2`, `ta`, `a`, `b`, `A`, `B`: `CS2_101` → `CS2_101t`, `BE_017` →
+  `BE_017t3`, `EDR_872` → `EDR_872A`); a `CORE_` or `Core_` reprint takes the original's tokens (`Core_LOE_115` →
+  `LOE_115a`). An enchantment (`BE_017t6e`) is no related card. Two related cards with the same name and the same text are one row
+  (C'Thun's two identical Eyes `BE_013t3`/`BE_013t6`); the same name with another text shows both.
 - **Named cards:** a collectible card whose English name (two words or six letters at least) stands as whole words in
   the English text (the pool catalog's), outside bold keywords, and is no keyword itself (a mechanic or a referenced
   tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload).
-- Names in the client's language (`CardDb`); more than 12 related cards is no list. A "this game" rule wins (one list a
-  card). Cached per card for the card data and interface language. On the 2026-11 catalog (6 501 cards) 1 069 cards
+- Names in the client's language (`CardDb`); more than 12 related cards is no list. Without the catalog the tokens still
+  show (they come from `CardDb`), the named cards do not. Cached per card for the card data, catalog and interface
+  language. `GameSession.RelatedCardsOf(cardId)` gives any card's rows by id alone (no game state, thread-safe; empty
+  for none or more than 12) for card previews. On the 2026-11 catalog (6 501 cards) 1 069 cards
   have a list: 1 020 with tokens, 65 with named cards.
 - Only the player's own hand; the hover thread now also runs when a card in hand has related cards.
 
@@ -338,8 +349,11 @@ too).
   (disk cache `images/render-{locale}`, newest 2000 files kept, trimmed once per session; a card without a render is
   not asked for again in the session; the transparent margin cropped to the 215x303 card; 120 images in memory). Kept
   apart from `CardArt.cs` on purpose; it can be merged into a `CardArt` kind later.
-- The engine caches each built view per (card, game context, trigger), so a pool that stays up is the same object on
-  every overlay update: the panels rebuild nothing and the grid keeps its scroll position.
+- The engine caches each built view per (card, game context, trigger, wiki answer), so a pool that stays up is the same
+  object on every overlay update: the panels rebuild nothing and the grid keeps its scroll position. "No pool" is cached
+  too, and the key takes the wiki answer itself, not the wiki lists: a generator whose pool matches no catalog card walks
+  the catalog once, and a built view does not match its wiki lists again (2026-11-09; before, every publish of a hand
+  with such a card walked the 6 501 cards again). Another trigger of the same pool reuses its lists.
 
 ### Card under the mouse (game memory)
 

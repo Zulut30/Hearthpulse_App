@@ -11,14 +11,23 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     private readonly Dictionary<int, (string Options, string? Picked)> _choices = [];
     private readonly Dictionary<int, (string Options, int? Picked)> _draft = [];
     private readonly Dictionary<int, bool> _refs = [];
+    private readonly Dictionary<int, SourceCaptureChoice> _lastChoice = [];
     private string _captureKind = "", _mode = "", _lastKind = "";
+    private SourceCaptureContext? _context;
     private SourceCaptureEvent? _end;
+    private int _version, _combatView;
+    private bool _header = true, _lifecycleGap;
     private long _derivedBytes;
     private int _unsupported, _gaps, _plays, _buys, _sells, _turns, _shop, _resources;
 
-    internal void Add(SourceCaptureEvent e)
+    internal void Add(SourceCaptureEvent e, int version)
     {
         if (_events.Count >= limits.MaxRecords) throw new SourceCaptureException("limit_exceeded");
+        // One source, one wire version (= manifest.sourceVersion).
+        SourceCaptureSchema.Require(_events.Count == 0 ? version is 1 or 2 : version == _version);
+        _version = version;
+        // combat_view is a structural v2 marker written with the capture header, never after observations.
+        if (e.Kind is not ("start" or "gap")) _header = false;
         SourceCaptureSchema.Require(e.Seq == _events.Count && _end is null);
         SourceCaptureSchema.Require(e.Seq == 0 ? e.Kind == "start" : e.Kind != "start");
         SourceCaptureSchema.Require(e.Turn >= _turns);
@@ -41,6 +50,8 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 _captureKind = d.GetProperty("captureKind").GetString()!;
                 _mode = d.GetProperty("mode").GetString()!;
                 SourceCaptureSchema.Require(_captureKind != "draft" || _mode == "arena");
+                _context = new(_mode, d.GetProperty("day").GetInt32(), SourceCaptureSchema.NullableNumber(d.GetProperty("build"), 1, int.MaxValue),
+                    version == 2 ? d.GetProperty("format").GetString() : null, version == 2 ? d.GetProperty("arena").GetString() : null);
                 break;
             case "end":
                 _end = e;
@@ -85,7 +96,9 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 break;
             case "choice":
                 int id = d.GetProperty("choiceId").GetInt32();
-                string options = d.GetProperty("options").GetRawText() + d.GetProperty("sourceCard").GetRawText();
+                // The choice type is part of the offer's identity: it may not change between records of one choice.
+                string options = d.GetProperty("options").GetRawText() + d.GetProperty("sourceCard").GetRawText() +
+                    (version == 2 ? d.GetProperty("choiceType").GetRawText() : "");
                 string? picked = d.GetProperty("resolved").GetBoolean() ? d.GetProperty("picked").GetRawText() : null;
                 if (_choices.TryGetValue(id, out var previous) && previous.Picked is not null)
                 {
@@ -97,6 +110,9 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                     SourceCaptureSchema.Require(newPicks.Length >= oldPicks.Length && newPicks.Take(oldPicks.Length).SequenceEqual(oldPicks));
                 }
                 _choices[id] = (options, picked);
+                _lastChoice[id] = new(e.Seq, version == 2 ? d.GetProperty("choiceType").GetString()! : null,
+                    d.GetProperty("options").EnumerateArray().Select(x => x.GetString()!).ToArray(),
+                    d.GetProperty("picked").EnumerateArray().Select(x => x.GetString()!).ToArray(), d.GetProperty("resolved").GetBoolean());
                 break;
             case "draft_choice":
                 SourceCaptureSchema.Require(_captureKind == "draft");
@@ -123,7 +139,12 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 break;
             case "gap":
                 AddGaps(d.GetProperty("count").GetInt32());
-                if (d.GetProperty("reason").GetString() == "unsupported") _unsupported++;
+                string reason = d.GetProperty("reason").GetString()!;
+                if (reason == "unsupported") _unsupported++;
+                if (reason is "late_attach" or "rotation" or "shutdown") _lifecycleGap = true;
+                if (reason == "combat_view")
+                    SourceCaptureSchema.Require(_header && _captureKind == "game" && _mode is "bg" or "duos" && ++_combatView == 1 &&
+                        d.GetProperty("count").GetInt32() == 1);
                 break;
             default: _unsupported++; AddGaps(1); derivedKind = "unsupported"; break;
         }
@@ -150,6 +171,8 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     internal SourceCaptureResult Finish(string hash)
     {
         SourceCaptureSchema.Require(_events.Count > 0 && (_end is not null || _lastKind == "gap"));
+        // Every v2 BG/Duos game names its displayed-combat gap exactly once (contract C1).
+        SourceCaptureSchema.Require(_version != 2 || _captureKind != "game" || _mode is not ("bg" or "duos") || _combatView == 1);
         if (_blocks.Count > 0) AddGaps(1);
         bool unresolved = _choices.Values.Any(x => x.Picked is null) || _draft.Values.Any(x => x.Picked is null);
         bool complete = _end is not null && _end.Data.GetProperty("status").GetString() == "complete" &&
@@ -165,7 +188,9 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
         var summary = new SourceCaptureSummary(_plays, _buys, _sells, _choices.Count, _turns, _shop, _resources,
             _draft.Count, _captureKind, _mode, complete ? "complete" : "incomplete", _end is not null,
             complete && _captureKind == "game" && hasOutcome, result, placement);
-        return new(1, SourceCaptureParser.ParserVersion, hash, complete ? "parsed" : "partial", _events.Count,
-            _unsupported, _gaps, _events.AsReadOnly(), summary);
+        var (eligibility, facts) = SourceCaptureDerivation.Derive(new(_version, _captureKind, _mode, summary.CompleteForAggregation,
+            _end?.Data, _lifecycleGap, _lastChoice.Count == 0 ? null : _lastChoice[_lastChoice.Keys.Min()]));
+        return new(2, SourceCaptureParser.ParserVersion, _version, hash, complete ? "parsed" : "partial", _events.Count,
+            _unsupported, _gaps, _events.AsReadOnly(), summary, _context!, eligibility, facts);
     }
 }
