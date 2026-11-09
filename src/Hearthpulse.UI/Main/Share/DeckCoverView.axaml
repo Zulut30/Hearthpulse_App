@@ -21,13 +21,13 @@
         <Image i:CardArt.Splash="{Binding Deck.HeroCardId}" Width="520" HorizontalAlignment="Left" Stretch="UniformToFill" Opacity="0.6" />
         <Rectangle Width="520" HorizontalAlignment="Left" Fill="{StaticResource Bg}" OpacityMask="{StaticResource ShareArtMask}" />
 
-        <Grid Margin="40,32" ColumnDefinitions="400,*">
+        <Grid Margin="40,32" ColumnDefinitions="360,*">
             <DockPanel Margin="0,0,32,0">
                 <DockPanel DockPanel.Dock="Bottom">
                     <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" Classes="site" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" />
                     <Image Source="{StaticResource HearthpulseLogo}" Width="24" Height="24" VerticalAlignment="Center" />
                     <TextBlock Text="Hearthpulse" Classes="wordmark" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding BattleTag}" Classes="label" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" s:ShareTextFit.Mode="Line" />
                 </DockPanel>
                 <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Deck.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" Margin="0,0,0,24" Focusable="False">
                     <ItemsControl.ItemsPanel>
@@ -43,11 +43,26 @@
                 </StackPanel>
             </DockPanel>
 
-            <!-- Two columns of rows; a long deck (40 cards) shrinks as a whole to fit -->
-            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Center">
-                <Grid Width="456" ColumnDefinitions="*,8,*">
-                    <ItemsControl ItemsSource="{Binding Deck.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
-                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Deck.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" VerticalAlignment="Top" />
+            <!-- Two columns of even rows from the field's top, both ending on one line (DeckPictureCard.CoverList*): rows grow
+                 from 28 to 36 while the field has room; a longer deck (over 15 rows a column) is laid out wider and shrinks as
+                 a whole to the field. One name size a column (ShareTextFit.Scope), never under 9 as shown. -->
+            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Grid Width="{Binding Deck.CoverListWidth}" Height="{Binding Deck.CoverListHeight}" ColumnDefinitions="*,8,*"
+                      s:ShareTextFit.MinFontSize="{Binding Deck.CoverNameMinFontSize}">
+                    <ItemsControl ItemsSource="{Binding Deck.FirstColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="1" Rows="{Binding Deck.ColumnRows}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding Deck.SecondColumn}" ItemTemplate="{StaticResource ShareDeckRow}" Focusable="False" s:ShareTextFit.Scope="True">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="1" Rows="{Binding Deck.ColumnRows}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
                 </Grid>
             </Viewbox>
         </Grid>

@@ -3,6 +3,7 @@ using System.Windows;
 using Hearthpulse.App.Main.Share;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Share;
 using Hearthpulse.Core.Tracking;
 
@@ -47,6 +48,38 @@ public partial class App
         catch (IOException ex)
         {
             Diag.Error("Render of the share pictures failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// <c>HEARTHPULSE_RENDER_ONLY=sharecards</c>: every share picture on fixed decks (TASK-2026-11-09-deck-cover): the
+    /// session recap, the year, and a Warrior deck of 21, 30, 15, 12 and 8 rows in both layouts, long card names included.
+    /// Each layout gets a fresh model: a model is never changed after its window closed (TASK-2026-11-09-deck-cover, M2).
+    /// </summary>
+    private async Task RenderShareCardsAsync(string folder)
+    {
+        try
+        {
+            await RenderSharePictureAsync(_mainViewModel.SessionRecapShare(), folder, "share-recap.png");
+            if (await _mainViewModel.YearShareAsync() is { } year)
+            {
+                await RenderSharePictureAsync(year, folder, "share-year.png");
+            }
+
+            foreach (var (rows, deck) in ShareSampleDecks.All(_cards))
+            {
+                if (DeckString.Encode(deck, "WARRIOR", "Standard", _cards) is { } code && _mainViewModel.DeckShare(code, string.Empty, "WARRIOR") is { } share)
+                {
+                    await RenderSharePictureAsync(share, folder, $"share-deck-list-{rows}.png");
+                    var cover = _mainViewModel.DeckShare(code, string.Empty, "WARRIOR")!;
+                    cover.Cover = true;
+                    await RenderSharePictureAsync(cover, folder, $"share-deck-cover-{rows}.png");
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            Diag.Error("Render of the share cards failed", ex);
         }
     }
 

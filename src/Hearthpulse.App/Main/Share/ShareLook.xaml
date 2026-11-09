@@ -43,7 +43,8 @@
         <DockPanel Margin="0,16,0,0">
             <TextBlock DockPanel.Dock="Right" Text="{i:Loc Growth.Share.Site}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold"
                        FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding BattleTag}" Style="{StaticResource Label}" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding BattleTag}" Style="{StaticResource Label}" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       s:ShareTextFit.Mode="Line" />
         </DockPanel>
     </ControlTemplate>
 
@@ -62,8 +63,8 @@
             <StackPanel>
                 <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" TextWrapping="Wrap" />
                 <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" Margin="0,4,0,0"
-                           TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
+                           TextWrapping="Wrap" s:ShareTextFit.Mode="Words" s:ShareTextFit.MinFontSize="{StaticResource FontSizeLead}" />
+                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                            Visibility="{Binding HasDetail, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
@@ -95,7 +96,8 @@
 
     <!-- A deck card as the tracker lists it: cost gem, name over the art, copies or the legendary star, rarity edge -->
     <DataTemplate x:Key="ShareDeckRow" DataType="{x:Type d:DeckListRow}">
-        <Grid Height="28" Margin="0,0,0,2">
+        <!-- 28 high in the list; the cover's even rows stretch it up to 36 (DeckPictureCard.Row*; the margin is RowGap) -->
+        <Grid MinHeight="{x:Static s:DeckPictureCard.RowHeight}" MaxHeight="{x:Static s:DeckPictureCard.RowMaxHeight}" Margin="0,0,0,2">
             <Border Background="{StaticResource Row}" CornerRadius="{StaticResource RadiusPill}" c:RoundClip.Radius="14">
                 <Grid>
                     <Grid Width="180" HorizontalAlignment="Right">
@@ -109,7 +111,8 @@
                             <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
                                        Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   s:ShareTextFit.Mode="Line" />
                     </DockPanel>
                 </Grid>
             </Border>
@@ -154,7 +157,8 @@
             <Image Source="{StaticResource HearthpulseLogo}" Width="24" Height="24" VerticalAlignment="Center" />
             <TextBlock Text="Hearthpulse" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeLead}" FontWeight="Bold"
                        Foreground="{StaticResource GildedText}" Margin="8,0,0,0" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding BattleTag}" Style="{StaticResource Label}" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding BattleTag}" Style="{StaticResource Label}" Margin="12,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       s:ShareTextFit.Mode="Line" />
         </DockPanel>
     </ControlTemplate>
 

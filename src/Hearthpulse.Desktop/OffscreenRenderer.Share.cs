@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Share;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
@@ -47,6 +48,31 @@ internal static partial class OffscreenRenderer
         host.Overlay.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, host.Cards, host.Settings, null, null);
         await SaveStreamWindowAsync(host, host.Settings, StreamWindowSpec.Session, folder, "stream-session.png");
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, host.Settings, null, null);
+    }
+
+    /// <summary>
+    /// <c>HEARTHPULSE_RENDER_ONLY=sharecards</c>: every share picture on fixed decks (TASK-2026-11-09-deck-cover): the
+    /// session recap, the year, and a Warrior deck of 21, 30, 15, 12 and 8 rows in both layouts, long card names included.
+    /// Each layout gets a fresh model: a model is never changed after its window closed (TASK-2026-11-09-deck-cover, M2).
+    /// </summary>
+    private static async Task RenderShareCardsAsync(AppHost host, string folder)
+    {
+        await RenderSharePictureAsync(host.Main.SessionRecapShare(), folder, "share-recap.png");
+        if (await host.Main.YearShareAsync() is { } year)
+        {
+            await RenderSharePictureAsync(year, folder, "share-year.png");
+        }
+
+        foreach (var (rows, deck) in ShareSampleDecks.All(host.Cards))
+        {
+            if (DeckString.Encode(deck, "WARRIOR", "Standard", host.Cards) is { } code && host.Main.DeckShare(code, string.Empty, "WARRIOR") is { } share)
+            {
+                await RenderSharePictureAsync(share, folder, $"share-deck-list-{rows}.png");
+                var cover = host.Main.DeckShare(code, string.Empty, "WARRIOR")!;
+                cover.Cover = true;
+                await RenderSharePictureAsync(cover, folder, $"share-deck-cover-{rows}.png");
+            }
+        }
     }
 
     /// <summary>The picture exactly as "Save" writes it (twice its size), after its card art arrived.</summary>

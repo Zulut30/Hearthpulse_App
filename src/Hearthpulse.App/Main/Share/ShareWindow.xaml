@@ -26,9 +26,11 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Style="{StaticResource SegmentBar}" Margin="0,0,16,0" Visibility="{Binding HasLayouts, Converter={StaticResource Vis}}">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="LayoutList" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.List}"
+                        <!-- No GroupName: the buttons group by their panel. A named group is kept in a WPF-wide table with closed, not yet collected buttons, the likely cause of a
+                             stack overflow in the render scenes (not confirmed by a test; TASK-2026-11-09-deck-cover M2). Avalonia keeps its GroupName. -->
+                        <RadioButton x:Name="LayoutList" Style="{StaticResource Tab}" Content="{i:Loc Growth.Deck.List}"
                                      ToolTip="{i:Loc Growth.Deck.ListTip}" AutomationProperties.Name="{i:Loc Growth.Deck.List}" IsChecked="{Binding List}" />
-                        <RadioButton x:Name="LayoutCover" Style="{StaticResource Tab}" GroupName="ShareLayout" Content="{i:Loc Growth.Deck.Cover}"
+                        <RadioButton x:Name="LayoutCover" Style="{StaticResource Tab}" Content="{i:Loc Growth.Deck.Cover}"
                                      ToolTip="{i:Loc Growth.Deck.CoverTip}" AutomationProperties.Name="{i:Loc Growth.Deck.Cover}" IsChecked="{Binding Cover}" />
                     </StackPanel>
                 </Border>
