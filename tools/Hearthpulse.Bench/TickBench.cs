@@ -354,12 +354,15 @@ internal static class TickBench
 
     private static void Drive(List<object> points, MethodInfo clickThrough, MethodInfo hover, OverlayWindow window, object rect)
     {
+        // UpdateClickThrough takes the tick's time as well (the drag arm), UpdateLeaderboardHover only the cursor and rect.
         var args = new object?[2];
-        args[1] = rect;
+        var timed = new object?[3];
+        args[1] = timed[1] = rect;
+        timed[2] = DateTime.UtcNow;
         foreach (var point in points)
         {
-            args[0] = point;
-            clickThrough.Invoke(window, args);
+            args[0] = timed[0] = point;
+            clickThrough.Invoke(window, clickThrough.GetParameters().Length == 3 ? timed : args);
             hover.Invoke(window, args);
         }
     }
@@ -474,6 +477,16 @@ internal static class TickBench
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"[tick] CardPoolPanel.Poll {us:N1} us each = {us * 25 / 1000:N2} ms/s at 25 polls/s; alloc {(GC.GetAllocatedBytesForCurrentThread() - a) / 2000.0:N0} B each (pointer on a panel row, {(cold ? "cold: rows collected every poll" : "warm")}; held {vm.CardPoolHeld})"));
         }
+
+        // What of that the WPF screen-to-panel transform alone costs (the poll makes one per call).
+        var point = (Point)args[0];
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 2000; i++)
+        {
+            _ = card.PointFromScreen(point);
+        }
+
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[tick] of which PointFromScreen: alloc {(GC.GetAllocatedBytesForCurrentThread() - allocated) / 2000.0:N0} B each"));
     }
 
     private static IEnumerable<T> FindAll<T>(DependencyObject node)
