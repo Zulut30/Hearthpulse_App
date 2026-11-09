@@ -40,8 +40,8 @@ public static partial class UpdateService
                 File.Delete(staged);
             }
 
+            // The file staged before (an older release) stays until this one is in place: the app can still install it.
             Directory.CreateDirectory(Path.GetDirectoryName(staged)!);
-            DeleteOldDownloads(staged);
             var part = staged + ".part";
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromMinutes(30));
@@ -68,6 +68,7 @@ public static partial class UpdateService
             }
 
             File.Move(part, staged, overwrite: true);
+            DeleteOldDownloads(staged);
             ClearDownloadMark(staged);
             Diag.Info($"Update {info.Version} downloaded ({info.AssetName}).");
             return staged;
@@ -96,6 +97,11 @@ public static partial class UpdateService
     /// <summary>Earlier downloads are a hundred megabytes each and are never needed again.</summary>
     private static void DeleteOldDownloads(string keep)
     {
+        if (!Directory.Exists(Path.GetDirectoryName(keep)))
+        {
+            return;
+        }
+
         foreach (var file in Directory.EnumerateFiles(Path.GetDirectoryName(keep)!))
         {
             if (!string.Equals(file, keep, StringComparison.OrdinalIgnoreCase))

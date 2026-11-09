@@ -214,13 +214,16 @@ public sealed class DeltaUpdateTests : IDisposable
         Assert.Contains("PID eq 7", script);
         // Each step: the command, up to 5 tries a second apart, then where a failure goes.
         Assert.Contains("copy /Y \"C:\\data\\updates\\delta-1.1.0\\files\\ru\\new.dll\" \"C:\\Apps\\Hearth 100%%.update-new\\ru\\new.dll\" >nul 2>nul && goto s2ok\r\n"
-            + "set /a TRY+=1\r\nif %TRY% lss 5 ( ping -n 2 127.0.0.1 >nul & goto s2 )\r\ngoto abort\r\n:s2ok", script);
+            + "set /a TRY+=1\r\nif %TRY% lss 5 ( \"%SystemRoot%\\System32\\PING.EXE\" -n 2 127.0.0.1 >nul & goto s2 )\r\ngoto abort\r\n:s2ok", script);
         Assert.Contains("move /Y \"C:\\Apps\\Hearth 100%%\\gone.txt\" \"C:\\Apps\\Hearth 100%%.update-old\\gone.txt\" >nul 2>nul && goto s4ok\r\n"
-            + "set /a TRY+=1\r\nif %TRY% lss 5 ( ping -n 2 127.0.0.1 >nul & goto s4 )\r\ngoto rollback", script);
+            + "set /a TRY+=1\r\nif %TRY% lss 5 ( \"%SystemRoot%\\System32\\PING.EXE\" -n 2 127.0.0.1 >nul & goto s4 )\r\ngoto rollback", script);
         Assert.Contains("set \"KEEP_BACKUP=1\"", script);
         Assert.Contains("if defined KEEP_BACKUP goto broken", script);
         Assert.DoesNotContain("start \"\"", script[script.IndexOf(":broken", StringComparison.Ordinal)..]);
-        Assert.Contains(@"reg add ""HKCU\Software\Test"" /v DisplayVersion /t REG_SZ /d ""1.1.0"" /f", script);
+        Assert.Contains(@"""%SystemRoot%\System32\reg.exe"" add ""HKCU\Software\Test"" /v DisplayVersion /t REG_SZ /d ""1.1.0"" /f", script);
+        // System tools by full path: a Git Bash find.exe earlier in PATH must not decide the wait.
+        Assert.Contains(@"""%SystemRoot%\System32\tasklist.exe"" /FI ""PID eq 7"" /NH 2>nul | ""%SystemRoot%\System32\find.exe"" ""7"" >nul", script);
+        Assert.DoesNotContain("| find ", script);
         Assert.Contains(@">>""C:\Apps\Hearth 100%%\uninstall-extra.txt"" echo ru\new.dll", script);
         Assert.Contains(@">>""C:\Apps\Hearth 100%%\uninstall-extra.txt"" echo ru\", script);
         Assert.DoesNotContain("keep.dll", script);

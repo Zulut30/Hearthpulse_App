@@ -46,8 +46,9 @@ properties) in contract tests rather than forcing the two UIs to have identical 
   `Failed` / `Passed`; prefer a TRX report for machine-readable results.
 - Coverage (coverlet, both suites): add `--collect:"XPlat Code Coverage" --results-directory <dir>`; the report is
   `<dir>/<guid>/coverage.cobertura.xml` (per assembly `line-rate` / `branch-rate`; the WPF app is `Hearthpulse`). CI's
-  Windows jobs collect it (the core suite in two halves by test class name, the presentation suite beside the
-  solution build; artifacts `coverage-windows-*`) and the `coverage` job runs `tools/coverage/coverage_ratchet.py`:
+  Windows jobs collect it (the core suite in two halves by test class name: A-H with `Sim.*`, and the rest; the
+  presentation suite in a job of its own beside the solution build; artifacts `coverage-windows-*`) and the
+  `coverage` job runs `tools/coverage/coverage_ratchet.py`:
   line coverage per module (`src/` folder, every report merged, shared Presentation counted once) into the job
   summary, and a red job when a module falls more than 0.5 pp under its floor in `tools/coverage/baseline.json`.
   Mutation tests (Stryker, by hand in CI only): `docs/mutation-testing.md`.
