@@ -1,4 +1,6 @@
 using Hearthpulse.Core.Arena;
+using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -16,10 +18,22 @@ public sealed partial class GameSession
     /// <summary>The card of the last pick while no offer was known: the first offer read with it is the stale one.</summary>
     private string? _pickedWithoutOffer;
 
-    /// <summary>The run's mode as the last offer on this draft screen said.</summary>
-    private bool? _draftUnderground;
+    /// <summary>The game whose deck was checked against the draft (once per game).</summary>
+    private GameState? _arenaCheckedGame;
+
+    /// <summary>
+    /// The Decks.log announcement last checked: a game without a new one (Decks.log missing a line) keeps the previous
+    /// game's deck, which a redraft since may have changed, so an announcement is used once.
+    /// </summary>
+    private DeckDefinition? _arenaCheckedDeck;
 
     private int _picksSeen;
+
+    /// <summary>How many times a game's deck replaced a differing tracked draft; internal for tests.</summary>
+    internal int ArenaGameDeckCorrections { get; private set; }
+
+    /// <summary>The draft as the log and the games of the run told it; internal for tests.</summary>
+    internal ArenaDraftState ArenaDraftState => _arenaDraft.State;
 
     /// <summary>ArenaSmith scores and class results; the host passes them after loading.</summary>
     public void SetArenaMeta(ArenaMeta? meta)
@@ -69,7 +83,12 @@ public sealed partial class GameSession
         _draftOffer = offer;
         if (offer is not null)
         {
-            _draftUnderground = offer.Underground ?? _draftUnderground;
+            if (offer.Underground is { } underground)
+            {
+                // The offer on screen is the current run's: it names that run's Arena (a new run forgets it).
+                _arenaDraft.SetVariant(underground);
+            }
+
             if (_pickedWithoutOffer is { } chosen)
             {
                 // The pick was logged before the memory read saw its offer: that offer is the stale one.
@@ -152,9 +171,9 @@ public sealed partial class GameSession
     /// <summary>The draft panels' view while the Arena draft screen is open, else null.</summary>
     private ArenaDraftView? BuildArenaDraft()
     {
+        CheckArenaGameDeck();
         if (_scene != "DRAFT" || !_hearthstoneRunning)
         {
-            _draftUnderground = null;
             return null;
         }
 
@@ -166,12 +185,59 @@ public sealed partial class GameSession
         var offer = _draftOffer is not null && _draftOffer.SameAs(_pickedOffer) ? null : _draftOffer;
         try
         {
-            return ArenaDraft.Build(_arenaDraft.State, offer, _arenaMeta, _cards, _draftUnderground);
+            return ArenaDraft.Build(_arenaDraft.State, offer, _arenaMeta, _cards);
         }
         catch (Exception ex)
         {
             Diag.Error("Building the Arena draft view failed", ex);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// A game of the run is under way: the deck Decks.log announced for it is the truth about the draft (a redraft's
+    /// removals, copies the client's list missed), and its game type names the run's Arena. Checked once per game, only
+    /// while the game runs, so a finished game read again after a restart never undoes a later redraft. The deck goes
+    /// only to the run of its deck id (<see cref="ArenaDraftTracker.ApplyGameDeck"/>).
+    /// </summary>
+    private void CheckArenaGameDeck()
+    {
+        if (_parser?.Game is not { IsComplete: false } game || ReferenceEquals(game, _arenaCheckedGame)
+            || MulliganArena.IsUnderground(game) is not { } underground || _gameDeck is not { } deck || ReferenceEquals(deck, _arenaCheckedDeck))
+        {
+            return;
+        }
+
+        _arenaCheckedGame = game;
+        _arenaCheckedDeck = deck;
+        var ids = new List<string>(deck.CardCount);
+        foreach (var (dbfId, copies) in deck.Cards)
+        {
+            if (_cards.Get(dbfId) is not { } card)
+            {
+                // Without the card data the deck cannot be named card by card: only its Arena is taken.
+                if (deck.DeckId != 0 && deck.DeckId == _arenaDraft.State.DeckId && _arenaDraft.SetVariant(underground))
+                {
+                    _dirty = true;
+                }
+
+                return;
+            }
+
+            ids.AddRange(Enumerable.Repeat(card.Id, copies));
+        }
+
+        if (_arenaDraft.ApplyGameDeck(deck.DeckId, ids, underground) is not { } check)
+        {
+            return;
+        }
+
+        _dirty = true;
+        if (check.Differed)
+        {
+            // Beta: one line per corrected game, counts only (no deck id), to compare a live redraft with the log.
+            ArenaGameDeckCorrections++;
+            Diag.Info($"Arena draft: the game's deck differs from the tracked draft ({check.Tracked} cards tracked, {check.Game} in the game); using the game's deck");
         }
     }
 
