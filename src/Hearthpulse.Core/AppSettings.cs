@@ -216,6 +216,9 @@ public sealed partial class AppSettings
     /// </summary>
     public bool GameStatsNoticeShown { get; set; }
 
+    /// <summary>Version of the source capture notice actually shown; legacy GameStats notice never authorizes source.</summary>
+    public int SourceCaptureNoticeVersion { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 

@@ -65,6 +65,7 @@ public sealed partial class GameSession
             Diag.Info(offer is null ? "Arena draft: no offer read from memory" : "Arena draft: offer read from memory: " + Describe(offer));
         }
 
+        if (offer is null) CaptureUnpickedDraftOffer();
         _draftOffer = offer;
         if (offer is not null)
         {
@@ -123,6 +124,8 @@ public sealed partial class GameSession
         }
 
         var index = _draftOffer is null ? -1 : IndexOf(_draftOffer.CardIds, chosen);
+        if (!_catchingUp && _sourceCapture.Enabled)
+            _sourceCapture.CaptureDraftChoice(index >= 0 ? _draftOffer : null, _arenaDraft.PickCount, index >= 0 ? index : null, DateOnly.FromDateTime(Clock()));
         if (index >= 0)
         {
             _pickedOffer = _draftOffer;
@@ -173,7 +176,16 @@ public sealed partial class GameSession
     }
 
     /// <summary>Memory reads for the draft screen are wanted: the screen is open and the helper is on.</summary>
-    private bool WantDraftChoices => _scene == "DRAFT" && _arenaDraftEnabled;
+    private bool WantDraftChoices => _scene == "DRAFT" && (_arenaDraftEnabled || _sourceCapture.Enabled);
+
+    private void CaptureUnpickedDraftOffer()
+    {
+        if (!_catchingUp && _sourceCapture.Enabled && _draftOffer is { } offer && !offer.SameAs(_pickedOffer))
+        {
+            _sourceCapture.CaptureDraftChoice(offer, _arenaDraft.PickCount + 1, null, DateOnly.FromDateTime(Clock()));
+            _pickedOffer = offer;
+        }
+    }
 
     private static int IndexOf(IReadOnlyList<string> ids, string id)
     {
