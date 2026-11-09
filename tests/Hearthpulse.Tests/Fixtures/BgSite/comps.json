@@ -1,0 +1,547 @@
+{
+ "source": "HSReplay + Firestone через api.kolodahearthstone.com",
+ "fetchedAt": "2026-11-09T17:00:12.501414+00:00",
+ "count": 5,
+ "comps": [
+  {
+   "key": "hsreplay-76",
+   "source": "HSReplay",
+   "title": "Свинобразы - APM-усиление таверны",
+   "description": "Разыгрывайте заклинания, чтобы поглощать усиленную таверну.",
+   "tier": "S",
+   "difficulty": "Лёгкая",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/76/svinobrazy-apm-usilenie-taverny/",
+   "coreCards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "hsreplay-95",
+   "source": "HSReplay",
+   "title": "Элементали - Живой азерит",
+   "description": "Усиливайте элементалей в таверне",
+   "tier": "S",
+   "difficulty": "Средняя",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/95/elementali-zhivoi-azerit/",
+   "coreCards": [
+    {
+     "id": "BG35_881",
+     "dbfId": 130294,
+     "name": "Leyline Surfacer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG28_707",
+     "dbfId": 107939,
+     "name": "Living Azerite",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_701",
+     "dbfId": 132883,
+     "name": "Kelp Keeper",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG35_881",
+     "dbfId": 130294,
+     "name": "Leyline Surfacer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG28_707",
+     "dbfId": 107939,
+     "name": "Living Azerite",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_701",
+     "dbfId": 132883,
+     "name": "Kelp Keeper",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "hsreplay-76",
+   "source": "HSReplay",
+   "title": "Свинобразы - APM-усиление таверны",
+   "description": "Разыгрывайте заклинания, чтобы поглощать усиленную таверну.",
+   "tier": "S",
+   "difficulty": "Лёгкая",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/76/svinobrazy-apm-usilenie-taverny/",
+   "coreCards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "firestone-undead-butcher",
+   "source": "Firestone",
+   "title": "Undead Butcher",
+   "description": "",
+   "tier": "A",
+   "difficulty": "Средняя",
+   "avgPlacement": "3.70",
+   "whenToCommit": "",
+   "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
+   "coreCards": [
+    {
+     "id": "BG32_324",
+     "dbfId": 120104,
+     "name": "Друстский мясник",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Стильный фантом",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [
+    {
+     "id": "BG32_880",
+     "dbfId": 120219,
+     "name": "Дружелюбное привидение",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_354",
+     "dbfId": 97408,
+     "name": "Тит Ривендер",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG28_309",
+     "dbfId": 108992,
+     "name": "Мумификатор",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_511",
+     "dbfId": 132322,
+     "name": "Мертвый звонарь",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG31_835",
+     "dbfId": 115610,
+     "name": "Агент-убийца",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_009",
+     "dbfId": 95263,
+     "name": "Вечная призывательница",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Безрукая Отрекшаяся",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG_DEEP_015",
+     "dbfId": 112364,
+     "name": "Рука-протез",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG28_604",
+     "dbfId": 110412,
+     "name": "Разделка туши",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_848",
+     "dbfId": 134492,
+     "name": "Личонок-собиратель",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG32_324",
+     "dbfId": 120104,
+     "name": "Друстский мясник",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Стильный фантом",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG32_880",
+     "dbfId": 120219,
+     "name": "Дружелюбное привидение",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_354",
+     "dbfId": 97408,
+     "name": "Тит Ривендер",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG28_309",
+     "dbfId": 108992,
+     "name": "Мумификатор",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_511",
+     "dbfId": 132322,
+     "name": "Мертвый звонарь",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG31_835",
+     "dbfId": 115610,
+     "name": "Агент-убийца",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_009",
+     "dbfId": 95263,
+     "name": "Вечная призывательница",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Безрукая Отрекшаяся",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG_DEEP_015",
+     "dbfId": 112364,
+     "name": "Рука-протез",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG28_604",
+     "dbfId": 110412,
+     "name": "Разделка туши",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_848",
+     "dbfId": 134492,
+     "name": "Личонок-собиратель",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ]
+  },
+  {
+   "key": "firestone-beast-lobster",
+   "source": "Firestone",
+   "title": "Beast Lobster",
+   "description": "",
+   "tier": "S",
+   "difficulty": "Средняя",
+   "avgPlacement": "3.78",
+   "whenToCommit": "",
+   "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
+   "coreCards": [
+    {
+     "id": "BG36_202",
+     "dbfId": 132796,
+     "name": "Вкусный омар",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG25_354",
+     "dbfId": 97408,
+     "name": "Тит Ривендер",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_208",
+     "dbfId": 132808,
+     "name": "Смертобег",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_204",
+     "dbfId": 132800,
+     "name": "Охотничий грифон",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [
+    {
+     "id": "BG36_210",
+     "dbfId": 133039,
+     "name": "Алчная гиена",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_016",
+     "dbfId": 95286,
+     "name": "Син'дорай-снайпер",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_201",
+     "dbfId": 132794,
+     "name": "Затаившаяся лев-рыба",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_206",
+     "dbfId": 132804,
+     "name": "Злая акула",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG27_084",
+     "dbfId": 108909,
+     "name": "Шустрый скарабей",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG36_202",
+     "dbfId": 132796,
+     "name": "Вкусный омар",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG25_354",
+     "dbfId": 97408,
+     "name": "Тит Ривендер",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_208",
+     "dbfId": 132808,
+     "name": "Смертобег",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_204",
+     "dbfId": 132800,
+     "name": "Охотничий грифон",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_210",
+     "dbfId": 133039,
+     "name": "Алчная гиена",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG25_016",
+     "dbfId": 95286,
+     "name": "Син'дорай-снайпер",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_201",
+     "dbfId": 132794,
+     "name": "Затаившаяся лев-рыба",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG36_206",
+     "dbfId": 132804,
+     "name": "Злая акула",
+     "count": 1,
+     "role": "ADDON"
+    },
+    {
+     "id": "BG27_084",
+     "dbfId": 108909,
+     "name": "Шустрый скарабей",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ]
+  }
+ ]
+}
