@@ -316,12 +316,24 @@ public static partial class UpdateService
         return new UpdateCheck(UpdateCheckOutcome.Failed, null, message + " " + TryLaterText(retryAfter)) { RetryAfter = retryAfter };
     }
 
-    /// <summary>When GitHub takes requests again: X-RateLimit-Reset (unix seconds), Retry-After (seconds or a date), else in an hour.</summary>
+    /// <summary>The latest a limit reply can push the next check: a far-off or bogus reset never stops the checks for long.</summary>
+    internal static readonly TimeSpan LongestLimit = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// When GitHub takes requests again: X-RateLimit-Reset (unix seconds), Retry-After (seconds or a date), else in an
+    /// hour; never later than <see cref="LongestLimit"/> from now.
+    /// </summary>
     private static DateTimeOffset RateLimitEnd(HttpResponseMessage response, DateTimeOffset now)
+    {
+        var end = ReportedLimitEnd(response, now);
+        return end - now > LongestLimit ? now + LongestLimit : end;
+    }
+
+    private static DateTimeOffset ReportedLimitEnd(HttpResponseMessage response, DateTimeOffset now)
     {
         if (response.Headers.TryGetValues("X-RateLimit-Reset", out var reset)
             && long.TryParse(reset.FirstOrDefault(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
-            && seconds > 0)
+            && seconds > 0 && seconds < DateTimeOffset.MaxValue.ToUnixTimeSeconds())
         {
             var at = DateTimeOffset.FromUnixTimeSeconds(seconds);
             return at > now ? at : now.AddMinutes(1);

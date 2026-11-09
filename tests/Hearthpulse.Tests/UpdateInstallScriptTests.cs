@@ -30,14 +30,21 @@ public sealed class UpdateInstallScriptTests : IDisposable
     public void The_setup_helper_waits_backs_up_retries_restores_and_reports()
     {
         var script = UpdateService.BuildApplyScript(1234, @"C:\data\updates\setup.exe", @"C:\data\updates\setup.exe", @"C:\Apps\Hearthpulse\",
-            @"C:\Apps\Hearthpulse\Hearthpulse.exe", installer: true, cleanupDir: null, resultFile: @"C:\data\update-state\install-result.txt");
+            @"C:\Apps\Hearthpulse\Hearthpulse.exe", installer: true, cleanupDir: null, resultFile: @"C:\data\update-state\install-result.txt",
+            expectedSha256: new string('a', 64));
 
         Assert.Contains("PID eq 1234", script);
         Assert.Contains("if %waited% GEQ 120 goto closed", script);
-        Assert.Contains("robocopy \"C:\\Apps\\Hearthpulse\" \"C:\\Apps\\Hearthpulse.setup-backup\" /MIR", script);
+        Assert.Contains("\"%SystemRoot%\\System32\\robocopy.exe\" \"C:\\Apps\\Hearthpulse\" \"C:\\Apps\\Hearthpulse.setup-backup\" /MIR", script);
         Assert.Equal(2, Count(script, "start \"\" /b /wait \"C:\\data\\updates\\setup.exe\" /S"));
-        Assert.Contains("ping -n 6 127.0.0.1 >nul", script);
-        Assert.Contains("robocopy \"C:\\Apps\\Hearthpulse.setup-backup\" \"C:\\Apps\\Hearthpulse\" /MIR", script);
+        Assert.Contains("\"%SystemRoot%\\System32\\PING.EXE\" -n 6 127.0.0.1 >nul", script);
+        Assert.Contains("\"%SystemRoot%\\System32\\robocopy.exe\" \"C:\\Apps\\Hearthpulse.setup-backup\" \"C:\\Apps\\Hearthpulse\" /MIR", script);
+        // System tools by full path: a Git Bash find.exe earlier in PATH must not decide the wait.
+        Assert.Contains("\"%SystemRoot%\\System32\\tasklist.exe\" /FI \"PID eq 1234\" /NH 2>nul | \"%SystemRoot%\\System32\\find.exe\" \"1234\" >nul", script);
+        Assert.DoesNotContain("| find ", script);
+        // The setup's SHA-256 is checked again right before it runs.
+        Assert.Contains("\"%SystemRoot%\\System32\\certutil.exe\" -hashfile \"C:\\data\\updates\\setup.exe\" SHA256 2>nul | \"%SystemRoot%\\System32\\find.exe\" /i \"" + new string('a', 64) + "\" >nul", script);
+        Assert.Contains("set code=hash_mismatch", script);
         Assert.Contains(") > \"C:\\data\\update-state\\install-result.txt\"", script);
         foreach (var line in new[] { "echo exit=%code%", "echo attempts=%attempts%", "echo backup=%backup%", "echo restored=%restored%" })
         {
@@ -69,7 +76,7 @@ public sealed class UpdateInstallScriptTests : IDisposable
         }
 
         var (app, result, setup) = Prepare(exitCode: 0);
-        Run(UpdateService.BuildApplyScript(ExitedPid(), setup, setup, app, null, installer: true, cleanupDir: null, result, waitSeconds: 120, retrySeconds: 1));
+        Run(UpdateService.BuildApplyScript(ExitedPid(), setup, setup, app, null, installer: true, cleanupDir: null, result, Sha(setup), waitSeconds: 120, retrySeconds: 1));
 
         Assert.Equal(["exit=0", "attempts=1", "backup=1", "restored=0"], File.ReadAllLines(result));
         Assert.Equal("new", File.ReadAllText(Path.Combine(app, "Hearthpulse.dll")).Trim());
@@ -88,7 +95,7 @@ public sealed class UpdateInstallScriptTests : IDisposable
 
         var (app, result, setup) = Prepare(exitCode: 2);
         var before = Hashes(app);
-        Run(UpdateService.BuildApplyScript(ExitedPid(), setup, setup, app, null, installer: true, cleanupDir: null, result, waitSeconds: 120, retrySeconds: 1));
+        Run(UpdateService.BuildApplyScript(ExitedPid(), setup, setup, app, null, installer: true, cleanupDir: null, result, Sha(setup), waitSeconds: 120, retrySeconds: 1));
 
         Assert.Equal(["exit=2", "attempts=2", "backup=1", "restored=1"], File.ReadAllLines(result));
         Assert.Equal(before, Hashes(app));
@@ -107,10 +114,30 @@ public sealed class UpdateInstallScriptTests : IDisposable
         // This test process stays alive: the helper must give up waiting and install anyway.
         var (app, result, setup) = Prepare(exitCode: 0);
         var watch = Stopwatch.StartNew();
-        Run(UpdateService.BuildApplyScript(Environment.ProcessId, setup, setup, app, null, installer: true, cleanupDir: null, result, waitSeconds: 2, retrySeconds: 1));
+        Run(UpdateService.BuildApplyScript(Environment.ProcessId, setup, setup, app, null, installer: true, cleanupDir: null, result, Sha(setup), waitSeconds: 2, retrySeconds: 1));
         Assert.InRange(watch.Elapsed.TotalSeconds, 1.5, 50);
         Assert.Equal("exit=0", File.ReadAllLines(result)[0]);
     }
+
+    [Fact]
+    public void A_setup_changed_after_its_check_is_not_run()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var (app, result, setup) = Prepare(exitCode: 0);
+        var before = Hashes(app);
+        Run(UpdateService.BuildApplyScript(ExitedPid(), setup, setup, app, null, installer: true, cleanupDir: null, result, new string('0', 64), waitSeconds: 120, retrySeconds: 1));
+
+        Assert.Equal(["exit=hash_mismatch", "attempts=0", "backup=0", "restored=0"], File.ReadAllLines(result));
+        Assert.Equal(before, Hashes(app));
+        Assert.False(File.Exists(Path.Combine(_root, "runs.txt")));
+        Assert.False(Directory.Exists(app + ".setup-backup"));
+    }
+
+    private static string Sha(string path) => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
 
     private (string App, string Result, string Setup) Prepare(int exitCode)
     {

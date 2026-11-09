@@ -200,8 +200,23 @@ internal static class UpdateSignature
             return null;
         }
 
-        var bytes = await response.Content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false);
-        return bytes.Length > MaxFileBytes ? null : bytes;
+        // Read with a cap: a reply without a length (chunked) is never taken in whole.
+        var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+        await using var streamScope = stream.ConfigureAwait(false);
+        using var kept = new MemoryStream();
+        var buffer = new byte[16 * 1024];
+        int read;
+        while ((read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+        {
+            if (kept.Length + read > MaxFileBytes)
+            {
+                return null;
+            }
+
+            await kept.WriteAsync(buffer.AsMemory(0, read), cts.Token).ConfigureAwait(false);
+        }
+
+        return kept.ToArray();
     }
 
     private static IReadOnlyList<byte[]> ReadEmbeddedKeys()

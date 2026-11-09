@@ -301,7 +301,7 @@ public sealed class UpdateTests
     public void The_zip_helper_unpacks_over_the_app_folder_and_clears_the_temp_copy()
     {
         var script = UpdateService.BuildApplyScript(42, @"C:\tmp\preview.zip", @"C:\tmp\hearthpulse-update", @"C:\app", null, installer: false, cleanupDir: @"C:\tmp\hearthpulse-update");
-        Assert.Contains("xcopy /E /Y /I \"C:\\tmp\\hearthpulse-update\\*\" \"C:\\app\\\"", script);
+        Assert.Contains("xcopy.exe\" /E /Y /I \"C:\\tmp\\hearthpulse-update\\*\" \"C:\\app\\\"", script);
         Assert.Contains("rmdir /S /Q \"C:\\tmp\\hearthpulse-update\"", script);
         Assert.DoesNotContain("/wait", script);
         Assert.DoesNotContain("start \"\" \"C:", script);
@@ -429,6 +429,38 @@ public sealed class UpdateTests
         Assert.True(trigger.Request());
         await events.WaitAsync(e => e.Count(x => x == "checked Failed") == 2);
         Assert.Equal(2, server.LatestCount);
+    }
+
+    [Theory]
+    [InlineData("X-RateLimit-Reset", "32503680000")]
+    [InlineData("Retry-After", "999999999")]
+    public async Task A_far_off_limit_never_stops_the_checks_for_more_than_six_hours(string header, string value)
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        using var http = new HttpClient(new UpdateServer().Latest(() => UpdateServer.Status(HttpStatusCode.Forbidden, ("X-RateLimit-Remaining", "0"), (header, value))));
+
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, Context(() => now), CancellationToken.None);
+
+        Assert.Equal(now + UpdateService.LongestLimit, check.RetryAfter);
+    }
+
+    [Fact]
+    public async Task Stopping_the_loop_ends_a_download_in_progress_without_a_callback()
+    {
+        var payload = "stopped 99.8.0"u8.ToArray();
+        var server = new UpdateServer().Latest(UpdateServer.Release("99.8.0", [(Setup("99.8.0"), payload)])).File(Setup("99.8.0"), payload);
+        server.Hold(Setup("99.8.0"), new TaskCompletionSource().Task);
+        var events = new Events();
+        using var http = new HttpClient(server);
+        using var stop = new CancellationTokenSource();
+        var loop = Task.Run(() => UpdateService.WatchAsync(http, false, true, events.Callbacks, new UpdateTrigger(), Options(Context()), stop.Token));
+
+        await WaitUntil(() => server.Count(Setup("99.8.0")) == 1);
+        await stop.CancelAsync();
+        await loop.WaitAsync(TimeSpan.FromSeconds(15));
+
+        Assert.True(loop.IsCompletedSuccessfully);
+        Assert.Equal(["checked Available 99.8.0"], events.Log);
     }
 
     // ---- The loop (AC4–AC7) ----

@@ -16,18 +16,27 @@ public static partial class UpdateService
     /// is never locked, then runs the setup silently (or unpacks the zip) and optionally starts the app again.
     /// Returns false when there is nothing to do (not Windows, nothing downloaded, unpack failed).
     /// </summary>
-    public static bool ApplyStaged(UpdateInfo info, bool relaunch)
+    public static bool ApplyStaged(UpdateInfo info, bool relaunch) =>
+        ApplyStaged(info, relaunch, AppContext.BaseDirectory, UpdateContext.Default().StateDirectory);
+
+    /// <summary><see cref="ApplyStaged(UpdateInfo, bool)"/> for a given app folder and state folder (tests).</summary>
+    internal static bool ApplyStaged(UpdateInfo info, bool relaunch, string appDirectory, string state)
     {
         if (!OperatingSystem.IsWindows())
         {
             return false;
         }
 
-        var targetDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var state = UpdateContext.Default().StateDirectory;
-        if (info.Delta is not null && MarkPending(state, info) && DeltaUpdate.Apply(info, targetDir, relaunch))
+        var targetDir = appDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (info.Delta is not null)
         {
-            return true;
+            if (MarkPending(state, info, helper: null) && DeltaUpdate.Apply(info, targetDir, relaunch))
+            {
+                return true;
+            }
+
+            // Nothing started: without this the next start would count a failed install that never ran.
+            InstallState.ClearPending(state);
         }
 
         var staged = StagedPath(info);
@@ -68,26 +77,35 @@ public static partial class UpdateService
             relaunch && File.Exists(exe) ? exe : null,
             installer,
             extractDir,
-            Path.Combine(state, InstallState.ResultFile));
+            Path.Combine(state, InstallState.ResultFile),
+            installer ? info.Sha256 : null);
         var scriptPath = Path.Combine(Path.GetTempPath(), $"hearthpulse-update-{Environment.ProcessId}.cmd");
         try
         {
-            if (!MarkPending(state, info))
+            if (!MarkPending(state, info, helper: null))
             {
                 return false;
             }
 
             File.WriteAllText(scriptPath, script);
-            Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{scriptPath}\"")
+            using (var helper = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{scriptPath}\"")
             {
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 WorkingDirectory = Path.GetTempPath(),
-            })?.Dispose();
+            }))
+            {
+                // The helper's id and start: a start while it still waits or installs does not judge the install yet.
+                if (helper is not null)
+                {
+                    MarkPending(state, info, (helper.Id, new DateTimeOffset(helper.StartTime.ToUniversalTime(), TimeSpan.Zero)));
+                }
+            }
+
             Diag.Info($"Update {info.Version} will install when Hearthpulse closes.");
             return true;
         }
-        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or InvalidOperationException)
         {
             Diag.Error("Update helper could not start", ex);
             InstallState.ClearPending(state);
@@ -100,14 +118,14 @@ public static partial class UpdateService
     /// Call once at start: a failure counts one more failed attempt of that version.
     /// </summary>
     public static InstallReport? TakeInstallReport() =>
-        InstallState.Take(UpdateContext.Default().StateDirectory, CurrentVersion, AppContext.BaseDirectory);
+        InstallState.Take(UpdateContext.Default().StateDirectory, CurrentVersion, AppContext.BaseDirectory, DateTimeOffset.UtcNow, InstallState.HelperRunning);
 
     /// <summary>Writes the install marker the next start reads; false (and logged) when it cannot be written.</summary>
-    private static bool MarkPending(string stateDirectory, UpdateInfo info)
+    private static bool MarkPending(string stateDirectory, UpdateInfo info, (int Pid, DateTimeOffset Started)? helper)
     {
         try
         {
-            InstallState.WritePending(stateDirectory, info.Version, CurrentVersion, info.AssetName, DateTimeOffset.UtcNow);
+            InstallState.WritePending(stateDirectory, info.Version, CurrentVersion, info.AssetName, DateTimeOffset.UtcNow, helper);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -120,22 +138,26 @@ public static partial class UpdateService
 
     /// <summary>
     /// The update helper: a small cmd script, because the installer may only touch the app's files after the app has
-    /// closed. It waits for the process (at most two minutes; then the setup closes a hung one itself), copies the app
-    /// folder to &lt;app&gt;.setup-backup, runs the setup silently and once more after a few seconds when it fails, puts
-    /// the folder back from the copy when the second run fails too, writes <paramref name="resultFile"/> (exit=,
-    /// attempts=, backup=, restored=), optionally starts the app again and deletes itself. No delayed expansion, every
-    /// path quoted, "%" doubled: paths with spaces, %, !, &amp; and any letters work.
+    /// closed. It waits for the process (at most two minutes; then the setup closes a hung one itself), checks the
+    /// setup's SHA-256 once more (a changed file is not run: exit=hash_mismatch), copies the app folder to
+    /// &lt;app&gt;.setup-backup, runs the setup silently and once more after a few seconds when it fails, puts the folder
+    /// back from the copy when the second run fails too, writes <paramref name="resultFile"/> (exit=, attempts=,
+    /// backup=, restored=), optionally starts the app again and deletes itself. System tools by full path (a Git Bash
+    /// find.exe earlier in PATH must not decide the wait); no delayed expansion, every path quoted, "%" doubled: paths
+    /// with spaces, %, !, &amp; and any letters work.
     /// </summary>
+    /// <param name="expectedSha256">The setup's SHA-256 (lower-case hex) to check right before it runs; null skips the check.</param>
     public static string BuildApplyScript(int pid, string stagedFile, string sourceDir, string targetDir, string? relaunchExe, bool installer, string? cleanupDir,
-        string? resultFile = null) =>
-        BuildApplyScript(pid, stagedFile, sourceDir, targetDir, relaunchExe, installer, cleanupDir, resultFile, waitSeconds: 120, retrySeconds: 5);
+        string? resultFile = null, string? expectedSha256 = null) =>
+        BuildApplyScript(pid, stagedFile, sourceDir, targetDir, relaunchExe, installer, cleanupDir, resultFile, expectedSha256, waitSeconds: 120, retrySeconds: 5);
 
-    /// <summary><see cref="BuildApplyScript(int, string, string, string, string?, bool, string?, string?)"/> with the waits passed in (tests).</summary>
+    /// <summary><see cref="BuildApplyScript(int, string, string, string, string?, bool, string?, string?, string?)"/> with the waits passed in (tests).</summary>
     internal static string BuildApplyScript(int pid, string stagedFile, string sourceDir, string targetDir, string? relaunchExe, bool installer, string? cleanupDir,
-        string? resultFile, int waitSeconds, int retrySeconds)
+        string? resultFile, string? expectedSha256, int waitSeconds, int retrySeconds)
     {
         // cmd expands %NAME% even inside quotes, so a "%" in a path is doubled.
         static string Cmd(string path) => path.Replace("%", "%%", StringComparison.Ordinal);
+        const string Sys = "%SystemRoot%\\System32\\";
         targetDir = targetDir.TrimEnd('\\', '/');
         var backupDir = Cmd(InstallState.BackupDirectory(targetDir));
         stagedFile = Cmd(stagedFile);
@@ -143,7 +165,9 @@ public static partial class UpdateService
         targetDir = Cmd(targetDir);
         relaunchExe = relaunchExe is null ? null : Cmd(relaunchExe);
         cleanupDir = cleanupDir is null ? null : Cmd(cleanupDir);
-        const string Robocopy = "/MIR /R:1 /W:1 /NFL /NDL /NJH /NJS /NP >nul 2>nul";
+        const string RobocopyFlags = "/MIR /R:1 /W:1 /NFL /NDL /NJH /NJS /NP >nul 2>nul";
+        const string Robocopy = "\"" + Sys + "robocopy.exe\"";
+        const string Ping = "\"" + Sys + "PING.EXE\" -n";
 
         var lines = new List<string>
         {
@@ -154,39 +178,53 @@ public static partial class UpdateService
             "rem Hearthpulse update helper: waits for the app to close, then installs the downloaded update.",
             "set /a waited=0",
             ":wait",
-            $"tasklist /FI \"PID eq {pid}\" /NH 2>nul | find \"{pid}\" >nul",
+            $"\"{Sys}tasklist.exe\" /FI \"PID eq {pid}\" /NH 2>nul | \"{Sys}find.exe\" \"{pid}\" >nul",
             "if errorlevel 1 goto closed",
             // A hung app does not block the update forever: the setup closes it (NSIS CloseApp).
             $"if %waited% GEQ {waitSeconds} goto closed",
-            "ping -n 2 127.0.0.1 >nul",
+            $"{Ping} 2 127.0.0.1 >nul",
             "set /a waited+=1",
             "goto wait",
             ":closed",
             "set code=0",
-            "set attempts=1",
+            "set attempts=0",
             "set backup=0",
             "set restored=0",
         };
 
         if (installer)
         {
+            if (expectedSha256 is { Length: 64 } && expectedSha256.All(Uri.IsHexDigit))
+            {
+                // Checked again here: minutes can pass between the app's check and the setup run.
+                lines.AddRange(
+                [
+                    $"\"{Sys}certutil.exe\" -hashfile \"{stagedFile}\" SHA256 2>nul | \"{Sys}find.exe\" /i \"{expectedSha256}\" >nul",
+                    "if errorlevel 1 (",
+                    "  set code=hash_mismatch",
+                    "  goto report",
+                    ")",
+                ]);
+            }
+
             lines.AddRange(
             [
                 // A copy of the app folder, put back if the setup fails twice. Without it the setup still runs.
                 "set backup=1",
-                $"robocopy \"{targetDir}\" \"{backupDir}\" {Robocopy}",
+                $"{Robocopy} \"{targetDir}\" \"{backupDir}\" {RobocopyFlags}",
                 "if errorlevel 8 set backup=0",
                 $"if \"%backup%\"==\"0\" rmdir /S /Q \"{backupDir}\" 2>nul",
+                "set attempts=1",
                 $"start \"\" /b /wait \"{stagedFile}\" /S",
                 "set code=%errorlevel%",
                 "if \"%code%\"==\"0\" goto installed",
-                $"ping -n {retrySeconds + 1} 127.0.0.1 >nul",
+                $"{Ping} {retrySeconds + 1} 127.0.0.1 >nul",
                 "set attempts=2",
                 $"start \"\" /b /wait \"{stagedFile}\" /S",
                 "set code=%errorlevel%",
                 "if \"%code%\"==\"0\" goto installed",
                 "if \"%backup%\"==\"0\" goto report",
-                $"robocopy \"{backupDir}\" \"{targetDir}\" {Robocopy}",
+                $"{Robocopy} \"{backupDir}\" \"{targetDir}\" {RobocopyFlags}",
                 "if not errorlevel 8 set restored=1",
                 $"if \"%restored%\"==\"1\" rmdir /S /Q \"{backupDir}\"",
                 "goto report",
@@ -196,7 +234,8 @@ public static partial class UpdateService
         }
         else
         {
-            lines.Add($"xcopy /E /Y /I \"{sourceDir}\\*\" \"{targetDir}\\\" >nul");
+            lines.Add("set attempts=1");
+            lines.Add($"\"{Sys}xcopy.exe\" /E /Y /I \"{sourceDir}\\*\" \"{targetDir}\\\" >nul");
             lines.Add("set code=%errorlevel%");
         }
 

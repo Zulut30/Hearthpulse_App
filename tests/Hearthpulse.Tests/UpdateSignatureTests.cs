@@ -194,6 +194,35 @@ public sealed class UpdateSignatureTests
         }
     }
 
+    [Fact]
+    public async Task A_sums_file_past_the_cap_is_refused_even_without_a_length()
+    {
+        // A chunked reply has no Content-Length; the cap must hold while reading.
+        var info = Signed.Info();
+        using var http = new HttpClient(new Unsized(300 * 1024));
+        Assert.Null(await UpdateSignature.VerifyAsync(http, info, Signed.Keys));
+        Assert.Contains($"Update {Version} not installed: SHA256SUMS.txt could not be downloaded.", TestDataFolder.ReadLog());
+    }
+
+    /// <summary>Answers every request with <paramref name="size"/> bytes and no length, as a chunked reply does.</summary>
+    private sealed class Unsized(int size) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new NoLength(size) });
+    }
+
+    private sealed class NoLength(int size) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context) =>
+            stream.WriteAsync(new byte[size]).AsTask();
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
+
     private static string FindRepo()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

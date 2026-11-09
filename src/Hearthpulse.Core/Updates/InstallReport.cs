@@ -41,19 +41,49 @@ internal static class InstallState
     public static string BackupDirectory(string appDirectory) =>
         appDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".setup-backup";
 
-    /// <summary>Records the install about to start; the old result file goes so the next start does not read it.</summary>
-    public static void WritePending(string stateDirectory, string version, string fromVersion, string asset, DateTimeOffset now)
+    /// <summary>
+    /// How long after the install started a start with no result file and no helper to ask (a delta) still waits
+    /// before calling it a failure: the delta helper starts the app again itself, before its folder is settled.
+    /// </summary>
+    public static readonly TimeSpan JudgeAfter = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Records the install about to start; the old result file goes so the next start does not read it.
+    /// <paramref name="helper"/> is the helper process once it runs (written again then).
+    /// </summary>
+    public static void WritePending(string stateDirectory, string version, string fromVersion, string asset, DateTimeOffset now,
+        (int Pid, DateTimeOffset Started)? helper = null)
     {
         Directory.CreateDirectory(stateDirectory);
         ReleaseCache.TryDelete(Path.Combine(stateDirectory, ResultFile));
-        var json = JsonSerializer.Serialize(new Dictionary<string, string>
+        var values = new Dictionary<string, object>
         {
             ["version"] = version,
             ["fromVersion"] = fromVersion,
             ["asset"] = asset,
             ["startedUtc"] = now.UtcDateTime.ToString("o", CultureInfo.InvariantCulture),
-        });
-        File.WriteAllText(Path.Combine(stateDirectory, PendingFile), json);
+        };
+        if (helper is { } running)
+        {
+            values["helperPid"] = running.Pid;
+            values["helperStartedUtc"] = running.Started.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);
+        }
+
+        File.WriteAllText(Path.Combine(stateDirectory, PendingFile), JsonSerializer.Serialize(values));
+    }
+
+    /// <summary>True while the process <paramref name="pid"/> runs and is the one started at <paramref name="started"/> (not a reused id).</summary>
+    public static bool HelperRunning(int pid, DateTimeOffset started)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(pid);
+            return !process.HasExited && (process.StartTime.ToUniversalTime() - started.UtcDateTime).Duration() < TimeSpan.FromSeconds(5);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Forgets an install that never started (the helper could not be launched).</summary>
@@ -66,13 +96,18 @@ internal static class InstallState
     /// <summary>
     /// Reads and clears the marker: null without one; succeeded when <paramref name="installedVersion"/> is the
     /// version or newer (the backup folder is removed); otherwise failed, with the helper's result and one more failed
-    /// attempt counted. The staged file is left alone, so the install is tried again at the next exit.
+    /// attempt counted. The staged file is left alone, so the install is tried again at the next exit. While the
+    /// helper may still be at work (no result file yet and its process runs, or, with no process to ask, less than
+    /// <see cref="JudgeAfter"/> since the start) nothing is judged or cleared: null, and the next start decides.
     /// </summary>
-    public static InstallReport? Take(string stateDirectory, string installedVersion, string appDirectory)
+    public static InstallReport? Take(string stateDirectory, string installedVersion, string appDirectory, DateTimeOffset now,
+        Func<int, DateTimeOffset, bool> helperRunning)
     {
         var pendingPath = Path.Combine(stateDirectory, PendingFile);
         var resultPath = Path.Combine(stateDirectory, ResultFile);
         string? version = null;
+        DateTimeOffset? started = null;
+        (int Pid, DateTimeOffset Started)? helper = null;
         try
         {
             if (!File.Exists(pendingPath))
@@ -81,15 +116,29 @@ internal static class InstallState
             }
 
             using var doc = JsonDocument.Parse(File.ReadAllText(pendingPath));
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("version", out var value)
-                && value.ValueKind == JsonValueKind.String)
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
             {
-                version = value.GetString();
+                version = Text(root, "version");
+                started = Time(Text(root, "startedUtc"));
+                if (root.TryGetProperty("helperPid", out var pid) && pid.ValueKind == JsonValueKind.Number && pid.TryGetInt32(out var id)
+                    && Time(Text(root, "helperStartedUtc")) is { } helperStarted)
+                {
+                    helper = (id, helperStarted);
+                }
             }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             Diag.Info($"Update install marker could not be read ({ex.Message}).");
+        }
+
+        var reached = !string.IsNullOrEmpty(version) && UpdateService.CompareVersions(installedVersion, version) >= 0;
+        if (!reached && !string.IsNullOrEmpty(version) && !File.Exists(resultPath)
+            && (helper is { } h ? helperRunning(h.Pid, h.Started) : started is { } at && now - at < JudgeAfter))
+        {
+            Diag.Info($"Update {version}: the install helper may still be at work; the outcome is decided at a later start.");
+            return null;
         }
 
         var result = ReadResult(resultPath);
@@ -117,12 +166,19 @@ internal static class InstallState
         var attempts = failures.GetValueOrDefault(version) + 1;
         failures[version] = attempts;
         WriteFailures(stateDirectory, failures);
-        Diag.Info($"Update {version} did not install (still {installedVersion}): exit={result.Exit?.ToString(CultureInfo.InvariantCulture) ?? "none"}, " +
+        Diag.Info($"Update {version} did not install (still {installedVersion}): exit={result.ExitText ?? "none"}, " +
                   $"attempts={result.Attempts?.ToString(CultureInfo.InvariantCulture) ?? "?"}, backup={result.Backup}, restored={result.Restored}; failed installs of {version}: {attempts}.");
         return new InstallReport(version, Succeeded: false, result.Exit, attempts, result.Restored);
     }
 
-    private readonly record struct Result(int? Exit, int? Attempts, bool Backup, bool Restored);
+    /// <param name="ExitText">The exit line as written: a number, or "hash_mismatch" when the setup was not run.</param>
+    private readonly record struct Result(int? Exit, string? ExitText, int? Attempts, bool Backup, bool Restored);
+
+    private static string? Text(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static DateTimeOffset? Time(string? text) =>
+        DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at) ? at : null;
 
     private static Result ReadResult(string path)
     {
@@ -143,7 +199,8 @@ internal static class InstallState
                 }
             }
 
-            return new Result(Number("exit"), Number("attempts"), values.GetValueOrDefault("backup") == "1", values.GetValueOrDefault("restored") == "1");
+            return new Result(Number("exit"), values.GetValueOrDefault("exit"), Number("attempts"), values.GetValueOrDefault("backup") == "1",
+                values.GetValueOrDefault("restored") == "1");
 
             int? Number(string key) =>
                 values.TryGetValue(key, out var text) && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : null;

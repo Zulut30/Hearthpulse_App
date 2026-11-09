@@ -189,9 +189,11 @@ public static partial class UpdateService
     /// place), and a version already reported is not reported again.
     /// </summary>
     /// <param name="automatic">false runs a check only on <see cref="UpdateTrigger.Request"/> (AutoUpdate off).</param>
-    public static Task WatchAsync(HttpClient http, bool notifyOnly, bool automatic, UpdateCallbacks callbacks, UpdateTrigger trigger) =>
+    /// <param name="cancellationToken">Stops the loop: a wait, check or download in progress ends, and no callback follows.</param>
+    public static Task WatchAsync(HttpClient http, bool notifyOnly, bool automatic, UpdateCallbacks callbacks, UpdateTrigger trigger,
+        CancellationToken cancellationToken = default) =>
         WatchAsync(http, notifyOnly, automatic, callbacks, trigger, new WatchOptions(
-            TimeSpan.FromSeconds(20), CheckInterval, DetectTarget(), AppContext.BaseDirectory, File.Exists, UpdateContext.Default()));
+            TimeSpan.FromSeconds(20), CheckInterval, DetectTarget(), AppContext.BaseDirectory, File.Exists, UpdateContext.Default()), cancellationToken);
 
     /// <summary>
     /// The old overload's test entry: first wait, target and folder passed in. It trusts no key, so the delta and
@@ -221,7 +223,7 @@ public static partial class UpdateService
             if (!requested && trigger.BlockedUntil is { } until && until > now)
             {
                 // An automatic round never asks before GitHub's limit ends.
-                wait = until - now;
+                wait = Capped(until - now);
                 continue;
             }
 
@@ -235,15 +237,24 @@ public static partial class UpdateService
             DateTimeOffset? retryAfter = null;
             try
             {
-                retryAfter = (await round.RunAsync().ConfigureAwait(false))?.RetryAfter;
+                retryAfter = (await round.RunAsync(cancellationToken).ConfigureAwait(false))?.RetryAfter;
             }
             catch (Exception ex)
             {
-                Diag.Error("Update check failed", ex);
+                // Stopped while checking or downloading: whatever the cancelled step threw is not a failure.
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Diag.Error("Update check failed", ex);
+                }
             }
             finally
             {
                 trigger.EndCheck(retryAfter);
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
             }
 
             if (!automatic)
@@ -253,9 +264,14 @@ public static partial class UpdateService
             }
 
             var untilLimit = retryAfter is { } end ? end - options.Context.Now() : TimeSpan.Zero;
-            wait = untilLimit > options.Interval ? untilLimit : options.Interval;
+            wait = Capped(untilLimit > options.Interval ? untilLimit : options.Interval);
         }
     }
+
+    /// <summary>The longest wait between automatic checks, whatever a reply said (Task.Delay takes at most ~49 days).</summary>
+    internal static readonly TimeSpan LongestWait = TimeSpan.FromDays(1);
+
+    private static TimeSpan Capped(TimeSpan wait) => wait > LongestWait ? LongestWait : wait;
 
     /// <summary>
     /// The old callbacks on the new ones: an up-to-date answer and a failed check went to <paramref name="failed"/>
@@ -281,12 +297,14 @@ public static partial class UpdateService
         private string? _available;
         private string? _staged;
 
-        public async Task<UpdateCheck?> RunAsync()
+        /// <summary>One round; once <paramref name="cancellationToken"/> is cancelled no callback runs any more.</summary>
+        public async Task<UpdateCheck?> RunAsync(CancellationToken cancellationToken)
         {
             // A delta that could not put its old files back left a folder of two versions: the full setup of the
             // newest release repairs it, even when that is the version this copy reports.
             var repair = options.Target == UpdateTarget.WindowsInstalled && DeltaUpdate.IsBroken(options.AppDirectory);
-            var check = await CheckForUpdateAsync(http, options.Target, options.Context, CancellationToken.None, repair).ConfigureAwait(false);
+            var check = await CheckForUpdateAsync(http, options.Target, options.Context, cancellationToken, repair).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             var info = repair && check.Update is { } broken ? broken with { Delta = null } : check.Update;
             callbacks.Checked(check);
             if (info is null)
@@ -316,11 +334,11 @@ public static partial class UpdateService
                 return check;
             }
 
-            await StageAsync(info, check.Message).ConfigureAwait(false);
+            await StageAsync(info, check.Message, cancellationToken).ConfigureAwait(false);
             return check;
         }
 
-        private async Task StageAsync(UpdateInfo info, string checkMessage)
+        private async Task StageAsync(UpdateInfo info, string checkMessage, CancellationToken cancellationToken)
         {
             if (InstallState.FailedAttempts(options.Context.StateDirectory, info.Version) >= InstallState.MaxAttempts)
             {
@@ -337,7 +355,9 @@ public static partial class UpdateService
                 return;
             }
 
-            if (await UpdateSignature.VerifyAsync(http, info, options.Context.Keys).ConfigureAwait(false) is not { } verified)
+            var verified = await UpdateSignature.VerifyAsync(http, info, options.Context.Keys, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (verified is null)
             {
                 callbacks.Failed(() => Loc.F("Core.Update.Unsigned", info.Version));
                 return;
@@ -345,14 +365,17 @@ public static partial class UpdateService
 
             // The delta first (a few MB); when it does not fit this copy or fails, the full setup as before.
             if (verified.Delta is not null && options.Target == UpdateTarget.WindowsInstalled
-                && await DeltaUpdate.PrepareAsync(http, verified, options.AppDirectory, CurrentVersion).ConfigureAwait(false))
+                && await DeltaUpdate.PrepareAsync(http, verified, options.AppDirectory, CurrentVersion, cancellationToken).ConfigureAwait(false))
             {
                 DeleteOldDownloads(StagedPath(verified));
                 Stage(verified);
                 return;
             }
 
-            if (await DownloadAsync(http, verified).ConfigureAwait(false) is not null)
+            cancellationToken.ThrowIfCancellationRequested();
+            var downloaded = await DownloadAsync(http, verified, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (downloaded is not null)
             {
                 Stage(verified);
                 return;
