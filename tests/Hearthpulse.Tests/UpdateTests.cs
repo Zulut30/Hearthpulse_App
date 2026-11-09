@@ -1,5 +1,7 @@
 using System.Net;
+using System.Text.Json;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Updates;
 
 namespace Hearthpulse.Tests;
@@ -289,7 +291,7 @@ public sealed class UpdateTests
         var script = UpdateService.BuildApplyScript(1234, @"C:\tmp\setup.exe", @"C:\tmp\setup.exe", @"C:\app", @"C:\app\Hearthpulse.exe", installer: true, cleanupDir: null);
         Assert.Contains(":wait", script);
         Assert.Contains(@"PID eq 1234", script);
-        Assert.Contains("start \"\" /wait \"C:\\tmp\\setup.exe\" /S", script);
+        Assert.Contains("start \"\" /b /wait \"C:\\tmp\\setup.exe\" /S", script);
         Assert.Contains("start \"\" \"C:\\app\\Hearthpulse.exe\"", script);
         Assert.DoesNotContain("xcopy", script);
         Assert.Contains("del \"%~f0\"", script);
@@ -312,6 +314,394 @@ public sealed class UpdateTests
 
         var off = new AppSettings { AutoUpdate = false };
         Assert.False(AppSettings.FromJson(off.ToJson()).AutoUpdate);
+    }
+
+    // ---- ETag and GitHub's limit (AC1, AC2) ----
+
+    [Fact]
+    public async Task A_saved_answer_is_asked_about_by_its_etag_and_a_304_reads_it_back()
+    {
+        var context = Context();
+        var body = UpdateServer.Release("99.0.0", [(Setup("99.0.0"), "setup 99.0.0"u8.ToArray())], "## What's new\n- **Faster** start", Page("99.0.0"));
+        var cache = WriteCache(context, "W/\"abc\"", body);
+        var before = File.ReadAllBytes(cache);
+        var written = File.GetLastWriteTimeUtc(cache);
+
+        var server = new UpdateServer().Latest(() => UpdateServer.Status(HttpStatusCode.NotModified));
+        using var http = new HttpClient(server);
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, context, CancellationToken.None);
+
+        Assert.Equal("W/\"abc\"", Assert.Single(server.Requests).IfNoneMatch);
+        using var fresh = new HttpClient(new UpdateServer().Latest(body));
+        var direct = await UpdateService.CheckForUpdateAsync(fresh, UpdateTarget.WindowsInstalled, Context(), CancellationToken.None);
+        Assert.Equal(UpdateCheckOutcome.Available, check.Outcome);
+        Assert.Equal(direct, check);
+        Assert.Equal("What's new\n• Faster start", check.Update!.Notes);
+        Assert.Equal(before, File.ReadAllBytes(cache));
+        Assert.Equal(written, File.GetLastWriteTimeUtc(cache));
+    }
+
+    [Fact]
+    public async Task A_200_with_a_new_etag_replaces_the_saved_answer()
+    {
+        var context = Context();
+        var cache = WriteCache(context, "W/\"abc\"", UpdateServer.Release("98.0.0", []));
+        var body = UpdateServer.Release("99.0.0", [(Setup("99.0.0"), "setup"u8.ToArray())]);
+        using var http = new HttpClient(new UpdateServer().Latest(() => UpdateServer.Json(body, ("ETag", "W/\"def\""))));
+
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, context, CancellationToken.None);
+
+        Assert.Equal("99.0.0", check.Update!.Version);
+        using var saved = JsonDocument.Parse(File.ReadAllText(cache));
+        Assert.Equal("W/\"def\"", saved.RootElement.GetProperty("etag").GetString());
+        Assert.Equal(body, saved.RootElement.GetProperty("body").GetString());
+    }
+
+    [Theory]
+    [InlineData("{ not json")]
+    [InlineData("""{ "body": "{}" }""")]
+    [InlineData("""{ "etag": "W/\"abc\"" }""")]
+    public async Task A_damaged_saved_answer_is_deleted_and_the_check_asks_afresh(string damaged)
+    {
+        var context = Context();
+        Directory.CreateDirectory(context.StateDirectory);
+        var cache = Path.Combine(context.StateDirectory, "latest-release.json");
+        File.WriteAllText(cache, damaged);
+        var server = new UpdateServer().Latest(UpdateServer.Release("0.0.1", []));
+        using var http = new HttpClient(server);
+
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, context, CancellationToken.None);
+
+        Assert.Equal(UpdateCheckOutcome.UpToDate, check.Outcome);
+        Assert.Null(Assert.Single(server.Requests).IfNoneMatch);
+        Assert.False(File.Exists(cache));
+    }
+
+    [Fact]
+    public async Task A_403_with_no_requests_left_carries_the_reset_time()
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        var reset = now.AddMinutes(37).ToUnixTimeSeconds();
+        using var http = new HttpClient(new UpdateServer().Latest(() => UpdateServer.Status(HttpStatusCode.Forbidden,
+            ("X-RateLimit-Remaining", "0"), ("X-RateLimit-Reset", reset.ToString(System.Globalization.CultureInfo.InvariantCulture)))));
+
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, Context(() => now), CancellationToken.None);
+
+        Assert.Equal(UpdateCheckOutcome.Failed, check.Outcome);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(reset), check.RetryAfter);
+        Assert.Contains("403 (rate limited)", check.Message);
+        Assert.Contains(UpdateService.TryLaterText(DateTimeOffset.FromUnixTimeSeconds(reset)), check.Message);
+    }
+
+    [Fact]
+    public async Task A_429_waits_for_its_retry_after()
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        using var http = new HttpClient(new UpdateServer().Latest(() => UpdateServer.Status(HttpStatusCode.TooManyRequests, ("Retry-After", "120"))));
+
+        var check = await UpdateService.CheckForUpdateAsync(http, UpdateTarget.WindowsInstalled, Context(() => now), CancellationToken.None);
+
+        Assert.Equal(UpdateCheckOutcome.Failed, check.Outcome);
+        Assert.Equal(now.AddSeconds(120), check.RetryAfter);
+        Assert.Contains("429 (rate limited)", check.Message);
+        Assert.Contains(UpdateService.TryLaterText(now.AddSeconds(120)), check.Message);
+    }
+
+    [Fact]
+    public async Task Until_the_limit_ends_neither_the_loop_nor_the_button_asks_github()
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        var reset = now.AddHours(1);
+        var server = new UpdateServer().Latest(() => UpdateServer.Status(HttpStatusCode.Forbidden,
+            ("X-RateLimit-Remaining", "0"), ("X-RateLimit-Reset", reset.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        var trigger = new UpdateTrigger(() => now);
+        var events = new Events();
+        await using var loop = Loop(server, events, trigger, Options(Context(() => now)), automatic: true);
+
+        await events.WaitAsync(e => e.Any(x => x.StartsWith("failed", StringComparison.Ordinal)));
+        Assert.Equal(["checked Failed", "failed " + events.Texts[^1]], events.Log);
+        await Task.Delay(400);
+        Assert.False(trigger.Request());
+        Assert.Equal(UpdateService.TryLaterText(reset), trigger.RefusalMessage());
+        Assert.Equal(1, server.LatestCount);
+
+        now = reset.AddSeconds(1);
+        Assert.True(trigger.Request());
+        await events.WaitAsync(e => e.Count(x => x == "checked Failed") == 2);
+        Assert.Equal(2, server.LatestCount);
+    }
+
+    // ---- The loop (AC4–AC7) ----
+
+    [Fact]
+    public async Task A_newer_release_replaces_the_staged_one_and_the_old_file_goes_only_after()
+    {
+        var v1 = "staged 99.1.0"u8.ToArray();
+        var v2 = "staged 99.1.1"u8.ToArray();
+        var server = new UpdateServer()
+            .Latest(UpdateServer.Release("99.1.0", [(Setup("99.1.0"), v1)]))
+            .Latest(UpdateServer.Release("99.1.1", [(Setup("99.1.1"), v2)]))
+            .File(Setup("99.1.0"), v1)
+            .File(Setup("99.1.1"), v2);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        server.Hold(Setup("99.1.1"), release.Task);
+        var events = new Events();
+        await using var loop = Loop(server, events, new UpdateTrigger(), Options(Context()), automatic: true);
+
+        await events.WaitAsync(e => e.Contains("staged 99.1.0"));
+        var first = events.Infos.Single(i => i.Version == "99.1.0");
+        await WaitUntil(() => server.Count(Setup("99.1.1")) == 1);
+        Assert.True(File.Exists(UpdateService.StagedPath(first)));
+        Assert.True(UpdateService.StagedFileMatches(first));
+
+        release.SetResult();
+        await events.WaitAsync(e => e.Contains("staged 99.1.1"));
+        Assert.False(File.Exists(UpdateService.StagedPath(first)));
+        Assert.Equal(v2, File.ReadAllBytes(UpdateService.StagedPath(events.Infos.Single(i => i.Version == "99.1.1"))));
+
+        // Later checks see 99.1.1 again: nothing more is reported or downloaded.
+        await events.WaitAsync(e => e.Count(x => x.StartsWith("checked", StringComparison.Ordinal)) >= 4);
+        Assert.Equal(["staged 99.1.0", "staged 99.1.1"], events.Log.Where(x => x.StartsWith("staged", StringComparison.Ordinal)));
+        Assert.Equal(1, server.Count(Setup("99.1.1")));
+        Assert.DoesNotContain(events.Log, x => x.StartsWith("failed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_copy_that_only_tells_is_told_once_per_version_and_keeps_watching()
+    {
+        var server = new UpdateServer()
+            .Latest(UpdateServer.Release("99.3.0", [(Setup("99.3.0"), "a"u8.ToArray())], "**Bigger** fixes", Page("99.3.0")))
+            .Latest(UpdateServer.Release("99.3.0", [(Setup("99.3.0"), "a"u8.ToArray())], "**Bigger** fixes", Page("99.3.0")))
+            .Latest(UpdateServer.Release("99.3.1", [(Setup("99.3.1"), "b"u8.ToArray()), ("SHA256SUMS.txt", null), ("SHA256SUMS.txt.sig", null)]));
+        var events = new Events();
+        await using var loop = Loop(server, events, new UpdateTrigger(), Options(Context()), automatic: true, notifyOnly: true);
+
+        await events.WaitAsync(e => e.Count(x => x.StartsWith("checked", StringComparison.Ordinal)) >= 5);
+        Assert.Equal(["available 99.3.0", "available 99.3.1"], events.Log.Where(x => !x.StartsWith("checked", StringComparison.Ordinal)));
+        // Checked comes first, and the told release carries its notes and page.
+        Assert.Equal(["checked Available 99.3.0", "available 99.3.0"], events.Log.Take(2));
+        var told = events.Infos.First();
+        Assert.Equal("Bigger fixes", told.Notes);
+        Assert.Equal(new Uri(Page("99.3.0")), told.PageUrl);
+        Assert.Equal(0, server.Count("/dl/"));
+    }
+
+    [Fact]
+    public async Task With_automatic_checks_off_only_the_button_starts_one_full_round()
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        var payload = "manual 99.4.0"u8.ToArray();
+        var server = new UpdateServer().Latest(UpdateServer.Release("99.4.0", [(Setup("99.4.0"), payload)])).File(Setup("99.4.0"), payload);
+        var trigger = new UpdateTrigger(() => now);
+        var events = new Events();
+        await using var loop = Loop(server, events, trigger, Options(Context(() => now)), automatic: false);
+
+        await Task.Delay(300);
+        Assert.Empty(server.Requests);
+
+        Assert.True(trigger.Request());
+        await events.WaitAsync(e => e.Contains("staged 99.4.0"));
+        Assert.Equal(["checked Available 99.4.0", "staged 99.4.0"], events.Log);
+
+        now = now.AddSeconds(30);
+        Assert.False(trigger.Request());
+        Assert.Equal(Loc.T("Core.Update.TooSoon"), trigger.RefusalMessage());
+
+        now = now.AddSeconds(31);
+        Assert.True(trigger.Request());
+        await events.WaitAsync(e => e.Count(x => x.StartsWith("checked", StringComparison.Ordinal)) == 2);
+        Assert.Equal(2, server.LatestCount);
+        Assert.Equal(1, server.Count(Setup("99.4.0")));
+    }
+
+    [Fact]
+    public async Task The_button_is_refused_while_a_check_runs()
+    {
+        var now = new DateTimeOffset(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
+        var payload = "busy 99.5.0"u8.ToArray();
+        var server = new UpdateServer().Latest(UpdateServer.Release("99.5.0", [(Setup("99.5.0"), payload)])).File(Setup("99.5.0"), payload);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        server.Hold(Setup("99.5.0"), release.Task);
+        var trigger = new UpdateTrigger(() => now);
+        var events = new Events();
+        await using var loop = Loop(server, events, trigger, Options(Context(() => now)), automatic: false);
+
+        Assert.True(trigger.Request());
+        await WaitUntil(() => server.Count(Setup("99.5.0")) == 1);
+        now = now.AddMinutes(5);
+        Assert.False(trigger.Request());
+        Assert.Equal(Loc.T("Core.Update.InProgress"), trigger.RefusalMessage());
+
+        release.SetResult();
+        await events.WaitAsync(e => e.Contains("staged 99.5.0"));
+        await WaitUntil(trigger.Request);
+    }
+
+    [Fact]
+    public async Task An_up_to_date_answer_is_checked_and_nothing_else()
+    {
+        var events = new Events();
+        await using var loop = Loop(new UpdateServer().Latest(UpdateServer.Release("0.0.1", [])), events, new UpdateTrigger(), Options(Context()), automatic: true);
+
+        await events.WaitAsync(e => e.Count >= 2);
+        Assert.All(events.Log, x => Assert.Equal("checked UpToDate", x));
+    }
+
+    // ---- Notes ----
+
+    [Fact]
+    public void Release_notes_become_plain_text_and_long_ones_are_cut_at_a_line_end()
+    {
+        const string markdown = "# Hearthpulse 0.15.0\r\n\r\n<!-- hidden -->\r\n## What's new\r\n- **Check now** in [Settings](https://example.invalid)\r\n* `Faster` start ![pic](x.png)\r\n\r\n---\r\n> Not affiliated with Blizzard &amp; co.";
+        Assert.Equal("Hearthpulse 0.15.0\n\nWhat's new\n• Check now in Settings\n• Faster start\n\nNot affiliated with Blizzard & co.", ReleaseNotes.ToPlainText(markdown));
+        Assert.Null(ReleaseNotes.ToPlainText("  \n <!-- only a comment --> "));
+        Assert.Null(ReleaseNotes.ToPlainText(null));
+
+        var lines = string.Join("\n", Enumerable.Range(1, 200).Select(i => $"- Line number {i} of the changes"));
+        var cut = ReleaseNotes.ToPlainText(lines)!;
+        Assert.True(cut.Length <= ReleaseNotes.MaxLength);
+        Assert.EndsWith("of the changes…", cut);
+    }
+
+    [Theory]
+    [InlineData("https://github.com/Zulut30/Hearthpulse_App/releases/tag/v0.15.0", true)]
+    [InlineData("https://github.com/Zulut30/IceCrowV2/releases/tag/v99.0.0", false)]
+    [InlineData("http://github.com/Zulut30/Hearthpulse_App/releases/tag/v0.15.0", false)]
+    [InlineData("https://github.com/Zulut30/Hearthpulse_App/issues", false)]
+    [InlineData("", false)]
+    public void Only_this_project_s_release_page_is_linked(string url, bool linked) =>
+        Assert.Equal(linked, ReleaseNotes.Page(url) is not null);
+
+    [Fact]
+    public void The_reply_gives_the_notes_page_and_the_signature_files()
+    {
+        var json = UpdateServer.Release("99.0.0", [(Setup("99.0.0"), "s"u8.ToArray()), ("SHA256SUMS.txt", "x"u8.ToArray()), ("SHA256SUMS.txt.sig", "y"u8.ToArray())],
+            "Fixes", Page("99.0.0"));
+        var info = UpdateService.ParseLatest(json, UpdateTarget.WindowsInstalled, "x64")!;
+        Assert.Equal("Fixes", info.Notes);
+        Assert.Equal(new Uri(Page("99.0.0")), info.PageUrl);
+        Assert.Equal(UpdateServer.Url("SHA256SUMS.txt"), info.ChecksumsUrl);
+        Assert.Equal(UpdateServer.Url("SHA256SUMS.txt.sig"), info.SignatureUrl);
+        Assert.Null(UpdateService.ParseLatest(AllTargetsReply, UpdateTarget.WindowsInstalled, "x64")!.PageUrl);
+    }
+
+    internal static string Setup(string version) => UpdateService.AssetName(version, UpdateTarget.WindowsInstalled, "x64");
+
+    internal static string Page(string version) => $"https://github.com/Zulut30/Hearthpulse_App/releases/tag/v{version}";
+
+    internal static UpdateContext Context(Func<DateTimeOffset>? now = null, IReadOnlyList<byte[]>? keys = null) =>
+        new(Path.Combine(TestDataFolder.Path, "update-state-" + Guid.NewGuid().ToString("N")), now ?? (() => DateTimeOffset.UtcNow), keys ?? []);
+
+    internal static UpdateService.WatchOptions Options(UpdateContext context, UpdateTarget target = UpdateTarget.WindowsInstalled) =>
+        new(TimeSpan.Zero, TimeSpan.FromMilliseconds(50), target, Path.Combine(TestDataFolder.Path, "app-" + Guid.NewGuid().ToString("N")), _ => true, context);
+
+    /// <summary>Starts the loop; disposing stops it and waits for it to end.</summary>
+    internal static RunningLoop Loop(UpdateServer server, Events events, UpdateTrigger trigger, UpdateService.WatchOptions options, bool automatic, bool notifyOnly = false)
+    {
+        var http = new HttpClient(server);
+        var stop = new CancellationTokenSource();
+        var task = Task.Run(() => UpdateService.WatchAsync(http, notifyOnly, automatic, events.Callbacks, trigger, options, stop.Token));
+        return new RunningLoop(http, stop, task);
+    }
+
+    internal static async Task WaitUntil(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "timed out");
+            await Task.Delay(20);
+        }
+    }
+
+    private static string WriteCache(UpdateContext context, string etag, string body)
+    {
+        Directory.CreateDirectory(context.StateDirectory);
+        var cache = Path.Combine(context.StateDirectory, "latest-release.json");
+        File.WriteAllText(cache, JsonSerializer.Serialize(new Dictionary<string, string> { ["etag"] = etag, ["body"] = body }));
+        return cache;
+    }
+
+    internal sealed class RunningLoop(HttpClient http, CancellationTokenSource stop, Task task) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            await stop.CancelAsync();
+            await task.WaitAsync(TimeSpan.FromSeconds(30));
+            stop.Dispose();
+            http.Dispose();
+        }
+    }
+
+    /// <summary>What the loop reported, in order: "checked Outcome [version]", "available v", "staged v", "failed text".</summary>
+    internal sealed class Events
+    {
+        private readonly Lock _gate = new();
+        private readonly List<string> _log = [];
+        private readonly List<UpdateInfo> _infos = [];
+        private readonly List<string> _texts = [];
+
+        public UpdateCallbacks Callbacks => new(
+            info => Add("available " + info.Version, info),
+            info => Add("staged " + info.Version, info),
+            text =>
+            {
+                var shown = text();
+                lock (_gate)
+                {
+                    _texts.Add(shown);
+                }
+
+                Add("failed " + shown, null);
+            },
+            check => Add($"checked {check.Outcome}{(check.Update is { } u ? " " + u.Version : string.Empty)}", null));
+
+        public List<string> Log
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _log];
+                }
+            }
+        }
+
+        public List<UpdateInfo> Infos
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _infos];
+                }
+            }
+        }
+
+        public List<string> Texts
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _texts];
+                }
+            }
+        }
+
+        public Task WaitAsync(Func<List<string>, bool> condition) => WaitUntil(() => condition(Log));
+
+        private void Add(string entry, UpdateInfo? info)
+        {
+            lock (_gate)
+            {
+                _log.Add(entry);
+                if (info is not null)
+                {
+                    _infos.Add(info);
+                }
+            }
+        }
     }
 
     private sealed class Stub(HttpStatusCode status, string body, params (string Name, string Value)[] headers) : HttpMessageHandler
@@ -344,5 +734,133 @@ public sealed class UpdateTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             throw new HttpRequestException("The network is down.");
+    }
+}
+
+/// <summary>
+/// A fake GitHub for the update tests: answers by address, the releases/latest replies in turn (the last one repeats),
+/// records every request with its If-None-Match, and can hold a download until the test lets it go.
+/// </summary>
+internal sealed class UpdateServer : HttpMessageHandler
+{
+    private readonly Lock _gate = new();
+    private readonly Queue<Func<HttpResponseMessage>> _latest = new();
+    private readonly Dictionary<string, Func<HttpResponseMessage>> _files = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Task> _holds = new(StringComparer.Ordinal);
+    private Func<HttpResponseMessage>? _lastLatest;
+
+    public List<(string Url, string? IfNoneMatch)> Requests { get; } = [];
+
+    public static string Url(string name) => "https://example.invalid/dl/" + name;
+
+    public UpdateServer Latest(Func<HttpResponseMessage> reply)
+    {
+        lock (_gate)
+        {
+            _latest.Enqueue(reply);
+        }
+
+        return this;
+    }
+
+    public UpdateServer Latest(string json) => Latest(() => Json(json));
+
+    public UpdateServer File(string name, byte[] content)
+    {
+        lock (_gate)
+        {
+            _files[Url(name)] = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(content) };
+        }
+
+        return this;
+    }
+
+    public UpdateServer File(string name, string content) => File(name, System.Text.Encoding.UTF8.GetBytes(content));
+
+    /// <summary>The download of <paramref name="name"/> waits for <paramref name="release"/>.</summary>
+    public void Hold(string name, Task release)
+    {
+        lock (_gate)
+        {
+            _holds[Url(name)] = release;
+        }
+    }
+
+    public int Count(string urlPart)
+    {
+        lock (_gate)
+        {
+            return Requests.Count(r => r.Url.Contains(urlPart, StringComparison.Ordinal));
+        }
+    }
+
+    public int LatestCount => Count("api.github.com");
+
+    public static HttpResponseMessage Json(string json, params (string Name, string Value)[] headers)
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") };
+        foreach (var (name, value) in headers)
+        {
+            response.Headers.TryAddWithoutValidation(name, value);
+        }
+
+        return response;
+    }
+
+    public static HttpResponseMessage Status(HttpStatusCode status, params (string Name, string Value)[] headers)
+    {
+        var response = new HttpResponseMessage(status) { Content = new StringContent(string.Empty) };
+        foreach (var (name, value) in headers)
+        {
+            response.Headers.TryAddWithoutValidation(name, value);
+        }
+
+        return response;
+    }
+
+    /// <summary>A releases/latest reply: the tag, the files (name, content or null for no digest), a body and a page.</summary>
+    public static string Release(string version, IEnumerable<(string Name, byte[]? Content)> assets, string? body = null, string? page = null) =>
+        System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["tag_name"] = "v" + version,
+            ["draft"] = false,
+            ["prerelease"] = false,
+            ["body"] = body,
+            ["html_url"] = page,
+            ["assets"] = assets.Select(a => new Dictionary<string, string?>
+            {
+                ["name"] = a.Name,
+                ["browser_download_url"] = Url(a.Name),
+                ["digest"] = a.Content is null ? null : "sha256:" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(a.Content)),
+            }).ToList(),
+        });
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var url = request.RequestUri!.AbsoluteUri;
+        Func<HttpResponseMessage>? reply;
+        Task? hold;
+        lock (_gate)
+        {
+            Requests.Add((url, request.Headers.TryGetValues("If-None-Match", out var tags) ? tags.FirstOrDefault() : null));
+            if (url.Contains("api.github.com", StringComparison.Ordinal))
+            {
+                _lastLatest = _latest.Count > 0 ? _latest.Dequeue() : _lastLatest;
+                reply = _lastLatest;
+            }
+            else
+            {
+                reply = _files.GetValueOrDefault(url);
+            }
+
+            hold = _holds.GetValueOrDefault(url);
+        }
+
+        if (hold is not null)
+        {
+            await hold.WaitAsync(cancellationToken);
+        }
+
+        return reply?.Invoke() ?? new HttpResponseMessage(HttpStatusCode.NotFound);
     }
 }
