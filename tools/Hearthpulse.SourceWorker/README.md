@@ -20,7 +20,7 @@ dotnet restore tools/Hearthpulse.SourceWorker/Hearthpulse.SourceWorker.csproj --
 dotnet publish tools/Hearthpulse.SourceWorker/Hearthpulse.SourceWorker.csproj --no-restore --artifacts-path C:\hp-p3-linux -c Release -r linux-x64 --self-contained true -o C:\hp-p3\linux -m:2 -p:HEARTHPULSE_STRICT=true
 ```
 
-Use the host's own scratch paths on Linux. The tool is deliberately absent from the solution until P4 integrates it.
+Use the host's own scratch paths on Linux. The tool is included in `Hearthpulse.slnx` for integration builds.
 
 ## Invocation and process contract
 
@@ -38,7 +38,7 @@ Use distinct source/result paths and a separate output per job. The worker never
 Stdout is exactly one safe JSON status line; stderr is empty. Success example:
 
 ```json
-{"ok":true,"status":"parsed","parserVersion":"source-v1.0","records":4,"unsupported":0,"gaps":0}
+{"ok":true,"status":"parsed","parserVersion":"source-v1.1","records":4,"unsupported":0,"gaps":0}
 ```
 
 Failure example:
@@ -66,7 +66,7 @@ Namespace: `Hearthpulse.Core.SourceCapture.Processing`.
 ```csharp
 new SourceCaptureParser(SourceCaptureLimits? limits = null);
 Task<SourceCaptureResult> ParseAsync(Stream input, CancellationToken cancellationToken = default);
-SourceCaptureParser.ParserVersion; // "source-v1.0"
+SourceCaptureParser.ParserVersion; // "source-v1.1"
 SourceWorkerCommand.Serialize(SourceCaptureResult result); // stable camelCase JSON
 Task<int> SourceWorkerCommand.RunAsync(string[] args, TextWriter stdout,
     CancellationToken cancellationToken = default);
@@ -99,8 +99,11 @@ and never produce a game result or a claim of a completed run.
 
 `summary` includes plays, buys, sells, choices, highest observed turns, shopSnapshots, resources,
 draftChoices, captureKind, mode, captureStatus, hasEnd, completeForAggregation, result, placement.
-Only a normal complete game with no gaps/unsupported/unresolved choices has
-`completeForAggregation=true`. Use this summary gate, not a raw end observation, for completed-game aggregates.
+Only a normal complete game with no gaps/unsupported/unresolved choices and a mode-appropriate outcome has
+`completeForAggregation=true`: W/L/T for Ranked, Casual, Arena and Brawl, placement 1–8 for solo BG, or team
+placement 1–4 for Duos. A structurally complete source with no outcome still parses and retains its observations,
+but is not eligible for completed-game aggregates. Drafts are never completed-game contributions.
+Use this summary gate, not a raw end observation, for completed-game aggregates.
 Incomplete sources have null summary result/placement, even if their end observation claimed a result.
 `parsed` means a fully supported, complete source; `partial` also covers explicit incomplete capture,
 unresolved choices, open/missing blocks explained by gaps and unsupported observations.

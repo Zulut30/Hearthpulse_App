@@ -8,7 +8,7 @@ namespace Hearthpulse.Core.SourceCapture.Processing;
 public sealed class SourceCaptureParser
 {
     /// <summary>Changing derived semantics requires a new version; source bytes remain immutable.</summary>
-    public const string ParserVersion = "source-v1.0";
+    public const string ParserVersion = "source-v1.1";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly SourceCaptureLimits _limits;
 

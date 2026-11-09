@@ -149,9 +149,15 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
             _end.Data.GetProperty("reason").GetString() == "normal" && _gaps == 0 && !unresolved;
         string? result = complete && _captureKind == "game" ? _end!.Data.GetProperty("result").GetString() : null;
         int? placement = complete && _captureKind == "game" ? SourceCaptureSchema.NullableNumber(_end!.Data.GetProperty("placement")) : null;
+        bool hasOutcome = _mode switch
+        {
+            "bg" => placement is >= 1 and <= 8,
+            "duos" => placement is >= 1 and <= 4,
+            _ => result is "W" or "L" or "T",
+        };
         var summary = new SourceCaptureSummary(_plays, _buys, _sells, _choices.Count, _turns, _shop, _resources,
             _draft.Count, _captureKind, _mode, complete ? "complete" : "incomplete", _end is not null,
-            complete && _captureKind == "game", result, placement);
+            complete && _captureKind == "game" && hasOutcome, result, placement);
         return new(1, SourceCaptureParser.ParserVersion, hash, complete ? "parsed" : "partial", _events.Count,
             _unsupported, _gaps, _events.AsReadOnly(), summary);
     }

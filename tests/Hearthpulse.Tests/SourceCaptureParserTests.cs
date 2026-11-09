@@ -25,7 +25,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             Line(5, "entity", """{"zone":"SHOP","position":1,"tags":{"ATK":3,"HEALTH":4}}""", 2, "shop", 10, "B"),
             Line(6, "snapshot", """{"gold":8,"tier":3,"cards":[{"entity":10,"card":"B","side":"shop","zone":"SHOP","position":1,"tags":{"ATK":3}}]}""", 2, "local"),
             Action(7, "buy", 2), Action(8, "play", 2), Action(9, "sell", 2), Action(10, "refresh", 2),
-            Line(11, "action", """{"action":"play","cost":null}""", 2, "opponent", 11, "VISIBLE"), End(12, turn: 2));
+            Line(11, "action", """{"action":"play","cost":null}""", 2, "opponent", 11, "VISIBLE"), End(12, turn: 2, placement: 3));
         var result = await Parse(source);
 
         Assert.Equal("parsed", result.Status);
@@ -63,7 +63,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             Assert.Equal(SourceWorkerCommand.Serialize(first), SourceWorkerCommand.Serialize(again));
         }
         finally { CultureInfo.CurrentCulture = original; }
-        Assert.Equal("source-v1.0", first.ParserVersion);
+        Assert.Equal("source-v1.1", first.ParserVersion);
         Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source))), first.SourceSha256);
         var reordered = await Parse(source.Replace("\"v\":1,\"seq\":0", "\"seq\":0,\"v\":1", StringComparison.Ordinal));
         Assert.NotEqual(first.SourceSha256, reordered.SourceSha256);
@@ -375,7 +375,7 @@ public sealed class SourceCaptureParserTests : IDisposable
         await File.WriteAllTextAsync(input, Source(Start(), Line(1, "gap", """{"reason":"unsupported","count":2}"""), End(2)), new UTF8Encoding(false));
         using var status = new StringWriter(CultureInfo.InvariantCulture);
         Assert.Equal(0, await SourceWorkerCommand.RunAsync(["--input", input, "--output", output], status));
-        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v1.0","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
+        Assert.Equal("""{"ok":true,"status":"partial","parserVersion":"source-v1.1","records":3,"unsupported":1,"gaps":2}""" + Environment.NewLine, status.ToString());
         using var json = JsonDocument.Parse(await File.ReadAllTextAsync(output));
         Assert.Equal("incomplete", json.RootElement.GetProperty("summary").GetProperty("captureStatus").GetString());
         Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("summary").GetProperty("result").ValueKind);
@@ -395,6 +395,48 @@ public sealed class SourceCaptureParserTests : IDisposable
         Assert.Equal("parsed", result.Status);
     }
 
+    [Fact]
+    public async Task A_complete_ranked_capture_without_result_is_not_eligible_for_completed_game_aggregates()
+    {
+        var parsed = await Parse(Source(Start(), Action(1, "play"), End(2, result: null)));
+        Assert.Equal("parsed", parsed.Status);
+        Assert.Equal("complete", parsed.Summary.CaptureStatus);
+        Assert.Equal(1, parsed.Summary.Plays);
+        Assert.Null(parsed.Summary.Result);
+        Assert.False(parsed.Summary.CompleteForAggregation);
+    }
+
+    [Fact]
+    public async Task A_complete_bg_capture_without_placement_is_not_eligible_for_completed_game_aggregates()
+    {
+        var parsed = await Parse(Source(Start(mode: "bg"), End(1)));
+        Assert.Equal("parsed", parsed.Status);
+        Assert.Equal("complete", parsed.Summary.CaptureStatus);
+        Assert.Null(parsed.Summary.Placement);
+        Assert.False(parsed.Summary.CompleteForAggregation);
+    }
+
+    [Theory]
+    [InlineData("ranked", "W", null, true)]
+    [InlineData("casual", "L", null, true)]
+    [InlineData("arena", "T", null, true)]
+    [InlineData("brawl", "W", null, true)]
+    [InlineData("casual", null, 1, false)]
+    [InlineData("bg", null, 1, true)]
+    [InlineData("bg", null, 8, true)]
+    [InlineData("duos", null, 1, true)]
+    [InlineData("duos", null, 4, true)]
+    [InlineData("duos", "W", 5, false)]
+    [InlineData("duos", "W", 8, false)]
+    public async Task Aggregate_eligibility_requires_the_outcome_of_the_specific_mode(string mode, string? result, int? placement, bool eligible)
+    {
+        var parsed = await Parse(Source(Start(mode: mode), End(1, result: result, placement: placement)));
+        Assert.Equal("parsed", parsed.Status);
+        Assert.Equal(result, parsed.Summary.Result);
+        Assert.Equal(placement, parsed.Summary.Placement);
+        Assert.Equal(eligible, parsed.Summary.CompleteForAggregation);
+    }
+
     private static async Task<SourceCaptureResult> Parse(string source, SourceCaptureLimits? limits = null)
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
@@ -404,8 +446,8 @@ public sealed class SourceCaptureParserTests : IDisposable
     private static string Source(params string[] records) => string.Join('\n', records) + (records.Length == 0 ? "" : "\n");
     private static string Start(int seq = 0, string kind = "game", string mode = "ranked") =>
         Line(seq, "start", JsonSerializer.Serialize(new { captureKind = kind, mode, day = 20766, build = (int?)null }));
-    private static string End(int seq, int turn = 0, string status = "complete", string? result = "W") =>
-        Line(seq, "end", JsonSerializer.Serialize(new { status, result, placement = (int?)null, reason = "normal" }), turn);
+    private static string End(int seq, int turn = 0, string status = "complete", string? result = "W", int? placement = null) =>
+        Line(seq, "end", JsonSerializer.Serialize(new { status, result, placement, reason = "normal" }), turn);
     private static string Action(int seq, string action, int turn = 0) =>
         Line(seq, "action", JsonSerializer.Serialize(new { action, cost = (int?)null }), turn, "local", 12, "CARD_1");
     private static string Entity(int seq, string zone, string? card) =>
