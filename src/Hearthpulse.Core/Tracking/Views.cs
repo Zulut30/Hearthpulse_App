@@ -83,6 +83,12 @@ public sealed record ConstructedView(
     /// </summary>
     public CardPool.MatchListView? MatchList { get; init; }
 
+    /// <summary>
+    /// The hovered card's related cards (tokens, Choose One options, Old God abilities, named cards) when its "this game"
+    /// list took <see cref="MatchList"/>; null otherwise (a card without a rule still has them in MatchList).
+    /// </summary>
+    public CardPool.MatchListView? RelatedList { get; init; }
+
     /// <summary>The minions that died this game on each side (the Graveyard panel); null before the first death.</summary>
     public GraveyardView? Graveyard { get; init; }
 
