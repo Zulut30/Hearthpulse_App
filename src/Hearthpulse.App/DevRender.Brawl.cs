@@ -32,6 +32,7 @@ public partial class App
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>pages</c> (Home and Battlegrounds at a width), <c>setup</c> (the setup wizard on each step), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
+        if (RenderOnly("mystats")) await RenderMyStatsAsync(folder);
         if (RenderOnly("sourcecapture"))
         {
             _main.ShowPage("Overview");

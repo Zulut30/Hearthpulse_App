@@ -41,6 +41,7 @@ internal static partial class OffscreenRenderer
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
     private static async Task RenderOnlyAsync(Window main, MainView view, AppHost host, string folder)
     {
+        if (RenderOnly("mystats")) await RenderMyStatsAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
             view.ShowPage("Overview");

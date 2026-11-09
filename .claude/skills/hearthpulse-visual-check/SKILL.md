@@ -73,6 +73,7 @@ fresh output folder and check these files yourself when bypassing the wrapper.
 `HEARTHPULSE_RENDER_ONLY=sourcecapture` renders `main-source-notice` (Overview with the data copy's current notice)
 and `main-source-data` (Settings Data). Use separate scratch profiles for an older notice and the current notice,
 with a synthetic HTTPS PoolEndpoint. Render mode never starts the source delivery loop.
+`HEARTHPULSE_RENDER_ONLY=mystats` checks the full-length statistics scenes separately.
 
 | PNG | WPF | Avalonia | Source |
 |---|---|---|---|
