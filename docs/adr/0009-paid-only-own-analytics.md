@@ -12,6 +12,7 @@ Discover picks, the Arena draft) are never sold or limited: that would resell so
 - A new key for `UsageGate` (app) and `appUsage` (site) names its data source; it is accepted only when the numbers
   are ours. A licence that explicitly allows paid access changes this, and only for that source, by a new ADR.
 - A limited panel still shows its cards with art and names; only our numbers are left out, and a line says why.
-- HearthstoneJSON asks to be contacted for commercial use: the owner writes to HearthSim before the site turns the
-  limits on (`APP_USAGE_LIMITS_ENABLED`), whatever the answer, art and card data stay outside the limit.
+- On 2026-11-08 the owner confirmed that permission to use card data in the product has already been obtained.
+  The former task to request that permission is closed. This confirmation does not change the rule that art and
+  card data stay outside the limit, or extend permission to other third-party datasets such as HSReplay Premium.
 - The main window's reference pages (meta, comps, trinkets) stay free; the limit covers in-game hints only.
