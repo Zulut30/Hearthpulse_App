@@ -1,13 +1,12 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Hearthpulse.Core.Battlegrounds.Site;
 
 /// <summary>
 /// Reads the answers of the site's Battlegrounds service (docs/bg-site-stats.md) into the <see cref="BgSiteStats"/>
-/// records. Lists whose source the app may not use are refused here and cut from an answer before it is cached. Nothing
+/// records. Only lists whose source is on the allow list are read; the rest is cut from an answer before it is cached. Nothing
 /// here throws on a malformed answer: the list or the entry is dropped with a line in the log.
 /// </summary>
 internal static partial class BgSiteParser
@@ -26,130 +25,116 @@ internal static partial class BgSiteParser
     [GeneratedRegex("^[A-Za-z0-9_.-]{1,64}$", RegexOptions.CultureInvariant)]
     private static partial Regex KeyPattern { get; }
 
-    /// <summary>
-    /// True when a list's <c>source</c> names data the app has no permission to use (Firestone, also known by its host
-    /// zerotoheroes), or names nothing: an origin that cannot be told is not shown either.
-    /// </summary>
-    internal static bool Refused(string? source) =>
-        string.IsNullOrWhiteSpace(source)
-        || source.Contains("firestone", StringComparison.OrdinalIgnoreCase)
-        || source.Contains("zerotoheroes", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// The answer of <paramref name="part"/> as it is cached: refused lists and comps are cut, so their data is not kept
-    /// on disk. Null when the text is not a JSON object.
-    /// </summary>
-    internal static string? Strip(string part, string json)
-    {
-        try
-        {
-            if (JsonNode.Parse(json) is not JsonObject answer)
-            {
-                Diag.Info($"Battlegrounds site {part}: the answer is not an object");
-                return null;
-            }
-
-            switch (part)
-            {
-                case BgSiteClient.TierListsPart when answer["lists"] is JsonObject lists:
-                    foreach (var name in lists.Select(l => l.Key).ToList())
-                    {
-                        if (Refused(Text(lists[name], "source")))
-                        {
-                            Diag.Info($"Battlegrounds site {part}: list \"{Clean(name, 32)}\" of source \"{Clean(Text(lists[name], "source"), 80)}\" is not used");
-                            lists.Remove(name);
-                        }
-                    }
-
-                    break;
-                case BgSiteClient.CompsPart when answer["comps"] is JsonArray comps:
-                    var listSource = Text(answer, "source");
-                    var refused = 0;
-                    for (var i = comps.Count - 1; i >= 0; i--)
-                    {
-                        if (Refused(Text(comps[i], "source") ?? listSource))
-                        {
-                            comps.RemoveAt(i);
-                            refused++;
-                        }
-                    }
-
-                    if (refused > 0)
-                    {
-                        Diag.Info($"Battlegrounds site {part}: {refused} comps of a source that is not used dropped");
-                    }
-
-                    break;
-                case BgSiteClient.HeroesPart when Refused((Text(answer, "source_id") + " " + Text(answer, "site")).Trim()):
-                    answer.Remove("view");
-                    break;
-                case BgSiteClient.MinionStatsPart when Refused(Text(answer["latest_run"], "source")):
-                    answer.Remove("minions");
-                    break;
-            }
-
-            return answer.ToJsonString();
-        }
-        catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException)
-        {
-            // A repeated property name surfaces as ArgumentException when the node is first walked.
-            Diag.Error($"Battlegrounds site {part}: unreadable answer", ex);
-            return null;
-        }
-
-        static string? Text(JsonNode? node, string name) =>
-            node is JsonObject o && o[name] is JsonValue v && v.TryGetValue<string>(out var text) ? text : null;
-    }
-
     /// <summary>What <c>/api/bg/heroes</c> adds to the heroes tier list: card ids and placement shares by dbfId, and the slice.</summary>
     internal sealed record HeroDetails(IReadOnlyDictionary<int, (string CardId, double? First, double? Top4)> ByDbf, string? Mmr, string? TimeRange);
 
     /// <summary>Null when the answer is refused by source or has no hero rows.</summary>
     internal static HeroDetails? ParseHeroes(JsonElement root)
     {
-        if (root.ValueKind != JsonValueKind.Object)
+        if (HeroRows(root, "heroes") is not { } rows)
         {
-            return null;
-        }
-
-        var source = (Str(root, "source_id") + " " + Str(root, "site")).Trim();
-        if (Refused(source))
-        {
-            Diag.Info($"Battlegrounds site heroes: source \"{Clean(source, 80)}\" is not used");
-            return null;
-        }
-
-        if (!root.TryGetProperty("view", out var view) || view.ValueKind != JsonValueKind.Object
-            || !view.TryGetProperty("heroes", out var rows) || rows.ValueKind != JsonValueKind.Array)
-        {
-            Diag.Info("Battlegrounds site heroes: no hero rows");
             return null;
         }
 
         var byDbf = new Dictionary<int, (string, double?, double?)>();
         foreach (var row in rows.EnumerateArray())
         {
-            if (row.ValueKind != JsonValueKind.Object || CardId(row, "id") is not { } id || Int(row, "dbfId") is not { } dbf)
+            if (row.ValueKind == JsonValueKind.Object && CardId(row, "id") is { } id && Int(row, "dbfId") is { } dbf)
             {
+                var (first, top) = Places(row);
+                byDbf[dbf] = (id, first, top);
+            }
+        }
+
+        var filters = Filters(root);
+        return byDbf.Count == 0 ? null : new HeroDetails(byDbf, Key(filters, "mmr_percentile"), Key(filters, "time_range"));
+    }
+
+    /// <summary>
+    /// A heroes list of one mode and MMR slice (<c>/api/bg/heroes?mode=&amp;mmr=</c>): the answer carries the tier of
+    /// each hero itself. Null when the answer names no allowed source or has no hero rows.
+    /// </summary>
+    internal static BgSiteTierList? ParseHeroSlice(JsonElement root, string name)
+    {
+        if (HeroRows(root, name) is not { } rows)
+        {
+            return null;
+        }
+
+        var byTier = TierLetters.ToDictionary(t => t, _ => new List<BgSiteTierEntry>(), StringComparer.Ordinal);
+        var dropped = 0;
+        foreach (var row in rows.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object || CardId(row, "id") is not { } id || Str(row, "tier") is not { } tier || !byTier.TryGetValue(tier, out var bucket))
+            {
+                dropped++;
                 continue;
             }
 
-            double? first = null, top4 = null;
-            if (row.TryGetProperty("placement_distribution", out var places) && places.ValueKind == JsonValueKind.Array && places.GetArrayLength() == 8)
-            {
-                var shares = places.EnumerateArray().Select(Share).ToList();
-                if (shares.TrueForAll(s => s is not null))
-                {
-                    first = shares[0];
-                    top4 = Math.Min(1, shares.Take(4).Sum(s => s!.Value));
-                }
-            }
-
-            byDbf[dbf] = (id, first, top4);
+            var english = Clean(Str(row, "hero"), MaxNameLength) ?? string.Empty;
+            var (first, top) = Places(row);
+            bucket.Add(new BgSiteTierEntry(id, Int(row, "dbfId") ?? 0, tier, english, english, 0,
+                Placement(row, "avg_placement"), Share(row, "pick_rate"), top, first, Games: null));
         }
 
-        var filters = view.TryGetProperty("filters", out var f) && f.ValueKind == JsonValueKind.Object ? f : default;
-        return byDbf.Count == 0 ? null : new HeroDetails(byDbf, Key(filters, "mmr_percentile"), Key(filters, "time_range"));
+        if (dropped > 0)
+        {
+            Diag.Info($"Battlegrounds site {name}: {dropped} heroes without a card id or a known tier dropped");
+        }
+
+        var entries = TierLetters.SelectMany(t => byTier[t]).ToList();
+        var filters = Filters(root);
+        return entries.Count == 0
+            ? null
+            : new BgSiteTierList(BgSiteList.Heroes, entries, TierLetters, Time(root, "fetched_at") ?? default, Str(root, "source_id")!,
+                Key(filters, "mmr_percentile"), Key(filters, "time_range"), GamesNote: null);
+    }
+
+    /// <summary>The hero rows of a heroes answer whose source is allowed; null (logged) otherwise.</summary>
+    private static JsonElement? HeroRows(JsonElement root, string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!HeroesUsable(Str(root, "source_id"), Str(root, "site")))
+        {
+            Diag.Info($"Battlegrounds site {name}: source \"{Clean(Str(root, "source_id"), 80)}\" is not used");
+            return null;
+        }
+
+        if (!root.TryGetProperty("view", out var view) || view.ValueKind != JsonValueKind.Object
+            || !view.TryGetProperty("heroes", out var rows) || rows.ValueKind != JsonValueKind.Array)
+        {
+            Diag.Info($"Battlegrounds site {name}: no hero rows");
+            return null;
+        }
+
+        return rows;
+    }
+
+    private static JsonElement Filters(JsonElement root) =>
+        root.TryGetProperty("view", out var view) && view.ValueKind == JsonValueKind.Object
+        && view.TryGetProperty("filters", out var filters) && filters.ValueKind == JsonValueKind.Object
+            ? filters
+            : default;
+
+    /// <summary>
+    /// The share of first places and of the top half (places 1-4 of 8 solo, 1-2 of 4 in Duos) from a hero's
+    /// <c>placement_distribution</c>; nulls when it is not a full list of percents.
+    /// </summary>
+    private static (double? First, double? TopHalf) Places(JsonElement row)
+    {
+        if (!row.TryGetProperty("placement_distribution", out var places) || places.ValueKind != JsonValueKind.Array || places.GetArrayLength() is not (8 or 4))
+        {
+            return (null, null);
+        }
+
+        var shares = places.EnumerateArray().Select(Share).ToList();
+        return shares.TrueForAll(s => s is not null)
+            ? (shares[0], Math.Min(1, shares.Take(shares.Count / 2).Sum(s => s!.Value)))
+            : (null, null);
     }
 
     /// <summary>
@@ -159,14 +144,22 @@ internal static partial class BgSiteParser
     internal static BgSiteTierList? ParseTierList(JsonElement root, BgSiteList kind, HeroDetails? heroes)
     {
         var name = kind.ToString().ToLowerInvariant();
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("lists", out var lists) || lists.ValueKind != JsonValueKind.Object
-            || !lists.TryGetProperty(name, out var list) || list.ValueKind != JsonValueKind.Object)
+        return root.ValueKind == JsonValueKind.Object && root.TryGetProperty("lists", out var lists) && lists.ValueKind == JsonValueKind.Object
+               && lists.TryGetProperty(name, out var list)
+            ? ParseList(list, kind, heroes, name)
+            : null;
+    }
+
+    /// <summary>A tier list object: <c>lists.&lt;name&gt;</c> of the whole answer, or the answer of <c>?list=&lt;name&gt;</c>.</summary>
+    internal static BgSiteTierList? ParseList(JsonElement list, BgSiteList kind, HeroDetails? heroes, string name)
+    {
+        if (list.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
 
         var source = Str(list, "source");
-        if (Refused(source))
+        if (!Usable(source, Str(list, "upstreamSource")))
         {
             Diag.Info($"Battlegrounds site {name}: source \"{Clean(source, 80)}\" is not used");
             return null;
@@ -287,7 +280,7 @@ internal static partial class BgSiteParser
 
         var latest = root.TryGetProperty("latest_run", out var l) && l.ValueKind == JsonValueKind.Object ? l : default;
         var source = Str(latest, "source");
-        if (Refused(source))
+        if (!Allowed(source))
         {
             Diag.Info($"Battlegrounds site minion stats: source \"{Clean(source, 80)}\" is not used");
             return (stats, null);
@@ -341,7 +334,7 @@ internal static partial class BgSiteParser
                 continue;
             }
 
-            if (Refused(Str(row, "source") ?? listSource))
+            if (!Usable(Str(row, "source") ?? listSource, url: Str(row, "sourceUrl")))
             {
                 refused++;
                 continue;

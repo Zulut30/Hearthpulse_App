@@ -515,71 +515,71 @@
    "tiers": {
     "S": [
      {
-      "id": "BG31_244",
-      "dbfId": 119471,
-      "name": "Портал в кристалле",
+      "id": "TEST_FS_001",
+      "dbfId": 900001,
+      "name": "Invented row 1",
       "tavernTier": 5,
-      "avgPlacement": 2,
-      "avgPlacementOther": 3.897413415168786,
-      "impact": 1.8974,
-      "totalPlayed": 1,
-      "metricValue": 2,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
       "tier": "S"
      }
     ],
     "A": [
      {
-      "id": "BG28_573",
-      "dbfId": 104560,
-      "name": "Перехват инициативы",
+      "id": "TEST_FS_002",
+      "dbfId": 900002,
+      "name": "Invented row 2",
       "tavernTier": 5,
-      "avgPlacement": 2.3600085933723616,
-      "avgPlacementOther": 4.083169227937793,
-      "impact": 1.7232,
-      "totalPlayed": 18619,
-      "metricValue": 2.3600085933723616,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
       "tier": "A"
      }
     ],
     "B": [
      {
-      "id": "BG34_990",
-      "dbfId": 127506,
-      "name": "Волна золота",
+      "id": "TEST_FS_003",
+      "dbfId": 900003,
+      "name": "Invented row 3",
       "tavernTier": 5,
-      "avgPlacement": 2.7790659876476322,
-      "avgPlacementOther": 3.9856841761103228,
-      "impact": 1.2066,
-      "totalPlayed": 9229,
-      "metricValue": 2.7790659876476322,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
       "tier": "B"
      }
     ],
     "C": [
      {
-      "id": "BG28_825",
-      "dbfId": 104445,
-      "name": "Защитные обряды",
+      "id": "TEST_FS_004",
+      "dbfId": 900004,
+      "name": "Invented row 4",
       "tavernTier": 4,
-      "avgPlacement": 3.084040762394338,
-      "avgPlacementOther": 4.171580819673341,
-      "impact": 1.0875,
-      "totalPlayed": 55247,
-      "metricValue": 3.084040762394338,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
       "tier": "C"
      }
     ],
     "D": [
      {
-      "id": "BG35_951",
-      "dbfId": 131152,
-      "name": "Мощь Штормграда",
+      "id": "TEST_FS_005",
+      "dbfId": 900005,
+      "name": "Invented row 5",
       "tavernTier": 2,
-      "avgPlacement": 3.4257477153143174,
-      "avgPlacementOther": 4.004524945377445,
-      "impact": 0.5788,
-      "totalPlayed": 28888,
-      "metricValue": 3.4257477153143174,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
       "tier": "D"
      }
     ]
@@ -1477,58 +1477,58 @@
    "tiers": {
     "S": [
      {
-      "key": "firestone-mech-apm",
+      "key": "test-fs-6",
       "source": "Firestone",
       "sourceKey": "firestone",
       "tier": "S",
-      "title": "Mech APM",
-      "difficulty": "Сложная",
-      "archetype": "Механизмы",
-      "archetypeKey": "mech",
-      "avgPlacement": 3.27,
-      "games": 5180
+      "title": "Invented row 6",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
      }
     ],
     "A": [
      {
-      "key": "firestone-dragon-shield",
+      "key": "test-fs-7",
       "source": "Firestone",
       "sourceKey": "firestone",
       "tier": "A",
-      "title": "Dragon Shield",
-      "difficulty": "Легкая",
-      "archetype": "Драконы",
-      "archetypeKey": "dragon",
-      "avgPlacement": 2.83,
-      "games": 5619
+      "title": "Invented row 7",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
      }
     ],
     "B": [
      {
-      "key": "firestone-quilboar-choose-one",
+      "key": "test-fs-8",
       "source": "Firestone",
       "sourceKey": "firestone",
       "tier": "B",
-      "title": "Quilboar Choose One",
-      "difficulty": "Средняя",
-      "archetype": "Свинобраз",
-      "archetypeKey": "quilboar",
-      "avgPlacement": 3.41,
-      "games": 4082
+      "title": "Invented row 8",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
      }
     ],
     "C": [
      {
-      "key": "firestone-aberration-discard",
+      "key": "test-fs-9",
       "source": "Firestone",
       "sourceKey": "firestone",
       "tier": "C",
-      "title": "Aberration Discard",
-      "difficulty": "Легкая",
-      "archetype": "Элементали",
-      "archetypeKey": "elemental",
-      "avgPlacement": 3.24,
-      "games": 5176
+      "title": "Invented row 9",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
      }
     ],
     "D": []

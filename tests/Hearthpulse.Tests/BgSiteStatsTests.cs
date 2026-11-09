@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Hearthpulse.Core.Battlegrounds.Site;
 using Microsoft.Extensions.Time.Testing;
 
@@ -8,16 +9,20 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The Battlegrounds lists of the site's open service (docs/bg-site-stats.md): the records parse from real answers
-/// (Fixtures/BgSite, trimmed), the client asks four addresses of one host with nothing about the player, keeps the
-/// answers for six hours, survives a failing address and a malformed answer, and refuses Firestone lists by their
-/// source. No network: a fake handler answers.
+/// (Fixtures/BgSite, trimmed), the client asks five addresses of one host with nothing about the player, keeps the
+/// answers for six hours, survives a failing address, an answer without data and a malformed one, and reads only lists
+/// whose source is on the allow list. No network: a fake handler answers.
 /// </summary>
 public sealed class BgSiteStatsTests : IDisposable
 {
     private const string TierLists = "/api/bg/tier-lists";
     private const string Heroes = "/api/bg/heroes";
+    private const string Duos = "/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT";
     private const string MinionStats = "/api/bg/library/minion-stats";
     private const string Comps = "/api/bg-comps";
+
+    /// <summary>Requests of one refresh.</summary>
+    private const int Refresh = 5;
 
     private readonly string _cache = TestDataFolder.Scratch("hp-bgsite");
 
@@ -140,9 +145,10 @@ public sealed class BgSiteStatsTests : IDisposable
     }
 
     [Fact]
-    public async Task Comps_read_their_tier_cards_difficulty_and_tip()
+    public async Task Comps_read_their_tier_cards_difficulty_tip_and_date()
     {
-        var comps = (await Client(FakeSite.Real()).LoadAsync())!.Comps;
+        var stats = (await Client(FakeSite.Real()).LoadAsync())!;
+        var comps = stats.Comps;
 
         Assert.Equal(["hsreplay-76", "hsreplay-95", "hsreplay-3"], comps.Select(c => c.Id));
         var comp = comps[0];
@@ -157,6 +163,20 @@ public sealed class BgSiteStatsTests : IDisposable
         // The service publishes no placement and no sample for these comps.
         Assert.Null(comp.AveragePlacement);
         Assert.Null(comp.Games);
+        Assert.Equal(new DateTime(2026, 11, 9, 17, 0, 12, DateTimeKind.Utc), stats.CompsFetchedAt!.Value, TimeSpan.FromSeconds(1));
+        Assert.Equal(DateTimeKind.Utc, stats.CompsFetchedAt.Value.Kind);
+    }
+
+    [Fact]
+    public async Task Without_comps_there_is_no_comps_date()
+    {
+        var site = FakeSite.Real();
+        site.Fail(Comps, HttpStatusCode.InternalServerError);
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Empty(stats.Comps);
+        Assert.Null(stats.CompsFetchedAt);
     }
 
     [Fact]
@@ -165,7 +185,7 @@ public sealed class BgSiteStatsTests : IDisposable
         var stats = (await Client(FakeSite.Real()).LoadAsync())!;
 
         Assert.Equal(stats.Trinkets!.FetchedAt, stats.Updated);
-        Assert.True(stats.Updated >= stats.Heroes!.FetchedAt && stats.Updated >= stats.Minions!.FetchedAt);
+        Assert.True(stats.Updated >= stats.Heroes!.FetchedAt && stats.Updated >= stats.Minions!.FetchedAt && stats.Updated >= stats.CompsFetchedAt);
     }
 
     // AC18
@@ -173,28 +193,29 @@ public sealed class BgSiteStatsTests : IDisposable
     [Fact]
     public async Task Within_six_hours_the_cache_answers_and_after_them_the_service_is_asked_again()
     {
-        var site = FakeSite.Real();
+        var site = FakeSite.Real(duosNamesSource: true);
         var client = Client(site);
 
         var first = (await client.LoadAsync())!;
-        Assert.Equal(4, site.Requests.Count);
-        foreach (var part in new[] { "tier-lists", "heroes", "minion-stats", "comps" })
+        Assert.Equal(Refresh, site.Requests.Count);
+        foreach (var part in new[] { "tier-lists", "heroes", "heroes-duos-top_50_percent", "minion-stats", "comps" })
         {
             Assert.True(File.Exists(Path.Combine(_cache, $"bgsite-{part}.json")), part);
         }
 
         var second = (await Client(site).LoadAsync())!;
-        Assert.Equal(4, site.Requests.Count);
+        Assert.Equal(Refresh, site.Requests.Count);
         Assert.Equal(first.Heroes!.Entries, second.Heroes!.Entries);
+        Assert.Equal(first.HeroesDuos!.Entries, second.HeroesDuos!.Entries);
         Assert.Equal(first.Updated, second.Updated);
 
         client.Clock = () => DateTime.UtcNow + BgSiteClient.MaxAge - TimeSpan.FromMinutes(5);
         await client.LoadAsync();
-        Assert.Equal(4, site.Requests.Count);
+        Assert.Equal(Refresh, site.Requests.Count);
 
         client.Clock = () => DateTime.UtcNow + BgSiteClient.MaxAge + TimeSpan.FromMinutes(5);
         await client.LoadAsync();
-        Assert.Equal(8, site.Requests.Count);
+        Assert.Equal(2 * Refresh, site.Requests.Count);
         Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
     }
 
@@ -206,16 +227,10 @@ public sealed class BgSiteStatsTests : IDisposable
         var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
 
         var down = FakeSite.Down(failure);
-        var client = Client(down);
-        client.Clock = () => DateTime.UtcNow + TimeSpan.FromDays(3);
-        var stale = (await client.LoadAsync())!;
+        var stale = (await Later(down).LoadAsync())!;
 
-        Assert.Equal(4, down.Requests.Count);
-        Assert.Equal(loaded.Updated, stale.Updated);
-        Assert.Equal(loaded.Heroes!.Entries, stale.Heroes!.Entries);
-        Assert.Equal(loaded.Trinkets!.Entries, stale.Trinkets!.Entries);
-        Assert.Equal(loaded.MinionStats.Count, stale.MinionStats.Count);
-        Assert.Equal(loaded.Comps.Select(c => c.Id), stale.Comps.Select(c => c.Id));
+        Assert.Equal(Refresh, down.Requests.Count);
+        AssertSame(loaded, stale);
     }
 
     [Theory]
@@ -227,45 +242,158 @@ public sealed class BgSiteStatsTests : IDisposable
         var down = FakeSite.Down(failure);
 
         Assert.Null(await Client(down).LoadAsync());
-        Assert.Equal(4, down.Requests.Count);
-        Assert.False(Directory.Exists(_cache) && Directory.GetFiles(_cache).Length > 0);
+        Assert.Equal(Refresh, down.Requests.Count);
+        AssertNoCacheFiles();
     }
 
     [Fact]
     public async Task An_unreadable_cache_file_is_asked_for_again()
     {
-        var site = FakeSite.Real();
+        var site = FakeSite.Real(duosNamesSource: true);
         await Client(site).LoadAsync();
         await File.WriteAllBytesAsync(Path.Combine(_cache, "bgsite-comps.json"), new byte[64]);
 
         var stats = (await Client(site).LoadAsync())!;
 
-        Assert.Equal(5, site.Requests.Count);
+        Assert.Equal(Refresh + 1, site.Requests.Count);
         Assert.Equal(3, stats.Comps.Count);
+    }
+
+    // AC18, Q1: a 200 answer without data is a failed load
+
+    [Theory]
+    [InlineData(TierLists, "tier-lists", "{}")]
+    [InlineData(TierLists, "tier-lists", "{\"lists\": {}}")]
+    [InlineData(TierLists, "tier-lists", "{\"detail\": \"maintenance\"}")]
+    [InlineData(TierLists, "tier-lists", "{\"lists\": {\"minions\": {\"source\": \"hsreplay\", \"tiers\": {\"S\": [], \"A\": []}}}}")]
+    [InlineData(Heroes, "heroes", "{}")]
+    [InlineData(Heroes, "heroes", "{\"source_id\": \"hsreplay_battlegrounds_heroes\", \"ok\": false, \"site\": \"hsreplay\", \"view\": {\"blocked\": true, \"heroes\": []}}")]
+    [InlineData(Heroes, "heroes", "{\"source_id\": \"hsreplay_battlegrounds_heroes\", \"ok\": false, \"view\": {\"heroes\": [{\"id\": \"BG_H\", \"dbfId\": 1}]}}")]
+    [InlineData(Heroes, "heroes", "{\"source_id\": \"hsreplay_battlegrounds_heroes\", \"ok\": true, \"view\": {\"blocked\": true, \"heroes\": [{\"id\": \"BG_H\", \"dbfId\": 1}]}}")]
+    [InlineData(MinionStats, "minion-stats", "{}")]
+    [InlineData(MinionStats, "minion-stats", "{\"latest_run\": {\"source\": \"hsreplay_battlegrounds_minions\", \"state\": \"error\", \"error\": \"blocked\"}, \"minions\": []}")]
+    [InlineData(Comps, "comps", "{}")]
+    [InlineData(Comps, "comps", "{\"source\": \"HSReplay\", \"comps\": []}")]
+    public async Task An_answer_without_data_does_not_replace_the_old_file(string address, string part, string body)
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        var file = Path.Combine(_cache, $"bgsite-{part}.json");
+        var before = await File.ReadAllBytesAsync(file);
+        var written = File.GetLastWriteTimeUtc(file);
+        var mark = LogMark();
+
+        var site = FakeSite.Real();
+        site.Answer(address, body);
+        var stale = (await Later(site).LoadAsync())!;
+
+        Assert.Equal(Refresh, site.Requests.Count);
+        AssertSame(loaded, stale);
+        Assert.Equal(before, await File.ReadAllBytesAsync(file));
+        Assert.Equal(written, File.GetLastWriteTimeUtc(file));
+        Assert.Contains($"Battlegrounds site {part}: the answer has no data, not kept", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Empty_answers_everywhere_leave_the_old_stats()
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+
+        var stale = (await Later(FakeSite.Everywhere("{}")).LoadAsync())!;
+
+        AssertSame(loaded, stale);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"detail\": \"maintenance\"}")]
+    [InlineData("{\"ok\": false, \"lists\": {}, \"comps\": [], \"minions\": [], \"view\": {\"blocked\": true, \"heroes\": []}}")]
+    public async Task Empty_answers_everywhere_and_no_cache_mean_no_stats(string body)
+    {
+        var site = FakeSite.Everywhere(body);
+
+        Assert.Null(await Client(site).LoadAsync());
+        Assert.Equal(Refresh, site.Requests.Count);
+        AssertNoCacheFiles();
+    }
+
+    [Fact]
+    public async Task A_cache_file_without_data_is_asked_for_again()
+    {
+        var site = FakeSite.Real();
+        await Client(site).LoadAsync();
+        await File.WriteAllTextAsync(Path.Combine(_cache, "bgsite-heroes.json"), "{}");
+        var asked = site.Requests.Count;
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Contains(site.Requests.Skip(asked), r => r.Uri.PathAndQuery == Heroes);
+        Assert.Equal(12, stats.Heroes!.Entries.Count);
+    }
+
+    // AC18, Q2: nothing a handler or a body throws leaves LoadAsync
+
+    [Theory]
+    [InlineData("body", "InvalidDataException")]
+    [InlineData("send", "InvalidOperationException")]
+    [InlineData("disposed", "ObjectDisposedException")]
+    public async Task Whatever_the_request_throws_the_old_files_answer(string kind, string logged)
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        var mark = LogMark();
+
+        var broken = FakeSite.Broken(kind);
+        var stale = (await Later(broken).LoadAsync())!;
+
+        Assert.Equal(Refresh, broken.Requests.Count);
+        AssertSame(loaded, stale);
+        Assert.Contains($"Battlegrounds site comps: {logged}: ", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("body")]
+    [InlineData("send")]
+    [InlineData("disposed")]
+    public async Task Whatever_the_request_throws_without_a_cache_there_are_no_stats(string kind)
+    {
+        Assert.Null(await Client(FakeSite.Broken(kind)).LoadAsync());
+        AssertNoCacheFiles();
+    }
+
+    [Fact]
+    public async Task A_disposed_http_client_does_not_throw()
+    {
+        var http = new HttpClient(FakeSite.Real());
+        http.Dispose();
+
+        Assert.Null(await new BgSiteClient(http, cacheDirectory: _cache).LoadAsync());
     }
 
     // AC19
 
     [Theory]
-    [InlineData(TierLists)]
-    [InlineData(Heroes)]
-    [InlineData(MinionStats)]
-    [InlineData(Comps)]
-    public async Task One_failing_address_leaves_the_other_parts_loaded(string failing)
+    [InlineData(TierLists, "tier-lists")]
+    [InlineData(Heroes, "heroes")]
+    [InlineData(MinionStats, "minion-stats")]
+    [InlineData(Comps, "comps")]
+    public async Task One_failing_address_leaves_the_other_parts_loaded(string failing, string part)
     {
+        var mark = LogMark();
         var site = FakeSite.Real();
         site.Fail(failing, HttpStatusCode.InternalServerError);
 
         var stats = (await Client(site).LoadAsync())!;
 
-        Assert.Equal(4, site.Requests.Count);
+        Assert.Equal(Refresh, site.Requests.Count);
         AssertPartsExcept(stats, failing);
-        Assert.Contains("HTTP 500", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        var log = LogSince(mark);
+        Assert.Contains($"Battlegrounds site {part}: HTTP 500", log, StringComparison.Ordinal);
+        Assert.Single(log.Split('\n'), l => l.Contains("HTTP 500", StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task An_address_that_does_not_answer_in_time_leaves_the_other_parts_loaded()
     {
+        var mark = LogMark();
         var time = new FakeTimeProvider();
         var site = FakeSite.Real();
         site.Hang(MinionStats);
@@ -277,7 +405,7 @@ public sealed class BgSiteStatsTests : IDisposable
         var stats = (await load.WaitAsync(TimeSpan.FromSeconds(30)))!;
 
         AssertPartsExcept(stats, MinionStats);
-        Assert.Contains("Battlegrounds site minion-stats: no answer in 20 s", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        Assert.Contains("Battlegrounds site minion-stats: no answer in 20 s", LogSince(mark), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -296,15 +424,52 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Empty(stats?.Comps ?? []);
     }
 
+    [Fact]
+    public async Task A_cancelled_load_answers_from_the_old_files_without_a_failure_in_the_log()
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        var mark = LogMark();
+        var site = FakeSite.Real();
+        site.Hang(TierLists);
+        site.Hang(Heroes);
+        site.Hang(Duos);
+        site.Hang(MinionStats);
+        site.Hang(Comps);
+        using var cancel = new CancellationTokenSource();
+
+        var load = Later(site).LoadAsync(cancel.Token);
+        await site.Hanging.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await cancel.CancelAsync();
+        var stale = (await load.WaitAsync(TimeSpan.FromSeconds(30)))!;
+
+        AssertSame(loaded, stale);
+        // A cancellation is not a failed load: no time-out and no error is written for it.
+        var log = LogSince(mark);
+        Assert.DoesNotContain("no answer in", log, StringComparison.Ordinal);
+        Assert.DoesNotContain("not loaded", log, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_load_cancelled_before_it_starts_does_not_ask_the_service()
+    {
+        var site = FakeSite.Real();
+        using var cancel = new CancellationTokenSource();
+        await cancel.CancelAsync();
+
+        Assert.Null(await Client(site).LoadAsync(cancel.Token));
+    }
+
     // AC20
 
     [Theory]
-    [InlineData("{\"lists\": {\"minions\": ")]
-    [InlineData("<html>maintenance</html>")]
-    [InlineData("[1, 2, 3]")]
-    [InlineData("")]
-    public async Task A_broken_answer_drops_its_part_only(string body)
+    [InlineData("{\"lists\": {\"minions\": ", "Battlegrounds site tier-lists: unreadable answer")]
+    [InlineData("<html>maintenance</html>", "Battlegrounds site tier-lists: unreadable answer")]
+    [InlineData("[1, 2, 3]", "Battlegrounds site tier-lists: the answer is not an object")]
+    [InlineData("", "Battlegrounds site tier-lists: unreadable answer")]
+    [InlineData("{\"lists\": 1, \"lists\": 2}", "Battlegrounds site tier-lists: ")]
+    public async Task A_broken_answer_drops_its_part_only(string body, string logged)
     {
+        var mark = LogMark();
         var site = FakeSite.Real();
         site.Answer(TierLists, body);
 
@@ -312,12 +477,23 @@ public sealed class BgSiteStatsTests : IDisposable
 
         AssertPartsExcept(stats, TierLists);
         Assert.False(File.Exists(Path.Combine(_cache, "bgsite-tier-lists.json")));
-        Assert.Contains("Battlegrounds site tier-lists: ", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        // Only this load's lines are read, and no other part of it writes under the tier lists' name.
+        Assert.Contains(logged, LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_answer_with_a_byte_order_mark_is_read()
+    {
+        var site = FakeSite.Real();
+        site.Answer(Comps, "\uFEFF" + Fixture("comps.json"));
+
+        Assert.Equal(3, (await Client(site).LoadAsync())!.Comps.Count);
     }
 
     [Fact]
     public async Task An_unknown_tier_letter_is_dropped_with_a_log_line()
     {
+        var mark = LogMark();
         var site = FakeSite.Real();
         site.Answer(TierLists, """
             {"lists": {"minions": {"source": "hsreplay", "fetchedAt": "2026-11-09T17:01:09+00:00",
@@ -330,12 +506,13 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(["S", "D"], minions.AvailableTiers);
         // A tavern tier outside 1..7 is not a tavern tier.
         Assert.Equal(0, minions.Entries[1].TavernTier);
-        Assert.Contains("Battlegrounds site minions: unknown tier \"Z9\" dropped", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        Assert.Contains("Battlegrounds site minions: unknown tier \"Z9\" dropped", LogSince(mark), StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Entries_without_a_card_id_are_dropped_with_a_log_line()
     {
+        var mark = LogMark();
         var site = FakeSite.Real();
         site.Answer(TierLists, """
             {"lists": {
@@ -363,7 +540,7 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Null(stat.Impact);
         Assert.Null(stat.CombatWinRate);
 
-        var log = TestDataFolder.ReadLog();
+        var log = LogSince(mark);
         Assert.Contains("Battlegrounds site minions: 4 entries without a card id dropped", log, StringComparison.Ordinal);
         Assert.Contains("Battlegrounds site trinkets: 1 entries without a card id dropped", log, StringComparison.Ordinal);
         Assert.Contains("Battlegrounds site heroes: 2 entries without a card id dropped", log, StringComparison.Ordinal);
@@ -375,6 +552,7 @@ public sealed class BgSiteStatsTests : IDisposable
     [InlineData(false)]
     public async Task An_answer_over_eight_megabytes_is_dropped(bool declaresLength)
     {
+        var mark = LogMark();
         var site = FakeSite.Real();
         site.Answer(Comps, "{\"source\": \"HSReplay\", \"comps\": [], \"pad\": \"" + new string('x', BgSiteClient.MaxBytes) + "\"}", declaresLength);
 
@@ -382,10 +560,10 @@ public sealed class BgSiteStatsTests : IDisposable
 
         AssertPartsExcept(stats, Comps);
         Assert.False(File.Exists(Path.Combine(_cache, "bgsite-comps.json")));
-        Assert.Contains(declaresLength ? "bytes ignored" : "Battlegrounds site comps: answer over 8 MB ignored", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        Assert.Contains(declaresLength ? "Battlegrounds site comps: answer of " : "Battlegrounds site comps: answer over 8 MB ignored", LogSince(mark), StringComparison.Ordinal);
     }
 
-    // AC21
+    // AC21, L-m4
 
     [Fact]
     public async Task Only_plain_gets_to_the_service_with_nothing_about_the_player()
@@ -396,7 +574,7 @@ public sealed class BgSiteStatsTests : IDisposable
 
         Assert.True(site.Requests.Count <= 8);
         Assert.Equal(
-            new[] { TierLists, Heroes, MinionStats, Comps }.Order(StringComparer.Ordinal),
+            new[] { TierLists, Heroes, Duos, MinionStats, Comps }.Order(StringComparer.Ordinal),
             site.Requests.Select(r => r.Uri.PathAndQuery).Order(StringComparer.Ordinal));
         foreach (var request in site.Requests)
         {
@@ -406,6 +584,45 @@ public sealed class BgSiteStatsTests : IDisposable
             Assert.False(request.HasBody);
             Assert.Equal(["Accept"], request.Headers);
         }
+    }
+
+    [Fact]
+    public void The_clients_own_handler_keeps_no_cookies_and_follows_no_redirects()
+    {
+        using var handler = BgSiteClient.CreateHandler();
+
+        Assert.False(handler.UseCookies);
+        Assert.False(handler.AllowAutoRedirect);
+
+        using var http = BgSiteClient.CreateHttp();
+        Assert.Empty(http.DefaultRequestHeaders);
+    }
+
+    [Theory]
+    [InlineData("https://elsewhere.example/api/bg/heroes")]
+    [InlineData("http://bg.hs-manacost.ru/api/bg/heroes")]
+    [InlineData("https://bg.hs-manacost.ru:8443/api/bg/heroes")]
+    public async Task An_answer_that_came_from_another_host_is_not_read(string answeredFrom)
+    {
+        // A shared client that follows redirects reports the last address in the response's request.
+        var mark = LogMark();
+        var site = FakeSite.Real();
+        site.AnswerFrom(Heroes, new Uri(answeredFrom));
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        AssertPartsExcept(stats, Heroes);
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes.json")));
+        Assert.Contains("Battlegrounds site heroes: answered from another host, ignored", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_redirect_is_a_failed_load()
+    {
+        var site = FakeSite.Real();
+        site.Fail(Heroes, HttpStatusCode.Found);
+
+        AssertPartsExcept((await Client(site).LoadAsync())!, Heroes);
     }
 
     [Theory]
@@ -432,18 +649,20 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.All(site.Requests, r => Assert.StartsWith("https://staging.example/bg/api/", r.Uri.AbsoluteUri, StringComparison.Ordinal));
     }
 
-    // AC22
+    // AC22, L-M2: only allowed sources
 
     [Fact]
     public async Task Firestone_lists_and_comps_are_not_given_out()
     {
+        var mark = LogMark();
         var stats = (await Client(FakeSite.Real()).LoadAsync())!;
 
-        // The fixture's spells list and two of its comps name Firestone as their source.
+        // The fixture's spells and strategies lists and two of its comps name Firestone as their source.
         Assert.Null(stats.Spells);
         Assert.Empty(stats.SpellStats);
+        Assert.Equal(3, stats.Comps.Count);
         Assert.DoesNotContain(stats.Comps, c => c.Id.StartsWith("firestone", StringComparison.OrdinalIgnoreCase));
-        var log = TestDataFolder.ReadLog();
+        var log = LogSince(mark);
         Assert.Contains("Battlegrounds site tier-lists: list \"spells\" of source \"firestone\" is not used", log, StringComparison.Ordinal);
         Assert.Contains("Battlegrounds site tier-lists: list \"strategies\" of source \"firestone\" is not used", log, StringComparison.Ordinal);
         Assert.Contains("Battlegrounds site comps: 2 comps of a source that is not used dropped", log, StringComparison.Ordinal);
@@ -454,20 +673,31 @@ public sealed class BgSiteStatsTests : IDisposable
     {
         await Client(FakeSite.Real()).LoadAsync();
 
-        using var lists = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-tier-lists.json")));
+        var kept = await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-tier-lists.json"));
+        using var lists = JsonDocument.Parse(kept);
         Assert.Equal(["heroes", "minions", "trinkets"], lists.RootElement.GetProperty("lists").EnumerateObject().Select(l => l.Name));
-        using var comps = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-comps.json")));
+        // The rows of the refused lists are gone (the fixture's are invented, under these ids).
+        Assert.DoesNotContain("TEST_FS_", kept, StringComparison.Ordinal);
+        var keptComps = await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-comps.json"));
+        using var comps = JsonDocument.Parse(keptComps);
         Assert.All(comps.RootElement.GetProperty("comps").EnumerateArray(), c => Assert.Equal("HSReplay", c.GetProperty("source").GetString()));
         Assert.Equal(3, comps.RootElement.GetProperty("comps").GetArrayLength());
+        Assert.DoesNotContain("TEST_FS_", keptComps, StringComparison.Ordinal);
+        // Cyrillic is kept as it is, not as \u escapes that would double the file.
+        Assert.Contains("Свинобразы", keptComps, StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("firestone")]
     [InlineData("Firestone через api.kolodahearthstone.com")]
     [InlineData("static.ZeroToHeroes.com")]
+    [InlineData("HSReplay + Firestone через api.kolodahearthstone.com")]
+    [InlineData("hearthpulse")]
+    [InlineData("heartharena")]
+    [InlineData("hsreplay_premium")]
     [InlineData("")]
     [InlineData(null)]
-    public async Task A_list_is_refused_by_its_source_whatever_the_list(string? source)
+    public async Task Only_a_source_on_the_allow_list_is_given_out(string? source)
     {
         var named = source is null ? string.Empty : $"\"source\": {JsonSerializer.Serialize(source)},";
         var site = FakeSite.Real();
@@ -487,21 +717,65 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Empty(stats.MinionStats);
         Assert.Null(stats.Run);
         Assert.NotNull(stats.Trinkets);
-        // A comp that names its own, allowed source stays; one that only has the list's refused source goes. An unknown
+        // A comp that names its own, allowed source stays; one that only has the list's source goes with it. An unknown
         // tier letter of a comp is no tier.
         var comp = Assert.Single(stats.Comps);
         Assert.Equal(("b", (string?)null), (comp.Id, comp.Tier));
 
-        var cached = await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-tier-lists.json"));
-        Assert.DoesNotContain("BG_A", cached, StringComparison.Ordinal);
-        Assert.DoesNotContain("BG_A", await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-minion-stats.json")), StringComparison.Ordinal);
-        Assert.DoesNotContain("BG_H", await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-heroes.json")), StringComparison.Ordinal);
+        Assert.DoesNotContain("BG_A", await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-tier-lists.json")), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"a\"", await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-comps.json")), StringComparison.Ordinal);
+        // An answer with nothing left to show is not kept at all.
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-minion-stats.json")));
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes.json")));
+    }
+
+    [Theory]
+    [InlineData("hsreplay")]
+    [InlineData("HSReplay")]
+    [InlineData("  HsReplay ")]
+    [InlineData("HS Replay")]
+    public async Task The_allowed_source_is_read_whatever_its_case_and_spaces(string source)
+    {
+        var site = FakeSite.Real();
+        site.Answer(TierLists, $$"""{"lists": {"minions": {"source": {{JsonSerializer.Serialize(source)}}, "tiers": {"S": [ {"id": "BG_A", "name": "A"} ]} } } }""");
+        site.Answer(Comps, $$"""{"comps": [ {"key": "a", "source": {{JsonSerializer.Serialize(source)}}, "title": "A", "tier": "S"} ]}""");
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Equal("BG_A", Assert.Single(stats.Minions!.Entries).CardId);
+        Assert.Equal(source, stats.Minions.Source);
+        Assert.Equal("a", Assert.Single(stats.Comps).Id);
     }
 
     [Fact]
-    public async Task A_spells_list_of_an_allowed_source_would_be_given_out()
+    public async Task An_allowed_source_over_firestone_data_is_refused()
     {
-        // The refusal is by source, not by list: when the server changes the origin, the list appears without an update.
+        // The service says where a list was taken from next to its source: Firestone there refuses it too.
+        var site = FakeSite.Real();
+        site.Answer(TierLists, """
+            {"lists": {
+              "minions": {"source": "hsreplay", "upstreamSource": "Firestone через api.kolodahearthstone.com", "tiers": {"S": [{"id": "BG_A", "name": "A"}]}},
+              "trinkets": {"source": "hsreplay", "upstreamSource": "HSReplay trinkets + Blizzard card images", "tiers": {"S": [{"id": "BG_T", "name": "T"}]}}}}
+            """);
+        site.Answer(Comps, """
+            {"source": "HSReplay", "comps": [
+              {"key": "a", "source": "HSReplay", "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps", "title": "A"},
+              {"key": "b", "source": "HSReplay", "sourceUrl": "https://static.zerotoheroes.com/x", "title": "B"},
+              {"key": "c", "source": "HSReplay", "sourceUrl": "https://hsreplay.net/battlegrounds/comps/1/", "title": "C"}]}
+            """);
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.Minions);
+        Assert.NotNull(stats.Trinkets);
+        Assert.Equal("c", Assert.Single(stats.Comps).Id);
+        Assert.DoesNotContain("BG_A", await File.ReadAllTextAsync(Path.Combine(_cache, "bgsite-tier-lists.json")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_spells_list_of_the_allowed_source_is_given_out()
+    {
+        // The refusal is by source, not by list name: a spells list the service marks as HSReplay's is a list like the others.
         var site = FakeSite.Real();
         site.Answer(TierLists, """
             {"lists": {"spells": {"source": "hsreplay", "tiers": {"S": [{"id": "BG28_503", "name": "Fortify", "ruName": "Укрепление", "tavernTier": 1}]}}}}
@@ -513,18 +787,162 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(("BG28_503", 1), (spells.Entries[0].CardId, spells.Entries[0].TavernTier));
     }
 
-    // AC23
+    // AC23: Duos and MMR slices
 
     [Fact]
-    public async Task There_is_no_duos_slice()
+    public async Task The_duos_answer_names_no_source_today_so_it_is_not_given_out()
     {
-        var stats = (await Client(FakeSite.Real()).LoadAsync())!;
+        // The real answer of /api/bg/heroes?mode=duos has no source_id: under the allow list it is refused, and not kept.
+        var mark = LogMark();
+        var site = FakeSite.Real();
 
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Contains(site.Requests, r => r.Uri.PathAndQuery == Duos);
         Assert.NotNull(stats.Heroes);
         Assert.Null(stats.HeroesDuos);
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes-duos-top_50_percent.json")));
+        Assert.Contains("Battlegrounds site heroes-duos-top_50_percent: source \"\" is not used", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_duos_answer_that_names_the_allowed_source_fills_the_duos_list()
+    {
+        var stats = (await Client(FakeSite.Real(duosNamesSource: true)).LoadAsync())!;
+
+        var duos = stats.HeroesDuos!;
+        Assert.Equal(BgSiteList.Heroes, duos.Kind);
+        Assert.Equal("hsreplay_battlegrounds_heroes", duos.Source);
+        Assert.Equal("TOP_50_PERCENT", duos.Mmr);
+        Assert.Equal("CURRENT_BATTLEGROUNDS_PATCH", duos.TimeRange);
+        Assert.Equal(new DateTime(2026, 11, 9, 3, 35, 3, DateTimeKind.Utc), duos.FetchedAt, TimeSpan.FromSeconds(1));
+        Assert.Equal(["S", "A", "B", "C", "D"], duos.AvailableTiers);
+        Assert.Equal(8, duos.Entries.Count);
+        Assert.Equal(["A", "A", "B", "B", "C", "C", "D", "D"], duos.Entries.Select(e => e.Tier));
+
+        var hero = duos.Entries[0];
+        Assert.Equal(("TB_BaconShop_HERO_34", 59397, "A", "Patchwerk", "Patchwerk"), (hero.CardId, hero.DbfId, hero.Tier, hero.NameRu, hero.NameEn));
+        Assert.Equal(2.178, hero.AveragePlacement!.Value, 3);
+        Assert.Equal(0.4851, hero.PickRate!.Value, 4);
+        // Four team places in Duos: first, and the top half (places 1-2).
+        Assert.Equal(0.3306, hero.FirstRate!.Value, 4);
+        Assert.Equal(0.6356, hero.Top4Rate!.Value, 4);
+        Assert.Null(hero.Games);
+        // The solo list is a list of its own.
+        Assert.NotEqual(stats.Heroes!.Entries[0].CardId, hero.CardId);
+    }
+
+    [Fact]
+    public async Task A_failing_duos_address_leaves_the_solo_heroes()
+    {
+        var site = FakeSite.Real(duosNamesSource: true);
+        site.Fail(Duos, HttpStatusCode.InternalServerError);
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.HeroesDuos);
+        Assert.Equal(12, stats.Heroes!.Entries.Count);
+    }
+
+    [Fact]
+    public async Task A_heroes_slice_is_asked_by_mode_and_mmr_and_cached()
+    {
+        var site = FakeSite.Real();
+        site.Answer("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", NamingSource(Fixture("heroes-solo-top20.json")));
+        var client = Client(site);
+
+        var slice = (await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT"))!;
+        var again = (await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT"))!;
+
+        Assert.Equal("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", Assert.Single(site.Requests).Uri.PathAndQuery);
+        Assert.True(File.Exists(Path.Combine(_cache, "bgsite-heroes-solo-top_20_percent.json")));
+        Assert.Equal(slice.Entries, again.Entries);
+        Assert.Equal("TOP_20_PERCENT", slice.Mmr);
+        Assert.Equal(9, slice.Entries.Count);
+        var hero = slice.Entries[0];
+        Assert.Equal(("BG27_HERO_801", "S", "Thorim, Stormlord"), (hero.CardId, hero.Tier, hero.NameEn));
+        Assert.Equal(3.794, hero.AveragePlacement!.Value, 3);
+        Assert.Equal(0.23, hero.FirstRate!.Value, 4);
+        Assert.Equal(0.6154, hero.Top4Rate!.Value, 4);
+    }
+
+    [Fact]
+    public async Task A_heroes_slice_without_a_source_is_not_given_out()
+    {
+        var site = FakeSite.Real();
+        site.Answer("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", Fixture("heroes-solo-top20.json"));
+
+        Assert.Null(await Client(site).LoadHeroesAsync(duos: false, "TOP_20_PERCENT"));
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes-solo-top_20_percent.json")));
+    }
+
+    [Fact]
+    public async Task A_trinket_slice_is_asked_by_mmr_and_reads_the_flat_list()
+    {
+        var site = FakeSite.Real();
+        site.Answer("/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS", Fixture("trinkets-top50.json"));
+
+        var slice = (await Client(site).LoadTrinketsAsync("TOP_50_PERCENT"))!;
+
+        Assert.Equal("/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS", Assert.Single(site.Requests).Uri.PathAndQuery);
+        Assert.True(File.Exists(Path.Combine(_cache, "bgsite-trinkets-top_50_percent.json")));
+        Assert.Equal((BgSiteList.Trinkets, "hsreplay", "TOP_50_PERCENT", "LAST_7_DAYS"), (slice.Kind, slice.Source, slice.Mmr, slice.TimeRange));
+        Assert.Equal(10, slice.Entries.Count);
+        var trinket = slice.Entries[0];
+        Assert.Equal(("BG36_MagicItem_216", "S", "Портрет вечности", "Eternal Portrait", "LARGE", 5, 2528), (trinket.CardId, trinket.Tier, trinket.NameRu, trinket.NameEn, trinket.TrinketSize, trinket.Cost, trinket.Games));
+        Assert.Equal(3.47, trinket.AveragePlacement!.Value, 3);
+        Assert.Equal(0.277, trinket.PickRate!.Value, 4);
+    }
+
+    [Theory]
+    [InlineData("ALL")]
+    [InlineData("TOP_50_PERCENT&list=spells")]
+    [InlineData("")]
+    public async Task A_slice_the_service_does_not_have_is_not_asked_for(string mmr)
+    {
+        var site = FakeSite.Real();
+        var client = Client(site);
+
+        Assert.Null(await client.LoadHeroesAsync(duos: true, mmr));
+        Assert.Null(await client.LoadTrinketsAsync(mmr));
+        Assert.Empty(site.Requests);
+    }
+
+    [Fact]
+    public async Task A_failing_slice_gives_no_list_and_does_not_throw()
+    {
+        var site = FakeSite.Down(HttpStatusCode.BadRequest);
+        var client = Client(site);
+
+        Assert.Null(await client.LoadTrinketsAsync("TOP_5_PERCENT"));
+        Assert.Null(await client.LoadHeroesAsync(duos: false, "TOP_1_PERCENT"));
     }
 
     private BgSiteClient Client(FakeSite site) => new(new HttpClient(site), cacheDirectory: _cache);
+
+    /// <summary>A client for which every cache file written so far is too old.</summary>
+    private BgSiteClient Later(FakeSite site)
+    {
+        var client = Client(site);
+        client.Clock = () => DateTime.UtcNow + TimeSpan.FromDays(3);
+        return client;
+    }
+
+    private void AssertNoCacheFiles() => Assert.False(Directory.Exists(_cache) && Directory.GetFiles(_cache).Length > 0);
+
+    /// <summary>The same lists, numbers and times as before.</summary>
+    private static void AssertSame(BgSiteStats expected, BgSiteStats actual)
+    {
+        Assert.Equal(expected.Updated, actual.Updated);
+        Assert.NotEqual(default, actual.Updated);
+        Assert.Equal(expected.Heroes!.Entries, actual.Heroes!.Entries);
+        Assert.Equal(expected.Minions!.Entries, actual.Minions!.Entries);
+        Assert.Equal(expected.Trinkets!.Entries, actual.Trinkets!.Entries);
+        Assert.Equal(expected.MinionStats.Count, actual.MinionStats.Count);
+        Assert.Equal(expected.Run, actual.Run);
+        Assert.Equal(expected.Comps.Select(c => c.Id), actual.Comps.Select(c => c.Id));
+        Assert.Equal(expected.CompsFetchedAt, actual.CompsFetchedAt);
+    }
 
     /// <summary>Every part is there except the ones the failing address feeds.</summary>
     private static void AssertPartsExcept(BgSiteStats stats, string failing)
@@ -539,18 +957,42 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.NotEqual(default, stats.Updated);
     }
 
+    /// <summary>Where the log ends now: with <see cref="LogSince"/>, only what a test wrote after this is read.</summary>
+    private static int LogMark() => TestDataFolder.ReadLog().Length;
+
+    /// <summary>
+    /// The log written after <paramref name="mark"/>. Tests of this class run one at a time and no other class writes
+    /// "Battlegrounds site" lines, so a line found here was written by the calling test.
+    /// </summary>
+    private static string LogSince(int mark)
+    {
+        var log = TestDataFolder.ReadLog();
+        return log.Length >= mark ? log[mark..] : log;
+    }
+
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "BgSite", name));
+
+    /// <summary>A sliced heroes answer as it would be if the service named its source (today it does not).</summary>
+    private static string NamingSource(string heroes)
+    {
+        var answer = JsonNode.Parse(heroes)!.AsObject();
+        answer["source_id"] = "hsreplay_battlegrounds_heroes";
+        return answer.ToJsonString();
+    }
 
     private sealed record SeenRequest(HttpMethod Method, Uri Uri, IReadOnlyList<string> Headers, bool HasBody);
 
-    /// <summary>The service: answers by path, can fail or hang one address, and records what it was asked.</summary>
+    /// <summary>The service: answers by path and query, can fail, hang or break an address, and records what it was asked.</summary>
     private sealed class FakeSite : HttpMessageHandler
     {
         private readonly Dictionary<string, (HttpStatusCode Status, string Body, bool DeclaresLength)> _answers = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Uri> _answeredFrom = new(StringComparer.Ordinal);
         private readonly HashSet<string> _hanging = new(StringComparer.Ordinal);
         private readonly List<SeenRequest> _requests = [];
         private HttpStatusCode? _down;
         private bool _offline;
+        private string? _everywhere;
+        private string? _broken;
 
         public IReadOnlyList<SeenRequest> Requests
         {
@@ -566,11 +1008,13 @@ public sealed class BgSiteStatsTests : IDisposable
         /// <summary>Completes once a request to a hanging address is waiting.</summary>
         public TaskCompletionSource Hanging { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public static FakeSite Real()
+        /// <summary>The trimmed real answers; the Duos one as the service sends it (no source) unless asked otherwise.</summary>
+        public static FakeSite Real(bool duosNamesSource = false)
         {
             var site = new FakeSite();
             site.Answer(TierLists, Fixture("tier-lists.json"));
             site.Answer(Heroes, Fixture("heroes.json"));
+            site.Answer(Duos, duosNamesSource ? NamingSource(Fixture("heroes-duos.json")) : Fixture("heroes-duos.json"));
             site.Answer(MinionStats, Fixture("minion-stats.json"));
             site.Answer(Comps, Fixture("comps.json"));
             return site;
@@ -579,17 +1023,29 @@ public sealed class BgSiteStatsTests : IDisposable
         /// <summary>Every address answers <paramref name="status"/>, or the connection fails when it is null.</summary>
         public static FakeSite Down(HttpStatusCode? status) => new() { _down = status, _offline = status is null };
 
+        /// <summary>Every address answers 200 with <paramref name="body"/>.</summary>
+        public static FakeSite Everywhere(string body) => new() { _everywhere = body };
+
+        /// <summary>
+        /// Every request fails in a way a network error does not: "body" - the body stream throws as a broken gzip does,
+        /// "send" - the handler throws, "disposed" - the handler was disposed.
+        /// </summary>
+        public static FakeSite Broken(string kind) => new() { _broken = kind };
+
         public void Answer(string path, string body, bool declaresLength = true) => _answers[path] = (HttpStatusCode.OK, body, declaresLength);
 
         public void Fail(string path, HttpStatusCode status) => _answers[path] = (status, "{\"detail\": \"down\"}", true);
 
         public void Hang(string path) => _hanging.Add(path);
 
+        /// <summary>The answer of <paramref name="path"/> reports it was served by <paramref name="from"/> (after a redirect).</summary>
+        public void AnswerFrom(string path, Uri from) => _answeredFrom[path] = from;
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var path = request.RequestUri!.AbsolutePath;
+            var asked = request.RequestUri!.PathAndQuery;
             // Under a base address with a path of its own, the service's addresses follow it.
-            var route = path[Math.Max(0, path.IndexOf("/api/", StringComparison.Ordinal))..];
+            var route = asked[Math.Max(0, asked.IndexOf("/api/", StringComparison.Ordinal))..];
             lock (_requests)
             {
                 _requests.Add(new SeenRequest(request.Method, request.RequestUri, [.. request.Headers.Select(h => h.Key)], request.Content is not null));
@@ -599,6 +1055,16 @@ public sealed class BgSiteStatsTests : IDisposable
             {
                 Hanging.TrySetResult();
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            switch (_broken)
+            {
+                case "send":
+                    throw new InvalidOperationException("The handler is in a state no request can be sent in.");
+                case "disposed":
+                    throw new ObjectDisposedException(nameof(HttpClient));
+                case "body":
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new BrokenStream()) };
             }
 
             if (_offline)
@@ -611,6 +1077,11 @@ public sealed class BgSiteStatsTests : IDisposable
                 return new HttpResponseMessage(down) { Content = new StringContent("{}", Encoding.UTF8, "application/json") };
             }
 
+            if (_everywhere is { } everywhere)
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(everywhere, Encoding.UTF8, "application/json") };
+            }
+
             if (!_answers.TryGetValue(route, out var answer))
             {
                 return new HttpResponseMessage(HttpStatusCode.NotFound);
@@ -618,7 +1089,13 @@ public sealed class BgSiteStatsTests : IDisposable
 
             var bytes = Encoding.UTF8.GetBytes(answer.Body);
             HttpContent content = answer.DeclaresLength ? new ByteArrayContent(bytes) : new StreamContent(new UnsizedStream(bytes));
-            return new HttpResponseMessage(answer.Status) { Content = content };
+            var response = new HttpResponseMessage(answer.Status) { Content = content };
+            if (_answeredFrom.TryGetValue(route, out var from))
+            {
+                response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, from);
+            }
+
+            return response;
         }
     }
 
@@ -626,5 +1103,21 @@ public sealed class BgSiteStatsTests : IDisposable
     private sealed class UnsizedStream(byte[] bytes) : MemoryStream(bytes)
     {
         public override bool CanSeek => false;
+    }
+
+    /// <summary>A body that fails while it is read the way a damaged compressed answer does.</summary>
+    private sealed class BrokenStream : MemoryStream
+    {
+        public override bool CanSeek => false;
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new InvalidDataException("The archive entry was compressed using an unsupported compression method.");
+
+        public override int Read(Span<byte> buffer) => throw new InvalidDataException("The archive entry was compressed using an unsupported compression method.");
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            throw new InvalidDataException("The archive entry was compressed using an unsupported compression method.");
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            throw new InvalidDataException("The archive entry was compressed using an unsupported compression method.");
     }
 }

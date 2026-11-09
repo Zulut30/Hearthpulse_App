@@ -109,23 +109,29 @@ Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-source
 
 `BgSiteClient(HttpClient http, string? baseUrl = null, string? cacheDirectory = null).LoadAsync()` ->
 `BgSiteStats` (`Core/Battlegrounds/Site`), for the main window's Battlegrounds tabs only (owner's decision,
-2026-11-09: the lists hearthpulse.net shows; the advisor and overlay keep `BattlegroundsMeta`). Plain `GET`, no token,
-no cookie, nothing about the player; 20 s and 8 MB per answer; never throws. Cache `cache/api/bgsite-<part>.json`,
-6 h, old file when the server fails. Fields, sizes and sources: `docs/bg-site-stats.md`; tests `BgSiteStatsTests`
-(fixtures `Fixtures/BgSite`).
+2026-11-09: the lists hearthpulse.net shows; the advisor and overlay keep `BattlegroundsMeta`; the tabs switch to it
+in package PC2 of TASK-2026-11-09-light-ui-site-stats). Pass it `BgSiteClient.CreateHttp()`: no cookies, no
+redirects, no default headers. Plain `GET`, nothing about the player; 20 s and 8 MB per answer; never throws. Cache
+`cache/api/bgsite-<part>.json`, 6 h; the old file answers when the server fails **or answers without data** (`{}`,
+`ok: false`, `view.blocked`, empty lists). Fields, sizes, sources and probes: `docs/bg-site-stats.md`; tests
+`BgSiteStatsTests` (fixtures `Fixtures/BgSite`).
 
 | Call | Cache file | Gives |
 |---|---|---|
-| `api/bg/tier-lists` (950 KB) | `bgsite-tier-lists.json` | tier lists S-D: `heroes`, `minions`, `trinkets` |
-| `api/bg/heroes` | `bgsite-heroes.json` | hero card ids by dbfId, top 4 / 1st place, the MMR slice |
-| `api/bg/library/minion-stats` | `bgsite-minion-stats.json` | minion impact, combat win rate, popularity, placement with / without |
-| `api/bg-comps` | `bgsite-comps.json` | comps (only those whose own `source` is `HSReplay`) |
+| `api/bg/tier-lists` (950 KB) | `bgsite-tier-lists.json` | tier lists S-D: `heroes`, `minions`, `trinkets` (top 1%) |
+| `api/bg/heroes` | `bgsite-heroes.json` | hero card ids by dbfId, top 4 / 1st place, the MMR slice (top 50%) |
+| `api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT` | `bgsite-heroes-duos-top_50_percent.json` | `HeroesDuos` - **`null` today**: the answer names no source |
+| `api/bg/library/minion-stats` | `bgsite-minion-stats.json` | minion impact, combat win rate, popularity, placement with / without (one slice; `?mmr=` is ignored) |
+| `api/bg-comps` | `bgsite-comps.json` | comps (only those whose own `source` is `HSReplay`), `CompsFetchedAt` |
+| on demand: `api/bg/heroes?mode=solo\|duos&mmr=<slice>` (`LoadHeroesAsync`) | `bgsite-heroes-<mode>-<mmr>.json` | a heroes slice - `null` today (no source) |
+| on demand: `api/bg/tier-lists?list=trinkets&mmr=<slice>&timeRange=LAST_7_DAYS` (`LoadTrinketsAsync`) | `bgsite-trinkets-<mmr>.json` | a trinket slice (`TOP_50_PERCENT` verified) |
 
-**Refused by source**: a list or comp whose `source` names Firestone / zerotoheroes (or names nothing) is not given
-to the app and is cut before the answer is cached: `lists.spells`, `lists.strategies`, the Firestone comps. Not
-requested: `api/bg/library/spell-stats` (Firestone), `api/bg/library/meta`, `api/bg/library/cards`. No Duos slice.
-The shown lists are HSReplay data by the service's own account: a `hearthpulse-legal` check is required before a
-change that shows more of it.
+**Allow list of sources** (legal L-M2): only `hsreplay`, `hsreplay_battlegrounds_heroes`,
+`hsreplay_battlegrounds_minions` (case and spaces ignored); no source or any other value is refused, and so is an
+allowed source whose `upstreamSource` / `sourceUrl` names Firestone or zerotoheroes. Refused data is cut before the
+answer is cached: `lists.spells`, `lists.strategies`, the Firestone comps (comps are checked one by one). Not
+requested: `api/bg/library/spell-stats` (Firestone), `api/bg/library/meta`, `api/bg/library/cards`. A new origin is a
+new value in `BgSiteParser.AllowedSources` after a `hearthpulse-legal` check.
 
 ## Hearthpulse stats pool - `PoolClient.Endpoint` (server/pool, off until deployed)
 

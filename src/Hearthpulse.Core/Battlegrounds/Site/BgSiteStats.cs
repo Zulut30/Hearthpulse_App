@@ -14,10 +14,10 @@ public enum BgSiteList
 /// </summary>
 /// <param name="Tier">"S", "A", "B", "C" or "D", as the service sorted it.</param>
 /// <param name="NameRu">The service's Russian name; the English one when it has none.</param>
-/// <param name="NameEn">Empty when the service gives no English name (heroes): the UI reads the card database.</param>
+/// <param name="NameEn">Empty when the service gives no English name (heroes of the tier list): the UI reads the card database.</param>
 /// <param name="TavernTier">1..7 for minions, else 0.</param>
 /// <param name="PickRate">A share, 0..1.</param>
-/// <param name="Top4Rate">Heroes only; a share, 0..1.</param>
+/// <param name="Top4Rate">Heroes only; a share, 0..1: places 1-4 of 8, or the top half (1-2 of 4) in a Duos list.</param>
 /// <param name="FirstRate">Heroes only; a share, 0..1.</param>
 /// <param name="Games">Trinkets: a lower bound, not a count (<see cref="BgSiteTierList.GamesNote"/>).</param>
 /// <param name="TrinketSize">Trinkets only: "LARGE" or "SMALL".</param>
@@ -95,10 +95,11 @@ public sealed record BgSiteRun(string? MmrPercentile, string? TimeRange, DateTim
 /// app refuses (docs/bg-site-stats.md, section 4), is null or empty.
 /// </summary>
 /// <param name="Heroes">Solo.</param>
-/// <param name="HeroesDuos">Null: the service has no Duos slice.</param>
+/// <param name="HeroesDuos">Duos, top 50%. Null when not loaded, or while the service's Duos answer names no source (docs/bg-site-stats.md).</param>
 /// <param name="MinionStats">By card id; empty when not loaded.</param>
 /// <param name="SpellStats">By card id; empty (the service's spell numbers are refused by source).</param>
 /// <param name="Updated">The latest <see cref="BgSiteTierList.FetchedAt"/> of the loaded parts, UTC.</param>
+/// <param name="CompsFetchedAt">When the server fetched the comps, UTC; null without comps or when it does not say.</param>
 public sealed record BgSiteStats(
     BgSiteTierList? Heroes,
     BgSiteTierList? HeroesDuos,
@@ -109,4 +110,5 @@ public sealed record BgSiteStats(
     IReadOnlyDictionary<string, BgSiteCardStat> SpellStats,
     IReadOnlyList<BgSiteComp> Comps,
     BgSiteRun? Run,
-    DateTime Updated);
+    DateTime Updated,
+    DateTime? CompsFetchedAt = null);

@@ -240,99 +240,29 @@
    ]
   },
   {
-   "key": "firestone-undead-butcher",
+   "key": "firestone-test-1",
    "source": "Firestone",
-   "title": "Undead Butcher",
+   "title": "Invented comp 1",
    "description": "",
    "tier": "A",
    "difficulty": "Средняя",
-   "avgPlacement": "3.70",
+   "avgPlacement": "4.50",
    "whenToCommit": "",
    "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
    "coreCards": [
     {
-     "id": "BG32_324",
-     "dbfId": 120104,
-     "name": "Друстский мясник",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_515",
-     "dbfId": 133083,
-     "name": "Стильный фантом",
+     "id": "TEST_FS_C11",
+     "dbfId": 910011,
+     "name": "Invented card 1",
      "count": 1,
      "role": "CORE"
     }
    ],
    "additionalCards": [
     {
-     "id": "BG32_880",
-     "dbfId": 120219,
-     "name": "Дружелюбное привидение",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_354",
-     "dbfId": 97408,
-     "name": "Тит Ривендер",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG28_309",
-     "dbfId": 108992,
-     "name": "Мумификатор",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_511",
-     "dbfId": 132322,
-     "name": "Мертвый звонарь",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG31_835",
-     "dbfId": 115610,
-     "name": "Агент-убийца",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_009",
-     "dbfId": 95263,
-     "name": "Вечная призывательница",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_010",
-     "dbfId": 95265,
-     "name": "Безрукая Отрекшаяся",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG_DEEP_015",
-     "dbfId": 112364,
-     "name": "Рука-протез",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG28_604",
-     "dbfId": 110412,
-     "name": "Разделка туши",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_848",
-     "dbfId": 134492,
-     "name": "Личонок-собиратель",
+     "id": "TEST_FS_C12",
+     "dbfId": 910012,
+     "name": "Invented card 2",
      "count": 1,
      "role": "ADDON"
     }
@@ -341,164 +271,45 @@
    "enablerCards": [],
    "cards": [
     {
-     "id": "BG32_324",
-     "dbfId": 120104,
-     "name": "Друстский мясник",
+     "id": "TEST_FS_C11",
+     "dbfId": 910011,
+     "name": "Invented card 1",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG36_515",
-     "dbfId": 133083,
-     "name": "Стильный фантом",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG32_880",
-     "dbfId": 120219,
-     "name": "Дружелюбное привидение",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_354",
-     "dbfId": 97408,
-     "name": "Тит Ривендер",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG28_309",
-     "dbfId": 108992,
-     "name": "Мумификатор",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_511",
-     "dbfId": 132322,
-     "name": "Мертвый звонарь",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG31_835",
-     "dbfId": 115610,
-     "name": "Агент-убийца",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_009",
-     "dbfId": 95263,
-     "name": "Вечная призывательница",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_010",
-     "dbfId": 95265,
-     "name": "Безрукая Отрекшаяся",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG_DEEP_015",
-     "dbfId": 112364,
-     "name": "Рука-протез",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG28_604",
-     "dbfId": 110412,
-     "name": "Разделка туши",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_848",
-     "dbfId": 134492,
-     "name": "Личонок-собиратель",
+     "id": "TEST_FS_C12",
+     "dbfId": 910012,
+     "name": "Invented card 2",
      "count": 1,
      "role": "ADDON"
     }
    ]
   },
   {
-   "key": "firestone-beast-lobster",
+   "key": "firestone-test-2",
    "source": "Firestone",
-   "title": "Beast Lobster",
+   "title": "Invented comp 2",
    "description": "",
-   "tier": "S",
+   "tier": "A",
    "difficulty": "Средняя",
-   "avgPlacement": "3.78",
+   "avgPlacement": "4.50",
    "whenToCommit": "",
    "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
    "coreCards": [
     {
-     "id": "BG36_202",
-     "dbfId": 132796,
-     "name": "Вкусный омар",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG25_354",
-     "dbfId": 97408,
-     "name": "Тит Ривендер",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_208",
-     "dbfId": 132808,
-     "name": "Смертобег",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_204",
-     "dbfId": 132800,
-     "name": "Охотничий грифон",
+     "id": "TEST_FS_C21",
+     "dbfId": 910021,
+     "name": "Invented card 1",
      "count": 1,
      "role": "CORE"
     }
    ],
    "additionalCards": [
     {
-     "id": "BG36_210",
-     "dbfId": 133039,
-     "name": "Алчная гиена",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_016",
-     "dbfId": 95286,
-     "name": "Син'дорай-снайпер",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_201",
-     "dbfId": 132794,
-     "name": "Затаившаяся лев-рыба",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_206",
-     "dbfId": 132804,
-     "name": "Злая акула",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG27_084",
-     "dbfId": 108909,
-     "name": "Шустрый скарабей",
+     "id": "TEST_FS_C22",
+     "dbfId": 910022,
+     "name": "Invented card 2",
      "count": 1,
      "role": "ADDON"
     }
@@ -507,65 +318,16 @@
    "enablerCards": [],
    "cards": [
     {
-     "id": "BG36_202",
-     "dbfId": 132796,
-     "name": "Вкусный омар",
+     "id": "TEST_FS_C21",
+     "dbfId": 910021,
+     "name": "Invented card 1",
      "count": 1,
      "role": "CORE"
     },
     {
-     "id": "BG25_354",
-     "dbfId": 97408,
-     "name": "Тит Ривендер",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_208",
-     "dbfId": 132808,
-     "name": "Смертобег",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_204",
-     "dbfId": 132800,
-     "name": "Охотничий грифон",
-     "count": 1,
-     "role": "CORE"
-    },
-    {
-     "id": "BG36_210",
-     "dbfId": 133039,
-     "name": "Алчная гиена",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG25_016",
-     "dbfId": 95286,
-     "name": "Син'дорай-снайпер",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_201",
-     "dbfId": 132794,
-     "name": "Затаившаяся лев-рыба",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG36_206",
-     "dbfId": 132804,
-     "name": "Злая акула",
-     "count": 1,
-     "role": "ADDON"
-    },
-    {
-     "id": "BG27_084",
-     "dbfId": 108909,
-     "name": "Шустрый скарабей",
+     "id": "TEST_FS_C22",
+     "dbfId": 910022,
+     "name": "Invented card 2",
      "count": 1,
      "role": "ADDON"
     }
