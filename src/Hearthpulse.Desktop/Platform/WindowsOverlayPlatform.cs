@@ -73,7 +73,11 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
 
     public PixelPoint? PointerPosition() => GetCursorPos(out var p) ? new PixelPoint(p.X, p.Y) : null;
 
-    public (bool Left, bool Right) MouseButtons() => ((GetAsyncKeyState(0x01) & 0x8000) != 0, (GetAsyncKeyState(0x02) & 0x8000) != 0);
+    /// <summary>
+    /// The left button down now; the right one down now or pressed since the last read (0x0001), so a right-click shorter
+    /// than one overlay tick still reaches the pool panel (as the WPF panel's <c>PoolInput.WasPressed</c>).
+    /// </summary>
+    public (bool Left, bool Right) MouseButtons() => ((GetAsyncKeyState(0x01) & 0x8000) != 0, (GetAsyncKeyState(0x02) & 0x8001) != 0);
 
     public bool ControlDown() => (GetAsyncKeyState(0x11 /* VK_CONTROL */) & 0x8000) != 0;
 

@@ -2,6 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.UI.Controls;
@@ -14,7 +17,7 @@ namespace Hearthpulse.UI.Overlay;
 /// clicks through to the game on every desktop, like the other click-through panels: the overlay host reads the pointer
 /// and mouse buttons through its platform layer and passes them in (<see cref="OverlayView.UpdateCardPoolPointer"/>).
 /// With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
-/// It fades in when it appears or its pool changes (<see cref="Reveal"/>).
+/// It fades in when it first appears (<see cref="Reveal"/>); another card's pool replaces it without a fade.
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
@@ -24,13 +27,17 @@ public partial class CardPoolPanel : UserControl
     private readonly Stopwatch _revealClock = new();
     private OverlayViewModel? _subscribed;
     private bool _shown;
-    private string _revealKey = string.Empty;
     private Control? _previewRow;
+    private readonly List<(Control Row, Rect Bounds)> _rows = [];
+    private bool _rowsDirty = true;
 
     public CardPoolPanel()
     {
         InitializeComponent();
+        ApplyAnchored();
         _reveal.Tick += (_, _) => StepReveal();
+        // Any layout pass may move, add or hide a row: the cached rows are collected again on the next update over the panel.
+        Card.LayoutUpdated += (_, _) => _rowsDirty = true;
         SizeChanged += (_, _) => Place();
         PropertyChanged += (_, e) =>
         {
@@ -45,7 +52,33 @@ public partial class CardPoolPanel : UserControl
     public static bool Motion { get; set; } = true;
 
     /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
-    public bool Anchored { get; set; }
+    public bool Anchored
+    {
+        get => _anchored;
+        set
+        {
+            _anchored = value;
+            ApplyAnchored();
+        }
+    }
+
+    private bool _anchored;
+    private double _floor = 1;
+    private IDisposable? _noteBinding;
+
+    /// <summary>
+    /// The popup's header note leaves out the card's name (the card stands beside it) and its fill does not fade with the
+    /// overlay opacity; the panel at its own spot names the card and fades like the others.
+    /// </summary>
+    private void ApplyAnchored()
+    {
+        var (shown, hidden, path) = _anchored ? (PopupNote, PanelNote, nameof(OverlayViewModel.CardPoolMeta)) : (PanelNote, PopupNote, nameof(OverlayViewModel.CardPoolSourceNote));
+        // The previous binding goes first: a local value set over a live binding does not stick.
+        _noteBinding?.Dispose();
+        hidden.IsVisible = false;
+        _noteBinding = shown.Bind(IsVisibleProperty, new Binding(path) { Converter = (IValueConverter)Resources["Truthy"]! });
+        Card.Classes.Set("popup", _anchored);
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -112,25 +145,15 @@ public partial class CardPoolPanel : UserControl
 
                 _shown = shown;
                 break;
-            case nameof(OverlayViewModel.CardPoolTitle) or nameof(OverlayViewModel.CardPoolPhrase) or nameof(OverlayViewModel.CardPoolSource):
-                if (_shown && RevealKey() != _revealKey)
-                {
-                    Reveal();
-                }
-
-                break;
         }
     }
 
-    private string RevealKey() => DataContext is OverlayViewModel vm ? $"{vm.CardPoolSource}|{vm.CardPoolTitle}|{vm.CardPoolPhrase}" : string.Empty;
-
     /// <summary>
-    /// A short fade (ease-out, opacity only) when the panel appears or shows another pool; only with the Windows
-    /// animation setting on, like the pool browser. The position is set before, so the panel never slides.
+    /// A short fade (ease-out, opacity only) when the panel appears; only with the Windows animation setting on, like
+    /// the pool browser. The position is set before, so the panel never slides.
     /// </summary>
     private void Reveal()
     {
-        _revealKey = RevealKey();
         if (!Motion || !Infrastructure.Motion.On)
         {
             _reveal.Stop();
@@ -163,7 +186,16 @@ public partial class CardPoolPanel : UserControl
             return;
         }
 
-        var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.Bounds.Width, vm.CardPoolOverlayScale, Bounds.Width, Bounds.Height);
+        // Drawn no smaller than PoolPlacement.MinPopupScale of a game card, whatever the player's overlay scale.
+        var floor = PoolPlacement.PopupFloor(vm.CardPoolOverlayScale);
+        if (floor != _floor)
+        {
+            _floor = floor;
+            RenderTransformOrigin = RelativePoint.TopLeft;
+            RenderTransform = floor == 1 ? null : new ScaleTransform(floor, floor);
+        }
+
+        var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.Bounds.Width, vm.CardPoolOverlayScale, Bounds.Width * floor, Bounds.Height * floor);
         Canvas.SetLeft(this, x);
         Canvas.SetTop(this, y);
     }
@@ -188,7 +220,7 @@ public partial class CardPoolPanel : UserControl
     /// </summary>
     private void PreviewRowAt(Point? inCard)
     {
-        var row = inCard is { } at ? RowAt(Card, at) : null;
+        var row = inCard is { } at ? RowAt(at) : null;
         if (row == _previewRow)
         {
             return;
@@ -206,22 +238,45 @@ public partial class CardPoolPanel : UserControl
         }
     }
 
-    private Control? RowAt(Visual node, Point inCard)
+    /// <summary>
+    /// The row with a preview at a point of <see cref="Card"/>. The rows and their bounds are collected once per layout
+    /// pass (<see cref="_rowsDirty"/>), not by walking the panel's tree on every pointer update.
+    /// </summary>
+    private Control? RowAt(Point inCard)
     {
-        if (node is Control { IsEffectivelyVisible: true } control && CardPreview.HasPreview(control) && control.Bounds.Width > 0)
+        if (_rowsDirty)
         {
-            return Card.TranslatePoint(inCard, control) is { } local && local.X >= 0 && local.Y >= 0 && local.X <= control.Bounds.Width
-                && local.Y <= control.Bounds.Height ? control : null;
+            _rowsDirty = false;
+            _rows.Clear();
+            CollectRows(Card);
         }
 
-        foreach (var child in node.GetVisualChildren())
+        foreach (var (row, bounds) in _rows)
         {
-            if (RowAt(child, inCard) is { } found)
+            if (bounds.Contains(inCard))
             {
-                return found;
+                return row;
             }
         }
 
         return null;
+    }
+
+    private void CollectRows(Visual node)
+    {
+        if (node is Control { IsEffectivelyVisible: true } control && CardPreview.HasPreview(control) && control.Bounds.Width > 0)
+        {
+            if (control.TranslatePoint(default, Card) is { } origin)
+            {
+                _rows.Add((control, new Rect(origin, control.Bounds.Size)));
+            }
+
+            return;
+        }
+
+        foreach (var child in node.GetVisualChildren())
+        {
+            CollectRows(child);
+        }
     }
 }

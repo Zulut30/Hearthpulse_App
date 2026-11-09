@@ -64,6 +64,11 @@
         <GradientStop Color="#FA2C1F14" Offset="0" />
         <GradientStop Color="#FA1C130C" Offset="1" />
     </LinearGradientBrush>
+    <!-- The same fill for the pool popup next to a hand card: not in BackdropBrushes, so the overlay opacity never fades it -->
+    <LinearGradientBrush x:Key="OverlayPopupSolid" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FA2C1F14" Offset="0" />
+        <GradientStop Color="#FA1C130C" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="OverlayBorder" Color="#40E9B949" />
     <SolidColorBrush x:Key="Row" Color="#2E1F13" />
     <LinearGradientBrush x:Key="TileFade" StartPoint="0,0" EndPoint="1,0">

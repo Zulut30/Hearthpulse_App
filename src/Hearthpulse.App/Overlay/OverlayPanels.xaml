@@ -74,7 +74,7 @@
 
     <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
     <DataTemplate x:Key="HandTemplate" DataType="{x:Type o:HandTile}">
-        <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}">
+        <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}" c:CardPreview.ShowRelated="False">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="22" />
                 <ColumnDefinition Width="64" />

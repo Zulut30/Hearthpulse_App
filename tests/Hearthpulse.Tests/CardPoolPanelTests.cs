@@ -61,31 +61,56 @@ public sealed class CardPoolPanelTests
     private const double PanelHeight = 400;
 
     [Fact]
-    public void The_panel_stands_beside_the_hovered_hand_card_and_above_the_hand()
+    public void The_panel_stands_beside_the_hovered_hand_card_away_from_the_game_tooltips_and_above_the_hand()
     {
         const double w = PanelWidth, h = PanelHeight;
         var left = new CardPoolAnchor(PoolAnchorZone.Hand, 0, 6);
         var leftCard = 960 + PoolPlacement.SlotOffset(left);
         var (x, y) = PoolPlacement.Place(left, 1920, w, h);
-        // Right of the game's enlarged preview (about 150 either side of the card), the hand below stays clear.
-        Assert.True(x >= leftCard + 150);
+        // A card left of the middle: the game's keyword tooltips stand to the right of its enlarged preview (about 150
+        // either side of the card), so the panel goes to the left of it; the hand below stays clear.
+        Assert.True(x + w <= leftCard - 150);
         Assert.True(y + h <= 900);
 
         var right = new CardPoolAnchor(PoolAnchorZone.Hand, 5, 6);
         var rightCard = 960 + PoolPlacement.SlotOffset(right);
         (x, _) = PoolPlacement.Place(right, 1920, w, h);
-        Assert.True(x + w <= rightCard - 150);
+        Assert.True(x >= rightCard + 150);
         Assert.True(rightCard > leftCard);
 
-        // The hovered card itself stays clear: the panel is beside its preview, not over the card.
+        // The hovered card itself stays clear: the panel is beside its preview, not over the card, and on the screen.
         for (var i = 0; i < 10; i++)
         {
             var anchor = new CardPoolAnchor(PoolAnchorZone.Hand, i, 10);
             var card = 960 + PoolPlacement.SlotOffset(anchor);
             (x, y) = PoolPlacement.Place(anchor, 1920, w, h);
             Assert.True(x >= card + 150 || x + w <= card - 150);
+            Assert.InRange(x, 8, 1920 - 8 - w);
             Assert.InRange(y, 8, 900 - h);
         }
+    }
+
+    [Fact]
+    public void A_panel_with_no_room_outside_goes_past_the_game_tooltips_towards_the_middle()
+    {
+        // A narrow 4:3 screen at a large size: the outer side of a card left of the middle is off the screen.
+        var anchor = new CardPoolAnchor(PoolAnchorZone.Hand, 0, 10);
+        var card = 720 + PoolPlacement.SlotOffset(anchor);
+        var (x, _) = PoolPlacement.Place(anchor, 1440, 400, PanelHeight);
+        Assert.True(card - 150 - 14 - 400 < 8);
+        // Right of the preview and of the tooltip column beside it (about 370).
+        Assert.True(x >= card + 150 + 370);
+        Assert.InRange(x, 8, 1440 - 8 - 400);
+    }
+
+    [Fact]
+    public void The_popup_is_drawn_no_smaller_than_the_floor_scale()
+    {
+        Assert.Equal(1, PoolPlacement.PopupFloor(1));
+        Assert.Equal(1, PoolPlacement.PopupFloor(0.85));
+        Assert.Equal(1, PoolPlacement.PopupFloor(1.6));
+        var small = Hearthpulse.Core.AppSettings.ClampScale(0.6);
+        Assert.Equal(PoolPlacement.MinPopupScale, small * PoolPlacement.PopupFloor(0.6), 6);
     }
 
     [Fact]

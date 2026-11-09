@@ -31,6 +31,9 @@ internal readonly record struct PreviewRect(double X, double Y, double Width, do
     public double Bottom => Y + Height;
 }
 
+/// <summary>The related cards' block beside the big card: its top-left, the grid and one card's size, in host pixels.</summary>
+internal readonly record struct RelatedPlacement(double Left, double Top, int Columns, int Rows, double CardWidth, double CardHeight);
+
 /// <summary>
 /// Where <c>CardPreviewHost</c> puts the hover preview of a card, in the host's pixels: beside the hovered element's
 /// panel (in a window page: beside the row's list, at the row), so it never covers the row being read, and pulled
@@ -95,6 +98,83 @@ internal static class CardPreviewLayout
         }
 
         return (Math.Clamp(left, Edge, Math.Max(Edge, hostWidth - width - Edge)), Math.Clamp(top, Edge, Math.Max(Edge, hostHeight - height - Edge)));
+    }
+
+    /// <summary>The big card of the preview, in the host's pixels.</summary>
+    public const double CardWidth = 236;
+
+    /// <summary>The big card's height (the renders are 256 x 388).</summary>
+    public const double CardHeight = CardWidth * 388 / 256;
+
+    /// <summary>Related cards shown at most; a card with more shows none (its preview stays one card).</summary>
+    public const int MaxRelated = 12;
+
+    /// <summary>Gap between the big card and the related cards' grid.</summary>
+    public const double RelatedGap = 8;
+
+    /// <summary>A related card at size M (0.75 of the big card) or S (0.5).</summary>
+    public const double RelatedMedium = 0.75;
+
+    /// <inheritdoc cref="RelatedMedium"/>
+    public const double RelatedSmall = 0.5;
+
+    /// <summary>Below this drawn scale (overlay scale) S cards are too small to read: the grid stays at M.</summary>
+    public const double MinScaleForSmall = 0.9;
+
+    /// <summary>
+    /// Columns, rows and card size of the related cards' grid for <paramref name="count"/> cards (1 to
+    /// <see cref="MaxRelated"/>); null for none or too many.
+    /// </summary>
+    public static (int Columns, int Rows, double Size)? RelatedGrid(int count) => count switch
+    {
+        <= 0 or > MaxRelated => null,
+        <= 3 => (count, 1, RelatedMedium),
+        4 => (2, 2, RelatedMedium),
+        <= 6 => (3, 2, RelatedMedium),
+        <= 8 => (4, 2, RelatedSmall),
+        _ => (4, 3, RelatedSmall),
+    };
+
+    /// <summary>
+    /// Where the related cards' block (the "Related cards" plate of <paramref name="plateHeight"/>, then the grid) goes
+    /// beside the big <paramref name="card"/>: on the side away from the hovered <paramref name="row"/> (either side, right
+    /// first, when the card is under or over the row), top-aligned with the card, else bottom-aligned, else pulled inside
+    /// the host. The cards shrink from M to S when M has no room (never below <see cref="MinScaleForSmall"/>); null when
+    /// neither fits, and the preview stays one card.
+    /// </summary>
+    /// <param name="scale">How large the host draws (the overlay scale; 1 in a window).</param>
+    public static RelatedPlacement? PlaceRelated(int count, PreviewRect card, PreviewRect row, double hostWidth, double hostHeight, double plateHeight, double scale)
+    {
+        if (RelatedGrid(count) is not { } grid)
+        {
+            return null;
+        }
+
+        var smallOk = scale >= MinScaleForSmall;
+        var first = grid.Size == RelatedSmall && !smallOk ? RelatedMedium : grid.Size;
+        var leftOnly = card.Right <= row.X;
+        var rightOnly = card.X >= row.Right;
+        foreach (var size in first == RelatedMedium && smallOk ? new[] { RelatedMedium, RelatedSmall } : [first])
+        {
+            var w = CardWidth * size;
+            var h = CardHeight * size;
+            var blockWidth = (grid.Columns * w) + ((grid.Columns - 1) * TightGap);
+            var blockHeight = plateHeight + TightGap + (grid.Rows * h) + ((grid.Rows - 1) * TightGap);
+            var right = card.Right + RelatedGap;
+            var left = card.X - RelatedGap - blockWidth;
+            var rightFits = !leftOnly && right + blockWidth <= hostWidth - Edge;
+            var leftFits = !rightOnly && left >= Edge;
+            if (!rightFits && !leftFits)
+            {
+                continue;
+            }
+
+            var top = card.Y + blockHeight <= hostHeight - Edge ? card.Y : card.Bottom - blockHeight;
+            top = Math.Clamp(top, Edge, Math.Max(Edge, hostHeight - blockHeight - Edge));
+            return new RelatedPlacement(rightFits ? right : left, top, grid.Columns, grid.Rows, w, h);
+        }
+
+        return null;
     }
 
     /// <summary>Left edge of a preview right of <paramref name="rect"/>, or left of it; null when neither side has room.</summary>

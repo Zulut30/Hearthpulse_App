@@ -74,6 +74,60 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
+    public void An_open_browser_stays_open_until_the_player_closes_it_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            var list = new MatchListView("OTHER_LIST", "Other", "Your minions that died", 1, [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1)]);
+            foreach (var vm in Models())
+            {
+                vm.Show(Pool("TEST_GEN", 40));
+                vm.Pointer(true, false, false, T0);
+                vm.Pointer(true, false, false, T0 + Rested);
+                vm.Pointer(true, false, true, T0 + Rested);
+                Assert.True(vm.BrowserOpen, vm.Name);
+                vm.Pointer(false, false, false, T0 + Rested * 2);
+
+                // (a) The wiki list comes for the same card: the pool's count changes, the browser shows the new list.
+                vm.Show(Pool("TEST_GEN", 42));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+
+                // (b) The hovered card's linger ran out: no pool, no list.
+                vm.Show(null);
+                Assert.True(vm.BrowserOpen, vm.Name);
+
+                // (c) The pointer crossed another hand card with a pool, or with only a "this game" list.
+                vm.Show(Pool("OTHER_GEN", 12));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+                vm.Show(null, list);
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+
+                // A Discover of another card starts while the browser is open: the browser keeps its pool (the coordinator's
+                // decision, 2026-11-09); the Discover panel shows once the player closes it.
+                vm.Show(Pool("DISCOVER_GEN", 9) with { Trigger = PoolTrigger.Choice });
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+                Assert.False(vm.Popup, vm.Name);
+                vm.Show(null, list);
+
+                // Only the player closes it (×, Esc, right-click again, the turn): then the current card's pool is back.
+                vm.Close();
+                Assert.False(vm.BrowserOpen, vm.Name);
+                Assert.True(vm.Popup, vm.Name);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
     public void A_held_pool_lets_go_on_a_left_press_and_when_the_pointer_leaves()
     {
         foreach (var vm in Models())
@@ -112,7 +166,7 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void The_popup_shows_averages_on_one_line_and_the_most_played_cards_as_rows()
+    public void The_popup_shows_averages_in_the_summary_and_the_most_played_cards_as_rows()
     {
         var previous = Loc.Instance.Language;
         var culture = CultureInfo.CurrentCulture;
@@ -132,13 +186,13 @@ public sealed class CardPoolPopupTests
             {
                 vm.Show(View("TEST_GEN", cards, meta));
                 // Mana over all 4 cards, attack over the minions and the weapon, health over the minions.
-                Assert.Equal([("Mana", "4.5"), ("Attack", "4.3"), ("Health", "5.5")], vm.Averages());
+                Assert.Equal([("Average cost", "4.5"), ("Average attack", "4.3"), ("Average health", "5.5")], vm.Averages());
                 // The whole name and the share of the pool's meta-deck games.
                 Assert.Equal([("B", "Card B with a long name", 4, "75%"), ("C", "Card C with a long name", 9, "25%")], vm.Top());
 
                 // Spells only: no attack or health.
                 vm.Show(View("SPELLS", [Card("S1", "SPELL", 1, null, null), Card("S2", "SPELL", 2, null, null)], new Dictionary<string, int>()));
-                Assert.Equal([("Mana", "1.5")], vm.Averages());
+                Assert.Equal([("Average cost", "1.5")], vm.Averages());
                 Assert.Empty(vm.Top());
             }
         }
@@ -189,6 +243,98 @@ public sealed class CardPoolPopupTests
             Loc.Instance.SetLanguage(previous);
         }
     }
+
+    [Fact]
+    public void Related_cards_get_a_zone_of_their_own_under_the_pool_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            // A card without a "this game" rule: the view hands its related cards in MatchList, titled "Related cards".
+            var related = Related("TEST_GEN", 1);
+            foreach (var vm in Models())
+            {
+                // With the card's pool: no "this game" block above the pool, the related cards at the bottom.
+                vm.Show(Pool("TEST_GEN", 40), related);
+                Assert.False(vm.ShowList, vm.Name);
+                var (title, rows, note) = vm.Related();
+                Assert.Equal("Related cards: 1", title);
+                Assert.Equal(["REL_0"], rows);
+                Assert.Equal(string.Empty, note);
+
+                // Nothing else: the related cards are the panel (its title), no zone of their own.
+                vm.Show(null, Related("SPELL", 2));
+                Assert.True(vm.Popup, vm.Name);
+                Assert.True(vm.ShowList, vm.Name);
+                Assert.Equal("Related cards: 2", vm.ListHeader().Item1);
+                (title, rows, note) = vm.Related();
+                Assert.Equal(string.Empty, title);
+                Assert.Empty(rows);
+
+                // More than six: six rows and "+N more" (the card preview shows them all).
+                vm.Show(Pool("TEST_GEN", 40), Related("TEST_GEN", 8));
+                (_, rows, note) = vm.Related();
+                Assert.Equal(6, rows.Count);
+                Assert.Equal("+2 more", note);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
+    public void A_this_game_list_and_related_cards_show_as_two_blocks_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            // N'Zoth in hand, two Deathrattle minions summoned: the rule's list on top, its four abilities in their zone.
+            var list = new MatchListView("BE_017", "N'Zoth", "Minions you summoned · Deathrattle", 2,
+                [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
+            var related = Related("BE_017", 4) with { Rows = [.. new[] { "BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6" }.Select(id => new MatchListRow(id, id, 0, "", 1))] };
+            foreach (var vm in Models())
+            {
+                vm.Show(null, list, related);
+                Assert.True(vm.Popup, vm.Name);
+                Assert.Equal("Minions you summoned · Deathrattle: 2", vm.ListHeader().Item1);
+                Assert.Equal([("DR_1", ""), ("DR_2", "")], vm.ListRows());
+                var (title, rows, _) = vm.Related();
+                Assert.Equal("Related cards: 4", title);
+                Assert.Equal(["BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6"], rows);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
+    public void The_popup_header_names_classes_and_format_and_the_movable_panel_names_the_card_too()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            foreach (var vm in Models())
+            {
+                vm.Show(Pool("TEST_GEN", 40));
+                Assert.Equal(("Mage + Neutral · Standard", "Generator TEST_GEN · Mage + Neutral · Standard"), vm.Notes());
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    private static MatchListView Related(string source, int count) =>
+        new(source, "Generator " + source, Loc.T("Related.Title"), count,
+            [.. Enumerable.Range(0, count).Select(i => new MatchListRow($"REL_{i}", $"Related {i}", 0, "COMMON", 1))]);
 
     [Fact]
     public void The_wpf_popup_lays_out_a_this_game_list() => WpfThread.RunThemed(() =>
@@ -270,24 +416,33 @@ public sealed class CardPoolPopupTests
     private sealed class Model
     {
         public required string Name { get; init; }
-        public required Action<CardPoolView?, MatchListView?> ShowWith { get; init; }
+        public required Action<CardPoolView?, MatchListView?, MatchListView?> ShowWith { get; init; }
         public required Action<bool, bool, bool, DateTime> Pointer { get; init; }
         public required Func<bool> HeldNow { get; init; }
         public required Func<bool> BrowserNow { get; init; }
         public required Func<bool> PopupNow { get; init; }
+        public required Func<string> BrowserTitleNow { get; init; }
+        public required Action CloseBrowser { get; init; }
         public required Func<IReadOnlyList<(string, string)>> Averages { get; init; }
         public required Func<IReadOnlyList<(string, string, int, string)>> Top { get; init; }
         public required Func<(string, string, string)> ListHeader { get; init; }
         public required Func<IReadOnlyList<(string, string)>> ListRows { get; init; }
         public required Func<string> ListNote { get; init; }
+        public required Func<bool> ShowListNow { get; init; }
+        public required Func<(string Title, IReadOnlyList<string> Rows, string Note)> Related { get; init; }
+        public required Func<(string Popup, string Panel)> Notes { get; init; }
         public required Func<(string Title, string Next, IReadOnlyList<string> Rows, IReadOnlyList<(string Label, string Names)> Tiers, bool Sections)> Excavate { get; init; }
         public event Action<string?>? Changed;
 
-        public void Show(CardPoolView? pool, MatchListView? list = null) => ShowWith(pool, list);
+        public void Show(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null) => ShowWith(pool, list, related);
 
         public bool Held => HeldNow();
         public bool BrowserOpen => BrowserNow();
         public bool Popup => PopupNow();
+        public string BrowserTitle => BrowserTitleNow();
+        public bool ShowList => ShowListNow();
+
+        public void Close() => CloseBrowser();
 
         public void Raise(string? name) => Changed?.Invoke(name);
     }
@@ -298,16 +453,21 @@ public sealed class CardPoolPopupTests
         var a = new Model
         {
             Name = "WPF",
-            ShowWith = (pool, list) => wpf.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, related) => wpf.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
             BrowserNow = () => wpf.CardPoolBrowserOpen,
             PopupNow = () => wpf.ShowCardPoolPopup,
+            BrowserTitleNow = () => wpf.CardPoolBrowserTitle,
+            CloseBrowser = () => wpf.CloseCardPoolBrowser.Execute(null),
             Averages = () => wpf.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
-            Top = () => wpf.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
+            Top = () => wpf.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.CountText)).ToList(),
             ListHeader = () => (wpf.CardPoolTitle, wpf.CardPoolPhrase, wpf.CardPoolListTitle),
             ListRows = () => wpf.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
             ListNote = () => wpf.CardPoolListNote,
+            ShowListNow = () => wpf.ShowCardPoolList,
+            Related = () => (wpf.CardPoolRelatedTitle, wpf.CardPoolRelated.Select(r => r.CardId).ToList(), wpf.CardPoolRelatedNote),
+            Notes = () => (wpf.CardPoolMeta, wpf.CardPoolSourceNote),
             Excavate = () => (wpf.CardPoolTitle, wpf.CardPoolExcavateNext, wpf.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
                 wpf.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), wpf.ShowCardPoolPanelSections),
         };
@@ -318,16 +478,21 @@ public sealed class CardPoolPopupTests
         var b = new Model
         {
             Name = "Avalonia",
-            ShowWith = (pool, list) => ava.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, related) => ava.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,
             BrowserNow = () => ava.CardPoolBrowserOpen,
             PopupNow = () => ava.ShowCardPoolPopup,
+            BrowserTitleNow = () => ava.CardPoolBrowserTitle,
+            CloseBrowser = () => ava.CloseCardPoolBrowser.Execute(null),
             Averages = () => ava.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
-            Top = () => ava.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
+            Top = () => ava.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.CountText)).ToList(),
             ListHeader = () => (ava.CardPoolTitle, ava.CardPoolPhrase, ava.CardPoolListTitle),
             ListRows = () => ava.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
             ListNote = () => ava.CardPoolListNote,
+            ShowListNow = () => ava.ShowCardPoolList,
+            Related = () => (ava.CardPoolRelatedTitle, ava.CardPoolRelated.Select(r => r.CardId).ToList(), ava.CardPoolRelatedNote),
+            Notes = () => (ava.CardPoolMeta, ava.CardPoolSourceNote),
             Excavate = () => (ava.CardPoolTitle, ava.CardPoolExcavateNext, ava.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
                 ava.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), ava.ShowCardPoolPanelSections),
         };
@@ -335,12 +500,13 @@ public sealed class CardPoolPopupTests
         yield return b;
     }
 
-    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null)
+    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null)
     {
         var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
             MatchList = list,
+            RelatedList = related,
             CardPoolAnchor = pool is null && list is null ? null : new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5),
         };
         return LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };

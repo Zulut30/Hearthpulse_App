@@ -3,6 +3,7 @@
 
   "Pool.Title": "Пул: {1} карта|Пул: {1} карты|Пул: {1} карт",
   "Pool.NotComputed": "Пул не рассчитан",
+  "Pool.NotComputed.Reason": "Причина: {0}",
   "Pool.BrowserTitle": "Пул «{2}»: {1} карта|Пул «{2}»: {1} карты|Пул «{2}»: {1} карт",
   "Pool.Match": "Подходит {1} карта|Подходят {1} карты|Подходят {1} карт",
   "Pool.RightClickHint": "Правый клик по панели — весь пул",
@@ -14,7 +15,9 @@
   "Pool.Picks.LowSample": "Бледным — мало игр",
   "Pool.Picks.Few": "По этим картам пока нет данных Hearthpulse",
 
-  "Pool.Average": "Среднее",
+  "Pool.Avg.Cost": "Средняя мана",
+  "Pool.Avg.Attack": "Средняя атака",
+  "Pool.Avg.Health": "Среднее здоровье",
   "Pool.Stat.Cost": "Мана",
   "Pool.Stat.Attack": "Атака",
   "Pool.Stat.Health": "Здоровье",

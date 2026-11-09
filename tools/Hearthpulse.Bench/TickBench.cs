@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Hearthpulse.App.Overlay;
+using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Bench.Measure;
@@ -237,6 +238,11 @@ internal static class TickBench
                 $"[tick] CardPoolPanel.Poll {us:N1} us each = {us * 20 / 1000:N2} ms/s at 20 polls/s; alloc {(GC.GetAllocatedBytesForCurrentThread() - a) / 2000.0:N0} B each (pointer off the panel)"));
         }
 
+        // The same poll with the pointer resting on a row of the popup next to a hand card (a pool with its most played
+        // cards and a "this game" list): the hold, the preview row lookup. "warm" is the steady state; "cold" collects the
+        // panel's rows again on every poll, as each poll walked the panel's tree before the rows were cached.
+        PollOverPanel(vm, snapshot, cards, settings, window, root, flags);
+
         // The bare hit test the click-through decision is made of.
         var hits = new List<double>();
         var random = new Random(7);
@@ -348,12 +354,15 @@ internal static class TickBench
 
     private static void Drive(List<object> points, MethodInfo clickThrough, MethodInfo hover, OverlayWindow window, object rect)
     {
+        // UpdateClickThrough takes the tick's time as well (the drag arm), UpdateLeaderboardHover only the cursor and rect.
         var args = new object?[2];
-        args[1] = rect;
+        var timed = new object?[3];
+        args[1] = timed[1] = rect;
+        timed[2] = DateTime.UtcNow;
         foreach (var point in points)
         {
-            args[0] = point;
-            clickThrough.Invoke(window, args);
+            args[0] = timed[0] = point;
+            clickThrough.Invoke(window, clickThrough.GetParameters().Length == 3 ? timed : args);
             hover.Invoke(window, args);
         }
     }
@@ -415,6 +424,86 @@ internal static class TickBench
         }
 
         return (best, all);
+    }
+
+    private static void PollOverPanel(OverlayViewModel vm, LiveSnapshot snapshot, CardDb cards, Hearthpulse.Core.AppSettings settings, OverlayWindow window, DependencyObject root, BindingFlags flags)
+    {
+        if (snapshot.Constructed is not { } constructed)
+        {
+            return;
+        }
+
+        var entries = Enumerable.Range(0, 40)
+            .Select(i => new PoolEntry($"BENCH_{i}", $"Pool card {i}", i % 9, i % 7, 1 + (i % 8), "MINION", "COMMON", "MAGE", 40 - i))
+            .ToList();
+        var (cost, attack, health) = PoolStats.Histograms([]);
+        var pool = new CardPoolView("BENCH_GEN", "Bench generator", PoolTrigger.Hover, "Discover a minion", "Mage + Neutral · Standard", entries.Count,
+            cost, attack, health, [], null, null, entries);
+        var list = new MatchListView("BENCH_GEN", "Bench generator", "Your minions that died", 8,
+            [.. Enumerable.Range(0, 8).Select(i => new MatchListRow($"BENCH_L{i}", $"Died {i}", i, "COMMON", 1))]);
+        vm.Update(snapshot with { Constructed = constructed with { CardPool = pool, MatchList = list, CardPoolAnchor = new CardPoolAnchor(PoolAnchorZone.Hand, 3, 7) } },
+            cards, settings, null, null);
+        Pump();
+        window.UpdateLayout();
+        if (FindAll<CardPoolPanel>(root).FirstOrDefault(p => p.Anchored && p.IsVisible) is not { } panel
+            || panel.FindName("Card") is not FrameworkElement card
+            || typeof(CardPoolPanel).GetMethod("PollAt", flags) is not { } pollAt
+            || typeof(CardPoolPanel).GetField("_rowsDirty", flags) is not { } dirty)
+        {
+            Console.WriteLine("[tick] CardPoolPanel.Poll over the panel: the popup did not show");
+            return;
+        }
+
+        // A row low in the panel (the last "this game" or top-card row), so the lookup passes the rows above it.
+        var row = FindAll<FrameworkElement>(card).LastOrDefault(e => Hearthpulse.App.Controls.CardPreview.HasPreview(e) && e.IsVisible && e.ActualWidth > 0);
+        var at = row is null ? card.PointToScreen(new Point(card.ActualWidth / 2, card.ActualHeight / 2)) : row.PointToScreen(new Point(row.ActualWidth / 2, row.ActualHeight / 2));
+        object[] args = [at, false, false];
+        foreach (var cold in new[] { false, true })
+        {
+            pollAt.Invoke(panel, args);
+            var t = Stopwatch.GetTimestamp();
+            var a = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 2000; i++)
+            {
+                if (cold)
+                {
+                    dirty.SetValue(panel, true);
+                }
+
+                pollAt.Invoke(panel, args);
+            }
+
+            var us = Stopwatch.GetElapsedTime(t).TotalMilliseconds * 1000 / 2000;
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[tick] CardPoolPanel.Poll {us:N1} us each = {us * 25 / 1000:N2} ms/s at 25 polls/s; alloc {(GC.GetAllocatedBytesForCurrentThread() - a) / 2000.0:N0} B each (pointer on a panel row, {(cold ? "cold: rows collected every poll" : "warm")}; held {vm.CardPoolHeld})"));
+        }
+
+        // What of that the WPF screen-to-panel transform alone costs (the poll makes one per call).
+        var point = (Point)args[0];
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 2000; i++)
+        {
+            _ = card.PointFromScreen(point);
+        }
+
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[tick] of which PointFromScreen: alloc {(GC.GetAllocatedBytesForCurrentThread() - allocated) / 2000.0:N0} B each"));
+    }
+
+    private static IEnumerable<T> FindAll<T>(DependencyObject node)
+        where T : DependencyObject
+    {
+        if (node is T found)
+        {
+            yield return found;
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            foreach (var child in FindAll<T>(VisualTreeHelper.GetChild(node, i)))
+            {
+                yield return child;
+            }
+        }
     }
 
     private static T? FindVisual<T>(DependencyObject node)

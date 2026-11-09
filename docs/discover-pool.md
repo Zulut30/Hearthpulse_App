@@ -215,8 +215,10 @@ Next to its card, like a tooltip, without covering the game's own enlarged previ
 `ConstructedView.CardPoolAnchor`, placed by `PoolPlacement`; no new game memory reads, only the zone, `ZONE_POSITION`
 and counts the log already gives):
 
-- **Hand** (hover): beside the preview that rises above the hovered card, towards the middle of the screen, its bottom
-  above the hand.
+- **Hand** (hover): beside the preview that rises above the hovered card, away from the middle of the screen (the game's
+  keyword tooltips stand on the middle side, about 370 units wide); when that side is off the screen, towards the
+  middle past the tooltip column; else clamped. Its bottom stays above the hand. It is drawn no smaller than 0.85 of
+  its size at overlay scale 1 (`PoolPlacement.MinPopupScale`, P-12 of the 2026-11-09 design).
 - **Discover**: right of the row of options (left of it when there is no room).
 
 The geometry is measured on 16:9 screenshots in units of a 1080-high screen centred horizontally, the way Hearthstone
@@ -299,6 +301,20 @@ data only (no hand-made table):
   have a list: 1 020 with tokens, 65 with named cards.
 - Only the player's own hand; the hover thread now also runs when a card in hand has related cards.
 
+### Card preview: related cards
+
+The hover card (`CardPreviewHost`, both UIs) shows the previewed card's related cards beside it, wherever a row carries
+`CardPreview.CardId`: deck tracker, pool rows, graveyard, the main window's deck lists and match page.
+`CardPreview.Related` is set once by the app host to `GameSession.RelatedCardsOf`. The grid stands on the side of the big
+card away from the row (either side, right first, for `Below`), top-aligned with it, else bottom-aligned, else pulled
+inside; a "Related cards" plate above it. 1-3 cards in one row, 4 as 2x2, 5-6 as 3x2 at 0.75 of the big card; 7-8 as
+4x2 and 9-12 as 4x3 at 0.5. Short of room it shrinks from 0.75 to 0.5, then shows no grid; 0.5 is never used below
+overlay scale 0.9 (`CardPreviewLayout.PlaceRelated`). No grid for Battlegrounds cards, for more than 12 related cards,
+without `CardDb`, and where `CardPreview.ShowRelated="False"`: the opponent's hand marks and hand rows, whose preview
+is the card that created a hidden card (its related cards would be a guess). In the pool panel the related cards have
+a zone of their own under a hairline at the bottom (at most 6 rows, then "+N more"); a card with nothing else shows them
+as the panel.
+
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the averages,
@@ -354,6 +370,12 @@ too).
   too, and the key takes the wiki answer itself, not the wiki lists: a generator whose pool matches no catalog card walks
   the catalog once, and a built view does not match its wiki lists again (2026-11-09; before, every publish of a hand
   with such a card walked the 6 501 cards again). Another trigger of the same pool reuses its lists.
+
+An open browser keeps its pool until the player closes it (×, Esc, a right-click on the panel) or the turn changes: the
+same card's pool getting a new count (the wiki list) updates it in place, while the hover running out, the pointer
+crossing another hand card and even a Discover of another card started meanwhile leave it as it is; the Discover's own
+panel shows once the browser is closed (2026-11-09). Only a new "show the pool" request from a deck or hand row
+replaces it.
 
 ### Card under the mouse (game memory)
 
