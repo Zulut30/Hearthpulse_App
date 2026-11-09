@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
+using Avalonia.Threading;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.UI.Main.Meta;
@@ -35,12 +36,15 @@ public partial class ConstructedMetaView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.DeckCodeCopyRequested -= OnCopyDeck;
+            _viewModel.ArchetypeDetailScheduler = null;
         }
 
         _viewModel = DataContext as MainViewModel;
         if (_viewModel is not null)
         {
             _viewModel.DeckCodeCopyRequested += OnCopyDeck;
+            // The side card's sections (mulligan guide, best lists) are built after the list is ready for input.
+            _viewModel.ArchetypeDetailScheduler = build => Dispatcher.UIThread.Post(build, DispatcherPriority.Background);
         }
     }
 

@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Threading;
@@ -294,6 +295,18 @@ public sealed class PageRowsPanel : VirtualizingPanel
 
         if (generator.NeedsContainer(item, index, out _) && !ReferenceEquals(row, item))
         {
+            // Preparing a container that still holds an item leaves that item in it. A presenter (the row of a plain
+            // ItemsControl) is handed the new one directly, which keeps the controls of an unchanged template; any other
+            // container is cleared first, as a recycled one is.
+            if (row is ContentPresenter presenter)
+            {
+                presenter.SetCurrentValue(ContentPresenter.ContentProperty, item);
+            }
+            else
+            {
+                generator.ClearItemContainer(row);
+            }
+
             generator.PrepareItemContainer(row, item, index);
             generator.ItemContainerPrepared(row, item, index);
             return;

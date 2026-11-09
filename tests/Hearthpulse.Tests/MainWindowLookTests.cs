@@ -77,7 +77,8 @@ public sealed class MainWindowLookTests
         {
             var view = Load(path);
             var header = view.Descendants().Single(e => e.Name.LocalName == "Grid" && Named(e) == "MetaHead");
-            var template = view.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && (string?)e.Attribute(X + "Key") == "ArchetypeRowTemplate");
+            // The row templates have no key: both lists pick them by the row's type.
+            var template = view.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && DataTypeOf(e).Contains("MetaArchetypeRow", StringComparison.Ordinal));
             var row = template.Descendants().First(e => e.Name.LocalName == "Grid");
             Assert.Equal(GridColumns(header), GridColumns(row));
 
@@ -85,15 +86,27 @@ public sealed class MainWindowLookTests
             var rowSplit = row.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "6");
             Assert.Contains("MetaHasPlaySplit", Shown(headSplit), StringComparison.Ordinal);
             Assert.Contains("MetaHasPlaySplit", Shown(rowSplit), StringComparison.Ordinal);
-            // Fixed widths inside the split, so every row keeps the header's columns and the same height.
-            Assert.Equal(headSplit.Elements().Select(e => (string?)e.Attribute("Width")), rowSplit.Elements().Select(e => (string?)e.Attribute("Width")));
+            // One text of a fixed width in the head and in the row, so every row keeps the header's columns and the same height.
+            Assert.Equal(("TextBlock", "96"), (headSplit.Name.LocalName, (string?)headSplit.Attribute("Width")));
+            Assert.Equal(("TextBlock", "96"), (rowSplit.Name.LocalName, (string?)rowSplit.Attribute("Width")));
 
-            // Both views list the tiers and the flat table from the same row template, and sort from the heads.
-            Assert.Equal(2, view.Descendants().Count(e => ((string?)e.Attribute("ItemTemplate"))?.Contains("ArchetypeRowTemplate") == true));
+            // The tiers are one flat list (a tier's head row, then its archetypes) and the table the archetypes alone: both
+            // lists of the page build only the rows near the viewport, take their rows' templates by type, and sort from the heads.
+            Assert.Contains(view.Descendants(), e => e.Name.LocalName == "DataTemplate" && DataTypeOf(e).Contains("TierHeadRow", StringComparison.Ordinal));
+            foreach (var (name, source) in new[] { ("MetaTierList", "{Binding MetaTierRows}"), ("MetaTable", "{Binding MetaArchetypes}") })
+            {
+                var list = view.Descendants().Single(e => Named(e) == name);
+                Assert.Equal(source, (string?)list.Attribute("ItemsSource"));
+                Assert.Equal("{StaticResource PageRows}", (string?)list.Attribute("ItemsPanel"));
+                Assert.Null(list.Attribute("ItemTemplate"));
+            }
+
             Assert.Equal(["Name", "Games", "Tier", "WinRate", "Popularity"],
                 header.Descendants().Where(e => ((string?)e.Attribute("Command"))?.Contains("SetMetaSort") == true).Select(e => (string?)e.Attribute("CommandParameter")));
         }
     }
+
+    private static string DataTypeOf(XElement template) => (string?)template.Attribute("DataType") ?? (string?)template.Attribute(X + "DataType") ?? string.Empty;
 
     [Fact]
     public void Battlegrounds_hero_tier_rows_line_up_with_their_sortable_heads_in_both_UIs()

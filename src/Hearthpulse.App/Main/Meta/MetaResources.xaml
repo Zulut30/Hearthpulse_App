@@ -129,6 +129,47 @@
         </Setter>
     </Style>
 
+    <!-- A row of a flat tier list as one plate, 46 high (49 with the gap under it): hover and the choice recolour the
+         plate itself, so a row is a button, its plate and its content with nothing in between. The plate stands 10 px
+         out of the content on each side, as FocusRingRow expects, so the columns stay under the list's head.
+         The chosen row does not change under the mouse. -->
+    <Style x:Key="MetaRow" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Height="46" Margin="-10,0,-10,3" Padding="9,4" CornerRadius="8" Background="Transparent"
+                            BorderBrush="Transparent" BorderThickness="1">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Hover}" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A tier's head as a row of the same flat list: the height, overhang and gap of MetaRow, the tier colour down the
+         left edge (BorderBrush from the row's tier). Its letter is TierLetter. -->
+    <Style x:Key="TierRow" TargetType="Border">
+        <Setter Property="Height" Value="46" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Margin" Value="-10,0,-10,3" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
+    </Style>
+
     <!-- A segment bar of choices from the view model (rank, period, class, minimum games) -->
     <ItemsPanelTemplate x:Key="ChoiceRow">
         <StackPanel Orientation="Horizontal" />

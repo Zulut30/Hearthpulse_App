@@ -48,6 +48,21 @@ public sealed record MetaArchetypeRow(
     /// <summary>Whether the source split this archetype's games by who went first.</summary>
     public bool HasPlaySplit => First != "—" || Coin != "—";
 
+    /// <summary>The win rates going first and on the coin in one cell ("53% · 49%"); a dash without either.</summary>
+    public string PlaySplit => HasPlaySplit ? First + " · " + Coin : "—";
+
+    /// <summary>
+    /// The same row: what it shows, not whether it is chosen or who listens to it. A list changed in place
+    /// (<see cref="SyncList{T}"/>) keeps a row that is equal to the new one, with its container and its choice.
+    /// </summary>
+    public bool Equals(MetaArchetypeRow? other) =>
+        other is not null && Id == other.Id && Rank == other.Rank && Name == other.Name && EnglishName == other.EnglishName && HeroId == other.HeroId
+        && Detail == other.Detail && Tier == other.Tier && WinRate == other.WinRate && WinRateTip == other.WinRateTip && Edge.Equals(other.Edge)
+        && WinSign == other.WinSign && BarFraction.Equals(other.BarFraction) && Popularity == other.Popularity
+        && PopularityFraction.Equals(other.PopularityFraction) && Games == other.Games && First == other.First && Coin == other.Coin;
+
+    public override int GetHashCode() => HashCode.Combine(Id, Rank, Name, Tier, WinRate, Popularity, Games);
+
     /// <summary>The archetype whose mulligan guide and lists the side card shows.</summary>
     public bool IsSelected
     {
@@ -61,12 +76,6 @@ public sealed record MetaArchetypeRow(
             }
         }
     }
-}
-
-/// <summary>One tier of the tier list: "Tier S", its bound ("from 53 % · 3 archetypes") and its rows (none is a valid tier).</summary>
-public sealed record MetaTierGroup(string Tier, string Title, string Caption, IReadOnlyList<MetaArchetypeRow> Rows) : IImmutableView
-{
-    public bool IsEmpty => Rows.Count == 0;
 }
 
 /// <summary>The sort arrow of each sortable column ("▼", "▲" or empty), so a header shows how the table is ordered.</summary>
@@ -96,8 +105,6 @@ public sealed partial class MainViewModel
 
     /// <summary>Community stats by format key ("standard", "wild"), as the host loaded them.</summary>
     private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
-    private IReadOnlyList<MetaArchetypeRow> _metaArchetypes = [];
-    private IReadOnlyList<MetaTierGroup> _metaTierGroups = [];
     private IReadOnlyList<MetaDeckRow> _metaDecks = [];
     private IReadOnlyList<MetaDeckRow> _archetypeDecks = [];
     private IReadOnlyList<MulliganRow> _mulligan = [];
@@ -141,24 +148,20 @@ public sealed partial class MainViewModel
     /// <summary>"All classes" plus every class with an archetype in the current data.</summary>
     public IReadOnlyList<MetaChoice> MetaClasses { get => _metaClasses; private set => Set(ref _metaClasses, value); }
 
-    /// <summary>The archetypes in table order (the "Table" view), numbered.</summary>
-    public IReadOnlyList<MetaArchetypeRow> MetaArchetypes
-    {
-        get => _metaArchetypes;
-        private set
-        {
-            if (Set(ref _metaArchetypes, value))
-            {
-                Raise(nameof(MetaHasPlaySplit));
-                Raise(nameof(HasMetaArchetypes));
-            }
-        }
-    }
+    /// <summary>
+    /// The archetypes in table order (the "Table" view), numbered. One list for the life of the page, changed in place:
+    /// a new sort, class or minimum of games keeps the rows that stay as they were, and so their containers.
+    /// </summary>
+    public SyncList<MetaArchetypeRow> MetaArchetypes { get; } = [];
 
-    /// <summary>The same archetypes by tier, S to D (the "Tiers" view); an empty tier says so.</summary>
-    public IReadOnlyList<MetaTierGroup> MetaTierGroups { get => _metaTierGroups; private set => Set(ref _metaTierGroups, value); }
+    /// <summary>
+    /// The same archetypes by tier, S to D (the "Tiers" view), as one flat list: a <see cref="TierHeadRow"/>, then the
+    /// <see cref="MetaArchetypeRow"/>s of that tier; an empty tier is its head alone. Changed in place, as
+    /// <see cref="MetaArchetypes"/>, whose row objects it shares.
+    /// </summary>
+    public SyncList<object> MetaTierRows { get; } = [];
 
-    public bool HasMetaArchetypes => _metaArchetypes.Count > 0;
+    public bool HasMetaArchetypes => MetaArchetypes.Count > 0;
 
     /// <summary>Whether the tier list shows one flat sortable table instead of tier groups.</summary>
     public bool MetaTableView { get => _metaTable; private set { if (Set(ref _metaTable, value)) Raise(nameof(MetaTierView)); } }
@@ -174,7 +177,7 @@ public sealed partial class MainViewModel
     public bool MetaUnavailable { get => _metaUnavailable; private set { if (Set(ref _metaUnavailable, value)) RaiseMetaStates(); } }
 
     /// <summary>Stats are in but nothing passes the filters: the empty state shows.</summary>
-    public bool MetaEmpty => MetaStatusShown && _metaArchetypes.Count == 0;
+    public bool MetaEmpty => MetaStatusShown && MetaArchetypes.Count == 0;
 
     /// <summary>Stats are in and the top-decks tab has no list.</summary>
     public bool MetaDecksEmpty => MetaStatusShown && _metaDecks.Count == 0;
@@ -186,7 +189,7 @@ public sealed partial class MainViewModel
     public bool MetaStatusShown => !_metaLoading && !_metaUnavailable;
 
     /// <summary>The "1st"/"Coin" columns: shown only when the source has those numbers, not as a column of dashes.</summary>
-    public bool MetaHasPlaySplit => _metaArchetypes.Any(r => r.HasPlaySplit);
+    public bool MetaHasPlaySplit => MetaArchetypes.Any(r => r.HasPlaySplit);
 
     /// <summary>Most played decklists, best first among those with enough games.</summary>
     public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set { if (Set(ref _metaDecks, value)) Raise(nameof(MetaDecksEmpty)); } }
@@ -444,14 +447,12 @@ public sealed partial class MainViewModel
         if (PageMeta is not { } meta)
         {
             MetaClasses = [];
-            MetaArchetypes = [];
-            MetaTierGroups = [];
+            ShowArchetypeRows([]);
             MetaDecks = [];
             MatchupHeads = [];
             MatchupMatrix = [];
             SelectedArchetype = null;
             RebuildArchetypeDetail();
-            Raise(nameof(MetaEmpty));
             return;
         }
 
@@ -471,18 +472,20 @@ public sealed partial class MainViewModel
         var topShare = archetypes.Count == 0 ? 0 : archetypes.Max(a => a.Share > 0 ? a.Share : 0);
         var topGames = archetypes.Count == 0 ? 1 : Math.Max(1, archetypes.Max(a => a.Games));
         var selectedId = _selectedArchetype?.Id;
-        var rows = archetypes.Select((a, i) => ArchetypeRow(a, i + 1, topShare, topGames)).ToList();
-        MetaArchetypes = rows;
-        MetaTierGroups = MetaTiers.Letters
-            .Select(t => (Tier: t, Rows: (IReadOnlyList<MetaArchetypeRow>)rows.Where(r => r.Tier == t).ToList()))
-            .Select(g => new MetaTierGroup(
-                g.Tier,
-                Loc.F("Main.Meta.TierTitle", g.Tier),
-                Loc.P(MetaTiers.IsLast(g.Tier) ? "Main.Meta.TierBelow" : "Main.Meta.TierFrom", g.Rows.Count,
-                    MetaTiers.Floor(g.Tier).ToString("P0", CultureInfo.CurrentCulture)),
-                g.Rows))
+
+        // A row that shows what it showed before stays the same object in both lists, so it keeps its container and its
+        // choice; the others are new rows in their places.
+        var shown = new Dictionary<int, MetaArchetypeRow>();
+        foreach (var row in MetaArchetypes)
+        {
+            shown.TryAdd(row.Id, row);
+        }
+
+        var rows = archetypes
+            .Select((a, i) => ArchetypeRow(a, i + 1, topShare, topGames))
+            .Select(r => shown.TryGetValue(r.Id, out var old) && old.Equals(r) ? old : r)
             .ToList();
-        Raise(nameof(MetaEmpty));
+        ShowArchetypeRows(rows);
 
         // Prefer lists with 200+ games; a thin slice (high rank, few days) falls back to every list.
         var minGames = meta.Decks.Count(d => d.Games >= 200) >= 20 ? 200 : 0;
@@ -496,18 +499,53 @@ public sealed partial class MainViewModel
 
         RebuildMatchupMatrix(meta.Matchups);
 
-        // The rows are new: the choice moves to the same archetype's new row (or the first one), and an emptied list clears it.
-        _selectedArchetype = null;
-        SelectedArchetype = rows.FirstOrDefault(r => r.Id == selectedId) ?? rows.FirstOrDefault();
-        Raise(nameof(SelectedArchetype));
-        Raise(nameof(SelectedArchetypeTitle));
-        RebuildArchetypeDetail();
+        // The choice stays on the same archetype's row (a new object when what it shows changed) or moves to the first
+        // one; an emptied list clears it. The side card is built again either way: the stats under it may be new.
+        var selected = rows.FirstOrDefault(r => r.Id == selectedId) ?? rows.FirstOrDefault();
+        if (ReferenceEquals(selected, _selectedArchetype))
+        {
+            Raise(nameof(SelectedArchetypeTitle));
+            RebuildArchetypeDetail();
+        }
+        else
+        {
+            SelectedArchetype = selected;
+        }
 
         var updated = meta.Updated == DateTime.MinValue ? string.Empty : Loc.F("Main.Meta.Updated", meta.Updated.ToLocalTime());
         var status = meta.Archetypes.Count == 0
             ? Loc.T("Main.Meta.NoStats")
             : Loc.P("Main.Meta.Status", meta.Games, meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period), updated);
         ShowMetaStatus(() => status);
+    }
+
+    /// <summary>Puts <paramref name="rows"/> (table order) into the table list and, under their tier heads, into the tier list.</summary>
+    private void ShowArchetypeRows(IReadOnlyList<MetaArchetypeRow> rows)
+    {
+        var tiers = new List<object>(rows.Count + MetaTiers.Letters.Count);
+        if (PageMeta is not null)
+        {
+            // Without stats of the page's format there are no tiers to name either.
+            foreach (var tier in MetaTiers.Letters)
+            {
+                // An empty tier says so where the others give their bound and count; its own rows simply do not follow.
+                var count = rows.Count(r => r.Tier == tier);
+                tiers.Add(new TierHeadRow(
+                    tier,
+                    Loc.F("Main.Meta.TierTitle", tier),
+                    count == 0
+                        ? Loc.T("Main.Meta.TierEmpty")
+                        : Loc.P(MetaTiers.IsLast(tier) ? "Main.Meta.TierBelow" : "Main.Meta.TierFrom", count, MetaTiers.Floor(tier).ToString("P0", CultureInfo.CurrentCulture)),
+                    count == 0));
+                tiers.AddRange(rows.Where(r => r.Tier == tier));
+            }
+        }
+
+        MetaTierRows.Sync(tiers);
+        MetaArchetypes.Sync(rows);
+        Raise(nameof(HasMetaArchetypes));
+        Raise(nameof(MetaHasPlaySplit));
+        Raise(nameof(MetaEmpty));
     }
 
     private static MetaArchetypeRow ArchetypeRow(MetaArchetype a, int rank, double topShare, int topGames)

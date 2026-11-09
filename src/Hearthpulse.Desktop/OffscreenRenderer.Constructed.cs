@@ -4,6 +4,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
+using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Overlay;
 
 namespace Hearthpulse.Desktop;
@@ -11,6 +12,29 @@ namespace Hearthpulse.Desktop;
 /// <summary><c>--render-ui</c>: the Constructed overlay (deck panel, opponent-hand marks, hover previews).</summary>
 internal static partial class OffscreenRenderer
 {
+    /// <summary>
+    /// <c>HEARTHPULSE_RENDER_ONLY=metatiers</c>: the Standard meta tier list as the page opens it (<c>main-meta-tiers</c>:
+    /// the flat list of tier heads and archetypes beside the chosen archetype's card), as one table
+    /// (<c>main-meta-table</c>) and at the compact width, the card under the list (<c>main-meta-tiers-compact</c>).
+    /// The view and the width are set back.
+    /// </summary>
+    private static async Task RenderMetaTiersAsync(Window main, MainView view, AppHost host, string folder)
+    {
+        view.ShowPage("Standard");
+        view.ShowConstructedTab("Tiers");
+        foreach (var (mode, name) in new[] { ("Tiers", "main-meta-tiers"), ("Table", "main-meta-table") })
+        {
+            host.Main.SetMetaView.Execute(mode);
+            await Save(main, Path.Combine(folder, name + ".png"));
+        }
+
+        host.Main.SetMetaView.Execute("Tiers");
+        var width = main.Width;
+        main.Width = 760;
+        await Save(main, Path.Combine(folder, "main-meta-tiers-compact.png"));
+        main.Width = width;
+    }
+
     /// <summary>
     /// Renders the overlay at the most telling moment of the newest kept Constructed Power.log (read-only), then the
     /// hover preview of a deck row and of an opponent-hand mark. Skipped when no kept log has a Constructed game.

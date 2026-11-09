@@ -17,6 +17,29 @@ namespace Hearthpulse.UI.Main;
 
 public sealed partial class MainViewModel
 {
+    private bool _archetypeDetailReady;
+    private bool _archetypeDetailQueued;
+    private MetaArchetypeRow? _detailArchetype;
+
+    /// <summary>
+    /// How the view runs the build of the side card's sections (play split, mulligan guide, best lists): after the tier
+    /// list is ready for input, at a priority below it. Set by the view; without one the sections are built at once.
+    /// The name and the summary of the chosen archetype never wait.
+    /// </summary>
+    public Action<Action>? ArchetypeDetailScheduler { get; set; }
+
+    /// <summary>
+    /// The side card's sections were built at least once: until then the card shows the name and the summary alone, not
+    /// "not enough games" for lists that are merely not built yet.
+    /// </summary>
+    public bool ArchetypeDetailReady { get => _archetypeDetailReady; private set => Set(ref _archetypeDetailReady, value); }
+
+    /// <summary>
+    /// The archetype whose sections the side card shows: the chosen one once they are built. After another choice the
+    /// previous archetype's rows stay until the new ones replace them in one step.
+    /// </summary>
+    public MetaArchetypeRow? DetailArchetype { get => _detailArchetype; private set => Set(ref _detailArchetype, value); }
+
     /// <summary>The heat map: every archetype of the matrix against every other, rows and columns in the same order.</summary>
     private void RebuildMatchupMatrix(MetaMatchups matchups)
     {
@@ -53,22 +76,57 @@ public sealed partial class MainViewModel
     /// <summary>A column head fits about ten characters: longer names are cut, the tooltip has the whole one.</summary>
     private static string Short(string name) => name.Length <= 11 ? name : name[..10].TrimEnd() + "…";
 
+    /// <summary>The chosen archetype's summary at once; the card's sections at once too, or when the view's scheduler runs them.</summary>
     private void RebuildArchetypeDetail()
     {
+        // A source without play-rate data reports a 0 % share: that is left out rather than shown as "0.0 % of the meta".
+        ArchetypeSummary = PageMeta?.Archetypes.FirstOrDefault(a => a.Id == _selectedArchetype?.Id) is { } archetype
+            ? Loc.P(archetype.Share > 0 ? "Main.Meta.Summary" : "Main.Meta.SummaryNoShare", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
+                archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture))
+            : string.Empty;
+        if (ArchetypeDetailScheduler is not { } later)
+        {
+            BuildArchetypeSections();
+            return;
+        }
+
+        // One build for however many changes came before it ran; it reads the choice of that moment.
+        if (!_archetypeDetailQueued)
+        {
+            _archetypeDetailQueued = true;
+            later(() =>
+            {
+                _archetypeDetailQueued = false;
+                BuildArchetypeSections();
+            });
+        }
+    }
+
+    /// <summary>The side card's sections for the archetype chosen now, in one step.</summary>
+    private void BuildArchetypeSections()
+    {
         var archetype = PageMeta?.Archetypes.FirstOrDefault(a => a.Id == _selectedArchetype?.Id);
+        DetailArchetype = archetype is null ? null : _selectedArchetype;
+        try
+        {
+            ShowArchetypeSections(archetype);
+        }
+        finally
+        {
+            ArchetypeDetailReady = true;
+        }
+    }
+
+    private void ShowArchetypeSections(MetaArchetype? archetype)
+    {
         if (archetype is null)
         {
-            ArchetypeSummary = string.Empty;
             ArchetypeDecks = [];
             _mulliganLoad?.Cancel();
             Mulligan = [];
             MulliganSource = string.Empty;
             return;
         }
-
-        // A source without play-rate data reports a 0 % share: that is left out rather than shown as "0.0 % of the meta".
-        ArchetypeSummary = Loc.P(archetype.Share > 0 ? "Main.Meta.Summary" : "Main.Meta.SummaryNoShare", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
-            archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture));
 
         ArchetypeDecks = PageMeta!.Decks
             .Where(d => d.ArchetypeId == archetype.Id)

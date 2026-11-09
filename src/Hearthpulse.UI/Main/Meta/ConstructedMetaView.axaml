@@ -14,49 +14,6 @@
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- One archetype: rank, portrait, name (English and class under it), tier, win rate, popularity, play split -->
-            <DataTemplate x:Key="ArchetypeRowTemplate" x:DataType="m:MetaArchetypeRow">
-                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" CommandParameter="{Binding}"
-                        Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SelectArchetype}">
-                    <Border Classes="row archetype" Classes.selected="{Binding IsSelected}">
-                        <Grid ColumnDefinitions="30,42,*,44,116,100,Auto">
-                            <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                    ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                            <Border Grid.Column="3" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding WinRate}" Width="54" FontWeight="Bold" ToolTip.Tip="{Binding WinRateTip}"
-                                           Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-                                <Border Width="54" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
-                                            Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=54}" />
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center" Classes="metaWide">
-                                <TextBlock Text="{Binding Popularity}" Width="48" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
-                                <Border Width="44" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
-                                            Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
-                                </Border>
-                            </StackPanel>
-                            <!-- Shown only when the source splits games by who went first -->
-                            <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center"
-                                        IsVisible="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).MetaHasPlaySplit}">
-                                <TextBlock Width="56" Text="{Binding First}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" />
-                                <TextBlock Width="56" Text="{Binding Coin}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Button>
-            </DataTemplate>
-
             <DataTemplate x:Key="MetaDeckTemplate" x:DataType="m:MetaDeckRow">
                 <Border Classes="row" Padding="8,8">
                     <Grid ColumnDefinitions="40,*,64,64,64,Auto">
@@ -83,6 +40,60 @@
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaStyles.axaml" />
     </UserControl.Styles>
+    <!-- The rows of the tier list, picked by the row's type in both lists (tiers and table). -->
+    <UserControl.DataTemplates>
+        <!-- One archetype, 13 visuals from the button down: rank, portrait, name over its detail (English name, class,
+             games) in one cell, the tier's letter in its colour, win rate and popularity as a number and a bar, the play
+             split in one text. The button's presenter draws the plate (Button.metaRow). -->
+        <DataTemplate x:DataType="m:MetaArchetypeRow">
+            <Button Classes="bare metaRow" Classes.selected="{Binding IsSelected}" CommandParameter="{Binding}"
+                    Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SelectArchetype}">
+                <Grid ColumnDefinitions="30,42,*,44,116,100,Auto">
+                    <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                            ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Top" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Bottom" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="3" Text="{Binding Tier}" Width="30" HorizontalAlignment="Left" TextAlignment="Center" VerticalAlignment="Center"
+                               FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" FontFamily="{DynamicResource DisplayFont}"
+                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                    <TextBlock Grid.Column="4" Text="{Binding WinRate}" Width="56" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold"
+                               ToolTip.Tip="{Binding WinRateTip}"
+                               Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                    <Border Grid.Column="4" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="56,0,0,0"
+                            Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                            Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                    <TextBlock Grid.Column="5" Text="{Binding Popularity}" Width="48" HorizontalAlignment="Left" VerticalAlignment="Center"
+                               Classes="caption metaWide" FontSize="{StaticResource FontSizeLabel}" />
+                    <Border Grid.Column="5" Classes="metaWide" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="48,0,0,0"
+                            Background="{StaticResource Accent}"
+                            Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
+                    <!-- Shown only when the source splits games by who went first -->
+                    <TextBlock Grid.Column="6" Width="96" Text="{Binding PlaySplit}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" VerticalAlignment="Center"
+                               IsVisible="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).MetaHasPlaySplit}" />
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <!-- A tier's head as a row of the same list and of the same height: the letter on its colour, "Tier S", then its
+             bound and count, or that the tier is empty. Not a button. -->
+        <DataTemplate x:DataType="m:TierHeadRow">
+            <Border Classes="tierRow" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                    <Border Classes="tierLetter" Background="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
+                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Caption}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
+                               Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.DataTemplates>
 
     <StackPanel>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
@@ -186,38 +197,18 @@
                                 <TextBlock Text="{Binding MetaArrows.Popularity}" Classes="sortArrow" />
                             </StackPanel>
                         </Button>
-                        <StackPanel Grid.Column="6" Orientation="Horizontal" IsVisible="{Binding MetaHasPlaySplit}">
-                            <TextBlock Width="56" Text="{i:Loc Main.Meta.First}" Classes="tableHead" TextAlignment="Right" ToolTip.Tip="{i:Loc Main.Meta.FirstTip}" />
-                            <TextBlock Width="56" Text="{i:Loc Main.Meta.Coin}" Classes="tableHead" TextAlignment="Right" ToolTip.Tip="{i:Loc Main.Meta.CoinTip}" />
-                        </StackPanel>
+                        <TextBlock Grid.Column="6" Width="96" Text="{i:Loc Main.Meta.PlaySplit}" Classes="tableHead" TextAlignment="Right"
+                                   ToolTip.Tip="{i:Loc Main.Meta.PlaySplitTip}" IsVisible="{Binding MetaHasPlaySplit}" />
                     </Grid>
 
-                    <!-- Tiers: S to D, each with its colour, bound and count; an empty tier says so (as on the site) -->
-                    <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierGroups}" IsVisible="{Binding MetaTierView}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="m:MetaTierGroup">
-                                <StackPanel>
-                                    <Border Classes="tierHead" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Classes="tierLetter" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                                <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                    <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource ArchetypeRowTemplate}" />
-                                    <TextBlock Text="{i:Loc Main.Meta.TierEmpty}" Classes="caption" Margin="4,0,0,4" IsVisible="{Binding IsEmpty}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <!-- Tiers: S to D in one flat list, a tier's head and then its archetypes; an empty tier is its head alone,
+                         saying so (as on the site). The list is changed in place, so the rows that stay keep their visuals.
+                         Not clipped: a row's plate stands 8 px out of the list on each side, into the card's padding. -->
+                    <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
+                                  IsVisible="{Binding MetaTierView}" />
 
-                    <!-- Table: one list in the chosen order -->
-                    <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemTemplate="{StaticResource ArchetypeRowTemplate}"
+                    <!-- Table: the archetypes alone, in the chosen order -->
+                    <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
                                   IsVisible="{Binding MetaTableView}" />
 
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
@@ -233,12 +224,15 @@
                     <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="SemiBold"
                                FontFamily="{DynamicResource DisplayFont}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding ArchetypeSummary}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding SelectedArchetype.HasPlaySplit, FallbackValue=False}">
+                    <!-- The sections come in one step after the list is ready for input (ArchetypeDetailScheduler, set in the
+                         code-behind); until the first build nothing stands here, not a false "not enough games". -->
+                    <StackPanel Name="ArchetypeSections" IsVisible="{Binding ArchetypeDetailReady}">
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding DetailArchetype.HasPlaySplit, FallbackValue=False}">
                         <Border Classes="segmentBar" Padding="12,4" Margin="0,0,8,0" ToolTip.Tip="{i:Loc Main.Meta.FirstTip}">
-                            <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
+                            <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding DetailArchetype.First, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
                         </Border>
                         <Border Classes="segmentBar" Padding="12,4" ToolTip.Tip="{i:Loc Main.Meta.CoinTip}">
-                            <TextBlock><Run Text="{i:Loc Main.Meta.OnCoin}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
+                            <TextBlock><Run Text="{i:Loc Main.Meta.OnCoin}" Foreground="{StaticResource Muted}" /><Run Text="{Binding DetailArchetype.Coin, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
                         </Border>
                     </StackPanel>
 
@@ -284,6 +278,7 @@
                                IsVisible="{Binding ArchetypeDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                     <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                                IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

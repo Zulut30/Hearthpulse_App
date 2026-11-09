@@ -59,6 +59,56 @@
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
+    <!-- A row of a flat tier list as one plate, 46 high (48 with the gap under it): the button's presenter draws the
+         plate, and hover and the choice recolour it, so a row is a button, its presenter and its content. The plate
+         stands 8 px out of the content on each side (edge 1 + padding 7), so the columns stay under the list's head.
+         The chosen row does not change under the mouse. Used with Button.bare (cursor, focus ring). -->
+    <Style Selector="Button.metaRow">
+        <Setter Property="Height" Value="46" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
+        <Setter Property="Padding" Value="7,4" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                                  Padding="{TemplateBinding Padding}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+                    <ContentPresenter.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="{StaticResource MotionFast}" Easing="CubicEaseOut" />
+                        </Transitions>
+                    </ContentPresenter.Transitions>
+                </ContentPresenter>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.metaRow:pointerover">
+        <Setter Property="Background" Value="{StaticResource Hover}" />
+    </Style>
+    <Style Selector="Button.metaRow.selected">
+        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+    </Style>
+
+    <!-- A tier's head as a row of the same flat list: the height, overhang and gap of Button.metaRow, the tier colour
+         down the left edge (BorderBrush from the row's tier). Its letter is Border.tierLetter. -->
+    <Style Selector="Border.tierRow">
+        <Setter Property="Height" Value="46" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
+    </Style>
+
     <!-- Compact: the tier list drops the popularity column (the side card goes under it, MainView.ApplyWidth) -->
     <Style Selector="m|MainView.compact :is(Control).metaWide">
         <Setter Property="IsVisible" Value="False" />

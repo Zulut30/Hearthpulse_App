@@ -10,6 +10,26 @@ namespace Hearthpulse.App;
 public partial class App
 {
     /// <summary>
+    /// <c>HEARTHPULSE_RENDER_ONLY=metatiers</c>: the Standard meta tier list as the page opens it (<c>main-meta-tiers</c>:
+    /// the flat list of tier heads and archetypes beside the chosen archetype's card) and as one table
+    /// (<c>main-meta-table</c>). The view is set back to tiers.
+    /// </summary>
+    private async Task RenderMetaTiersAsync(string folder)
+    {
+        _main.ShowPage("Standard");
+        _main.ShowConstructedTab("Tiers");
+        foreach (var (view, name) in new[] { ("Tiers", "main-meta-tiers"), ("Table", "main-meta-table") })
+        {
+            _mainViewModel.SetMetaView.Execute(view);
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, name + ".png"));
+        }
+
+        _mainViewModel.SetMetaView.Execute("Tiers");
+    }
+
+    /// <summary>
     /// Renders the overlay at the most telling moment of the newest kept Constructed Power.log (read-only), then the
     /// hover preview of a deck row and of an opponent-hand mark. Skipped when no kept log has a Constructed game.
     /// </summary>

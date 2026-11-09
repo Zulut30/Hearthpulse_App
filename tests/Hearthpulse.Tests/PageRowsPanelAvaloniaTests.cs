@@ -8,15 +8,21 @@ using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Hearthpulse.Core;
+using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Data;
 using Hearthpulse.UI.Controls;
+using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The Avalonia list panel of the long main-window lists (the twin of the WPF PageRowsPanelTests): it builds the rows
 /// near what the page shows and a screen more at background priority, while the page keeps the height and row
-/// positions a StackPanel would give it; a list that changes in place keeps the rows that stay.
+/// positions a StackPanel would give it; a list that changes in place keeps the rows that stay. And its first user,
+/// the meta tier list of the Standard page, in the main view.
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class PageRowsPanelAvaloniaTests
 {
     private const double RowHeight = 20;
@@ -161,6 +167,140 @@ public sealed class PageRowsPanelAvaloniaTests
             Dispatcher.UIThread.RunJobs();
         }
     });
+
+    /// <summary>
+    /// The meta tier list in a 1280×800 window with 80 archetypes (85 rows with the tiers' heads): fewer than half of the
+    /// rows are built, and no more than what the page shows plus a screen above and a screen below; the end of the page
+    /// has the last row. The list is laid out before the side card's sections, which come without the player doing
+    /// anything and do not move the list; another choice replaces them.
+    /// </summary>
+    [Fact]
+    public void The_meta_tier_list_builds_the_rows_near_the_viewport_and_the_side_card_after_the_list() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = Theme();
+        var db = TestDataFolder.Scratch("hp-page-rows") + ".db";
+        var model = new MainViewModel(new HistoryStore(db), new AppSettings(), TestDataFolder.App);
+        var view = new MainView { DataContext = model };
+        var window = new Window { Width = 1280, Height = 800 };
+        // The headless platform has no Inter: the app swaps UiFont at startup the same way (HearthpulseApp).
+        window.Resources["UiFont"] = Avalonia.Media.FontFamily.Default;
+        window.Content = view;
+        try
+        {
+            window.Show();
+            view.ShowPage("Standard");
+            view.ShowConstructedTab("Tiers");
+            model.SetConstructedMeta(Meta(80));
+
+            // The layout alone: the list has its rows, the side card its name and summary, its sections are not built.
+            window.UpdateLayout();
+            var list = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "MetaTierList");
+            var panel = Assert.IsType<PageRowsPanel>(list.ItemsPanelRoot);
+            var page = Assert.IsType<ScrollViewer>(list.FindAncestorOfType<ScrollViewer>());
+            var card = view.GetVisualDescendants().OfType<Border>().Single(c => c.Name == "ArchetypeCard");
+            var sections = view.GetVisualDescendants().OfType<StackPanel>().Single(c => c.Name == "ArchetypeSections");
+            Assert.Equal(85, list.ItemCount);
+            Assert.InRange(panel.Children.Count, 5, 30);
+            Assert.NotNull(model.SelectedArchetype);
+            Assert.False(model.ArchetypeDetailReady);
+            Assert.False(sections.IsVisible);
+            Assert.Empty(MulliganCards(card));
+            Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == model.SelectedArchetypeTitle && t.IsEffectivelyVisible);
+            var place = (list.TranslatePoint(default, view)!.Value, list.Bounds.Width);
+
+            // The dispatcher idle: the sections of the chosen archetype are there, and the list stands where it stood.
+            Settle(window);
+            Assert.True(model.ArchetypeDetailReady);
+            Assert.True(sections.IsEffectivelyVisible);
+            Assert.Equal(model.Mulligan.Select(m => m.CardId), MulliganCards(card));
+            Assert.Equal(["CARD_" + model.SelectedArchetype!.Id], MulliganCards(card));
+            Assert.Equal(place, (list.TranslatePoint(default, view)!.Value, list.Bounds.Width));
+
+            // Rows: every row has the same height, a tier's head as an archetype; fewer than half of the list is built,
+            // and no more than the rows the page shows and two screens of them.
+            var step = panel.Children[0].Bounds.Height;
+            Assert.All(panel.Children, row => Assert.Equal(step, row.Bounds.Height));
+            Assert.Equal(48, step);
+
+            // A row's plate stands 8 px out of the list on each side (so its columns stay under the head), and the list
+            // does not cut it: the tier colour down a head's left edge is in that overhang.
+            Assert.False(list.ClipToBounds);
+            var plate = panel.Children[1].GetVisualDescendants().OfType<Button>().First();
+            Assert.Equal((-8, list.Bounds.Width + 16, 46), (plate.Bounds.X, plate.Bounds.Width, plate.Bounds.Height));
+            var shown = panel.Children.Count(row => row.TranslatePoint(default, page) is { } at && at.Y + step > 0 && at.Y < page.Viewport.Height);
+            var screen = (int)Math.Ceiling(page.Viewport.Height / step);
+            Assert.InRange(shown, 3, screen);
+            Assert.True(panel.Children.Count < list.ItemCount / 2, $"{panel.Children.Count} of {list.ItemCount} rows built");
+            Assert.True(panel.Children.Count <= shown + (2 * screen), $"{panel.Children.Count} rows built, {shown} shown, {screen} to a screen");
+            Assert.Null(list.ContainerFromIndex(84));
+
+            // The end of the page: the last row is built and in view.
+            page.Offset = new Vector(0, page.Extent.Height - page.Viewport.Height);
+            Settle(window);
+            var last = Assert.IsAssignableFrom<Control>(list.ContainerFromIndex(84));
+            var top = last.TranslatePoint(default, page)!.Value.Y;
+            Assert.InRange(top, 0, page.Viewport.Height - step);
+            Assert.True(panel.Children.Count < list.ItemCount, "rows nobody scrolled to stay unbuilt");
+
+            // Another choice: its sections replace the first one's.
+            var other = model.MetaArchetypes[^1];
+            model.SelectArchetype.Execute(other);
+            Settle(window);
+            Assert.Equal(["CARD_" + other.Id], MulliganCards(card));
+
+            // Another order, then a class nobody plays, then every class again: the list is changed in place, and every
+            // built row shows the item that now stands in its place, a head as a plate and an archetype as a button.
+            var source = list.ItemsSource;
+            model.SetMetaSort.Execute("Name");
+            Settle(window);
+            AssertRowsShowTheirItems();
+            model.SetMetaClass.Execute("PRIEST");
+            Settle(window);
+            Assert.Equal(5, list.ItemCount);
+            Assert.Equal(5, panel.Children.Count);
+            AssertRowsShowTheirItems();
+            model.SetMetaClass.Execute(string.Empty);
+            Settle(window);
+            Assert.Equal(85, list.ItemCount);
+            AssertRowsShowTheirItems();
+            Assert.Same(source, list.ItemsSource);
+
+            void AssertRowsShowTheirItems()
+            {
+                Assert.NotEmpty(panel.Children);
+                foreach (var row in panel.Children.Cast<ContentPresenter>())
+                {
+                    var item = model.MetaTierRows[list.IndexFromContainer(row)];
+                    Assert.Same(item, row.Content);
+                    Assert.Same(item, row.Child!.DataContext);
+                    Assert.Equal(item is TierHeadRow ? typeof(Border) : typeof(Button), row.Child.GetType());
+                    Assert.Equal(list.IndexFromContainer(row) * step, row.Bounds.Y);
+                }
+            }
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+            TestDataFolder.TryDelete(db);
+        }
+
+        static List<string> MulliganCards(Control card) =>
+            card.GetVisualDescendants().OfType<Border>().Where(b => b.IsEffectivelyVisible && b.DataContext is MulliganRow && b.Classes.Contains("row"))
+                .Select(b => ((MulliganRow)b.DataContext!).CardId).ToList();
+    });
+
+    /// <summary>Archetypes over every tier (win rates from 60 % down to 40 %), each with one kept card named after it.</summary>
+    private static ConstructedMeta Meta(int count)
+    {
+        var archetypes = Enumerable.Range(1, count)
+            .Select(i => (Id: i, WinRate: 0.60 - (0.20 * (i - 1) / (count - 1))))
+            .Select(a => new MetaArchetype(a.Id, "Archetype " + a.Id, "Archetype " + a.Id, "MAGE", 1000 + a.Id, (int)((1000 + a.Id) * a.WinRate), a.WinRate, 1.0 / count,
+                0, 0, 0, 0, [], [new MetaMulliganCard("CARD_" + a.Id, 900, 0.8, 700, a.WinRate + 0.03)]))
+            .ToList();
+        return new ConstructedMeta("standard", "legend", "past_week", new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc), count * 1000, archetypes, []);
+    }
 
     /// <summary>Layout, the background build it queued, and the layout of what that built, until nothing is left to do.</summary>
     internal static void Settle(Window window)
