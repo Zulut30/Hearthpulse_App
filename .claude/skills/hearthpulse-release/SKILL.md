@@ -89,8 +89,11 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
   `--storepass env:HP_SIGN_STOREPASS`, never in argv. The jar pin was checked against Maven Central (`sign.sh`).
 - **Permissions**: the workflow is `contents: read`; only the `release` job has `contents: write`, so the build jobs
   that see the signing secrets cannot write to the repository.
-- **Selftest** (`sign_selftest=true`, trial runs only): Authenticode with a throwaway self-signed .pfx, each signer
-  shown by `osslsigncode verify`, any failure fails the job; the SUMS step signs with a throwaway Ed25519 key, checks
+- **Selftest** (`sign_selftest=true`, trial runs only): Authenticode with a throwaway root CA and a code-signing
+  certificate it issued (jsign leaves self-signed certificates out of a signature, so a lone self-signed one gives a
+  signature osslsigncode cannot verify), both valid from a day back (the TSA's clock may lag); `osslsigncode verify`
+  against that root and the system CAs must show the leaf as signer, "Signature verification: ok" and "Timestamp
+  Server Signature verification: ok", else the job fails; the SUMS step signs with a throwaway Ed25519 key, checks
   that a changed byte and another key are rejected, and (without the real secret) leaves its `.sig` so the count with a
   `.sig` is exercised.
 - Not done yet: the client does not check the Authenticode publisher before `/S` (after a certificate exists).

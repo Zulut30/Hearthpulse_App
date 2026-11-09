@@ -11,7 +11,7 @@
 #   pfx       WINDOWS_SIGN_PFX (base64 of the .pfx) + WINDOWS_SIGN_PFX_PASSWORD, timestamp DigiCert
 #   azure     AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID,
 #             AZURE_CLIENT_SECRET (Azure Trusted Signing), timestamp Microsoft
-#   selftest  SIGN_SELFTEST=true: a throwaway self-signed .pfx made here (trial runs only)
+#   selftest  SIGN_SELFTEST=true: a throwaway root CA and code-signing certificate made here (trial runs only)
 #   none      a warning, exit 0: the packages are built unsigned
 # With signing secrets, a failure (jsign not downloaded or not matching its pin, no java, a bad .pfx/password, Azure
 # refusing) fails the build when PUBLISHING=true (a tag or publish=true): a release never goes out unsigned by accident.
@@ -27,6 +27,8 @@ JSIGN_VERSION="7.1"
 JSIGN_SHA256="cfb48b07fdd2ee199bfc9e71d8dccdde67a799c4793602e446c7a101be62b3c4"
 JSIGN_URL="https://github.com/ebourg/jsign/releases/download/$JSIGN_VERSION/jsign-$JSIGN_VERSION.jar"
 SELFTEST_SUBJECT="Hearthpulse sign selftest"
+# System CA bundle that holds the timestamp authority's root (Ubuntu's path; override for a local check).
+TSA_CAFILE="${SIGN_TSA_CAFILE:-/etc/ssl/certs/ca-certificates.crt}"
 
 SIGN_DIR="${HEARTHPULSE_SIGN_DIR:-${TMPDIR:-/tmp}/hearthpulse-sign}"
 
@@ -66,12 +68,56 @@ fetch_jsign() {
 }
 
 make_selftest_pfx() {
-  # A throwaway code-signing certificate valid for two days; its private key never leaves this folder.
-  openssl req -x509 -newkey rsa:3072 -nodes -days 2 -subj "/CN=$SELFTEST_SUBJECT" \
-    -addext "extendedKeyUsage=codeSigning" -addext "keyUsage=digitalSignature" \
-    -keyout "$SIGN_DIR/selftest-key.pem" -out "$SIGN_DIR/selftest-cert.pem" 2>/dev/null
-  openssl pkcs12 -export -inkey "$SIGN_DIR/selftest-key.pem" -in "$SIGN_DIR/selftest-cert.pem" \
-    -out "$SIGN_DIR/sign.pfx" -passout pass:selftest -name selftest
+  # A throwaway two-level chain valid for two days, as a real certificate is: a root CA and a code-signing certificate
+  # it issued. jsign leaves self-signed (root) certificates out of the signature, so a lone self-signed certificate
+  # gave a signature without any certificate and osslsigncode could not find the signer. The private keys never
+  # leave this folder; the root (selftest-ca.pem) is what --show trusts.
+  # Both start a day back: the timestamp authority's clock may be seconds behind this machine's, and osslsigncode
+  # checks the chain at the timestamp's time ("certificate is not yet valid" otherwise). openssl ca, because
+  # OpenSSL 3.0 (Ubuntu 24.04) has no -not_before for req/x509.
+  (
+    cd "$SIGN_DIR"
+    local start end
+    start="$(date -u -d '1 day ago' +%y%m%d%H%M%SZ)"
+    end="$(date -u -d '2 days' +%y%m%d%H%M%SZ)"
+    : > index.txt
+    openssl rand -hex 16 > serial
+    cat > ca.cnf <<'CNF'
+[ ca ]
+default_ca = selftest
+[ selftest ]
+dir = .
+database = index.txt
+new_certs_dir = .
+serial = serial
+default_md = sha256
+policy = any
+unique_subject = no
+copy_extensions = none
+[ any ]
+commonName = supplied
+[ v3_ca ]
+basicConstraints = critical,CA:TRUE
+keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash
+[ v3_sign ]
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature
+extendedKeyUsage = codeSigning
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid
+CNF
+    openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$SELFTEST_SUBJECT CA" \
+      -keyout selftest-ca-key.pem -out selftest-ca.csr 2>/dev/null
+    openssl ca -batch -notext -config ca.cnf -selfsign -keyfile selftest-ca-key.pem -in selftest-ca.csr \
+      -extensions v3_ca -startdate "$start" -enddate "$end" -out selftest-ca.pem 2>/dev/null
+    openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$SELFTEST_SUBJECT" \
+      -keyout selftest-key.pem -out selftest.csr 2>/dev/null
+    openssl ca -batch -notext -config ca.cnf -cert selftest-ca.pem -keyfile selftest-ca-key.pem -in selftest.csr \
+      -extensions v3_sign -startdate "$start" -enddate "$end" -out selftest-cert.pem 2>/dev/null
+    openssl pkcs12 -export -inkey selftest-key.pem -in selftest-cert.pem -certfile selftest-ca.pem \
+      -out sign.pfx -passout pass:selftest -name selftest
+  )
 }
 
 prepare() {
@@ -155,13 +201,21 @@ show() {
   local f out
   for f in "$@"; do
     echo "== osslsigncode verify $(basename "$f")"
-    if ! out="$(osslsigncode verify -CAfile "$SIGN_DIR/selftest-cert.pem" -TSA-CAfile /etc/ssl/certs/ca-certificates.crt -in "$f" 2>&1)"; then
+    # The signature chains to the throwaway root; the timestamp to the system's CAs (DigiCert's TSA root).
+    if ! out="$(osslsigncode verify -CAfile "$SIGN_DIR/selftest-ca.pem" -TSA-CAfile "$TSA_CAFILE" -in "$f" 2>&1)"; then
       echo "$out"
       echo "sign selftest: $(basename "$f") does not verify" >&2
       exit 1
     fi
-    echo "$out" | grep -E 'Signer|Subject:|Timestamp|Signature verification' || true
-    echo "$out" | grep -q "CN=$SELFTEST_SUBJECT" || { echo "sign selftest: $(basename "$f") is not signed by the selftest certificate" >&2; exit 1; }
+    # The signer (first certificate printed), when, and both verdicts.
+    echo "$out" | grep -m2 -E 'Subject:|Issuer ?:' || true
+    echo "$out" | grep -E 'Timestamp time|verification: ok' || true
+    # The proof: the signer is the throwaway leaf (not just its CA), the signature and the timestamp both verified.
+    # osslsigncode 2.7 (Ubuntu 24.04) prints "Subject: /CN=...", newer ones "Subject: CN=...".
+    echo "$out" | grep -Eq "Subject: /?CN ?= ?$SELFTEST_SUBJECT\$" \
+      && echo "$out" | grep -q "^Signature verification: ok" \
+      && echo "$out" | grep -q "^Timestamp Server Signature verification: ok" \
+      || { echo "sign selftest: $(basename "$f") is not signed and timestamped by the selftest certificate" >&2; exit 1; }
   done
 }
 

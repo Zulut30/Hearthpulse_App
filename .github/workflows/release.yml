@@ -20,7 +20,7 @@ on:
         type: boolean
         default: false
       sign_selftest:
-        description: Trial runs only - sign with throwaway keys (Authenticode self-signed .pfx, Ed25519 for SHA256SUMS.txt) and show the result
+        description: Trial runs only - sign with throwaway keys (Authenticode throwaway CA and .pfx, Ed25519 for SHA256SUMS.txt) and show the result
         type: boolean
         default: false
 
