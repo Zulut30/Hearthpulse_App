@@ -59,8 +59,8 @@ class SignSumsTests(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def run_script(self, keyfile, secret=None, publishing=False, selftest=False):
-        env = []
+    def run_script(self, keyfile, secret=None, publishing=False, selftest=False, required=False):
+        env = ["KEY_FILE_REQUIRED=true"] if required else []
         if secret:
             env.append(f'UPDATE_SIGNING_KEY="$(cat {secret})"')
         env.append(f"PUBLISHING={'true' if publishing else 'false'}")
@@ -107,6 +107,16 @@ class SignSumsTests(unittest.TestCase):
         self.assertIn("not signed", result.stdout)
         self.assertFalse(self.sig.exists())
         self.assertEqual(self.run_script("missing.pub", publishing=True).returncode, 0)
+
+    def test_a_missing_key_file_fails_publishing_once_core_embeds_it(self):
+        self.assertNotEqual(self.run_script("missing.pub", publishing=True, required=True).returncode, 0)
+        self.assertNotEqual(self.run_script("missing.pub", secret="signing.pem", publishing=True, required=True)
+                            .returncode, 0)
+        self.assertFalse(self.sig.exists())
+        trial = self.run_script("missing.pub", publishing=False, required=True)
+        self.assertEqual(trial.returncode, 0, trial.stderr)
+        self.assertIn("a release would fail", trial.stdout)
+        self.assertEqual(self.run_script("empty.pub", publishing=True, required=True).returncode, 0)
 
     def test_a_secret_with_no_embedded_key_signs_and_warns(self):
         result = self.run_script("empty.pub", secret="signing.pem", publishing=True)

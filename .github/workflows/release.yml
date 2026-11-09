@@ -24,8 +24,9 @@ on:
         type: boolean
         default: false
 
+# Read-only by default: the build jobs see the signing secrets and never need to write. Only "release" publishes.
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 env:
@@ -127,6 +128,8 @@ jobs:
           # installer/windows/previous.sh asks for the previous release's manifest (delta package).
           GH_TOKEN: ${{ github.token }}
           SIMULATE_PREVIOUS: ${{ inputs.simulate_previous }}
+          # A publishing run (tag or publish=true) fails on any signing problem when signing secrets are set.
+          PUBLISHING: ${{ github.event_name == 'push' || inputs.publish }}
           # Authenticode (installer/windows/sign.sh): a .pfx, else Azure Trusted Signing, else unsigned with a warning.
           # Only the Windows jobs see the secrets.
           SIGN_SELFTEST: ${{ startsWith(matrix.id, 'windows') && inputs.sign_selftest || '' }}
@@ -161,6 +164,9 @@ jobs:
     name: Publish the release
     needs: [tests, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - name: Version
@@ -227,6 +233,11 @@ jobs:
           PUBLISHING: ${{ github.event_name == 'push' || inputs.publish }}
           SIGN_SELFTEST: ${{ inputs.sign_selftest }}
         run: |
+          # Once Core embeds the key file (Hearthpulse.Core.csproj names it), a publishing run without the file fails:
+          # a deleted or renamed file must not quietly switch the "key embedded, secret missing" rule off.
+          if grep -q 'update-signing-key\.pub' src/Hearthpulse.Core/Hearthpulse.Core.csproj; then
+            export KEY_FILE_REQUIRED=true
+          fi
           bash installer/sign-sums.sh dist src/Hearthpulse.Core/Updates/update-signing-key.pub
           n=$(find dist -maxdepth 1 -type f | wc -l)
           if [ -f dist/SHA256SUMS.txt.sig ]; then want=$((expected + 1)); else want=$expected; fi

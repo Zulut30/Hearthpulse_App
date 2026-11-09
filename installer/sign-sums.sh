@@ -7,6 +7,7 @@
 # Environment:
 #   UPDATE_SIGNING_KEY  PKCS#8 PEM private key (secret); absent -> no SHA256SUMS.txt.sig
 #   PUBLISHING          true when this run publishes a release (tag push or publish=true)
+#   KEY_FILE_REQUIRED   true once Hearthpulse.Core.csproj embeds the key file: a missing file fails a publishing run
 #   SIGN_SELFTEST       true (trial runs only): sign and check with a throwaway key; without the real secret its
 #                       signature is left in the folder so the file count with a .sig is exercised too
 #
@@ -42,6 +43,12 @@ trap 'rm -rf "$TMP"' EXIT
 
 # Every PEM public-key block of the key file into its own file; # lines and anything outside the blocks are ignored.
 KEYS=()
+if [ ! -f "$KEYFILE" ] && [ "${KEY_FILE_REQUIRED:-}" = "true" ]; then
+  # The app embeds the key file (the workflow sees it in Hearthpulse.Core.csproj): its absence is a broken checkout or
+  # a rename, not "no key".
+  if [ "${PUBLISHING:-}" = "true" ]; then error "$KEYFILE is missing but Hearthpulse.Core embeds it"; fi
+  warn "$KEYFILE is missing but Hearthpulse.Core embeds it (a release would fail)"
+fi
 if [ -f "$KEYFILE" ]; then
   awk -v dir="$TMP" '
     /^-----BEGIN PUBLIC KEY-----/ { n++; f = sprintf("%s/embedded-%d.pem", dir, n); inblock = 1 }

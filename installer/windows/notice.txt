@@ -40,10 +40,11 @@ UPDATES
   release every 6 hours, or when you press "Check now" in Settings > About.
   Only that ordinary request is sent; the last answer is kept on this
   computer so an unchanged release is not downloaded again.
-- Updates are checked by signature: a download is installed only when its
-  SHA-256 matches the one GitHub publishes and, in builds that carry the
-  project's update key, the release's list of checksums (SHA256SUMS.txt) is
-  signed with that key (Ed25519). Anything else is not installed.
+- Updates are checked before they install: a download is installed only
+  when its SHA-256 matches the one GitHub publishes and, in builds that
+  carry the project's update key, the release's list of checksums
+  (SHA256SUMS.txt) is signed with that key (Ed25519). Anything else is not
+  installed.
 - Before the setup runs, the app folder is copied aside; if the setup fails
   twice, the copy is put back and the app tells you on its next start. Your
   history and settings are not touched. Turn automatic updates off in

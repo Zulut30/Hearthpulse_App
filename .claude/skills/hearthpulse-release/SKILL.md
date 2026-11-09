@@ -68,7 +68,10 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
   for rotation), embedded in Core and read by the workflow. Rules: secret present -> sign, and at least one embedded key
   must verify it (else `::error::`; no embedded key -> checked with the secret's own key and a warning); **an embedded
   key without the secret fails a publishing run before publishing** (clients with the key would stop updating); a
-  trial run without the secret only warns and makes no `.sig`. Tests: `tools/skill_checks/test_sign_sums.py`.
+  trial run without the secret only warns and makes no `.sig`. Once `Hearthpulse.Core.csproj` names
+  `update-signing-key.pub` (P1 of TASK-2026-11-09-update-delivery), the workflow sets `KEY_FILE_REQUIRED=true`: a
+  publishing run without the file fails (a rename must not switch the rule off). Tests:
+  `tools/skill_checks/test_sign_sums.py`.
 - **Transition.** 0.14.0 and older know no signature and take 0.15.0 by digest; that cannot be fixed. Signature
   checks start with the first build whose `.pub` has a key; from then on every release must be signed. Losing the
   private key means those clients update only by hand: keep two offline copies.
@@ -80,7 +83,12 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
   `::warning::Windows packages are not code-signed (no signing secrets)` per job and an unsigned build. Signed:
   `Hearthpulse.exe` of the app (before `delta.py manifest`, the portable zip and NSIS - else the manifest would not
   match the installed files) and of the preview, the uninstaller (NSIS `!uninstfinalize`, 3.08+, only when
-  `-DSIGN_SCRIPT` is passed) and the setup. Own DLLs are not signed. A pfx/Azure failure is a warning (unsigned build).
+  `-DSIGN_SCRIPT` is passed) and the setup. Own DLLs are not signed. With secrets set, any failure (jsign download or
+  pin, java, .pfx/password, Azure) **fails a publishing run** (`PUBLISHING` = tag or `publish=true`, passed to the
+  Build step) and is a warning in a trial run. The .pfx password and the Azure token reach jsign as
+  `--storepass env:HP_SIGN_STOREPASS`, never in argv. The jar pin was checked against Maven Central (`sign.sh`).
+- **Permissions**: the workflow is `contents: read`; only the `release` job has `contents: write`, so the build jobs
+  that see the signing secrets cannot write to the repository.
 - **Selftest** (`sign_selftest=true`, trial runs only): Authenticode with a throwaway self-signed .pfx, each signer
   shown by `osslsigncode verify`, any failure fails the job; the SUMS step signs with a throwaway Ed25519 key, checks
   that a changed byte and another key are rejected, and (without the real secret) leaves its `.sig` so the count with a
@@ -166,7 +174,9 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
 3. Version bumped in every file above (one commit "Release X.Y.Z"); X.Y.Z greater than the latest GitHub release.
 4. `installer/RELEASE_NOTES.md` written: user-facing changes in plain English (sections What's new / Faster / Fixes /
    Known issues / Other), known issues, data sources credited, not affiliated with Blizzard; the first ~1500
-   characters carry the most important part (that much shows in the app).
+   characters carry the most important part (that much shows in the app). Claims about signing must match the state
+   at the tag: the signature check only with a key in `update-signing-key.pub`, the "setup is not code-signed" known
+   issue only without Authenticode secrets.
 5. `installer/windows/notice.txt` and `THIRD-PARTY-NOTICES.txt` credit any new data source or third-party code since
    the last tag (`git log vPREV..main -- src docs/*sources*`; MIT notices for adapted code -
    [hearthpulse-data-sources](../hearthpulse-data-sources/SKILL.md)).
