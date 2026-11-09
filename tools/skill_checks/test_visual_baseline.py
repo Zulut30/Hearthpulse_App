@@ -4,7 +4,9 @@ Run from the repository root: python -B -I -m unittest discover -s tools/skill_c
 Requires Pillow with WebP, the dependency of visual_check.py itself.
 """
 import importlib.util
+import json
 import re
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -113,6 +115,27 @@ class VisualBaselineTests(unittest.TestCase):
         self.assertFalse((baselines / "ava/Tavern-main-overview.webp").exists())
         with Image.open(baselines / "ava/Tavern-main-history.webp") as stored:
             self.assertEqual(image.tobytes(), stored.convert("RGB").tobytes())
+
+    def test_render_starts_the_built_executable_and_falls_back_to_dotnet_run(self):
+        exe = self.root / "Hearthpulse.exe"
+        exe.write_bytes(b"")
+
+        def answer(properties, code=0):
+            reply = '{"Properties": %s}' % json.dumps(properties)
+            return patch.object(visual.subprocess, "run", return_value=subprocess.CompletedProcess([], code, reply, ""))
+
+        found = {"RunCommand": str(exe), "RunArguments": "", "RunWorkingDirectory": ""}
+        with answer(found) as run:
+            self.assertEqual([str(exe)], visual.launcher("src/Hearthpulse.Desktop", None))
+        self.assertIn("-getProperty:RunCommand", run.call_args.args[0])
+        with answer(found) as run:
+            visual.launcher("src/Hearthpulse.App", str(self.root / "a"))
+        self.assertIn(f"-p:ArtifactsPath={(self.root / 'a').resolve()}", run.call_args.args[0])
+        dotnet_run = ["dotnet", "run", "--project", "src/Hearthpulse.App", "-c", "Release", "--no-build", "--"]
+        for properties, code in (({**found, "RunCommand": str(self.root / "missing.exe")}, 0), (found, 1),
+                                 ({**found, "RunArguments": "--x"}, 0)):
+            with self.subTest(properties=properties, code=code), answer(properties, code), redirect_stdout(StringIO()):
+                self.assertEqual(dotnet_run, visual.launcher("src/Hearthpulse.App", None))
 
 
 if __name__ == "__main__":

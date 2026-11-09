@@ -7,7 +7,8 @@ Usage (from the repository root, isolated interpreter, needs Pillow with WebP):
   python -B -I tools/visual/visual_check.py update <out-dir> [--ui wpf|ava|both] [--scene <name>]...
 
 - render: builds the app (Release) unless --no-build, then for each theme of THEMES runs `--render-ui` with render group
-  `baseline` on a fresh copy of the fixture data folder tests/visual/data, isolated (HEARTHPULSE_ISOLATED=1: no network, no Hearthstone install), and keeps
+  `baseline` (the built executable itself, found by one MSBuild evaluation, or `dotnet run --no-build` when that fails;
+  each run's time is printed) on a fresh copy of the fixture data folder tests/visual/data, isolated (HEARTHPULSE_ISOLATED=1: no network, no Hearthstone install), and keeps
   that theme's frames as <out-dir>/<ui>/<theme>-<scene>.png. The real data folder is never read or written.
 - compare: each kept frame against tests/visual/baselines/<ui>/<theme>-<scene>.webp. A pixel counts as changed when
   one channel moves by more than THRESHOLD; a frame fails when more than MAX_CHANGED of its pixels changed or its size
@@ -19,11 +20,13 @@ Usage (from the repository root, isolated interpreter, needs Pillow with WebP):
 Baselines are taken from the CI runner's renders (job "Visual baselines", artifact visual-renders): WPF draws text
 with the system's fonts, so a PC with other fonts renders other pixels.
 """
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from PIL import Image, ImageChops
@@ -70,6 +73,28 @@ def uis(which: str) -> list[str]:
     return chosen
 
 
+def launcher(project: str, artifacts: str | None) -> list[str]:
+    """The command that starts the built app: the executable `dotnet run` would start (RunCommand, one MSBuild
+    evaluation instead of one per run), or `dotnet run --no-build` when it cannot be found."""
+    extra = ["--artifacts-path", artifacts] if artifacts else []
+    fallback = ["dotnet", "run", "--project", project, "-c", "Release", "--no-build", *extra, "--"]
+    query = ["dotnet", "msbuild", project, "-nologo", "-p:Configuration=Release",
+             "-getProperty:RunCommand", "-getProperty:RunArguments", "-getProperty:RunWorkingDirectory"]
+    if artifacts:
+        query.append(f"-p:ArtifactsPath={Path(artifacts).resolve()}")
+    try:
+        result = subprocess.run(query, capture_output=True, text=True, timeout=120, check=False)
+        found = json.loads(result.stdout)["Properties"] if result.returncode == 0 else {}
+    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError):
+        found = {}
+    command = found.get("RunCommand", "")
+    # Arguments or a working folder of its own would need dotnet run's handling of them; this project has neither.
+    if not command or not Path(command).is_file() or found.get("RunArguments") or found.get("RunWorkingDirectory"):
+        print(f"{project}: built executable not found, using dotnet run")
+        return fallback
+    return [command]
+
+
 def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
     failed = False
     extra = ["--artifacts-path", artifacts] if artifacts else []
@@ -77,6 +102,7 @@ def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
         project = PROJECTS[ui]
         if build:
             subprocess.run(["dotnet", "build", project, "-c", "Release", "--source", NUGET, "-v", "q", *extra], check=True)
+        start = launcher(project, artifacts)
         target = out / ui
         target.mkdir(parents=True, exist_ok=True)
         for old in target.glob("*.png"):
@@ -88,17 +114,18 @@ def render(out: Path, which: str, build: bool, artifacts: str | None) -> int:
                 env = dict(os.environ, HEARTHPULSE_DATA=str(data), HEARTHPULSE_ISOLATED="1",
                            HEARTHPULSE_RENDER_ONLY="baseline", HEARTHPULSE_THEME=theme)
                 log = out / f"{ui}-{theme}-render.log"
+                began = time.monotonic()
                 with open(log, "w", encoding="utf-8") as handle:
-                    code = subprocess.run(["dotnet", "run", "--project", project, "-c", "Release", "--no-build", *extra,
-                                           "--", "--render-ui", str(staging)],
+                    code = subprocess.run([*start, "--render-ui", str(staging)],
                                           env=env, stdout=handle, stderr=subprocess.STDOUT, timeout=600).returncode
+                seconds = time.monotonic() - began
                 kept = 0
                 for scene in scenes:
                     source = staging / f"{scene}.png"
                     if source.is_file() and source.stat().st_size > 0:
                         shutil.copy2(source, target / f"{theme}-{scene}.png")
                         kept += 1
-                print(f"{ui} {theme}: exit {code}, {kept}/{len(scenes)} frames (log {log})")
+                print(f"{ui} {theme}: exit {code}, {kept}/{len(scenes)} frames, {seconds:.1f} s (log {log})")
                 failed |= code != 0 or kept != len(scenes)
     return 1 if failed else 0
 
