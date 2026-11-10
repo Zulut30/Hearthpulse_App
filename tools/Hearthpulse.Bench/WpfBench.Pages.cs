@@ -37,6 +37,10 @@ internal static partial class WpfBench
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
         var api = new HearthpulseApi(http);
         var bgMeta = BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult();
+        // The tier tabs' lists, from the data folder's cache while it is fresh (the site's service otherwise).
+        using var siteHttp = Hearthpulse.Core.Battlegrounds.Site.BgSiteClient.CreateHttp();
+        var bgSite = new Hearthpulse.Core.Battlegrounds.Site.BgSiteClient(siteHttp).LoadAsync().GetAwaiter().GetResult();
+        Console.WriteLine($"[pages] site lists: heroes {bgSite?.Heroes?.Entries.Count ?? 0}, duos {bgSite?.HeroesDuos?.Entries.Count ?? 0}, minions {bgSite?.Minions?.Entries.Count ?? 0}, trinkets {bgSite?.Trinkets?.Entries.Count ?? 0}, comps {bgSite?.Comps.Count ?? 0}");
         var ctMeta = ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult();
         var history = new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-bench-ram-{n}.db"));
         if (history.GameCount() < n)
@@ -54,6 +58,7 @@ internal static partial class WpfBench
         Pump();
         vm.SetCards(cards);
         vm.SetMeta(bgMeta);
+        vm.SetBgSiteStats(bgSite);
         vm.SetConstructedMeta(ctMeta);
         var refresh = vm.RefreshAsync();
         while (!refresh.IsCompleted)

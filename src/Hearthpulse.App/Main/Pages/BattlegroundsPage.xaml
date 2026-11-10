@@ -24,8 +24,10 @@
                     </StackPanel>
                     <c:Wave Style="{StaticResource PageRule}" />
                 </StackPanel>
+                <!-- Solo / Duos: on My stats, and on Heroes when the service has a Duos list. It lies over the head's right
+                     side, so hiding it moves nothing. -->
                 <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"
-                        ToolTip="{i:Loc Main.Bg.ModeTip}">
+                        ToolTip="{i:Loc Main.Bg.ModeTip}" Visibility="{Binding ShowBgMode, Converter={StaticResource Vis}}">
                     <StackPanel Orientation="Horizontal">
                         <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Bg.Solo}" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
                         <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Duos}" GroupName="BgMode" Command="{Binding SetBgMode}" CommandParameter="Duos" />
@@ -34,7 +36,7 @@
             </Grid>
 
             <!-- One tab row: My stats first (as Standard and Wild), then the community tier lists; on its right the period
-                 (My stats) or the bracket (the tier lists, only when the stats have a choice) -->
+                 (My stats) or the MMR slice (Heroes and Trinkets, whose lists have more than one) -->
             <Grid Margin="0,0,0,14">
                 <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}">
                     <StackPanel Orientation="Horizontal">
@@ -60,7 +62,8 @@
                                      ToolTip="{i:Loc Stats.Period.ThisMonthBgTip}" />
                     </StackPanel>
                 </Border>
-                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice; the window shows it on the tier list tabs -->
+                <!-- The MMR slices of the open tab's list (heroes: top 50/20/5/1%, in Duos 50/20%; trinkets: the same four);
+                     hidden when there is no choice. It lies over the row's right side: showing it moves nothing. -->
                 <Grid HorizontalAlignment="Right" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
                     <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.BracketTip}" Visibility="Collapsed">
                         <ItemsControl ItemsSource="{Binding BracketOptions}">

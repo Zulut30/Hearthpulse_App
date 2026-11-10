@@ -81,7 +81,7 @@ with a synthetic HTTPS PoolEndpoint. Render mode never starts the source deliver
 | `main-settings-general`, `-overlay`, `-tracker`, `-account`, `-data`, `-about` | yes | yes | each Settings tab (`DevRender.Settings.cs` / `OffscreenRenderer.Settings.cs`) |
 | `main-settings-counters` | yes | yes | Tracker tab, scrolled to the Battlegrounds counters |
 | `main-constructed-tiers`, `main-constructed-top` | yes | - (no meta tabs) | `ShowConstructedTab` |
-| `main-battlegrounds-heroes`, `-comps`, `-trinkets`, `-cards` | yes | yes | BG tier list tabs, scrolled to the tabs; comps/trinkets show their empty state until the stats pool runs (`DevRender.BgMeta.cs` / `OffscreenRenderer.BgMeta.cs`) |
+| `main-battlegrounds-heroes`, `-comps`, `-trinkets`, `-cards` | yes | yes | BG tier list tabs on the site's lists, scrolled to the tabs (`DevRender.BgMeta.cs` / `OffscreenRenderer.BgMeta.cs`); `HEARTHPULSE_RENDER_ONLY=bgtabs` renders only them, with their states: `main-bg-heroes`, `-heroes-sorted`, `-heroes-top20`, `-heroes-duos`, `-comps`, `-trinkets`, `-trinkets-top50`, `-cards-t1`, `-cards-t4`, `-cards-spells`, `-heroes-stale`, `-comps-stale`, `-heroes-unavailable`, `-cards-unavailable`. The lists come from the data copy's `cache/api/bgsite-*.json` while those files are under 6 h old (else one live load) |
 | `main-battlegrounds-full`, `-constructed-full`, `-arena-full` | page content only | full window, tall | `DevRender.MyStats.cs` / `OffscreenRenderer.MyStats.cs` |
 | `main-battlegrounds-hover`, `main-constructed-hover` | if the chart has points | same | My Stats chart hover |
 | `main-compact`, `main-*-compact` | - | 420 wide | compact layout |

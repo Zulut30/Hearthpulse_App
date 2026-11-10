@@ -109,8 +109,9 @@ Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-source
 
 `BgSiteClient(HttpClient http, string? baseUrl = null, string? cacheDirectory = null).LoadAsync()` ->
 `BgSiteStats` (`Core/Battlegrounds/Site`), for the main window's Battlegrounds tabs only (owner's decision,
-2026-11-09: the lists hearthpulse.net shows; the advisor and overlay keep `BattlegroundsMeta`; the tabs switch to it
-in package PC2 of TASK-2026-11-09-light-ui-site-stats). Pass it `BgSiteClient.CreateHttp()`: no cookies, no
+2026-11-09: the lists hearthpulse.net shows; the advisor and overlay keep `BattlegroundsMeta`). Both hosts load it
+beside the community stats (`LoadBgSiteAsync`) and hand the result to `MainViewModel.SetBgSiteStats`; the tabs name
+the source "Hearthpulse data" with the list's slice and date. Pass it `BgSiteClient.CreateHttp()`: no cookies, no
 redirects, no default headers. Plain `GET`, nothing about the player; 20 s and 8 MB per answer; never throws. Cache
 `cache/api/bgsite-<part>.json`, 6 h; the old file answers when the server fails **or answers without data** (`{}`,
 `ok: false`, `view.blocked`, empty lists). Fields, sizes, sources and probes: `docs/bg-site-stats.md`; tests

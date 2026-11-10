@@ -4,10 +4,10 @@ Battlegrounds community stats no longer come from Firestone (`static.zerotoheroe
 its data. The owner's decision: **heroes and minions from our API (`api.kolodahearthstone.com`, HSReplay data), the
 rest from the Hearthpulse stats pool once it runs**. The app makes no request to `zerotoheroes.com` any more.
 
-**The main window's Battlegrounds tabs (Heroes, Trinkets, Cards, Comps) are moving off this meta.** By the owner's
-decision of 2026-11-09 ("as on hearthpulse.net") they are to show the lists of the site's open service
-`https://bg.hs-manacost.ru`: [bg-site-stats.md](bg-site-stats.md). The Core client is in place; the tabs switch to it in package PC2 of TASK-2026-11-09-light-ui-site-stats and read
-this meta until then. That decision replaces the earlier "trinkets from the API are not used" for the tabs: the
+**The main window's Battlegrounds tabs (Heroes, Trinkets, Cards, Comps) do not read this meta any more.** By the
+owner's decision of 2026-11-09 ("as on hearthpulse.net") they show the lists of the site's open service
+`https://bg.hs-manacost.ru`: [bg-site-stats.md](bg-site-stats.md). Of this meta the tabs keep one thing: the pool's
+tribes, shown on the Comps tab when the service has no comps. That decision replaces the earlier "trinkets from the API are not used" for the tabs: the
 service's trinket tier list is shown there. Firestone data stays out: the service's
 lists are read only when their source is on the allow list (HSReplay), so its Firestone lists are refused. This document describes what the in-game advisor and the overlay
 read, which is unchanged.

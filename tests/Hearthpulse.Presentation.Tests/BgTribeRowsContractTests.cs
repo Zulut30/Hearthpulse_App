@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Battlegrounds.Site;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -12,8 +13,9 @@ using AvaMain = Hearthpulse.UI.Main.MainViewModel;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// Battlegrounds "Comps" in both hosts: stats with the pool's tribes and no comps give the same tribe rows, tab name and
-/// hint in the WPF and the Avalonia view model (the tribe rows used to be built in the WPF shell only).
+/// Battlegrounds "Comps" in both hosts: when the site's service has no comps and the stats have the pool's tribes, both
+/// view models give the same tribe rows, tab name and hint (the tribe rows used to be built in the WPF shell only);
+/// with comps of the service, those are the rows in both.
 /// </summary>
 public sealed class BgTribeRowsContractTests
 {
@@ -33,37 +35,38 @@ public sealed class BgTribeRowsContractTests
         wpf.SetCards(Cards());
         ava.SetCards(Cards());
 
-        // Tribes and no comps: the tribes are the rows.
-        wpf.SetMeta(Meta([], Tribes));
-        ava.SetMeta(Meta([], Tribes));
+        // Tribes and no comps: the tribes are the rows, best average placement first.
+        wpf.SetMeta(Meta(Tribes));
+        ava.SetMeta(Meta(Tribes));
         Assert.Equal(3, wpf.CompTiers.Count);
-        Assert.Equal([Races.Display("MECHANICAL", "enUS"), Loc.T("Main.Bg.Mixed"), Races.Display("BEAST", "enUS")], wpf.CompTiers.Select(r => r.Name));
+        Assert.Equal([Races.Display("MECHANICAL", "enUS"), Loc.T("Main.Bg.Mixed"), Races.Display("BEAST", "enUS")], wpf.CompTiers.Cast<Hearthpulse.App.Main.MetaCompRow>().Select(r => r.Name));
         AssertSame(wpf, ava);
-        Assert.Equal((Loc.T("Main.Bg.Tribes"), Loc.T("Main.Bg.CompCaptionTribes"), true), (ava.CompTabLabel, ava.CompCaption, ava.HasCompTiers));
+        Assert.Equal((Loc.T("Main.Bg.Tribes"), Loc.T("Main.Bg.CompCaptionTribes"), true), (ava.CompTabLabel, ava.CompCaption, ava.CompTab.HasRows));
 
-        // Comps: they are the rows, as before, whatever tribes came with them.
-        var comp = new MetaComp("mechs", "Mechs", "A", "Easy", ["MECHANICAL"], [new MetaCompCard("BG36_731", "CORE")], null, null, 2.9,
-            new Dictionary<int, double>(), new Dictionary<string, (int DataPoints, double Placement)>());
-        wpf.SetMeta(Meta([comp], Tribes));
-        ava.SetMeta(Meta([comp], Tribes));
-        Assert.Equal(["Mechs"], wpf.CompTiers.Select(r => r.Name));
-        Assert.Equal("Imp-lusionist", wpf.CompTiers[0].KeyCards);
+        // Comps of the service: they are the rows, under their tier's head, whatever tribes the pool has.
+        var site = new BgSiteStats(null, null, null, null, null, new Dictionary<string, BgSiteCardStat>(), new Dictionary<string, BgSiteCardStat>(),
+            [new BgSiteComp("mechs", "Mechs", string.Empty, "A", [], ["BG36_731"], null, null, "easy", null)], null, new DateTime(2026, 11, 10, 12, 0, 0, DateTimeKind.Utc));
+        wpf.SetBgSiteStats(site);
+        ava.SetBgSiteStats(site);
+        var comp = Assert.Single(wpf.CompTiers.OfType<Hearthpulse.App.Main.MetaCompRow>());
+        Assert.Equal(("Mechs", Loc.T("Main.Bg.Core") + "Imp-lusionist"), (comp.Name, comp.Core));
+        Assert.Equal(2, wpf.CompTiers.Count);
         AssertSame(wpf, ava);
         Assert.Equal((Loc.T("Main.Bg.Comps"), Loc.T("Main.Bg.CompCaptionComps")), (ava.CompTabLabel, ava.CompCaption));
 
         // Neither: an empty tab under the usual name, in both.
-        wpf.SetMeta(Meta([], []));
-        ava.SetMeta(Meta([], []));
+        wpf.SetBgSiteStats(site with { Comps = [] });
+        ava.SetBgSiteStats(site with { Comps = [] });
+        wpf.SetMeta(Meta([]));
+        ava.SetMeta(Meta([]));
         AssertSame(wpf, ava);
-        Assert.Equal((Loc.T("Main.Bg.Comps"), false), (ava.CompTabLabel, ava.HasCompTiers));
+        Assert.Equal((Loc.T("Main.Bg.Comps"), false, Loc.T("Main.Bg.ListUnavailable")), (ava.CompTabLabel, ava.CompTab.HasRows, ava.CompTab.EmptyText));
     }
 
     private static void AssertSame(WpfMain wpf, AvaMain ava)
     {
-        Assert.Equal(
-            wpf.CompTiers.Select(r => (r.Rank, r.Name, r.Tribes, r.Power, r.Difficulty, r.Placement, r.BarFraction, r.Commit, r.KeyCards)),
-            ava.CompTiers.Select(r => (r.Rank, r.Name, r.Tribes, r.Power, r.Difficulty, r.Placement, r.BarFraction, r.Commit, r.KeyCards)));
-        Assert.Equal((wpf.CompTabLabel, wpf.CompCaption, wpf.HasCompTiers, wpf.CompEmptyText), (ava.CompTabLabel, ava.CompCaption, ava.HasCompTiers, ava.CompEmptyText));
+        Assert.Equal(wpf.CompTiers.Select(r => r.ToString()), ava.CompTiers.Select(r => r.ToString()));
+        Assert.Equal((wpf.CompTabLabel, wpf.CompCaption, wpf.CompTab.ToString()), (ava.CompTabLabel, ava.CompCaption, ava.CompTab.ToString()));
     }
 
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
@@ -72,12 +75,12 @@ public sealed class BgTribeRowsContractTests
         """[{ "id": "BG36_731", "dbfId": 132899, "name": "Imp-lusionist", "type": "MINION", "races": ["DEMON"], "techLevel": 4, "isBattlegroundsPoolMinion": true }]""")));
 
     /// <summary>Core builds these from the API and the stats pool; its constructor is internal.</summary>
-    private static BattlegroundsMeta Meta(IReadOnlyList<MetaComp> comps, IReadOnlyList<PoolTribe> tribes)
+    private static BattlegroundsMeta Meta(IReadOnlyList<PoolTribe> tribes)
     {
         var meta = (BattlegroundsMeta)Activator.CreateInstance(
             typeof(BattlegroundsMeta), BindingFlags.Instance | BindingFlags.NonPublic, null,
             [
-                new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), Array.Empty<(int, int)>(), comps,
+                new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), Array.Empty<(int, int)>(), Array.Empty<MetaComp>(),
                 new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
                 new DateTime(2026, 11, 10, 12, 0, 0, DateTimeKind.Utc),
             ],

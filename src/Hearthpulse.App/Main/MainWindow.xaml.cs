@@ -394,7 +394,11 @@ public partial class MainWindow : Window
         }
 
         var mine = PageBattlegrounds.TabMine.IsChecked == true;
-        FrameworkElement shown = mine ? PageBattlegrounds.BgStats : PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
+        // The view model follows the tab: the MMR slices and "Solo / Duos" belong to some tabs only. A tier tab's card
+        // is built here, on its first opening; My stats builds none.
+        _viewModel.BgTabShown(BattlegroundsTab);
+        var card = PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
+        FrameworkElement shown = mine ? PageBattlegrounds.BgStats : card;
         PageBattlegrounds.BracketPicker.Visibility = mine ? Visibility.Collapsed : Visibility.Visible;
         if (chosen)
         {
