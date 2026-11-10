@@ -300,9 +300,9 @@
                                         <ColumnDefinition Width="100" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" c:RoundClip.Radius="4" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
-                                        <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
-                                    </Border>
+                                    <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
+                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                            i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding Kind}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />

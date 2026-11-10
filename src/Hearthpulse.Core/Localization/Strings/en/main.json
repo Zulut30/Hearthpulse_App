@@ -140,7 +140,6 @@
   "Main.Bg.CompCaptionComps": "Board archetypes ranked by how well players who played them finished. Core cards are what the comp needs; tribes must be in your lobby.",
   "Main.Bg.Core": "Core: ",
   "Main.Bg.TierBestTip": "Tier (S best)",
-  "Main.Bg.PowerBestTip": "Power level (S best)",
   "Main.Bg.AvgPlacementTip": "Average final placement (lower is better)",
   "Main.Bg.CardsCaption": "Average final placement of players who played each card. Only compare cards of the same tier: late, high-tier cards always look better.",
   "Main.Bg.CardTierTip": "Tavern tier to show",
