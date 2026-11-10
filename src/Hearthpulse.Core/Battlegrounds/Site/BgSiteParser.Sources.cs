@@ -39,6 +39,20 @@ internal static partial class BgSiteParser
     private static bool HeroesUsable(string? sourceId, string? site) => Allowed(sourceId) && (site is null || Allowed(site));
 
     /// <summary>
+    /// A heroes slice (<c>?mode=&amp;mmr=</c>) names no source of its own: its origin is vouched for by the answer of the
+    /// same address without parameters (<see cref="HeroesSource"/>, checked by the client before a slice is asked for).
+    /// A slice that does name one must name an allowed one.
+    /// </summary>
+    private static bool SliceSourceOk(string? sourceId, string? site) => (sourceId is null && site is null) || HeroesUsable(sourceId, site);
+
+    /// <summary>
+    /// The allowed source the base heroes answer (<c>/api/bg/heroes</c> without parameters) names, verbatim; null when
+    /// it names none or one that is not allowed. Heroes slices are read only under it.
+    /// </summary>
+    internal static string? HeroesSource(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object && HeroesUsable(Str(root, "source_id"), Str(root, "site")) ? Str(root, "source_id") : null;
+
+    /// <summary>
     /// The answer of a part as it is cached: lists and comps the app may not show are cut, so their data is not kept on
     /// disk. Null when the bytes are not a JSON object.
     /// </summary>
@@ -93,7 +107,8 @@ internal static partial class BgSiteParser
                     }
 
                     break;
-                case BgSitePartKind.Heroes or BgSitePartKind.HeroSlice when !HeroesUsable(Text(answer, "source_id"), Text(answer, "site")):
+                case BgSitePartKind.Heroes when !HeroesUsable(Text(answer, "source_id"), Text(answer, "site")):
+                case BgSitePartKind.HeroSlice when !SliceSourceOk(Text(answer, "source_id"), Text(answer, "site")):
                     Diag.Info($"Battlegrounds site {part.Name}: source \"{Clean(Text(answer, "source_id"), 80)}\" is not used");
                     answer.Remove("view");
                     break;
@@ -141,11 +156,11 @@ internal static partial class BgSiteParser
                        && lists.EnumerateObject().Any(l => ListHasRows(l.Value));
             case BgSitePartKind.TrinketList:
                 return ListHasRows(root);
-            case BgSitePartKind.Heroes or BgSitePartKind.HeroSlice:
-                return !Is(root, "ok", JsonValueKind.False) && HeroesUsable(Str(root, "source_id"), Str(root, "site"))
-                       && root.TryGetProperty("view", out var view) && view.ValueKind == JsonValueKind.Object && !Is(view, "blocked", JsonValueKind.True)
-                       && view.TryGetProperty("heroes", out var heroes) && heroes.ValueKind == JsonValueKind.Array
-                       && heroes.EnumerateArray().Any(h => CardId(h, "id") is not null);
+            case BgSitePartKind.Heroes:
+                return !Is(root, "ok", JsonValueKind.False) && HeroesUsable(Str(root, "source_id"), Str(root, "site")) && HasHeroRows(root, typed: false);
+            case BgSitePartKind.HeroSlice:
+                // The slice has no source to check, so what it does say must be exact: ok, and a heroes view.
+                return Is(root, "ok", JsonValueKind.True) && SliceSourceOk(Str(root, "source_id"), Str(root, "site")) && HasHeroRows(root, typed: true);
             case BgSitePartKind.MinionStats:
                 return root.TryGetProperty("latest_run", out var run) && Allowed(Str(run, "source"))
                        && root.TryGetProperty("minions", out var minions) && minions.ValueKind == JsonValueKind.Array
@@ -164,5 +179,11 @@ internal static partial class BgSiteParser
             && TierLetters.Any(t => tiers.TryGetProperty(t, out var bucket) && bucket.ValueKind == JsonValueKind.Array && bucket.GetArrayLength() > 0);
 
         static bool Is(JsonElement item, string name, JsonValueKind kind) => item.TryGetProperty(name, out var value) && value.ValueKind == kind;
+
+        static bool HasHeroRows(JsonElement root, bool typed) =>
+            root.TryGetProperty("view", out var view) && view.ValueKind == JsonValueKind.Object && !Is(view, "blocked", JsonValueKind.True)
+            && (!typed || string.Equals(Str(view, "type"), "bg_heroes", StringComparison.Ordinal))
+            && view.TryGetProperty("heroes", out var heroes) && heroes.ValueKind == JsonValueKind.Array
+            && heroes.EnumerateArray().Any(h => CardId(h, "id") is not null);
     }
 }

@@ -31,7 +31,7 @@ internal static partial class BgSiteParser
     /// <summary>Null when the answer is refused by source or has no hero rows.</summary>
     internal static HeroDetails? ParseHeroes(JsonElement root)
     {
-        if (HeroRows(root, "heroes") is not { } rows)
+        if (HeroRows(root, "heroes", slice: false) is not { } rows)
         {
             return null;
         }
@@ -52,11 +52,13 @@ internal static partial class BgSiteParser
 
     /// <summary>
     /// A heroes list of one mode and MMR slice (<c>/api/bg/heroes?mode=&amp;mmr=</c>): the answer carries the tier of
-    /// each hero itself. Null when the answer names no allowed source or has no hero rows.
+    /// each hero itself, and no source: <paramref name="baseSource"/> is the allowed source the answer of the same
+    /// address without parameters named. Heroes the slice has no tier for (too few games) are left out. Null when the
+    /// answer has no hero rows.
     /// </summary>
-    internal static BgSiteTierList? ParseHeroSlice(JsonElement root, string name)
+    internal static BgSiteTierList? ParseHeroSlice(JsonElement root, string name, string baseSource)
     {
-        if (HeroRows(root, name) is not { } rows)
+        if (HeroRows(root, name, slice: true) is not { } rows)
         {
             return null;
         }
@@ -79,26 +81,26 @@ internal static partial class BgSiteParser
 
         if (dropped > 0)
         {
-            Diag.Info($"Battlegrounds site {name}: {dropped} heroes without a card id or a known tier dropped");
+            Diag.Info($"Battlegrounds site {name}: {dropped} heroes without a card id or a tier left out");
         }
 
         var entries = TierLetters.SelectMany(t => byTier[t]).ToList();
         var filters = Filters(root);
         return entries.Count == 0
             ? null
-            : new BgSiteTierList(BgSiteList.Heroes, entries, TierLetters, Time(root, "fetched_at") ?? default, Str(root, "source_id")!,
+            : new BgSiteTierList(BgSiteList.Heroes, entries, TierLetters, Time(root, "fetched_at") ?? default, Str(root, "source_id") ?? baseSource,
                 Key(filters, "mmr_percentile"), Key(filters, "time_range"), GamesNote: null);
     }
 
     /// <summary>The hero rows of a heroes answer whose source is allowed; null (logged) otherwise.</summary>
-    private static JsonElement? HeroRows(JsonElement root, string name)
+    private static JsonElement? HeroRows(JsonElement root, string name, bool slice)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
 
-        if (!HeroesUsable(Str(root, "source_id"), Str(root, "site")))
+        if (slice ? !SliceSourceOk(Str(root, "source_id"), Str(root, "site")) : !HeroesUsable(Str(root, "source_id"), Str(root, "site")))
         {
             Diag.Info($"Battlegrounds site {name}: source \"{Clean(Str(root, "source_id"), 80)}\" is not used");
             return null;

@@ -1,0 +1,304 @@
+{
+ "ok": true,
+ "fetched_at": "2026-11-09T23:57:39.416183+00:00",
+ "view": {
+  "type": "bg_heroes",
+  "mode": "solo",
+  "heroes": [
+   {
+    "hero": "Thorim, Stormlord",
+    "dbfId": 103477,
+    "id": "BG27_HERO_801",
+    "tier": "S",
+    "pick_rate": "51.22%",
+    "pick_rate_value": 51.22,
+    "avg_placement": 2.781,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "41.75%",
+     "17.85%",
+     "9.76%",
+     "8.42%",
+     "9.09%",
+     "3.70%",
+     "5.39%",
+     "4.04%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG27_HERO_801.png?88c1ee",
+    "hero_power": {
+     "dbf": 104628
+    }
+   },
+   {
+    "hero": "Lord Jaraxxus",
+    "dbfId": 59807,
+    "id": "TB_BaconShop_HERO_37",
+    "tier": "A",
+    "pick_rate": "56.05%",
+    "pick_rate_value": 56.05,
+    "avg_placement": 3.013,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "27.04%",
+     "27.04%",
+     "13.21%",
+     "11.95%",
+     "6.29%",
+     "4.40%",
+     "5.66%",
+     "4.40%"
+    ],
+    "best_composition_id": 9,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_37.png?9ff2c3",
+    "hero_power": {
+     "dbf": 59808
+    }
+   },
+   {
+    "hero": "Tickatus",
+    "dbfId": 67356,
+    "id": "TB_BaconShop_HERO_94",
+    "tier": "A",
+    "pick_rate": "19.21%",
+    "pick_rate_value": 19.21,
+    "avg_placement": 3.067,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "30.77%",
+     "18.27%",
+     "17.31%",
+     "9.62%",
+     "9.62%",
+     "5.77%",
+     "2.88%",
+     "5.77%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_94.png?316358",
+    "hero_power": {
+     "dbf": 67357
+    }
+   },
+   {
+    "hero": "Mister Clocksworth",
+    "dbfId": 126532,
+    "id": "BG34_HERO_002",
+    "tier": "B",
+    "pick_rate": "44.33%",
+    "pick_rate_value": 44.33,
+    "avg_placement": 3.365,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "30.11%",
+     "18.22%",
+     "7.43%",
+     "12.27%",
+     "11.52%",
+     "8.18%",
+     "6.32%",
+     "5.95%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG34_HERO_002.png?6ede3f",
+    "hero_power": {
+     "dbf": 126533
+    }
+   },
+   {
+    "hero": "Buttons",
+    "dbfId": 120649,
+    "id": "BG32_HERO_002",
+    "tier": "B",
+    "pick_rate": "63.36%",
+    "pick_rate_value": 63.36,
+    "avg_placement": 3.385,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "28.12%",
+     "16.71%",
+     "12.73%",
+     "12.20%",
+     "9.81%",
+     "7.96%",
+     "6.63%",
+     "5.84%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG32_HERO_002.png?56ceb3",
+    "hero_power": {
+     "dbf": 120650
+    }
+   },
+   {
+    "hero": "Forest Lord Cenarius",
+    "dbfId": 116920,
+    "id": "BG32_HERO_001",
+    "tier": "C",
+    "pick_rate": "67.13%",
+    "pick_rate_value": 67.13,
+    "avg_placement": 3.568,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "28.16%",
+     "19.21%",
+     "9.47%",
+     "9.47%",
+     "6.05%",
+     "9.47%",
+     "8.42%",
+     "9.74%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG32_HERO_001.png?18151a",
+    "hero_power": {
+     "dbf": 116921
+    }
+   },
+   {
+    "hero": "Loh, the Living Legend",
+    "dbfId": 122925,
+    "id": "BG33_HERO_001",
+    "tier": "C",
+    "pick_rate": "22.95%",
+    "pick_rate_value": 22.95,
+    "avg_placement": 3.57,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "21.48%",
+     "20.00%",
+     "15.56%",
+     "6.67%",
+     "11.11%",
+     "12.59%",
+     "9.63%",
+     "2.96%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG33_HERO_001.png?3bd97d",
+    "hero_power": {
+     "dbf": 129164
+    }
+   },
+   {
+    "hero": "Xyrella",
+    "dbfId": 70956,
+    "id": "BG20_HERO_101",
+    "tier": "D",
+    "pick_rate": "18.12%",
+    "pick_rate_value": 18.12,
+    "avg_placement": 3.712,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "17.12%",
+     "19.82%",
+     "11.71%",
+     "20.72%",
+     "8.11%",
+     "8.11%",
+     "8.11%",
+     "6.31%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG20_HERO_101.png?a70404",
+    "hero_power": {
+     "dbf": 70957
+    }
+   },
+   {
+    "hero": "Tess Greymane",
+    "dbfId": 60367,
+    "id": "TB_BaconShop_HERO_50",
+    "tier": "D",
+    "pick_rate": "17.53%",
+    "pick_rate_value": 17.53,
+    "avg_placement": 3.731,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "25.00%",
+     "14.81%",
+     "10.19%",
+     "11.11%",
+     "12.96%",
+     "11.11%",
+     "6.48%",
+     "8.33%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_50.png?b1aab6",
+    "hero_power": {
+     "dbf": 63162
+    }
+   },
+   {
+    "hero": "Alexstrasza",
+    "dbfId": 61488,
+    "id": "TB_BaconShop_HERO_56",
+    "tier": null,
+    "pick_rate": "15.38%",
+    "pick_rate_value": 15.38,
+    "avg_placement": null,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_56.png?3ec9a7",
+    "hero_power": {
+     "dbf": 61517
+    }
+   },
+   {
+    "hero": "Aranna Starseeker",
+    "dbfId": 61910,
+    "id": "TB_BaconShop_HERO_59",
+    "tier": null,
+    "pick_rate": "13.39%",
+    "pick_rate_value": 13.39,
+    "avg_placement": null,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_59.png?79435b",
+    "hero_power": {
+     "dbf": 61915
+    }
+   }
+  ],
+  "filters": {
+   "mmr_percentile": "TOP_1_PERCENT",
+   "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+  }
+ }
+}

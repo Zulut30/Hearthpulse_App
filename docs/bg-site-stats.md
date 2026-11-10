@@ -8,7 +8,7 @@ the client. The in-game advisor and the overlay do not use it at all: they keep 
 ([bg-meta-sources.md](bg-meta-sources.md)).
 
 Answers were captured on **2026-11-09 23:06 UTC** with one plain `GET` per address, no sign-in, no cookie; five more
-probes for Duos and MMR slices on 2026-11-09 23:35 UTC (section 2). Trimmed copies are the test fixtures in
+probes for Duos and MMR slices on 2026-11-09 23:35 UTC and six on 23:58 UTC (section 2). Trimmed copies are the test fixtures in
 `tests/Hearthpulse.Tests/Fixtures/BgSite/` (its `README.md` says what was cut).
 
 Code: `src/Hearthpulse.Core/Battlegrounds/Site/` (`BgSiteClient`, `BgSiteStats`). Tests: `BgSiteStatsTests`.
@@ -21,7 +21,8 @@ Code: `src/Hearthpulse.Core/Battlegrounds/Site/` (`BgSiteClient`, `BgSiteStats`)
   and follows no redirects (`AllowAutoRedirect = false`), and it has no default headers. Whatever client is passed, an
   answer that reports another scheme, host or port than the service's (a followed redirect) is not read, and a 3xx
   answer is a failed load.
-- Five requests per refresh (section 2, "read"); the limit is 8. A slice asked on demand is one more request.
+- Five requests per refresh (section 2, "read"), each one used; the limit is 8. The refresh reads every list in its
+  default slice; another slice is read on demand, one request, cached under its own mode and slice.
 - Cache `<data>/cache/api/bgsite-<part>.json`, 6 h, written through a temporary file. A failed request falls back to
   the old file, however old; the list's own `fetchedAt` goes to the UI so it can say how old the numbers are.
 - **An answer without data is a failed load**, whatever its status: `{}`, a maintenance note, empty lists, the
@@ -49,7 +50,7 @@ stale-while-revalidate=900`, a weak `etag`, `access-control-allow-origin: *`.
 |---|---|---|---|---|---|
 | `/api/bg/tier-lists` | 950 KB | yes | per list, below | `bgsite-tier-lists.json` | Heroes, Trinkets, Cards |
 | `/api/bg/heroes` | 125 KB | yes | `source_id`: `hsreplay_battlegrounds_heroes`, `site`: `hsreplay` | `bgsite-heroes.json` | Heroes (card id, top 4, 1st place, MMR slice) |
-| `/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT` | 128 KB | yes | **none**: the answer has no `source_id`, `site` or `url` | `bgsite-heroes-duos-top_50_percent.json` | Heroes, Duos: **not given out today** (no source, section 4) |
+| `/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT` | 128 KB | yes | **none**: the answer has no `source_id`, `site` or `url` | `bgsite-heroes-duos-top_50_percent.json` | Heroes, Duos (asked only after `/api/bg/heroes` named its source, section 4) |
 | `/api/bg/library/minion-stats` | 100 KB | yes | `latest_run.source`: `hsreplay_battlegrounds_minions` | `bgsite-minion-stats.json` | Cards (minions) |
 | `/api/bg-comps` | 109 KB | yes | `HSReplay + Firestone через api.kolodahearthstone.com`; per comp `source`: `HSReplay` (33) or `Firestone` (27) | `bgsite-comps.json` | Comps |
 | `/api/bg/library/spell-stats` | 24 KB | **no** | `source_id`: `firestone_battlegrounds_spells`, `site`: `firestone` | — | — (Firestone, section 4) |
@@ -81,28 +82,46 @@ site asks the same service with query parameters. Probes on 2026-11-09 23:35 UTC
 | `/api/bg/library/minion-stats?mmr=TOP_20_PERCENT` | 200, 99 818 bytes, byte for byte the answer without the parameter (`latest_run.mmr_percentile`: `TOP_50_PERCENT`) | **Minion stats have one slice**; the parameter is ignored. |
 | `/api/bg/tier-lists?list=heroes&mode=duos&mmr=TOP_50_PERCENT` | 400 `{"error": "Unknown BG tier list"}` | There is no heroes tier list by `?list=heroes`; Duos comes from `/api/bg/heroes` only. |
 
-Not probed: `TOP_5_PERCENT` / `TOP_1_PERCENT` for heroes, `TOP_20_PERCENT` / `TOP_5_PERCENT` for trinkets, other
-`timeRange` values, `?list=minions`. The four slice names in `BgSiteClient.MmrSlices` are the ones the site's own page
-sends; a slice the service does not have is a failed load (`null`).
+Second round, 2026-11-09 23:58 UTC, one `GET` each, for the slice names not yet seen:
+
+| Request | Answer | Shows |
+|---|---|---|
+| `/api/bg/heroes?mode=solo&mmr=TOP_5_PERCENT` | 200, 163 995 bytes; 116 heroes, 103 with a tier (S 2 / A 25 / B 28 / C 28 / D 20), 13 with `tier` null and an empty distribution | the slice exists |
+| `/api/bg/heroes?mode=solo&mmr=TOP_1_PERCENT` | 200, 95 850 bytes; 85 heroes, 47 with a tier (S 1 / A 4 / B 17 / C 16 / D 9), 38 without | the slice exists, thinner |
+| `/api/bg/heroes?mode=duos&mmr=TOP_20_PERCENT` | 200, 127 586 bytes; `mode` `duos`, 115 heroes (A 35 / B 23 / C 41 / D 16) | Duos has MMR slices too |
+| `/api/bg/heroes?mode=duos` | 200, 127 584 bytes; `mmr_percentile` `TOP_50_PERCENT`, same `fetched_at` and numbers as `mode=duos&mmr=TOP_50_PERCENT` | the Duos default is top 50% |
+| `/api/bg/tier-lists?list=trinkets&mmr=TOP_20_PERCENT&timeRange=LAST_7_DAYS` | 200, 333 439 bytes; `source` `hsreplay`, `mmr` `TOP_20_PERCENT`, 256 trinkets | the slice exists |
+| `/api/bg/tier-lists?list=trinkets&mmr=TOP_5_PERCENT&timeRange=LAST_7_DAYS` | 200, 332 071 bytes; `source` `hsreplay`, `mmr` `TOP_5_PERCENT`, 255 trinkets | the slice exists |
+
+**Slices the client supports** (`BgSiteClient.HeroesSoloSlices`, `HeroesDuosSlices`, `TrinketSlices`, each a
+`BgSiteSlices(Mmr, Default)`):
+
+| List | Slices (`mmr`) | Default of the service | In `BgSiteStats` (refresh) | Other slices |
+|---|---|---|---|---|
+| Heroes, solo | `TOP_50_PERCENT`, `TOP_20_PERCENT`, `TOP_5_PERCENT`, `TOP_1_PERCENT` (current patch) | `TOP_50_PERCENT` | `Heroes` | `LoadHeroesAsync(duos: false, mmr)` |
+| Heroes, Duos | `TOP_50_PERCENT`, `TOP_20_PERCENT` (current patch) | `TOP_50_PERCENT` | `HeroesDuos` | `LoadHeroesAsync(duos: true, mmr)` |
+| Trinkets | `TOP_50_PERCENT`, `TOP_20_PERCENT`, `TOP_5_PERCENT`, `TOP_1_PERCENT` (last 7 days) | `TOP_1_PERCENT` | `Trinkets` | `LoadTrinketsAsync(mmr)` |
+| Minions (tier list and `MinionStats`) | one: `TOP_50_PERCENT`, current patch (`BgSiteStats.Run`) | the same | `Minions`, `MinionStats` | none: the `mmr` parameter is ignored |
+| Comps | one, no slice named | | `Comps` | none |
+
+- Every slice in the table was seen answering, except Duos `TOP_5_PERCENT` and `TOP_1_PERCENT`: not probed, so not
+  listed (the site's page offers them; adding one is a value in `HeroesDuosSlices` after a probe). Trinkets
+  `TOP_1_PERCENT` was seen as the default list of `/api/bg/tier-lists`, not by `?list=trinkets&mmr=TOP_1_PERCENT`.
+- The default slice asked on demand is served from the refresh's own answers, with no other address: solo heroes
+  `TOP_50_PERCENT` is the site's tier list (`lists.heroes` + `/api/bg/heroes`), trinkets `TOP_1_PERCENT` is
+  `lists.trinkets`.
+- **"No data for the slice" is not an error.** A slice name that is not in the table returns `null` without a request;
+  a listed slice the service does not answer for (4xx, 5xx, no rows) returns `null`, and the refresh and the other
+  lists are not affected.
+- In the high solo slices the service has no tier, placement or distribution for heroes with too few games (13 of 116
+  in the top 5%, 38 of 85 in the top 1%): they are left out of the list, so a slice can be much shorter than top 50%.
+- The solo default list and the solo slices differ in shape: the default is the site's tier list (Russian hero
+  names, card ids from a second answer), a slice is the heroes answer itself (English names, its own `tier`).
 
 **The sliced heroes answer names no source.** `/api/bg/heroes` without parameters carries `source_id`:
-`hsreplay_battlegrounds_heroes`, `site`, `url`, `backend`; with `mode` and `mmr` the answer has only `ok`,
+`hsreplay_battlegrounds_heroes`, `site`, `url`, `backend`; with `mode` and / or `mmr` the answer has only `ok`,
 `fetched_at` and `view{type, mode, heroes, filters}`: the words "hsreplay" and "firestone" do not occur in it at all.
-Under the allow list (section 4) an answer without a source is refused, so today:
-
-- `BgSiteStats.HeroesDuos` is `null`, and `LoadHeroesAsync(duos, mmr)` returns `null` for every slice, although the
-  requests are made and the parsing is in place (tests feed the real answer with a `source_id` added).
-- The Duos list appears without an app update the day the service adds `source_id`:
-  `hsreplay_battlegrounds_heroes` to that answer. The other way is a decision for legal and the owner: accept the
-  address itself as the origin of `/api/bg/heroes?mode=…` (one rule in `BgSiteParser`).
-- Until one of the two happens the refresh spends one request (128 KB) on an answer it does not use.
-
-What works today: `LoadTrinketsAsync(mmr)` (the answer names `hsreplay`). The refresh still reads the default trinket
-list of `/api/bg/tier-lists` (top 1%).
-
-**Slices per list today:** heroes solo - top 50% only (other slices need a source); minions - one; trinkets - top 1%
-in `BgSiteStats.Trinkets`, top 50% on demand (verified), the other two names unverified. Whether the tabs get a percent
-picker is the lead's decision with these facts.
+How such a slice is accepted is rule 6 of section 4.
 
 The minions tier list (`lists.minions`) names no slice of its own. `BgSiteStats.Run` is the slice of `minion-stats`,
 a separate run of the server; that the tier list is the same slice is likely but not stated by the service.
@@ -153,22 +172,23 @@ When this address fails, the heroes list is `null` (no card ids), the other list
 
 ### `/api/bg/heroes?mode=<solo|duos>&mmr=<slice>` -> `BgSiteTierList` (Duos, `LoadHeroesAsync`)
 
-Top level: `ok` bool, `fetched_at` -> `FetchedAt`, `view{type "bg_heroes", mode, filters{mmr_percentile, time_range},
-heroes[]}`; **no `source_id`** (section 2). Each hero carries its own tier, so this list needs no second answer:
+Top level: `ok` bool (must be `true`), `fetched_at` -> `FetchedAt`, `view{type (must be `"bg_heroes"`), mode,
+filters{mmr_percentile, time_range}, heroes[]}`; **no `source_id`** (section 4, rule 6). Each hero carries its own
+tier, so the list is built from this answer alone:
 
 | Field | Type | Example (Duos) | Goes to |
 |---|---|---|---|
 | `id` | string | `"TB_BaconShop_HERO_34"` | `CardId` |
 | `dbfId` | int | `59397` | `DbfId` |
 | `hero` | string, **English** | `"Patchwerk"` | `NameEn` and `NameRu` |
-| `tier` | `"S"`..`"D"` | `"A"` | `Tier`; a hero with another value is dropped |
+| `tier` | `"S"`..`"D"`, or null when the slice has too few games of the hero | `"A"` | `Tier`; a hero without one is left out |
 | `avg_placement` | number | `2.178` | `AveragePlacement` |
 | `pick_rate` (= `pick_rate_value`) | string percent / number | `"48.51%"` | `PickRate` |
 | `placement_distribution` | string[8] solo, string[4] Duos | `["33.06%","30.50%","22.01%","14.44%"]` | `FirstRate` = [0]; `Top4Rate` = the top half: places 1-4 of 8, **1-2 of 4 in Duos** |
 | `adjusted_avg_placement`, `anomaly_adjusted`, `best_composition`, `best_composition_id`, `key_minions_top3`, `image`, `hero_power` | | | not read |
 
-Entries are ordered S to D, inside a tier as sent; `AvailableTiers` is all five letters; `Source` is the answer's
-`source_id`; `Games` is `null`.
+Entries are ordered S to D, inside a tier as sent; `AvailableTiers` is all five letters; `Source` is the `source_id`
+the base heroes answer named (`hsreplay_battlegrounds_heroes`); `Games` is `null`.
 
 ### `lists.minions.tiers.<L>[]` → `BgSiteTierEntry`
 
@@ -208,7 +228,8 @@ distribution`) goes to `BgSiteTierList.GamesNote`: the UI must not present `Game
 `TavernTier` is 0.
 
 `/api/bg/tier-lists?list=trinkets&mmr=<slice>&timeRange=LAST_7_DAYS` (`LoadTrinketsAsync`) is the same list object at
-the top level of the answer, with the same entry fields; in the top 50% slice no trinket has `games` 0.
+the top level of the answer, with the same entry fields and its own `source` (`hsreplay` in the three slices seen);
+in the top 50% slice no trinket has `games` 0.
 
 ### `/api/bg/library/minion-stats` → `BgSiteCardStat`, `BgSiteRun`
 
@@ -273,6 +294,23 @@ forbidden names: the server changes without an app update, so a renamed or new o
    stay, the 27 marked `Firestone` are cut. A comp without a `source` of its own takes the list's, which is not on
    the allow list, so it is cut.
 5. The check is by source, never by list name: the spells list would be read the day the service marks it `hsreplay`.
+6. **Heroes slices** (`/api/bg/heroes?mode=…&mmr=…`: Duos, and the solo MMR slices) - *coordinator's decision,
+   2026-11-10, pending confirmation by legal.* These answers name no source at all, so rule 2 alone would refuse them.
+   A slice is read only when both hold:
+   - (a) in the same load, the answer of the same address **without parameters** (`/api/bg/heroes`) named an allowed
+     source: `source_id` `hsreplay_battlegrounds_heroes` (and an allowed `site`). The client asks for that answer
+     first and asks for the slice only after it; the slice's `Source` is that `source_id`.
+   - (b) the slice itself says `ok: true` and `view.type` is `"bg_heroes"` (and is not `view.blocked`). A slice that
+     does name a source of its own must name an allowed one.
+
+   Why this is not "the address is the source": the slices are other filters of the one dataset the base answer
+   describes (same address, same `view.type`, the same heroes, the server's own statement of where that dataset comes
+   from), and the statement is checked on every load, not assumed. If the base answer cannot be had, names no source
+   or names another one, no slice is requested and none is read from the cache: the Duos list and the MMR slices
+   disappear together with the reason to trust them. One exception keeps the tab from emptying on a network error:
+   when the load of the base answer failed and its old file (which named the allowed source) stands in, the old file
+   of a slice may stand in too; no slice is fetched on the strength of an old base answer. When the service answered
+   just now with another or no source, even the cached slice is dropped.
 
 What the rule does to the captured answers:
 
@@ -283,7 +321,7 @@ What the rule does to the captured answers:
 | `lists.strategies` of `/api/bg/tier-lists` | `firestone` | not read |
 | `/api/bg/library/spell-stats` | `firestone_battlegrounds_spells` | not requested; `SpellStats` empty |
 | 27 of 60 comps in `/api/bg-comps` | `Firestone` | cut |
-| `/api/bg/heroes?mode=…&mmr=…` (Duos, MMR slices of heroes) | none | refused: `HeroesDuos` = `null` (section 2) |
+| `/api/bg/heroes?mode=…&mmr=…` (Duos, MMR slices of heroes) | none of its own | read under rule 6, while `/api/bg/heroes` names `hsreplay_battlegrounds_heroes` |
 
 What is refused is cut before the cache is written, and an answer with nothing left is not written at all. The whole
 `/api/bg/tier-lists` and `/api/bg-comps` answers are still downloaded, Firestone rows included (legal report L-m1:
@@ -308,16 +346,19 @@ Records as in the task card's contract, plus these members at the end (nullable,
 | `DefaultBaseUrl` | `https://bg.hs-manacost.ru/`. `baseUrl` replaces it only when it is an absolute `https://` address. |
 | `static HttpClient CreateHttp()` | The client the hosts pass in: no cookies, no redirects, no default headers. |
 | `static TimeSpan MaxAge` | 6 h: how long an answer is kept. |
-| `Task<BgSiteStats?> LoadAsync(ct)` | The refresh: five requests. Never throws; `null` when nothing could be had. |
-| `static IReadOnlyList<string> MmrSlices`, `DefaultMmr` | `TOP_50_PERCENT`, `TOP_20_PERCENT`, `TOP_5_PERCENT`, `TOP_1_PERCENT`; the Duos list of the refresh is `DefaultMmr` (top 50%). |
-| `Task<BgSiteTierList?> LoadHeroesAsync(bool duos, string mmr, ct)` | One heroes slice on demand, cache `bgsite-heroes-<solo\|duos>-<mmr>.json`. `null` today for every slice (no source). |
-| `Task<BgSiteTierList?> LoadTrinketsAsync(string mmr, ct)` | One trinket slice on demand (last 7 days), cache `bgsite-trinkets-<mmr>.json`. |
+| `Task<BgSiteStats?> LoadAsync(ct)` | The refresh: every list in its default slice, five requests, each used (the Duos one is not made when `/api/bg/heroes` did not name its source). Never throws; `null` when nothing could be had. |
+| `static BgSiteSlices HeroesSoloSlices`, `HeroesDuosSlices`, `TrinketSlices`; `HeroSlices(bool duos)` | The slices of each list and its default (table in section 2). `BgSiteSlices(IReadOnlyList<string> Mmr, string Default)`, `Has(mmr)`. |
+| `Task<BgSiteTierList?> LoadHeroesAsync(bool duos, string mmr, ct)` | One heroes slice on demand, cache `bgsite-heroes-<solo\|duos>-<mmr>.json`; one request, plus `/api/bg/heroes` when its file is not fresh. `null` = no data for the slice. |
+| `Task<BgSiteTierList?> LoadTrinketsAsync(string mmr, ct)` | One trinket slice on demand (last 7 days), cache `bgsite-trinkets-<mmr>.json`. `null` = no data for the slice. |
+
+The tabs show the default slices from `LoadAsync`; when the player picks another slice, the tab calls the slice method
+and, on the refresh timer, calls it again for the slice still selected (it answers from its cache file for 6 h).
 
 Per list:
 
 | | Heroes | HeroesDuos | Minions | Trinkets | Spells |
 |---|---|---|---|---|---|
-| available today | yes | `null` (no source) | yes | yes | `null` |
+| available today | yes | yes (rule 6) | yes | yes | `null` |
 | `CardId` from | `/api/bg/heroes` by `dbfId` | `id` | `id` | `id` | |
 | `NameRu` / `NameEn` | `hero` / empty | English / English | `ruName` or `name` / `name` | `ruName` / `name` | |
 | `TavernTier` | 0 | 0 | 1..7 | 0 | |

@@ -87,6 +87,15 @@ public sealed record BgSiteComp(
     string? Difficulty,
     string? Tip);
 
+/// <summary>
+/// The MMR slices the service has for one list, widest first, and the one it gives when no slice is asked for.
+/// </summary>
+public sealed record BgSiteSlices(IReadOnlyList<string> Mmr, string Default)
+{
+    /// <summary>True when <paramref name="mmr"/> is one of the slices of the list.</summary>
+    public bool Has(string? mmr) => mmr is not null && Mmr.Contains(mmr, StringComparer.Ordinal);
+}
+
 /// <summary>The server run the minion numbers come from.</summary>
 public sealed record BgSiteRun(string? MmrPercentile, string? TimeRange, DateTime? CompletedAt);
 
@@ -95,7 +104,7 @@ public sealed record BgSiteRun(string? MmrPercentile, string? TimeRange, DateTim
 /// app refuses (docs/bg-site-stats.md, section 4), is null or empty.
 /// </summary>
 /// <param name="Heroes">Solo.</param>
-/// <param name="HeroesDuos">Duos, top 50%. Null when not loaded, or while the service's Duos answer names no source (docs/bg-site-stats.md).</param>
+/// <param name="HeroesDuos">Duos, the default slice (top 50%). Null when not loaded, or when the heroes answer names no allowed source to vouch for it.</param>
 /// <param name="MinionStats">By card id; empty when not loaded.</param>
 /// <param name="SpellStats">By card id; empty (the service's spell numbers are refused by source).</param>
 /// <param name="Updated">The latest <see cref="BgSiteTierList.FetchedAt"/> of the loaded parts, UTC.</param>

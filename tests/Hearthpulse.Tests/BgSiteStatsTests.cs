@@ -21,7 +21,7 @@ public sealed class BgSiteStatsTests : IDisposable
     private const string MinionStats = "/api/bg/library/minion-stats";
     private const string Comps = "/api/bg-comps";
 
-    /// <summary>Requests of one refresh.</summary>
+    /// <summary>Requests of one refresh; one less when the heroes answer was not fetched (no Duos slice is asked for then).</summary>
     private const int Refresh = 5;
 
     private readonly string _cache = TestDataFolder.Scratch("hp-bgsite");
@@ -193,7 +193,7 @@ public sealed class BgSiteStatsTests : IDisposable
     [Fact]
     public async Task Within_six_hours_the_cache_answers_and_after_them_the_service_is_asked_again()
     {
-        var site = FakeSite.Real(duosNamesSource: true);
+        var site = FakeSite.Real();
         var client = Client(site);
 
         var first = (await client.LoadAsync())!;
@@ -229,7 +229,9 @@ public sealed class BgSiteStatsTests : IDisposable
         var down = FakeSite.Down(failure);
         var stale = (await Later(down).LoadAsync())!;
 
-        Assert.Equal(Refresh, down.Requests.Count);
+        // The Duos slice is not asked for when the heroes address fails: its old file answers.
+        Assert.Equal(Refresh - 1, down.Requests.Count);
+        Assert.Equal(loaded.HeroesDuos!.Entries, stale.HeroesDuos!.Entries);
         AssertSame(loaded, stale);
     }
 
@@ -242,14 +244,14 @@ public sealed class BgSiteStatsTests : IDisposable
         var down = FakeSite.Down(failure);
 
         Assert.Null(await Client(down).LoadAsync());
-        Assert.Equal(Refresh, down.Requests.Count);
+        Assert.Equal(Refresh - 1, down.Requests.Count);
         AssertNoCacheFiles();
     }
 
     [Fact]
     public async Task An_unreadable_cache_file_is_asked_for_again()
     {
-        var site = FakeSite.Real(duosNamesSource: true);
+        var site = FakeSite.Real();
         await Client(site).LoadAsync();
         await File.WriteAllBytesAsync(Path.Combine(_cache, "bgsite-comps.json"), new byte[64]);
 
@@ -286,7 +288,6 @@ public sealed class BgSiteStatsTests : IDisposable
         site.Answer(address, body);
         var stale = (await Later(site).LoadAsync())!;
 
-        Assert.Equal(Refresh, site.Requests.Count);
         AssertSame(loaded, stale);
         Assert.Equal(before, await File.ReadAllBytesAsync(file));
         Assert.Equal(written, File.GetLastWriteTimeUtc(file));
@@ -312,7 +313,7 @@ public sealed class BgSiteStatsTests : IDisposable
         var site = FakeSite.Everywhere(body);
 
         Assert.Null(await Client(site).LoadAsync());
-        Assert.Equal(Refresh, site.Requests.Count);
+        Assert.Equal(Refresh - 1, site.Requests.Count);
         AssertNoCacheFiles();
     }
 
@@ -344,8 +345,9 @@ public sealed class BgSiteStatsTests : IDisposable
         var broken = FakeSite.Broken(kind);
         var stale = (await Later(broken).LoadAsync())!;
 
-        Assert.Equal(Refresh, broken.Requests.Count);
+        Assert.Equal(Refresh - 1, broken.Requests.Count);
         AssertSame(loaded, stale);
+        Assert.Equal(loaded.HeroesDuos!.Entries, stale.HeroesDuos!.Entries);
         Assert.Contains($"Battlegrounds site comps: {logged}: ", LogSince(mark), StringComparison.Ordinal);
     }
 
@@ -383,7 +385,7 @@ public sealed class BgSiteStatsTests : IDisposable
 
         var stats = (await Client(site).LoadAsync())!;
 
-        Assert.Equal(Refresh, site.Requests.Count);
+        Assert.Equal(failing == Heroes ? Refresh - 1 : Refresh, site.Requests.Count);
         AssertPartsExcept(stats, failing);
         var log = LogSince(mark);
         Assert.Contains($"Battlegrounds site {part}: HTTP 500", log, StringComparison.Ordinal);
@@ -787,37 +789,29 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(("BG28_503", 1), (spells.Entries[0].CardId, spells.Entries[0].TavernTier));
     }
 
-    // AC23: Duos and MMR slices
+    // AC23: Duos and MMR slices. A heroes slice names no source: the answer of the same address without parameters vouches for it.
+
+    private const string SoloTop20 = "/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT";
+    private const string DuosCache = "bgsite-heroes-duos-top_50_percent.json";
+    private const string DuosNotRead = "Battlegrounds site heroes-duos-top_50_percent: not read, the heroes answer names no allowed source";
 
     [Fact]
-    public async Task The_duos_answer_names_no_source_today_so_it_is_not_given_out()
+    public async Task The_duos_list_is_read_under_the_source_the_heroes_answer_names()
     {
-        // The real answer of /api/bg/heroes?mode=duos has no source_id: under the allow list it is refused, and not kept.
-        var mark = LogMark();
         var site = FakeSite.Real();
 
         var stats = (await Client(site).LoadAsync())!;
 
         Assert.Contains(site.Requests, r => r.Uri.PathAndQuery == Duos);
-        Assert.NotNull(stats.Heroes);
-        Assert.Null(stats.HeroesDuos);
-        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes-duos-top_50_percent.json")));
-        Assert.Contains("Battlegrounds site heroes-duos-top_50_percent: source \"\" is not used", LogSince(mark), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_duos_answer_that_names_the_allowed_source_fills_the_duos_list()
-    {
-        var stats = (await Client(FakeSite.Real(duosNamesSource: true)).LoadAsync())!;
-
+        Assert.True(File.Exists(Path.Combine(_cache, DuosCache)));
         var duos = stats.HeroesDuos!;
         Assert.Equal(BgSiteList.Heroes, duos.Kind);
+        // The slice names no source of its own: it carries the one the heroes answer named.
         Assert.Equal("hsreplay_battlegrounds_heroes", duos.Source);
         Assert.Equal("TOP_50_PERCENT", duos.Mmr);
         Assert.Equal("CURRENT_BATTLEGROUNDS_PATCH", duos.TimeRange);
         Assert.Equal(new DateTime(2026, 11, 9, 3, 35, 3, DateTimeKind.Utc), duos.FetchedAt, TimeSpan.FromSeconds(1));
         Assert.Equal(["S", "A", "B", "C", "D"], duos.AvailableTiers);
-        Assert.Equal(8, duos.Entries.Count);
         Assert.Equal(["A", "A", "B", "B", "C", "C", "D", "D"], duos.Entries.Select(e => e.Tier));
 
         var hero = duos.Entries[0];
@@ -832,32 +826,193 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.NotEqual(stats.Heroes!.Entries[0].CardId, hero.CardId);
     }
 
-    [Fact]
-    public async Task A_failing_duos_address_leaves_the_solo_heroes()
+    [Theory]
+    [InlineData("no-source")]
+    [InlineData("firestone")]
+    [InlineData("site-firestone")]
+    [InlineData("unknown-source")]
+    [InlineData("empty")]
+    [InlineData("failed")]
+    public async Task Without_a_heroes_answer_that_names_the_allowed_source_the_duos_slice_is_not_even_asked_for(string heroes)
     {
-        var site = FakeSite.Real(duosNamesSource: true);
-        site.Fail(Duos, HttpStatusCode.InternalServerError);
+        var mark = LogMark();
+        var site = FakeSite.Real();
+        switch (heroes)
+        {
+            case "failed":
+                site.Fail(Heroes, HttpStatusCode.InternalServerError);
+                break;
+            case "empty":
+                site.Answer(Heroes, "{}");
+                break;
+            default:
+                site.Answer(Heroes, Changed("heroes.json", answer =>
+                {
+                    switch (heroes)
+                    {
+                        case "no-source":
+                            answer.Remove("source_id");
+                            answer.Remove("site");
+                            break;
+                        case "firestone":
+                            answer["source_id"] = "firestone_battlegrounds_heroes";
+                            answer["site"] = "firestone";
+                            break;
+                        case "site-firestone":
+                            answer["site"] = "firestone";
+                            break;
+                        default:
+                            answer["source_id"] = "hearthpulse_battlegrounds_heroes";
+                            break;
+                    }
+                }));
+                break;
+        }
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.HeroesDuos);
+        Assert.Null(stats.Heroes);
+        Assert.NotNull(stats.Minions);
+        // No request whose answer would not be used.
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == Duos);
+        Assert.Equal(Refresh - 1, site.Requests.Count);
+        Assert.False(File.Exists(Path.Combine(_cache, DuosCache)));
+        Assert.Contains(DuosNotRead, LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ok-false")]
+    [InlineData("ok-missing")]
+    [InlineData("ok-text")]
+    [InlineData("type-other")]
+    [InlineData("type-missing")]
+    [InlineData("blocked")]
+    [InlineData("own-source-firestone")]
+    [InlineData("no-rows")]
+    public async Task A_duos_answer_that_is_not_an_ok_heroes_view_is_not_read(string slice)
+    {
+        var mark = LogMark();
+        var site = FakeSite.Real();
+        site.Answer(Duos, Changed("heroes-duos.json", answer =>
+        {
+            var view = answer["view"]!.AsObject();
+            switch (slice)
+            {
+                case "ok-false":
+                    answer["ok"] = false;
+                    break;
+                case "ok-missing":
+                    answer.Remove("ok");
+                    break;
+                case "ok-text":
+                    answer["ok"] = "true";
+                    break;
+                case "type-other":
+                    view["type"] = "bg_comps";
+                    break;
+                case "type-missing":
+                    view.Remove("type");
+                    break;
+                case "blocked":
+                    view["blocked"] = true;
+                    break;
+                case "own-source-firestone":
+                    answer["source_id"] = "firestone_battlegrounds_heroes";
+                    break;
+                default:
+                    view["heroes"] = new JsonArray();
+                    break;
+            }
+        }));
 
         var stats = (await Client(site).LoadAsync())!;
 
         Assert.Null(stats.HeroesDuos);
         Assert.Equal(12, stats.Heroes!.Entries.Count);
+        Assert.False(File.Exists(Path.Combine(_cache, DuosCache)));
+        Assert.Contains("Battlegrounds site heroes-duos-top_50_percent: the answer has no data, not kept", LogSince(mark), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_heroes_slice_is_asked_by_mode_and_mmr_and_cached()
+    public async Task When_the_heroes_answer_turns_to_another_source_the_cached_duos_list_is_dropped()
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        Assert.NotNull(loaded.HeroesDuos);
+        var mark = LogMark();
+
+        var site = FakeSite.Real();
+        site.Answer(Heroes, Changed("heroes.json", answer =>
+        {
+            answer["source_id"] = "firestone_battlegrounds_heroes";
+            answer["site"] = "firestone";
+        }));
+        var later = (await Later(site).LoadAsync())!;
+
+        // The service says now that heroes come from elsewhere: nothing vouches for the slice, cached or new.
+        Assert.Null(later.HeroesDuos);
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == Duos);
+        Assert.Contains(DuosNotRead, LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(null)]
+    public async Task When_the_heroes_address_fails_the_old_duos_file_answers_and_no_new_slice_is_asked_for(HttpStatusCode? failure)
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+
+        var site = FakeSite.Real();
+        if (failure is { } status)
+        {
+            site.Fail(Heroes, status);
+        }
+        else
+        {
+            site.AnswerFrom(Heroes, new Uri("https://elsewhere.example/api/bg/heroes"));
+        }
+
+        var later = (await Later(site).LoadAsync())!;
+
+        // The old heroes file vouches for the old Duos file, not for a slice fetched now.
+        Assert.Equal(loaded.HeroesDuos!.Entries, later.HeroesDuos!.Entries);
+        Assert.Equal(loaded.Heroes!.Entries, later.Heroes!.Entries);
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == Duos);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.BadRequest)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task A_duos_slice_the_service_does_not_give_is_no_failure_of_the_refresh(HttpStatusCode status)
     {
         var site = FakeSite.Real();
-        site.Answer("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", NamingSource(Fixture("heroes-solo-top20.json")));
+        site.Fail(Duos, status);
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.HeroesDuos);
+        AssertPartsExcept(stats, failing: Duos);
+        Assert.Equal(12, stats.Heroes!.Entries.Count);
+    }
+
+    [Fact]
+    public async Task A_heroes_slice_is_asked_by_mode_and_mmr_after_the_heroes_answer_and_cached()
+    {
+        var site = FakeSite.Real();
+        site.Answer(SoloTop20, Fixture("heroes-solo-top20.json"));
         var client = Client(site);
 
         var slice = (await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT"))!;
+        var asked = site.Requests.Select(r => r.Uri.PathAndQuery).ToList();
         var again = (await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT"))!;
 
-        Assert.Equal("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", Assert.Single(site.Requests).Uri.PathAndQuery);
+        // The heroes answer first (it names the source), then the slice; nothing else, and nothing the second time.
+        Assert.Equal([Heroes, SoloTop20], asked);
+        Assert.Equal(2, site.Requests.Count);
         Assert.True(File.Exists(Path.Combine(_cache, "bgsite-heroes-solo-top_20_percent.json")));
         Assert.Equal(slice.Entries, again.Entries);
-        Assert.Equal("TOP_20_PERCENT", slice.Mmr);
+        Assert.Equal(("TOP_20_PERCENT", "hsreplay_battlegrounds_heroes"), (slice.Mmr, slice.Source));
         Assert.Equal(9, slice.Entries.Count);
         var hero = slice.Entries[0];
         Assert.Equal(("BG27_HERO_801", "S", "Thorim, Stormlord"), (hero.CardId, hero.Tier, hero.NameEn));
@@ -867,24 +1022,60 @@ public sealed class BgSiteStatsTests : IDisposable
     }
 
     [Fact]
-    public async Task A_heroes_slice_without_a_source_is_not_given_out()
+    public async Task Heroes_a_slice_has_no_tier_for_are_left_out()
+    {
+        // In the top 1% the service has no tier and no placement for heroes with too few games.
+        var site = FakeSite.Real();
+        site.Answer("/api/bg/heroes?mode=solo&mmr=TOP_1_PERCENT", Fixture("heroes-solo-top1.json"));
+
+        var slice = (await Client(site).LoadHeroesAsync(duos: false, "TOP_1_PERCENT"))!;
+
+        Assert.Equal("TOP_1_PERCENT", slice.Mmr);
+        Assert.Equal(9, slice.Entries.Count);
+        Assert.DoesNotContain(slice.Entries, e => e.CardId is "TB_BaconShop_HERO_56" or "TB_BaconShop_HERO_59");
+        Assert.Equal(("BG27_HERO_801", "S"), (slice.Entries[0].CardId, slice.Entries[0].Tier));
+        Assert.Equal(2.781, slice.Entries[0].AveragePlacement!.Value, 3);
+        Assert.Equal(0.4175, slice.Entries[0].FirstRate!.Value, 4);
+    }
+
+    [Fact]
+    public async Task The_default_solo_slice_is_the_list_of_the_refresh()
     {
         var site = FakeSite.Real();
-        site.Answer("/api/bg/heroes?mode=solo&mmr=TOP_20_PERCENT", Fixture("heroes-solo-top20.json"));
+        var client = Client(site);
 
-        Assert.Null(await Client(site).LoadHeroesAsync(duos: false, "TOP_20_PERCENT"));
-        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes-solo-top_20_percent.json")));
+        var slice = (await client.LoadHeroesAsync(duos: false, BgSiteClient.HeroesSoloSlices.Default))!;
+
+        Assert.Equal(new[] { Heroes, TierLists }, site.Requests.Select(r => r.Uri.PathAndQuery).Order(StringComparer.Ordinal));
+        Assert.Equal((await client.LoadAsync())!.Heroes!.Entries, slice.Entries);
+        Assert.Equal("TOP_50_PERCENT", slice.Mmr);
+    }
+
+    [Fact]
+    public async Task A_heroes_slice_is_not_asked_for_when_the_heroes_answer_names_no_source()
+    {
+        var site = FakeSite.Real();
+        site.Answer(Heroes, Changed("heroes.json", answer => answer.Remove("source_id")));
+        site.Answer(SoloTop20, Fixture("heroes-solo-top20.json"));
+        var client = Client(site);
+
+        Assert.Null(await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT"));
+        Assert.Null(await client.LoadHeroesAsync(duos: true, "TOP_20_PERCENT"));
+        Assert.All(site.Requests, r => Assert.Equal(Heroes, r.Uri.PathAndQuery));
     }
 
     [Fact]
     public async Task A_trinket_slice_is_asked_by_mmr_and_reads_the_flat_list()
     {
+        const string address = "/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS";
         var site = FakeSite.Real();
-        site.Answer("/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS", Fixture("trinkets-top50.json"));
+        site.Answer(address, Fixture("trinkets-top50.json"));
+        var client = Client(site);
 
-        var slice = (await Client(site).LoadTrinketsAsync("TOP_50_PERCENT"))!;
+        var slice = (await client.LoadTrinketsAsync("TOP_50_PERCENT"))!;
+        await client.LoadTrinketsAsync("TOP_50_PERCENT");
 
-        Assert.Equal("/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS", Assert.Single(site.Requests).Uri.PathAndQuery);
+        Assert.Equal(address, Assert.Single(site.Requests).Uri.PathAndQuery);
         Assert.True(File.Exists(Path.Combine(_cache, "bgsite-trinkets-top_50_percent.json")));
         Assert.Equal((BgSiteList.Trinkets, "hsreplay", "TOP_50_PERCENT", "LAST_7_DAYS"), (slice.Kind, slice.Source, slice.Mmr, slice.TimeRange));
         Assert.Equal(10, slice.Entries.Count);
@@ -894,28 +1085,72 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(0.277, trinket.PickRate!.Value, 4);
     }
 
-    [Theory]
-    [InlineData("ALL")]
-    [InlineData("TOP_50_PERCENT&list=spells")]
-    [InlineData("")]
-    public async Task A_slice_the_service_does_not_have_is_not_asked_for(string mmr)
+    [Fact]
+    public async Task The_default_trinket_slice_is_the_list_of_the_refresh()
     {
         var site = FakeSite.Real();
         var client = Client(site);
 
-        Assert.Null(await client.LoadHeroesAsync(duos: true, mmr));
-        Assert.Null(await client.LoadTrinketsAsync(mmr));
+        var slice = (await client.LoadTrinketsAsync(BgSiteClient.TrinketSlices.Default))!;
+
+        Assert.Equal(TierLists, Assert.Single(site.Requests).Uri.PathAndQuery);
+        Assert.Equal("TOP_1_PERCENT", slice.Mmr);
+        Assert.Equal((await client.LoadAsync())!.Trinkets!.Entries, slice.Entries);
+    }
+
+    [Fact]
+    public void Every_list_names_its_slices_and_the_one_the_service_gives_by_default()
+    {
+        string[] four = ["TOP_50_PERCENT", "TOP_20_PERCENT", "TOP_5_PERCENT", "TOP_1_PERCENT"];
+
+        Assert.Equal(four, BgSiteClient.HeroesSoloSlices.Mmr);
+        Assert.Equal("TOP_50_PERCENT", BgSiteClient.HeroesSoloSlices.Default);
+        // Duos: the two slices checked against the service.
+        Assert.Equal(["TOP_50_PERCENT", "TOP_20_PERCENT"], BgSiteClient.HeroesDuosSlices.Mmr);
+        Assert.Equal("TOP_50_PERCENT", BgSiteClient.HeroesDuosSlices.Default);
+        Assert.Equal(four, BgSiteClient.TrinketSlices.Mmr);
+        Assert.Equal("TOP_1_PERCENT", BgSiteClient.TrinketSlices.Default);
+        Assert.Same(BgSiteClient.HeroesDuosSlices, BgSiteClient.HeroSlices(duos: true));
+        Assert.Same(BgSiteClient.HeroesSoloSlices, BgSiteClient.HeroSlices(duos: false));
+        Assert.All(new[] { BgSiteClient.HeroesSoloSlices, BgSiteClient.HeroesDuosSlices, BgSiteClient.TrinketSlices }, s => Assert.True(s.Has(s.Default)));
+        Assert.False(BgSiteClient.HeroesDuosSlices.Has("TOP_5_PERCENT"));
+        Assert.False(BgSiteClient.TrinketSlices.Has(null));
+    }
+
+    [Theory]
+    [InlineData(true, "TOP_5_PERCENT")]
+    [InlineData(true, "TOP_1_PERCENT")]
+    [InlineData(false, "ALL")]
+    [InlineData(false, "top_50_percent")]
+    [InlineData(false, "TOP_50_PERCENT&list=spells")]
+    [InlineData(true, "")]
+    public async Task A_slice_that_is_not_listed_is_no_data_and_no_request(bool duos, string mmr)
+    {
+        var site = FakeSite.Real();
+        var client = Client(site);
+
+        Assert.Null(await client.LoadHeroesAsync(duos, mmr));
+        if (!BgSiteClient.TrinketSlices.Has(mmr))
+        {
+            Assert.Null(await client.LoadTrinketsAsync(mmr));
+        }
+
         Assert.Empty(site.Requests);
     }
 
     [Fact]
-    public async Task A_failing_slice_gives_no_list_and_does_not_throw()
+    public async Task A_listed_slice_the_service_does_not_answer_for_is_no_data_not_an_error()
     {
-        var site = FakeSite.Down(HttpStatusCode.BadRequest);
-        var client = Client(site);
+        // Nothing is routed for these addresses: the fake answers 404, as a service without the slice would.
+        var mark = LogMark();
+        var client = Client(FakeSite.Real());
 
         Assert.Null(await client.LoadTrinketsAsync("TOP_5_PERCENT"));
-        Assert.Null(await client.LoadHeroesAsync(duos: false, "TOP_1_PERCENT"));
+        Assert.Null(await client.LoadHeroesAsync(duos: true, "TOP_20_PERCENT"));
+
+        var log = LogSince(mark);
+        Assert.Contains("Battlegrounds site trinkets-top_5_percent: HTTP 404", log, StringComparison.Ordinal);
+        Assert.Contains("Battlegrounds site heroes-duos-top_20_percent: HTTP 404", log, StringComparison.Ordinal);
     }
 
     private BgSiteClient Client(FakeSite site) => new(new HttpClient(site), cacheDirectory: _cache);
@@ -972,11 +1207,11 @@ public sealed class BgSiteStatsTests : IDisposable
 
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "BgSite", name));
 
-    /// <summary>A sliced heroes answer as it would be if the service named its source (today it does not).</summary>
-    private static string NamingSource(string heroes)
+    /// <summary>A fixture answer with something changed in it.</summary>
+    private static string Changed(string fixture, Action<JsonObject> change)
     {
-        var answer = JsonNode.Parse(heroes)!.AsObject();
-        answer["source_id"] = "hsreplay_battlegrounds_heroes";
+        var answer = JsonNode.Parse(Fixture(fixture))!.AsObject();
+        change(answer);
         return answer.ToJsonString();
     }
 
@@ -1008,13 +1243,13 @@ public sealed class BgSiteStatsTests : IDisposable
         /// <summary>Completes once a request to a hanging address is waiting.</summary>
         public TaskCompletionSource Hanging { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        /// <summary>The trimmed real answers; the Duos one as the service sends it (no source) unless asked otherwise.</summary>
-        public static FakeSite Real(bool duosNamesSource = false)
+        /// <summary>The trimmed real answers, as the service sends them.</summary>
+        public static FakeSite Real()
         {
             var site = new FakeSite();
             site.Answer(TierLists, Fixture("tier-lists.json"));
             site.Answer(Heroes, Fixture("heroes.json"));
-            site.Answer(Duos, duosNamesSource ? NamingSource(Fixture("heroes-duos.json")) : Fixture("heroes-duos.json"));
+            site.Answer(Duos, Fixture("heroes-duos.json"));
             site.Answer(MinionStats, Fixture("minion-stats.json"));
             site.Answer(Comps, Fixture("comps.json"));
             return site;
