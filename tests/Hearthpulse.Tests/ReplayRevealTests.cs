@@ -235,6 +235,48 @@ public sealed class ReplayRevealTests : IDisposable
     }
 
     [Fact]
+    public void Their_mulligan_counts_cards_the_log_later_calls_created()
+    {
+        // 10.11 15:52: a start-of-game effect put cards into their deck (CREATOR on the reveal), one was dealt and one
+        // came at the mulligan. 10.11 15:30: a card they received was transformed in hand before the log first named it
+        // (CREATOR again). Both counted as "created" and fell out of their mulligan: 2 replaced, 1 received.
+        string[] game =
+        [
+            .. Setup.TakeWhile(l => !l.Contains("MULLIGAN_STATE", StringComparison.Ordinal)),
+            .. Card(63, "", "HAND", 2, ""),
+            .. Card(64, "", "HAND", 2, ""),
+            .. Card(65, "", "HAND", 2, ""),
+            .. Card(66, "", "DECK", 2, ""),
+            Turn(1),
+            Step("BEGIN_MULLIGAN"),
+            Zone(64, "DECK"),
+            Zone(66, "HAND"),
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=MULLIGAN_STATE value=DONE ",
+            Step("MAIN_READY"),
+            Turn(2),
+            string.Format(PlayBlock, 63),
+            .. Show(63, "VAC_933", "tag=CARDTYPE value=MINION", "tag=ATK value=3", "tag=HEALTH value=3", "tag=CREATOR value=50"),
+            Zone(63, "PLAY", "VAC_933"),
+            "DebugPrintPower() - BLOCK_END",
+            Turn(3),
+            Turn(4),
+            string.Format(PlayBlock, 66),
+            .. Show(66, "JAIL_504t", "tag=CARDTYPE value=MINION", "tag=ATK value=1", "tag=HEALTH value=1", "tag=CREATOR value=63"),
+            Zone(66, "PLAY", "JAIL_504t"),
+            "DebugPrintPower() - BLOCK_END",
+        ];
+        Play(out var recorder, game);
+        var text = recorder.Text(new ReplayHeader());
+
+        Assert.Contains("K 63 VAC_933 2 played 1", text);
+        Assert.Contains("K 66 JAIL_504t 4 played 1", text);
+        var mulligan = MatchReplay.Parse(text)!.OpponentMulligan!;
+        Assert.Equal(["VAC_933", null], mulligan.Kept);
+        Assert.Equal([null], mulligan.Replaced);
+        Assert.Equal(["JAIL_504t"], mulligan.Received);
+    }
+
+    [Fact]
     public void The_likely_deck_is_the_closest_archetype_and_says_it_is_a_guess()
     {
         // Three revealed cards fit two archetypes equally: no clear call, so the closest (the more played) is the guess.

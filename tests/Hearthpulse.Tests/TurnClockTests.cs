@@ -98,6 +98,60 @@ public sealed class TurnClockTests(ITestOutputHelper output)
         Assert.Equal(TimeSpan.FromSeconds(10), view.LocalLast);
     }
 
+    /// <summary>
+    /// The shape of 10.11.2026 15:17-15:19 (names replaced): a player lets a turn run out without a move, the game marks
+    /// it away (GAME_004 on its hero) and sets its TIMEOUT to 10 just before that turn's MAIN_END; its next turn starts
+    /// with that limit, and the usual one comes back at its first move of the turn.
+    /// </summary>
+    private static readonly string[] Away =
+    [
+        .. Start,
+        // Turn 4 (You#2) runs out with no move.
+        "21:41:10.0 DebugPrintPower() -     TAG_CHANGE Entity=You#2 tag=TIMEOUT value=10 ",
+        "21:41:10.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_END ",
+        "21:41:10.0 DebugPrintPower() - TAG_CHANGE Entity=You#2 tag=CURRENT_PLAYER value=0 ",
+        "21:41:10.0 DebugPrintPower() - TAG_CHANGE Entity=Me#1 tag=CURRENT_PLAYER value=1 ",
+        "21:41:10.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=5 ",
+        "21:41:10.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_END ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=Me#1 tag=CURRENT_PLAYER value=0 ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=You#2 tag=CURRENT_PLAYER value=1 ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=6 ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY ",
+        "21:41:30.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_ACTION ",
+        // Its first move of the turn, 10.6 seconds in: the away mark goes and the limit is the usual one again.
+        "21:41:40.6 DebugPrintPower() -     TAG_CHANGE Entity=You#2 tag=NUM_OPTIONS_PLAYED_THIS_TURN value=1 ",
+        "21:41:40.6 DebugPrintPower() -         TAG_CHANGE Entity=You#2 tag=TIMEOUT value=75 ",
+        "21:41:51.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_END ",
+    ];
+
+    [Fact]
+    public void A_turn_after_one_that_ran_out_starts_with_the_away_limit_until_the_first_move()
+    {
+        // Before the move: the away limit, so the rope burns from the turn's first second.
+        var (waiting, game) = Parse(Away[..^3]);
+        var view = waiting.View(game)!;
+        Assert.Equal(TurnClock.AwayLimit, view.LimitSeconds);
+        Assert.False(view.LocalActive);
+        Assert.True(view.Rope(view.TurnStartedAt.AddSeconds(1)));
+
+        // The move puts the usual limit back for the turn that is running: no rope, time left on the clock.
+        var (moved, movedGame) = Parse(Away[..^1]);
+        view = moved.View(movedGame)!;
+        Assert.Equal(75, view.LimitSeconds);
+        Assert.False(view.Rope(view.TurnStartedAt.AddSeconds(11)));
+
+        var (clock, _) = Parse(Away);
+        Assert.Equal(
+            [
+                // The turn that ran out keeps its own limit: the 10 that came before its MAIN_END is for the next one.
+                new TurnTiming(4, 2, Day.Add(new TimeSpan(21, 40, 11)), 55, 59),
+                new TurnTiming(5, 1, Day.Add(new TimeSpan(21, 41, 10)), 55, 20),
+                new TurnTiming(6, 2, Day.Add(new TimeSpan(21, 41, 30)), 75, 21),
+            ],
+            clock.Turns.Skip(3));
+    }
+
     [Fact]
     public void The_rope_burns_in_the_last_fifteen_seconds_and_an_old_turn_is_stale()
     {
@@ -146,7 +200,8 @@ public sealed class TurnClockTests(ITestOutputHelper output)
     public void Kept_constructed_logs_give_turns_within_their_limits()
     {
         // Machine-dependent smoke run: every turn of every kept Constructed game starts with a known player and limit,
-        // and none outlasts its limit by more than the animations the game waits for.
+        // and none outlasts its limit by more than the animations the game waits for. The away limit is a limit the
+        // game sets too (10.11.2026 15:18:57): it stays on a turn whose player never moved.
         var turns = 0;
         foreach (var dir in Directory.EnumerateDirectories(RealLogTests.LogRoot, "Hearthstone_*"))
         {
@@ -164,7 +219,7 @@ public sealed class TurnClockTests(ITestOutputHelper output)
                 {
                     turns++;
                     Assert.NotEqual(0, t.PlayerId);
-                    Assert.Contains(t.LimitSeconds, new[] { 45, 55, 75, 90 });
+                    Assert.Contains(t.LimitSeconds, new[] { TurnClock.AwayLimit, 45, 55, 75, 90 });
                     Assert.InRange(t.Seconds!.Value, 0, t.LimitSeconds + 45);
                 }
 
