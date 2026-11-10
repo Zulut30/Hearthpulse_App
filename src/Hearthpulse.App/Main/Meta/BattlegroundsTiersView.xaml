@@ -149,7 +149,7 @@
                         <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{Binding Impact}" FontWeight="Bold" VerticalAlignment="Center"
                                    Foreground="{Binding ImpactSign, Converter={StaticResource SignBrush}}"
                                    Visibility="{Binding ShowsStats, Converter={StaticResource Vis}}" />
-                        <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{Binding CombatWinRate}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="4" Width="112" TextAlignment="Right" Text="{Binding CombatWinRate}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                    Visibility="{Binding ShowsStats, Converter={StaticResource Vis}}" />
                         <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{Binding PlacementSplit}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                    Visibility="{Binding ShowsStats, Converter={StaticResource Vis}}" />
@@ -219,13 +219,13 @@
                                     </StackPanel>
                                 </Button>
                                 <Button Grid.Column="5" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Width="56" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="First">
-                                    <StackPanel Orientation="Horizontal" ToolTip="{i:Loc Main.Table.FirstTip}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.FirstTip}">
                                         <TextBlock Text="{i:Loc Main.Table.First}" Style="{StaticResource SortLabel}" />
                                         <TextBlock Text="{Binding HeroArrows.First}" Style="{StaticResource SortArrow}" />
                                     </StackPanel>
                                 </Button>
                                 <Button Grid.Column="6" Style="{StaticResource SortHead}" HorizontalAlignment="Right" Width="72" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Pick">
-                                    <StackPanel Orientation="Horizontal" ToolTip="{i:Loc Main.Table.PickRateTip}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.PickRateTip}">
                                         <TextBlock Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource SortLabel}" />
                                         <TextBlock Text="{Binding HeroArrows.Pick}" Style="{StaticResource SortArrow}" />
                                     </StackPanel>
@@ -312,7 +312,7 @@
                                 <TextBlock Text="#" Style="{StaticResource TableHead}" />
                                 <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{i:Loc Main.Bg.Impact}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Bg.ImpactTip}"
                                            Visibility="{Binding CardStatsShown, Converter={StaticResource Vis}}" />
-                                <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Bg.CombatWinRateTip}"
+                                <TextBlock Grid.Column="4" Width="112" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Bg.CombatWinRateTip}"
                                            Visibility="{Binding CardStatsShown, Converter={StaticResource Vis}}" />
                                 <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{i:Loc Main.Bg.PlacementSplit}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Bg.PlacementSplitTip}"
                                            Visibility="{Binding CardStatsShown, Converter={StaticResource Vis}}" />

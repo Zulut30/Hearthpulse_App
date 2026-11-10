@@ -38,19 +38,19 @@
                                 </Button>
                                 <!-- "Top 4", or "Top 2" while a Duos list is shown -->
                                 <Button Grid.Column="4" Classes="sortHead bgNarrowOff" HorizontalAlignment="Right" Width="64" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Top4" ToolTip.Tip="{Binding HeroTopTip}">
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <TextBlock Text="{Binding HeroTopLabel}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.Top4}" Classes="sortArrow" />
                                     </StackPanel>
                                 </Button>
                                 <Button Grid.Column="5" Classes="sortHead metaWide" HorizontalAlignment="Right" Width="56" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="First" ToolTip.Tip="{i:Loc Main.Table.FirstTip}">
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <TextBlock Text="{i:Loc Main.Table.First}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.First}" Classes="sortArrow" />
                                     </StackPanel>
                                 </Button>
                                 <Button Grid.Column="6" Classes="sortHead metaWide" HorizontalAlignment="Right" Width="72" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Pick" ToolTip.Tip="{i:Loc Main.Table.PickRateTip}">
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <TextBlock Text="{i:Loc Main.Table.PickRate}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.Pick}" Classes="sortArrow" />
                                     </StackPanel>
@@ -104,7 +104,8 @@
                 <Border Name="CardStatsCard" Classes="card">
                     <StackPanel>
                         <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,12" ToolTip.Tip="{i:Loc Main.Bg.CardTierTip}">
-                            <StackPanel Orientation="Horizontal">
+                            <!-- Wraps in a narrow window, as the page's tabs do: "Spells" must not be cut off -->
+                            <WrapPanel>
                                 <RadioButton Classes="segment" Content="1" GroupName="CardTier" IsChecked="True" Command="{Binding SetCardTier}" CommandParameter="1" />
                                 <RadioButton Classes="segment" Content="2" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="2" />
                                 <RadioButton Classes="segment" Content="3" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="3" />
@@ -113,7 +114,7 @@
                                 <RadioButton Classes="segment" Content="6" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="6" />
                                 <RadioButton Classes="segment" Content="7" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="7" />
                                 <RadioButton Classes="segment" Content="{i:Loc Main.Bg.Spells}" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="0" />
-                            </StackPanel>
+                            </WrapPanel>
                         </Border>
                         <StackPanel IsVisible="{Binding CardTab.HasRows}">
                             <TextBlock Text="{Binding CardTab.Source}" Classes="caption bgSource" />
@@ -121,7 +122,7 @@
                                 <TextBlock Width="40" Text="#" Classes="tableHead bgNarrowOff" />
                                 <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{i:Loc Main.Bg.Impact}" Classes="tableHead bgStat" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.ImpactTip}" />
-                                <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Classes="tableHead bgStat narrowOff" Classes.on="{Binding CardStatsShown}"
+                                <TextBlock Grid.Column="4" Width="112" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Classes="tableHead bgStat narrowOff" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.CombatWinRateTip}" />
                                 <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{i:Loc Main.Bg.PlacementSplit}" Classes="tableHead bgStat wide" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.PlacementSplitTip}" />
@@ -283,7 +284,7 @@
                     <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{Binding Impact}" FontWeight="Bold" VerticalAlignment="Center"
                                Foreground="{Binding ImpactSign, Converter={StaticResource SignBrush}}"
                                Classes="bgStat" Classes.on="{Binding ShowsStats}" />
-                    <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{Binding CombatWinRate}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
+                    <TextBlock Grid.Column="4" Width="112" TextAlignment="Right" Text="{Binding CombatWinRate}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                Classes="bgStat narrowOff" Classes.on="{Binding ShowsStats}" />
                     <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{Binding PlacementSplit}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                Classes="bgStat wide" Classes.on="{Binding ShowsStats}" />

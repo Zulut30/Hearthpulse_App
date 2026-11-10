@@ -46,6 +46,16 @@ internal static partial class OffscreenRenderer
         }
 
         await Shot("heroes", "Heroes");
+
+        // A slice that is still loading: the rows, the heads and the picker stand where they stood in the frame before,
+        // and the line says what loads in place of the date.
+        var slices = model.BgSiteSlices;
+        var never = new TaskCompletionSource<Hearthpulse.Core.Battlegrounds.Site.BgSiteTierList?>();
+        model.BgSiteSlices = new BgSiteSliceLoader((_, _) => never.Task, _ => never.Task);
+        await Shot("heroes-loading", "Heroes", () => { model.SetBracket.Execute(5); return Task.CompletedTask; });
+        model.BgSiteSlices = slices;
+        model.SetBracket.Execute(50);
+
         await Shot("heroes-sorted", "Heroes", () => { model.SetHeroSort.Execute("Pick"); return Task.CompletedTask; });
         model.SetHeroSort.Execute("Pick");
         model.SetHeroSort.Execute("Pick");

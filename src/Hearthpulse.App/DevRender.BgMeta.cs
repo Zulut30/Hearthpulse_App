@@ -42,6 +42,16 @@ public partial class App
         }
 
         await Shot("heroes", "Heroes");
+
+        // A slice that is still loading: the rows, the heads and the picker stand where they stood in the frame before,
+        // and the line says what loads in place of the date.
+        var slices = _mainViewModel.BgSiteSlices;
+        var never = new TaskCompletionSource<Hearthpulse.Core.Battlegrounds.Site.BgSiteTierList?>();
+        _mainViewModel.BgSiteSlices = new Hearthpulse.App.Main.BgSiteSliceLoader((_, _) => never.Task, _ => never.Task);
+        await Shot("heroes-loading", "Heroes", () => { _mainViewModel.SetBracket.Execute(5); return Task.CompletedTask; });
+        _mainViewModel.BgSiteSlices = slices;
+        _mainViewModel.SetBracket.Execute(50);
+
         await Shot("heroes-sorted", "Heroes", () => { _mainViewModel.SetHeroSort.Execute("Pick"); return Task.CompletedTask; });
         _mainViewModel.SetHeroSort.Execute("Pick");
         _mainViewModel.SetHeroSort.Execute("Pick");
