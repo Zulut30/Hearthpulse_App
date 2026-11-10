@@ -27,6 +27,7 @@ public partial class ConstructedMetaView : UserControl
     private readonly Stopwatch _clock = new();
     private string? _turn;
     private DispatcherTimer? _prebuildWait;
+    private DependencyPropertyChangedEventHandler? _pageShown;
     private bool _prebuildStarted;
     private bool _prebuilding;
 
@@ -59,21 +60,26 @@ public partial class ConstructedMetaView : UserControl
             }
 
             _prebuildWait?.Stop();
-            _prebuildWait = new DispatcherTimer(PrebuildDelay, DispatcherPriority.Background, (_, _) =>
-            {
-                _prebuildWait?.Stop();
-                _prebuildWait = null;
-                Prebuild();
-            }, Dispatcher);
+            _prebuildWait = new DispatcherTimer(PrebuildDelay, DispatcherPriority.Background, (_, _) => StartNow(), Dispatcher);
             _prebuildWait.Start();
+
+            // The page shown a second time before the wait ran out (the player left it and came back, or the dispatcher
+            // never idled long enough for the timer, as in the bench): there is no first frame to protect, so now.
+            if (Parent is UIElement page && _pageShown is null)
+            {
+                _pageShown = (_, e) =>
+                {
+                    if (e.NewValue is true && !_prebuildStarted)
+                    {
+                        StartNow();
+                    }
+                };
+                page.IsVisibleChanged += _pageShown;
+            }
         };
 
         // A closed window's view is not kept by a timer that has not fired yet.
-        Unloaded += (_, _) =>
-        {
-            _prebuildWait?.Stop();
-            _prebuildWait = null;
-        };
+        Unloaded += (_, _) => StopWaiting();
     }
 
     /// <summary>
@@ -87,6 +93,24 @@ public partial class ConstructedMetaView : UserControl
     /// layout and drawing included): what the UI thread was held for. For the bench and the tests.
     /// </summary>
     public IReadOnlyList<(string Step, double Milliseconds)> PrebuildTurns => _turns;
+
+    private void StartNow()
+    {
+        StopWaiting();
+        Prebuild();
+    }
+
+    private void StopWaiting()
+    {
+        _prebuildWait?.Stop();
+        _prebuildWait = null;
+        if (_pageShown is not null && Parent is UIElement page)
+        {
+            page.IsVisibleChanged -= _pageShown;
+        }
+
+        _pageShown = null;
+    }
 
     /// <summary>The model outlives the window: what it keeps holds the dispatcher, never this view.</summary>
     private static Action<Action> Later(Dispatcher dispatcher) => build => _ = dispatcher.BeginInvoke(DispatcherPriority.Background, build);

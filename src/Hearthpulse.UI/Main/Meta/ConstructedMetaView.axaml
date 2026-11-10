@@ -174,7 +174,9 @@
                     <!-- Column heads: a click sorts by the column, again turns the order round -->
                     <Grid Name="MetaHead" Margin="0,0,0,4" ColumnDefinitions="30,42,*,44,116,100,Auto" IsVisible="{Binding HasMetaArchetypes}">
                         <TextBlock Text="#" Classes="tableHead" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <!-- Clipped to its column: with the play split shown the name column is narrow, and "Games" would
+                             otherwise lie over the next head (WPF clips it by itself). -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" ClipToBounds="True">
                             <Button Classes="sortHead" Command="{Binding SetMetaSort}" CommandParameter="Name" ToolTip.Tip="{i:Loc Main.Meta.SortHeadTip}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{i:Loc Main.Table.Archetype}" Classes="sortLabel" />
