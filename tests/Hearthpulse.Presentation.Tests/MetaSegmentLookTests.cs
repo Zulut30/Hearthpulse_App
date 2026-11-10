@@ -14,16 +14,19 @@ namespace Hearthpulse.Presentation.Tests;
 public sealed class MetaSegmentLookTests
 {
     [Theory]
-    [InlineData(false, "Легенда")]
-    [InlineData(true, "Легенда")]
-    [InlineData(true, "1 000")]
-    public void The_light_segment_looks_as_the_themes_segment(bool chosen, string label) => WpfThread.RunThemed(() =>
+    [InlineData(false, "Легенда", "")]
+    [InlineData(true, "Легенда", "")]
+    [InlineData(true, "1 000", "")]
+    [InlineData(false, "Легенда", "hover")]
+    [InlineData(true, "Легенда", "hover")]
+    [InlineData(false, "Легенда", "pressed")]
+    public void The_light_segment_looks_as_the_themes_segment(bool chosen, string label, string pointer) => WpfThread.RunThemed(() =>
     {
         var light = (Style)new ConstructedMetaView().FindResource("MetaSegment");
         var theme = (Style)Application.Current.FindResource("Segment");
 
-        var (expected, size) = Shot(theme, chosen, label);
-        var (actual, lightSize) = Shot(light, chosen, label);
+        var (expected, size) = Shot(theme, chosen, label, pointer);
+        var (actual, lightSize) = Shot(light, chosen, label, pointer);
 
         Assert.Equal(size, lightSize);
         Assert.Equal(expected.Length, actual.Length);
@@ -47,13 +50,19 @@ public sealed class MetaSegmentLookTests
             Assert.True(chosen ? line >= size.Width - 12 && line <= size.Width - 6 : line == 0, $"the line is {line} pixels long, the segment {size.Width} wide");
         }
 
+        // Under the pointer the tint fills the segment in both (its rounded top corners aside).
+        if (pointer.Length > 0)
+        {
+            Assert.True(lit > size.Width * size.Height * 0.9, $"{lit} pixels drawn of {size.Width * size.Height:0}");
+        }
+
         // Something is drawn at all (the label; the line when chosen), and no more than a few edge pixels differ.
         Assert.True(lit > 100, $"{lit} pixels drawn");
         Assert.True(different <= lit / 50, $"{different} of {lit} drawn pixels differ");
     });
 
     /// <summary>The segment alone on a transparent ground with room around it (the line lies a pixel under it), after its motion.</summary>
-    private static (byte[] Pixels, Size Size) Shot(Style style, bool chosen, string label)
+    private static (byte[] Pixels, Size Size) Shot(Style style, bool chosen, string label, string pointer)
     {
         var segment = new RadioButton { Style = style, Content = label };
         var ground = new Border { Padding = new Thickness(6), Child = segment, UseLayoutRounding = true, SnapsToDevicePixels = true };
@@ -63,6 +72,29 @@ public sealed class MetaSegmentLookTests
 
         // Chosen once its template is there, as a click does: the template's trigger starts the line's motion.
         segment.IsChecked = chosen;
+
+        // The pointer cannot be put over a segment in a test: what the template's triggers do under it, and when
+        // pressed, is set on the template's parts - the tint at full strength (pressed: the pressed tint), the label lit.
+        if (pointer.Length > 0)
+        {
+            var tint = (Brush)Application.Current.FindResource(pointer == "pressed" ? "Pressed" : "Hover");
+            if (segment.Template.FindName("Plate", segment) is Hearthpulse.App.Controls.SegmentPlate plate)
+            {
+                plate.HoverBrush = tint;
+                plate.HoverOpacity = 1;
+            }
+            else
+            {
+                var layer = (Border)segment.Template.FindName("HoverLayer", segment);
+                layer.Background = tint;
+                layer.Opacity = 1;
+            }
+
+            if (!chosen)
+            {
+                segment.Foreground = (Brush)Application.Current.FindResource("Text");
+            }
+        }
 
         // The line grows over the theme's settle time: let it finish, then lay out and draw what it left.
         var frame = new DispatcherFrame();

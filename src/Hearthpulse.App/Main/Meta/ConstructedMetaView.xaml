@@ -19,7 +19,7 @@
             <DataTemplate DataType="{x:Type m:MetaArchetypeRow}">
                 <!-- No command on the row: the lists' holder hears the click (OnRowClick), which spares each row two bindings
                      and a search up the tree. -->
-                <Button Style="{StaticResource MetaRow}">
+                <Button Style="{StaticResource MetaRow}" AutomationProperties.Name="{Binding Name}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="30" />
@@ -321,7 +321,7 @@
                                Visibility="{Binding Mulligan, Converter={StaticResource Vis}, ConverterParameter=!}" />
 
                     <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,16,0,8" />
-                    <ItemsControl ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
+                    <ItemsControl x:Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"

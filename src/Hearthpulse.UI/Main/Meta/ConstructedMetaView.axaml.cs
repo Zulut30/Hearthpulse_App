@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
@@ -12,15 +14,38 @@ public partial class ConstructedMetaView : UserControl
 {
     private MainViewModel? _viewModel;
 
-    /// <summary>Parts built ahead so far; -1 before it started (and after the page was left in the middle of it).</summary>
-    private int _prebuilt = -1;
+    /// <summary>What is held hidden while the tab is built ahead, with the visibility it had (bound parts read their binding again).</summary>
+    private readonly List<(Control Part, bool Was)> _held = [];
+
+    /// <summary>
+    /// The turns of the build ahead still to run, the next one first: each shows one held part, or the next few rows of
+    /// a held list (and says whether that list has more: then the same turn runs again).
+    /// </summary>
+    private readonly List<(string Name, Func<bool> Show)> _steps = [];
+
+    /// <summary>
+    /// The lists whose rows are being shown a few a turn, each with what stops it: until then a row of theirs is hidden
+    /// the moment it is prepared.
+    /// </summary>
+    private readonly List<(ItemsControl List, Action Stop)> _stagedLists = [];
+    private readonly List<(string Step, double Milliseconds)> _turns = [];
+    private readonly Stopwatch _clock = new();
+    private string? _turn;
+    private IDisposable? _prebuildWait;
+    private bool _prebuildStarted;
     private bool _prebuilding;
 
     /// <summary>
-    /// The parts built ahead of the first click, one a dispatcher turn: the four filter bars, the list's card (its head and
-    /// column heads, without the rows) and the chosen archetype's card. None has a binding on its own IsVisible.
+    /// How long after the page was shown the build ahead starts (zero: at once). A third of a second: the page has
+    /// drawn itself and built its own rows by then, and a player rarely clicks a tab sooner.
     /// </summary>
-    private Control[] Parts => [FilterRanks, FilterPeriods, FilterClasses, MinGamesPicker, TierCard, ArchetypeCard];
+    public static TimeSpan PrebuildDelay { get; set; } = TimeSpan.FromMilliseconds(300);
+
+    /// <summary>
+    /// The turns of the build ahead that ran, with the time each took from its start to the start of the next (its
+    /// layout included): what the UI thread was held for. For the tests.
+    /// </summary>
+    public IReadOnlyList<(string Step, double Milliseconds)> PrebuildTurns => _turns;
 
     public ConstructedMetaView()
     {
@@ -39,29 +64,59 @@ public partial class ConstructedMetaView : UserControl
     }
 
     /// <summary>
-    /// Builds what the meta tabs show whatever the data (the filters and the two cards' frames and heads) while the page
-    /// still shows "My stats", so the first click on a meta tab builds the rows alone (the twin of the WPF view's
-    /// Prebuild). The view is laid out in its place at its real width, but zero high, transparent, and closed to the
-    /// pointer and to Tab; its parts are hidden and one is shown per dispatcher turn at background priority, so input
-    /// never waits for more than a part. The rows are not built ahead: the lists' holder stays hidden until the tab is
-    /// really shown. A click in the middle of it shows everything at once (<see cref="ShowTab"/>). Called by the main
-    /// view when the Standard or Wild page shows; does nothing once done or while a meta tab is shown.
+    /// Builds what the meta tabs show whatever the data (the filters, the two cards' frames and heads, the chosen
+    /// archetype's sections) while the page still shows "My stats", so the first click on a meta tab builds the rows
+    /// alone (the twin of the WPF view's Prebuild). The view is laid out in its place at its real width, but zero high,
+    /// transparent, and closed to the pointer and to Tab, with its parts held hidden; one part is shown per dispatcher
+    /// turn at background priority: a filter bar, a card's frame, then each block inside the cards, and the rows of a
+    /// list inside a part a few a turn, so the UI thread is never held for more than one small part. The tier list's
+    /// rows are not built ahead: the lists' holder stays hidden until the
+    /// tier list is really shown. A click on a meta tab in the middle of it shows everything at once
+    /// (<see cref="ShowTab"/>); leaving the page stops it, and the next visit starts it again. Called by the main view
+    /// whenever the Standard or Wild page shows; does nothing once done or while a meta tab is shown.
     /// </summary>
     public void Prebuild()
     {
-        if (_prebuilt >= 0 || IsVisible)
+        if (_prebuildStarted || _prebuildWait is not null || IsVisible)
         {
             return;
         }
 
-        _prebuilt = 0;
-        _prebuilding = true;
-        foreach (var part in Parts)
+        if (PrebuildDelay <= TimeSpan.Zero)
         {
-            part.IsVisible = false;
+            StartPrebuild();
+            return;
         }
 
+        _prebuildWait = DispatcherTimer.RunOnce(
+            () =>
+            {
+                _prebuildWait = null;
+                StartPrebuild();
+            },
+            PrebuildDelay,
+            DispatcherPriority.Background);
+    }
+
+    private void StartPrebuild()
+    {
+        // Not under a page that was left meanwhile, and not over a tab that was shown: the next visit asks again.
+        if (_prebuildStarted || IsVisible || Parent is not Visual { IsEffectivelyVisible: true })
+        {
+            return;
+        }
+
+        _prebuildStarted = true;
+        _prebuilding = true;
         MetaLists.IsVisible = false;
+        foreach (var bar in new[] { FilterRanks, FilterPeriods, FilterClasses, MinGamesPicker })
+        {
+            Stage(bar);
+            StageRows(bar.Child as ItemsControl, 4);
+        }
+
+        StageCard(TierCard);
+        StageCard(ArchetypeCard);
         MetaTiersPanel.IsVisible = true;
         Height = 0;
         Opacity = 0;
@@ -71,8 +126,124 @@ public partial class ConstructedMetaView : UserControl
         Dispatcher.UIThread.Post(PrebuildNext, DispatcherPriority.Background);
     }
 
+    /// <summary>Holds <paramref name="part"/> hidden and queues the turn that shows it.</summary>
+    private void Stage(Control part)
+    {
+        _held.Add((part, part.IsVisible));
+        // The current value only: a binding on the part's visibility stays and is read again when the part is let go.
+        part.SetCurrentValue(IsVisibleProperty, false);
+        _steps.Add((part.Name is { Length: > 0 } name ? name : part.GetType().Name, () =>
+        {
+            Release(part);
+            return false;
+        }));
+    }
+
+    /// <summary>
+    /// The rows of a list inside a part just staged: hidden the moment the list prepares them (before it measures them:
+    /// a hidden row is not measured and builds nothing, so it costs nothing until its turn), then shown
+    /// <paramref name="perTurn"/> a turn in the turns queued here, after the part's own.
+    /// </summary>
+    private void StageRows(ItemsControl? list, int perTurn)
+    {
+        if (list is null)
+        {
+            return;
+        }
+
+        var shown = new HashSet<Control>();
+        void Hide(object? sender, ContainerPreparedEventArgs e)
+        {
+            if (!shown.Contains(e.Container))
+            {
+                e.Container.IsVisible = false;
+            }
+        }
+
+        void Stop()
+        {
+            list.ContainerPrepared -= Hide;
+            foreach (var row in list.GetRealizedContainers())
+            {
+                row.IsVisible = true;
+            }
+        }
+
+        list.ContainerPrepared += Hide;
+        _stagedLists.Add((list, Stop));
+        _steps.Add(("rows", () =>
+        {
+            var hidden = list.GetRealizedContainers().Where(row => !shown.Contains(row)).Take(perTurn + 1).ToList();
+            foreach (var row in hidden.Take(perTurn))
+            {
+                shown.Add(row);
+                row.IsVisible = true;
+            }
+
+            if (hidden.Count > perTurn)
+            {
+                return true;
+            }
+
+            // The last of them: the list's rows are ordinary rows from now on.
+            list.ContainerPrepared -= Hide;
+            _stagedLists.RemoveAll(staged => staged.List == list);
+            return false;
+        }));
+    }
+
+    /// <summary>
+    /// A card: its frame in one turn, then each block inside it in a turn of its own, and the same one level down for
+    /// the side card's sections. The lists' holder is not one of them.
+    /// </summary>
+    private void StageCard(Border card)
+    {
+        Stage(card);
+        foreach (var block in ((Panel)card.Child!).Children.Where(b => b != MetaLists).ToList())
+        {
+            Stage(block);
+            if (block == ArchetypeSections)
+            {
+                foreach (var section in ArchetypeSections.Children.ToList())
+                {
+                    Stage(section);
+                    // The mulligan rank bar's segments, the guide's cards three a turn, the best lists (the heaviest
+                    // rows of the tab) one a turn.
+                    StageRows(section as ItemsControl ?? (section as Border)?.Child as ItemsControl, section == BestLists ? 1 : section is Border ? 4 : 3);
+                }
+            }
+        }
+    }
+
+    /// <summary>Lets a held part show again: as its binding says, or as it was.</summary>
+    private void Release(Control part)
+    {
+        var index = _held.FindIndex(h => h.Part == part);
+        if (index < 0)
+        {
+            return;
+        }
+
+        var was = _held[index].Was;
+        _held.RemoveAt(index);
+        if (BindingOperations.GetBindingExpressionBase(part, IsVisibleProperty) is { } binding)
+        {
+            binding.UpdateTarget();
+        }
+        else
+        {
+            part.SetCurrentValue(IsVisibleProperty, was);
+        }
+    }
+
     private void PrebuildNext()
     {
+        if (_turn is { } ran)
+        {
+            _turns.Add((ran, _clock.Elapsed.TotalMilliseconds));
+            _turn = null;
+        }
+
         if (!_prebuilding)
         {
             return;
@@ -82,15 +253,22 @@ public partial class ConstructedMetaView : UserControl
         if (Parent is not Visual { IsEffectivelyVisible: true })
         {
             EndPrebuild();
-            _prebuilt = -1;
+            _prebuildStarted = false;
             MetaTiersPanel.IsVisible = false;
             IsVisible = false;
             return;
         }
 
-        if (_prebuilt < Parts.Length)
+        if (_steps.Count > 0)
         {
-            Parts[_prebuilt++].IsVisible = true;
+            var (name, show) = _steps[0];
+            _turn = name;
+            _clock.Restart();
+            if (!show())
+            {
+                _steps.RemoveAt(0);
+            }
+
             Dispatcher.UIThread.Post(PrebuildNext, DispatcherPriority.Background);
             return;
         }
@@ -104,13 +282,19 @@ public partial class ConstructedMetaView : UserControl
     private void EndPrebuild()
     {
         _prebuilding = false;
-        _prebuilt = Parts.Length;
-        foreach (var part in Parts)
+        _turn = null;
+        _steps.Clear();
+        foreach (var (_, stop) in _stagedLists.ToList())
         {
-            part.IsVisible = true;
+            stop();
         }
 
-        MetaLists.IsVisible = true;
+        _stagedLists.Clear();
+        foreach (var (part, _) in _held.ToList())
+        {
+            Release(part);
+        }
+
         ClearValue(HeightProperty);
         ClearValue(OpacityProperty);
         ClearValue(IsHitTestVisibleProperty);
@@ -120,13 +304,30 @@ public partial class ConstructedMetaView : UserControl
     /// <summary>"Tiers", "Top" or "Matchups"; anything else hides the view (the "My stats" tab).</summary>
     public void ShowTab(string? tab)
     {
-        if (_prebuilding)
+        if (tab is not ("Tiers" or "Top" or "Matchups"))
         {
-            EndPrebuild();
+            if (_prebuilding)
+            {
+                // "My stats" again while the tab is being built ahead under it (a window built anew sets the tab it had):
+                // nothing to hide, and the build goes on.
+                return;
+            }
+        }
+        else
+        {
+            _prebuildWait?.Dispose();
+            _prebuildWait = null;
+            if (_prebuilding)
+            {
+                EndPrebuild();
+            }
+
+            // Shown before it was built ahead: the usual way, all at once.
+            _prebuildStarted = true;
         }
 
-        // Shown before it was built ahead: the usual way, all at once.
-        _prebuilt = Parts.Length;
+        // The lists' holder shows with the tier list only, as in the WPF view.
+        MetaLists.IsVisible = tab == "Tiers";
         MetaTiersPanel.IsVisible = tab == "Tiers";
         MetaDecksPanel.IsVisible = tab == "Top";
         MetaMatchupsPanel.IsVisible = tab == "Matchups";

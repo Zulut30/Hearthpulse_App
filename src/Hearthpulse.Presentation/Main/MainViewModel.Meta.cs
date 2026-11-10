@@ -16,101 +16,6 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-public sealed record MetaChoice(string Key, string Label, bool Selected) : IImmutableView;
-
-/// <summary>
-/// One archetype of the Standard/Wild tier list, as hearthpulse.net shows it: tier, class portrait, name (the English
-/// one under a translated name), win rate on a colour scale with its 95 % interval, popularity bar and games.
-/// </summary>
-public sealed record MetaArchetypeRow(
-    int Id,
-    int Rank,
-    string Name,
-    string EnglishName,
-    string HeroId,
-    string Detail,
-    string Tier,
-    string WinRate,
-    string WinRateTip,
-    double Edge,
-    int WinSign,
-    double BarFraction,
-    string Popularity,
-    double PopularityFraction,
-    string Games,
-    string First,
-    string Coin) : IImmutableView, INotifyPropertyChanged
-{
-    private bool _isSelected;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    /// <summary>Whether the source split this archetype's games by who went first.</summary>
-    public bool HasPlaySplit => First != "—" || Coin != "—";
-
-    /// <summary>The win rates going first and on the coin in one cell ("53% · 49%"); a dash without either.</summary>
-    public string PlaySplit => HasPlaySplit ? First + " · " + Coin : "—";
-
-    /// <summary>
-    /// Whether the list shows the play split at all (some row of it has one): the same for every row of a list, kept in
-    /// the row so its cell reads its own row and not, through a search up the tree, the page.
-    /// </summary>
-    public bool ShowsPlaySplit { get; init; }
-
-    /// <summary>The length of the win-rate bar, of the 56 its cell has: computed once here, not by a converter in each row.</summary>
-    public double WinBar => BarFraction * 56;
-
-    /// <summary>The length of the popularity bar, of the 44 its cell has.</summary>
-    public double PopularityBar => PopularityFraction * 44;
-
-    /// <summary>
-    /// The same row: what it shows, not whether it is chosen or who listens to it. A list changed in place
-    /// (<see cref="SyncList{T}"/>) keeps a row that is equal to the new one, with its container and its choice.
-    /// </summary>
-    public bool Equals(MetaArchetypeRow? other) =>
-        other is not null && Id == other.Id && Rank == other.Rank && Name == other.Name && EnglishName == other.EnglishName && HeroId == other.HeroId
-        && Detail == other.Detail && Tier == other.Tier && WinRate == other.WinRate && WinRateTip == other.WinRateTip && Edge.Equals(other.Edge)
-        && WinSign == other.WinSign && BarFraction.Equals(other.BarFraction) && Popularity == other.Popularity
-        && PopularityFraction.Equals(other.PopularityFraction) && Games == other.Games && First == other.First && Coin == other.Coin
-        && ShowsPlaySplit == other.ShowsPlaySplit;
-
-    public override int GetHashCode() => HashCode.Combine(Id, Rank, Name, Tier, WinRate, Popularity, Games);
-
-    /// <summary>The archetype whose mulligan guide and lists the side card shows.</summary>
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set
-        {
-            if (_isSelected != value)
-            {
-                _isSelected = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-            }
-        }
-    }
-}
-
-/// <summary>The sort arrow of each sortable column ("▼", "▲" or empty), so a header shows how the table is ordered.</summary>
-public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games) : IImmutableView;
-
-public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code) : IImmutableView;
-
-/// <summary>One card of the mulligan guide; <see cref="Seen"/> is its tooltip ("Seen in 1,234 opening hands").</summary>
-public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen) : IImmutableView;
-
-/// <summary>A column of the matchup heat map: the opponent archetype's portrait, short name and full name as tooltip.</summary>
-public sealed record MatchupHead(string Name, string HeroId, string Tip) : IImmutableView;
-
-/// <summary>
-/// One cell of the heat map: the win rate as a number, <see cref="Edge"/> (win rate − 50 %) for the colour and
-/// <see cref="Heat"/> for the tint's opacity (up to 0.6, so the number stays readable); no games leaves it blank.
-/// </summary>
-public sealed record MatchupCellView(string Text, double Edge, double Heat, string Tip) : IImmutableView;
-
-/// <summary>One archetype of the heat map against every column.</summary>
-public sealed record MatchupMatrixRow(string Name, string HeroId, string WinRate, double Edge, IReadOnlyList<MatchupCellView> Cells) : IImmutableView;
-
 public sealed partial class MainViewModel
 {
     /// <summary>Games an archetype needs before the tier list shows it (hearthpulse.net's "Minimum games" choices).</summary>
@@ -415,6 +320,9 @@ public sealed partial class MainViewModel
 
     /// <summary>The stats of the format the page shows.</summary>
     private ConstructedMeta? PageMeta => ConstructedMetaFor(_ctFormat);
+
+    /// <summary>The stats the meta tabs show now, null without any: for a render scene to put back what it replaced.</summary>
+    public ConstructedMeta? ShownConstructedMeta => PageMeta;
 
     private string Arrow(string column) => column != _metaSort ? string.Empty : _metaSortAscending ? "▲" : "▼";
 

@@ -17,8 +17,8 @@ internal static partial class OffscreenRenderer
     /// the flat list of tier heads and archetypes beside the chosen archetype's card), as one table
     /// (<c>main-meta-table</c>) and at the compact width, the card under the list (<c>main-meta-tiers-compact</c>).
     /// Then on made-up stats (<see cref="Hearthpulse.Core.Constructed.MetaTierScene.States"/>) the states the data copy rarely has, an archetype of tier D
-    /// chosen: <c>main-meta-states</c> and <c>main-meta-states-table</c>. The made-up stats stay in the page, so this
-    /// group goes last or alone. The view and the width are set back.
+    /// chosen: <c>main-meta-states</c> and <c>main-meta-states-table</c>. The page's own stats are put back after
+    /// them (when it had none, the made-up ones stay). The view and the width are set back.
     /// </summary>
     private static async Task RenderMetaTiersAsync(Window main, MainView view, AppHost host, string folder)
     {
@@ -36,6 +36,7 @@ internal static partial class OffscreenRenderer
         await Save(main, Path.Combine(folder, "main-meta-tiers-compact.png"));
         main.Width = width;
 
+        var own = host.Main.ShownConstructedMeta;
         host.Main.SetConstructedMeta(Hearthpulse.Core.Constructed.MetaTierScene.States());
         host.Main.SelectArchetype.Execute(host.Main.MetaArchetypes.FirstOrDefault(r => r.Tier == "D"));
         foreach (var (mode, name) in new[] { ("Tiers", "main-meta-states"), ("Table", "main-meta-states-table") })
@@ -45,6 +46,12 @@ internal static partial class OffscreenRenderer
         }
 
         host.Main.SetMetaView.Execute("Tiers");
+
+        // The page's own stats again: the scenes after this one show real numbers.
+        if (own is not null)
+        {
+            host.Main.SetConstructedMeta(own);
+        }
     }
 
     /// <summary>

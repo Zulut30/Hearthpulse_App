@@ -57,7 +57,7 @@
         <DataTemplate x:DataType="m:MetaArchetypeRow">
             <!-- No command on the row: the view hears the click of both lists (OnRowClick), which spares each row two
                  bindings and a search up the tree. -->
-            <Button Classes="bare metaRow" Classes.selected="{Binding IsSelected}">
+            <Button Classes="bare metaRow" Classes.selected="{Binding IsSelected}" AutomationProperties.Name="{Binding Name}">
                 <Grid ColumnDefinitions="30,42,*,44,116,100,Auto">
                     <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
@@ -287,7 +287,7 @@
                                IsVisible="{Binding Mulligan, Converter={StaticResource Truthy}, ConverterParameter=!}" />
 
                     <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,16,0,8" />
-                    <ItemsControl ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
+                    <ItemsControl Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Classes="caption" Margin="0,4"
                                IsVisible="{Binding ArchetypeDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                     <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"

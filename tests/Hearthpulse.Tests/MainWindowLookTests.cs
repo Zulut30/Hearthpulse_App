@@ -91,6 +91,22 @@ public sealed class MainWindowLookTests
             Assert.Equal(("TextBlock", "96"), (headSplit.Name.LocalName, (string?)headSplit.Attribute("Width")));
             Assert.Equal(("TextBlock", "96"), (rowSplit.Name.LocalName, (string?)rowSplit.Attribute("Width")));
 
+            // The row gives its bars' lengths ready (MetaArchetypeRow.WinBar, PopularityBar, of WinBarLength and
+            // PopularityBarLength), so those two numbers must be the bars' room in this markup: each bar is bound to its
+            // length, starts where its number's cell ends, and fits its column at full length.
+            var columns = GridColumns(row).ToList();
+            foreach (var (column, source, length) in new[] { ("4", "WinBar", UI.Main.MetaArchetypeRow.WinBarLength), ("5", "PopularityBar", UI.Main.MetaArchetypeRow.PopularityBarLength) })
+            {
+                var bar = row.Elements().Single(e => e.Name.LocalName == "Border" && (string?)e.Attribute("Grid.Column") == column);
+                var number = row.Elements().Single(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Grid.Column") == column);
+                Assert.Equal("{Binding " + source + "}", (string?)bar.Attribute("Width"));
+                var start = double.Parse(((string?)bar.Attribute("Margin"))!.Split(',')[0], System.Globalization.CultureInfo.InvariantCulture);
+                Assert.Equal(double.Parse(((string?)number.Attribute("Width"))!, System.Globalization.CultureInfo.InvariantCulture), start);
+                var room = columns[int.Parse(column, System.Globalization.CultureInfo.InvariantCulture)] ?? string.Empty;
+                Assert.True(start + length <= double.Parse(room, System.Globalization.CultureInfo.InvariantCulture),
+                    $"{path}: the {source} bar of {length} from {start} leaves its column of {room}");
+            }
+
             // The tiers are one flat list (a tier's head row, then its archetypes) and the table the archetypes alone: both
             // lists of the page build only the rows near the viewport, take their rows' templates by type, and sort from the heads.
             Assert.Contains(view.Descendants(), e => e.Name.LocalName == "DataTemplate" && DataTypeOf(e).Contains("TierHeadRow", StringComparison.Ordinal));
