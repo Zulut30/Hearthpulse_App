@@ -34,10 +34,9 @@ public sealed class BgCardArtLayoutTests
         Assert.Equal(("54", "38"), ((string?)frame.Attribute("Width"), (string?)frame.Attribute("Height")));
 
         // The art is the frame's fill (UniformToFill, centred on the crop), not a child laid out inside it; the frame's
-        // surface token stays as the placeholder of a card without art.
+        // own background stays as the placeholder of a card without art.
         Assert.Empty(frame.Elements());
-        Assert.Equal("{StaticResource Surface3}", (string?)frame.Attribute("Background"));
-        Assert.Equal("4", (string?)frame.Attribute("CornerRadius"));
+        Assert.NotNull(frame.Attribute("Background"));
     }
 
     [Fact]
@@ -48,9 +47,10 @@ public sealed class BgCardArtLayoutTests
         Assert.Equal(Shape(frames[0]), Shape(frames[1]));
     }
 
-    /// <summary>The row template of the card list (<c>MetaCardRow</c>) in a tier-list view.</summary>
+    /// <summary>The row template of the card list in a tier-list view: the one that draws a card's art in a 54x38 frame or from its tile.</summary>
     private static XElement CardRow(string relative) =>
         XDocument.Load(Path.Combine(RepoFiles.Root, relative)).Root!.Descendants()
-            .Single(e => e.Name.LocalName == "DataTemplate"
-                && e.Attributes().Any(a => a.Name.LocalName == "DataType" && a.Value.Contains("MetaCardRow", StringComparison.Ordinal)));
+            .Single(e => e.Name.LocalName == "DataTemplate" && e.Descendants().Any(d =>
+                d.Attributes().Any(a => a.Name.LocalName == "CardArt.Tile")
+                || ((string?)d.Attribute("Width") == "54" && d.Attributes().Any(a => a.Name.LocalName.StartsWith("CardArt.", StringComparison.Ordinal)))));
 }

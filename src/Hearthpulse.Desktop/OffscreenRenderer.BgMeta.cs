@@ -36,8 +36,7 @@ internal static partial class OffscreenRenderer
             try
             {
                 ShowCardTier(view, tier);
-                // The rows' art loads off the UI thread.
-                await Task.Delay(1500);
+                // Save waits for the rows' art itself.
                 Dispatcher.UIThread.RunJobs();
                 await Save(main, Path.Combine(folder, $"main-battlegrounds-cards-{(tier == 0 ? "spells" : "t" + tier.ToString(CultureInfo.InvariantCulture))}.png"));
             }

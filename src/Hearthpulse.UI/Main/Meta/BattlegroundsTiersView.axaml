@@ -138,7 +138,7 @@
                                                    IsVisible="{Binding Commit, Converter={StaticResource Truthy}}" />
                                     </StackPanel>
                                     <Border Grid.Column="2" Classes="tierBadge" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
-                                            ToolTip.Tip="{i:Loc Main.Bg.PowerBestTip}">
+                                            ToolTip.Tip="{i:Loc Main.Bg.TierBestTip}">
                                         <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>

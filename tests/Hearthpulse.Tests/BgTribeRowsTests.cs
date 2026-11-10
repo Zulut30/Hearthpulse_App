@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
@@ -21,6 +22,7 @@ namespace Hearthpulse.Tests;
 /// tab name "Tribes". The Avalonia view model, and its tab (the WPF twin and the two-UI contract:
 /// <c>Hearthpulse.Presentation.Tests/BgTribeRowsContractTests</c>).
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class BgTribeRowsTests
 {
     public BgTribeRowsTests() => LocBindingTests.Headless.Run(() => Loc.Instance.SetLanguage(Loc.English));
@@ -152,12 +154,14 @@ public sealed class BgTribeRowsTests
     [InlineData("src/Hearthpulse.UI/Main/Pages/BattlegroundsPage.axaml", "src/Hearthpulse.UI/Main/Meta/BattlegroundsTiersView.axaml")]
     public void Comps_tab_markup_binds_the_shared_properties(string page, string view)
     {
-        var tab = File.ReadLines(Path.Combine(RepoFiles.Root, page)).SkipWhile(l => !l.Contains("\"TabComps\"", StringComparison.Ordinal)).Take(2).ToList();
-        Assert.Contains("Content=\"{Binding CompTabLabel}\"", tab[0], StringComparison.Ordinal);
-        Assert.Contains("=\"{Binding CompCaption}\"", tab[1], StringComparison.Ordinal);
+        var tab = XDocument.Load(Path.Combine(RepoFiles.Root, page)).Root!.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "TabComps"));
+        Assert.Equal("{Binding CompTabLabel}", (string?)tab.Attribute("Content"));
+        Assert.Equal("{Binding CompCaption}", (string?)(tab.Attribute("ToolTip") ?? tab.Attribute("ToolTip.Tip")));
 
-        var empty = File.ReadLines(Path.Combine(RepoFiles.Root, view)).SkipWhile(l => !l.Contains("{Binding CompEmptyText}", StringComparison.Ordinal)).Take(2).ToList();
-        Assert.Contains("{Binding HasCompTiers,", empty[1], StringComparison.Ordinal);
+        var empty = XDocument.Load(Path.Combine(RepoFiles.Root, view)).Root!.Descendants()
+            .Single(e => (string?)e.Attribute("Text") == "{Binding CompEmptyText}");
+        Assert.StartsWith("{Binding HasCompTiers,", (string?)(empty.Attribute("Visibility") ?? empty.Attribute("IsVisible")), StringComparison.Ordinal);
     }
 
     private static readonly PoolTribe[] Tribes =
