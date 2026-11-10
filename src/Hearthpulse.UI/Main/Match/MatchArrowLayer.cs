@@ -9,8 +9,10 @@ namespace Hearthpulse.UI.Main.Match;
 /// <summary>
 /// The arrow of the Constructed table (plan R2): drawn over the table between the step's actor and its target, found by
 /// their replay ids (<see cref="RefProperty"/> on the cards, hero portraits and chips of the panel beside it). It never
-/// takes the pointer, so the card previews under it work. Geometry: <see cref="MatchArrowLayout"/>; drawn again whenever
-/// the table's layout moves an end.
+/// takes the pointer, so the card previews under it work. Geometry: <see cref="MatchArrowLayout"/>. The arrow is worked
+/// out once after the layout pass that follows a change of the step (<see cref="Version"/> and the ends), of the
+/// layer's size or of its visibility, and drawn from that: a layout pass anywhere else in the window (LayoutUpdated
+/// fires for all of them) costs it nothing. Before, every pass placed both ends and built the geometry again.
 /// </summary>
 public sealed class MatchArrowLayer : Control
 {
@@ -22,6 +24,12 @@ public sealed class MatchArrowLayer : Control
 
     public static readonly StyledProperty<bool> LocalProperty = AvaloniaProperty.Register<MatchArrowLayer, bool>(nameof(Local));
 
+    /// <summary>
+    /// The table's change count (<see cref="MatchTable.Version"/>): a step can move the ends without changing their ids
+    /// (a minion summoned beside the attacker, the other side at the bottom).
+    /// </summary>
+    public static readonly StyledProperty<int> VersionProperty = AvaloniaProperty.Register<MatchArrowLayer, int>(nameof(Version));
+
     /// <summary>The replay id of a table element an arrow can start or end at (0: none).</summary>
     public static readonly AttachedProperty<int> RefProperty = AvaloniaProperty.RegisterAttached<MatchArrowLayer, Control, int>("Ref");
 
@@ -32,7 +40,11 @@ public sealed class MatchArrowLayer : Control
     /// <summary>The step bar: an arrow with both ends on one side bends towards it.</summary>
     public static readonly AttachedProperty<bool> MiddleProperty = AvaloniaProperty.RegisterAttached<MatchArrowLayer, Control, bool>("Middle");
 
-    private MatchArrow? _drawn;
+    // The arrow worked out after the last layout pass that followed a change, and what Render draws.
+    private MatchArrow? _arrow;
+
+    // A change is waiting for its layout pass (LayoutUpdated is listened to only meanwhile).
+    private bool _pending;
 
     // The ends found by the last walk of the table: walked again only when the step's ends change, the layer's size
     // changes, or a kept end no longer carries its id or is hidden (review m4: not on every layout pass).
@@ -41,19 +53,12 @@ public sealed class MatchArrowLayer : Control
     private Control? _middle;
     private (int From, int To, Size Size) _found;
 
-    static MatchArrowLayer() => AffectsRender<MatchArrowLayer>(FromProperty, ToProperty, IsAttackProperty, LocalProperty);
+    public MatchArrowLayer() => IsHitTestVisible = false;
 
-    public MatchArrowLayer()
-    {
-        IsHitTestVisible = false;
-        LayoutUpdated += (_, _) =>
-        {
-            if (IsEffectivelyVisible && !Equals(Arrow(), _drawn))
-            {
-                InvalidateVisual();
-            }
-        };
-    }
+    /// <summary>How many times the geometry was worked out (tests: at most twice a step, never on a layout pass alone).</summary>
+    internal int Computed { get; private set; }
+
+    public int Version { get => GetValue(VersionProperty); set => SetValue(VersionProperty, value); }
 
     public int From { get => GetValue(FromProperty); set => SetValue(FromProperty, value); }
 
@@ -76,9 +81,56 @@ public sealed class MatchArrowLayer : Control
 
     public static void SetMiddle(Control element, bool value) => element.SetValue(MiddleProperty, value);
 
-    /// <summary>The arrow as it would be drawn now, or null (no target, an end not on the table, actor and target the same).</summary>
-    internal MatchArrow? Arrow()
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
+        base.OnPropertyChanged(change);
+        if (change.Property == FromProperty || change.Property == ToProperty || change.Property == IsAttackProperty || change.Property == LocalProperty
+            || change.Property == VersionProperty || change.Property == BoundsProperty || change.Property == IsVisibleProperty)
+        {
+            Invalidate();
+        }
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Invalidate();
+    }
+
+    /// <summary>
+    /// The step, the size or the visibility changed: the arrow is worked out once the layout that follows has placed
+    /// the cards (a pass is asked for, in case nothing else needs one).
+    /// </summary>
+    private void Invalidate()
+    {
+        if (_pending)
+        {
+            return;
+        }
+
+        _pending = true;
+        LayoutUpdated += OnLayoutUpdated;
+        InvalidateArrange();
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        LayoutUpdated -= OnLayoutUpdated;
+        _pending = false;
+        var arrow = Compute();
+        if (!Equals(arrow, _arrow))
+        {
+            _arrow = arrow;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>The arrow as drawn, or null (no target, an end not on the table, actor and target the same).</summary>
+    internal MatchArrow? Arrow() => _arrow;
+
+    private MatchArrow? Compute()
+    {
+        Computed++;
         if (From == 0 || To == 0 || From == To || this.GetVisualParent() is not { } parent)
         {
             return null;
@@ -142,8 +194,7 @@ public sealed class MatchArrowLayer : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        _drawn = Arrow();
-        if (_drawn is not { } arrow)
+        if (_arrow is not { } arrow)
         {
             return;
         }

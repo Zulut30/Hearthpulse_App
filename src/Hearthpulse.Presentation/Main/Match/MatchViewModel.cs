@@ -34,23 +34,22 @@ public sealed partial class MatchViewModel : Observable
     private MatchHeader? _header;
     private string _missing = string.Empty;
     private MatchStepView? _step;
-    private readonly SyncList<MatchActionRow> _actions = new();
     private readonly SyncList<MatchTurnRow> _turns = new();
+
+    // The events of the step's turn (Constructed) or stretch (Battlegrounds): null until asked for (no view shows the
+    // Constructed list: the feed took its place) or set by the Battlegrounds step.
+    private IReadOnlyList<MatchActionRow>? _actions = [];
+    private int _actionCurrentIndex = -1;
 
     // The page and its turn the turn list was built for (Refresh rebuilds it only when either changes).
     private MatchPage? _turnsPage;
     private MatchTurnChip? _turnsCurrent;
 
-    // The game's event feed (plan R2): its rows built once per game, unmarked, and the list the view binds, where each
-    // step only moves the marks (Current) of the rows that change; the last step of each header's turn.
-    private readonly SyncList<MatchFeedRow> _feed = new();
-    private IReadOnlyList<MatchFeedRow> _feedRows = [];
+    // The game's event feed (plan R2): its rows built once per game and kept, each step only moves the marks (Current)
+    // of the rows that change; the last step of each header's turn; the step's row in the list (-1: none).
+    private IReadOnlyList<MatchFeedItem> _feedRows = [];
     private int[] _feedTurnEnds = [];
-
-    // The lists of the Constructed step on screen, synced to each step (see Keep): the top side's board, hand and
-    // secrets, the bottom side's, and the step's choices.
-    private readonly SyncList<MatchCardView>[] _sides = [new(), new(), new(), new(), new(), new()];
-    private readonly SyncList<MatchChoiceView> _choices = new();
+    private int _feedCurrentIndex = -1;
     private IReadOnlyList<MatchDeckRow> _localDeck = [];
     private IReadOnlyList<MatchDeckRow> _opponentCards = [];
     private IReadOnlyList<MatchDeckRow> _opponentPredicted = [];
@@ -88,6 +87,8 @@ public sealed partial class MatchViewModel : Observable
             MatchTurnRow turn => turn.FirstFrame,
             MatchActionRow action => action.Frame,
             MatchFeedRow row => row.Frame,
+            MatchFeedItem row => row.Frame,
+            MatchActionItem action => action.Frame,
             int frame => frame,
             _ => Frame,
         });
@@ -225,22 +226,78 @@ public sealed partial class MatchViewModel : Observable
         return -1;
     }
 
-    /// <summary>The Constructed step on screen.</summary>
-    public MatchStepView? Step { get => _step; private set => Set(ref _step, TableInPlace(value)); }
+    /// <summary>The Constructed step on screen, as Core built it. The view binds <see cref="Table"/>, which shows it in place.</summary>
+    public MatchStepView? Step
+    {
+        get => _step;
+        private set
+        {
+            _step = value;
+            if (Table.Update(value))
+            {
+                Raise();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The Constructed table the view binds: the same object, sides and cards for the whole page, changed in place by
+    /// each step (<see cref="MatchTable"/>).
+    /// </summary>
+    public MatchTable Table { get; } = new();
 
     /// <summary>"Step 34 of 210 · turn 7"; before the first turn "Step 2 of 210".</summary>
     public string Position => _page is null ? string.Empty
         : TurnAt(Frame) is > 0 and var turn ? Loc.F("Match.Player.Position", Frame + 1, FrameMax + 1, turn) : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
 
-    public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Keep(_actions, value); }
+    /// <summary>The events of the step's turn (Constructed) or of its tavern or combat (Battlegrounds), the latest one marked.</summary>
+    public IReadOnlyList<MatchActionRow> Actions
+    {
+        get => _actions ??= _page?.Actions(_frame) ?? [];
+        private set
+        {
+            if (_actions is not null && _actions.SequenceEqual(value))
+            {
+                return;
+            }
+
+            _actions = value;
+            MatchItems.Sync(ActionRows, value);
+            var current = -1;
+            for (var i = 0; i < value.Count && current < 0; i++)
+            {
+                current = value[i].Current ? i : -1;
+            }
+
+            Raise();
+            // After the rows: the view scrolls to the index of a row that is there.
+            _actionCurrentIndex = current;
+            Raise(nameof(ActionCurrentIndex));
+        }
+    }
+
+    /// <summary>The Battlegrounds list of events as the view binds it: the rows stay, a step moves the mark.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<MatchActionItem> ActionRows { get; } = [];
+
+    /// <summary>The marked row of <see cref="ActionRows"/> (the view keeps it in sight), or -1.</summary>
+    public int ActionCurrentIndex => _actionCurrentIndex;
 
     public IReadOnlyList<MatchTurnRow> Turns { get => _turns; private set => Keep(_turns, value); }
 
     /// <summary>
     /// The Constructed game's event feed (plan R2): every action under its turn's header, the step on screen and its
-    /// turn marked. Built once per game; a step changes only the rows whose mark moves (empty for Battlegrounds).
+    /// turn marked (empty for Battlegrounds). The view binds <see cref="FeedRows"/>.
     /// </summary>
-    public IReadOnlyList<MatchFeedRow> Feed { get => _feed; private set => Keep(_feed, value); }
+    public IReadOnlyList<MatchFeedRow> Feed => _feedRows.Select(row => row.Row).ToList();
+
+    /// <summary>
+    /// The feed as the view binds it: the rows are built once per game and stay, a step only moves the marks
+    /// (<see cref="MatchFeedItem.Current"/>) of the rows that change.
+    /// </summary>
+    public IReadOnlyList<MatchFeedItem> FeedRows { get => _feedRows; private set => Set(ref _feedRows, value); }
+
+    /// <summary>The step's row in <see cref="FeedRows"/> (the view scrolls to it by this index), or -1 when the step has none.</summary>
+    public int FeedCurrentIndex { get => _feedCurrentIndex; private set => Set(ref _feedCurrentIndex, value); }
 
     public IReadOnlyList<MatchDeckRow> LocalDeck { get => _localDeck; private set => Set(ref _localDeck, value); }
 
@@ -295,7 +352,6 @@ public sealed partial class MatchViewModel : Observable
         _turnsPage = null;
         _turnsCurrent = null;
         SetFeedRows([]);
-        Feed = [];
         LocalDeck = [];
         OpponentCards = [];
         OpponentPredicted = [];
@@ -322,6 +378,13 @@ public sealed partial class MatchViewModel : Observable
     public void Show(MatchPage page, bool keepPosition = false)
     {
         _page = page;
+        if (keepPosition)
+        {
+            // The same game built again in another language: the tables are emptied first, so every card is read anew.
+            Step = null;
+            BattlegroundsStep = null;
+        }
+
         if (!keepPosition)
         {
             Pause();
@@ -366,6 +429,11 @@ public sealed partial class MatchViewModel : Observable
         Raise(nameof(Tab));
         RaiseTabs();
         Refresh();
+        if (keepPosition)
+        {
+            Table.RaiseAll();
+            BgTable.RaiseAll();
+        }
     }
 
     private void Pick(bool chosen, string tab)
@@ -406,13 +474,19 @@ public sealed partial class MatchViewModel : Observable
         if (HasBattlegroundsSteps)
         {
             ShowBattlegroundsStep(_page.BattlegroundsStep(_frame));
-            Feed = [];
         }
         else
         {
             Step = _page.Step(_frame, _bottomLocal ? ReplayPlayer.Local : ReplayPlayer.Opponent);
-            Actions = _page.Actions(_frame);
-            Feed = FeedAt(_frame);
+            // Read from the page when asked for: nothing on the Constructed table shows the turn's list.
+            _actions = null;
+            if (ActionRows.Count > 0)
+            {
+                ActionRows.Clear();
+            }
+
+            Raise(nameof(Actions));
+            MoveFeed(_frame);
         }
 
         // The turn list is rebuilt only when the page or its current turn changes, not on every step of the same turn.
@@ -443,7 +517,6 @@ public sealed partial class MatchViewModel : Observable
     /// <summary>The game's feed rows as built (none marked), and where each header's turn ends.</summary>
     private void SetFeedRows(IReadOnlyList<MatchFeedRow> rows)
     {
-        _feedRows = rows;
         _feedTurnEnds = new int[rows.Count];
         var end = -1;
         for (var i = rows.Count - 1; i >= 0; i--)
@@ -458,44 +531,50 @@ public sealed partial class MatchViewModel : Observable
                 end = Math.Max(end, rows[i].Frame);
             }
         }
-    }
 
-    /// <summary>The feed with the step's row and the header of its turn marked (as <see cref="MatchPage.Feed"/> marks them).</summary>
-    private IReadOnlyList<MatchFeedRow> FeedAt(int frame)
-    {
-        var rows = new MatchFeedRow[_feedRows.Count];
-        for (var i = 0; i < rows.Length; i++)
+        var items = new MatchFeedItem[rows.Count];
+        for (var i = 0; i < items.Length; i++)
         {
-            var row = _feedRows[i];
-            var current = row.Header ? frame >= row.Frame && frame <= _feedTurnEnds[i] : row.Frame == frame;
-            rows[i] = row.Current == current ? row : row with { Current = current };
+            items[i] = new MatchFeedItem(rows[i]);
         }
 
-        return rows;
+        // The index first: the view scrolls to it when it changes, and by then the rows are the new game's.
+        FeedCurrentIndex = -1;
+        FeedRows = items;
+        Raise(nameof(Feed));
     }
 
     /// <summary>
-    /// The Constructed step with the lists the view already binds, synced to the step's: the cards that did not change
-    /// keep their rows. Without a step the lists are emptied.
+    /// Marks the step's row and the header of its turn (as <see cref="MatchPage.Feed"/> marks them) on the rows the view
+    /// already shows: the two to four rows whose mark moves tell their bindings, the others are left alone.
     /// </summary>
-    private MatchStepView? TableInPlace(MatchStepView? step)
+    private void MoveFeed(int frame)
     {
-        if (step is null)
+        var index = -1;
+        var moved = false;
+        for (var i = 0; i < _feedRows.Count; i++)
         {
-            foreach (var list in _sides)
+            var row = _feedRows[i];
+            var current = row.Header ? frame >= row.Frame && frame <= _feedTurnEnds[i] : row.Frame == frame;
+            if (current && !row.Header && index < 0)
             {
-                list.Sync([]);
+                index = i;
             }
 
-            _choices.Sync([]);
-            return null;
+            if (row.Current != current)
+            {
+                row.Current = current;
+                moved = true;
+            }
         }
 
-        return step with { Top = SideInPlace(step.Top, 0), Bottom = SideInPlace(step.Bottom, 3), Choices = Synced(_choices, step.Choices) };
-    }
+        if (moved)
+        {
+            Raise(nameof(Feed));
+        }
 
-    private MatchSideView SideInPlace(MatchSideView side, int first) =>
-        side with { Board = Synced(_sides[first], side.Board), Hand = Synced(_sides[first + 1], side.Hand), Secrets = Synced(_sides[first + 2], side.Secrets) };
+        FeedCurrentIndex = index;
+    }
 
     private void RaiseTabs()
     {

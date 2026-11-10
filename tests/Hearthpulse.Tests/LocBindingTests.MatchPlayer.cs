@@ -175,8 +175,8 @@ public sealed partial class LocBindingTests
 
     /// <summary>
     /// A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step, every list
-    /// with one row per item and nothing left over, and a row whose item equals the one at its place a step before is
-    /// still that control (the lists change in place; a new list each step built every row again).
+    /// with one row per item and nothing left over, and a row whose item is the one at its place a step before is still
+    /// that control (the table the view binds and its cards are the same objects, changed in place by each step).
     /// </summary>
     private static void RecordedBattlegrounds()
     {
@@ -209,8 +209,10 @@ public sealed partial class LocBindingTests
 
                 // Every list on screen: one container per item, each showing its item, none left over.
                 var lists = table.GetVisualDescendants().OfType<ItemsControl>().Where(i => i.IsEffectivelyVisible && i.ItemsPanelRoot is not null).ToList();
-                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, step.Board));
+                Assert.Equal(step.Board, model.BgTable.Board.Select(c => c.View));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.BgTable.Board));
                 Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.Leaders));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.ActionRows));
                 foreach (var list in lists)
                 {
                     var items = list.Items.Cast<object>().ToList();
@@ -267,7 +269,10 @@ public sealed partial class LocBindingTests
             // The table's part of the page, shown on a step built here (the step itself comes from the format 4 file).
             var table = view.FindControl<Grid>("BattlegroundsTable")!;
             table.IsVisible = true;
-            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = step;
+            // The table the view binds (MatchBgTable), showing the step in place as on the page.
+            var shown = new MatchBgTable();
+            shown.Update(step);
+            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = shown;
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
 
@@ -321,7 +326,7 @@ public sealed partial class LocBindingTests
                 Hero = new MatchBgHeroView("TB_BaconShop_HERO_08", "Hagatha", 30, 0, 1),
                 Choices = [heroes],
             };
-            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = choice;
+            shown.Update(choice);
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
             var shownTexts = table.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();

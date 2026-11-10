@@ -104,7 +104,7 @@ public sealed class MatchXamlLoadTests
         var layer = Descendants(view).OfType<MatchArrowLayer>().Single();
         Assert.False(layer.IsHitTestVisible);
         Assert.True(layer.Arrow() is { Attack: true, Local: false });
-        Assert.Contains(Descendants(view).OfType<Border>(), b => b is { Name: "Badge", Visibility: Visibility.Visible, DataContext: MatchCardView { Acting: true } });
+        Assert.Contains(Descendants(view).OfType<Border>(), b => b is { Name: "Badge", Visibility: Visibility.Visible, DataContext: MatchCardItem { Acting: true } });
         Assert.Contains(Descendants(view).OfType<TextBlock>(), t => t.Text == "−4");
         var feed = (ItemsControl)view.FindName("Feed");
         Assert.Equal(model.Feed.Count, feed.Items.Count);
@@ -189,12 +189,16 @@ public sealed class MatchXamlLoadTests
         var table = (FrameworkElement)view.FindName("BattlegroundsTable");
         var card = (FrameworkElement)view.FindName("BattlegroundsStepCard");
         table.Visibility = Visibility.Visible;
+        // The table the view binds, as on the page: one object, each step shown on it in place. A row the step hides
+        // (Bob's offer in a combat) keeps its cards unseen, so the ovals counted are the ones on screen.
+        var shown = new MatchBgTable();
+        card.DataContext = shown;
         foreach (var (step, ovals) in new[] { (tavern, 3), (combat, 3) })
         {
-            card.DataContext = step;
+            shown.Update(step);
             Layout(view);
             Assert.True(card.ActualHeight > 0, step.Title);
-            Assert.Equal(ovals, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval"));
+            Assert.Equal(ovals, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval" && Shown(b)));
             Assert.Contains(Descendants(card).OfType<TextBlock>(), t => t.Text == step.Title);
         }
 
@@ -205,7 +209,7 @@ public sealed class MatchXamlLoadTests
         {
             PartnerBoard = [Minion("P") with { Attacking = true }, Minion("Q")],
         };
-        card.DataContext = duos;
+        shown.Update(duos);
         Layout(view);
         Assert.Equal(Visibility.Visible, partnerPanel.Visibility);
         bool Shown(DependencyObject element)
@@ -245,7 +249,7 @@ public sealed class MatchXamlLoadTests
                 ]) { IsHero = true },
             ],
         };
-        card.DataContext = start;
+        shown.Update(start);
         Layout(view);
         var startTexts = Descendants(card).OfType<TextBlock>().Where(Shown).Select(t => t.Text).ToList();
         Assert.DoesNotContain(Loc.T("Match.Player.Table.EmptyBoard"), startTexts);

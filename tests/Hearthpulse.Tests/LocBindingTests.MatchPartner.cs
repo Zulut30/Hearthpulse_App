@@ -61,7 +61,7 @@ public sealed partial class LocBindingTests
             Assert.True(view.FindControl<Border>("BattlegroundsCard")!.IsEffectivelyVisible);
             var partnerPanel = view.FindControl<StackPanel>("BattlegroundsPartner")!;
             var caption = Loc.T("Match.Player.Table.Partner");
-            IReadOnlyList<MatchBgCardView>? partnerBoard = null;
+            var shown = model.BgTable;
             int partnerSteps = 0, combatSteps = 0, ourSteps = 0;
             for (var frame = 0; frame <= model.FrameMax; frame++)
             {
@@ -77,32 +77,33 @@ public sealed partial class LocBindingTests
                 {
                     partnerSteps++;
                     Assert.True(step.InCombat, step.Title);
-                    Assert.Contains(lists, l => ReferenceEquals(l, step.PartnerBoard));
-                    Assert.DoesNotContain(lists, l => ReferenceEquals(l, step.Board));
-                    Assert.DoesNotContain(heroes, h => h is not null && ReferenceEquals(h, step.Hero));
+                    // The partner's board is one list of the table the view binds, changed in place like ours.
+                    Assert.Contains(lists, l => ReferenceEquals(l, shown.PartnerBoard));
+                    Assert.DoesNotContain(lists, l => ReferenceEquals(l, shown.Board));
+                    Assert.DoesNotContain(heroes, h => h is not null && ReferenceEquals(h, shown.Hero));
                     Assert.Contains(caption, texts);
                     Assert.Contains(step.PartnerBoard, c => c.CardId == "BG25_011");
-                    // The partner's board is one list the view keeps from step to step, synced in place like ours.
-                    partnerBoard ??= step.PartnerBoard;
-                    Assert.Same(partnerBoard, step.PartnerBoard);
+                    Assert.Equal(step.PartnerBoard, shown.PartnerBoard.Select(c => c.View));
                 }
                 else
                 {
                     ourSteps++;
                     combatSteps += step.InCombat ? 1 : 0;
-                    Assert.Contains(lists, l => ReferenceEquals(l, step.Board));
-                    Assert.DoesNotContain(lists, l => ReferenceEquals(l, step.PartnerBoard));
+                    Assert.Contains(lists, l => ReferenceEquals(l, shown.Board));
+                    Assert.DoesNotContain(lists, l => ReferenceEquals(l, shown.PartnerBoard));
                     Assert.Empty(step.PartnerBoard);
+                    Assert.Equal(step.Board, shown.Board.Select(c => c.View));
                     if (step.Hero is not null)
                     {
-                        Assert.Contains(heroes, h => ReferenceEquals(h, step.Hero));
+                        Assert.Contains(heroes, h => ReferenceEquals(h, shown.Hero));
                     }
                 }
 
                 // The opponent's half stays theirs in every combat.
                 if (step.InCombat)
                 {
-                    Assert.Contains(lists, l => ReferenceEquals(l, step.OpponentBoard));
+                    Assert.Contains(lists, l => ReferenceEquals(l, shown.OpponentBoard));
+                    Assert.Equal(step.OpponentBoard, shown.OpponentBoard.Select(c => c.View));
                 }
             }
 

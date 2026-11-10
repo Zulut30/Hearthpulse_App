@@ -33,7 +33,7 @@
                  attack / mine classes): the step's actor glows in a frame of its side's colour (a sword badge when it
                  attacks), an attack target is framed in Negative, a play's target dashed; the health it gained or lost on
                  the step sits over the art; one that died on the step fades under a skull. MatchArrowLayer draws the arrow. -->
-            <DataTemplate x:Key="Minion" x:DataType="r:MatchCardView">
+            <DataTemplate x:Key="Minion" x:DataType="mt:MatchCardItem">
                 <StackPanel Width="86" Margin="2,0" ToolTip.Tip="{Binding Tooltip}">
                     <Panel Classes="mark" Classes.acting="{Binding Acting}" Classes.targeted="{Binding Targeted}" Classes.dying="{Binding Dying}" Height="129" Background="Transparent"
                            c:CardPreview.CardId="{Binding CardId}" mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Minion">
@@ -79,7 +79,7 @@
 
             <!-- A card in hand: the full card render (cost and text as in the game), or a card back with how it got there.
                  A card the log revealed later in the game is face up with an eye mark and the turn it was revealed. -->
-            <DataTemplate x:Key="HandCard" x:DataType="r:MatchCardView">
+            <DataTemplate x:Key="HandCard" x:DataType="mt:MatchCardItem">
                 <StackPanel Width="66" Margin="1,0" ToolTip.Tip="{Binding Tooltip}">
                     <Panel Height="100">
                         <Panel Background="Transparent" c:CardPreview.CardId="{Binding CardId}" IsVisible="{Binding !CardBack}">
@@ -146,7 +146,7 @@
             </DataTemplate>
 
             <!-- A small round card (weapon, hero power, secret); plan R2: a ring when it acts or is aimed at, as a minion's frame -->
-            <DataTemplate x:Key="Chip" x:DataType="r:MatchCardView">
+            <DataTemplate x:Key="Chip" x:DataType="mt:MatchCardItem">
                 <Panel Classes="mark" Classes.acting="{Binding Acting}" Classes.targeted="{Binding Targeted}" Width="40" Height="40" Margin="4,0,0,0" ToolTip.Tip="{Binding Tooltip}"
                        Background="Transparent" c:CardPreview.CardId="{Binding CardId}" mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Chip">
                     <Ellipse Classes="ring act" Margin="-3" StrokeThickness="2" />
@@ -172,7 +172,7 @@
             </ItemsPanelTemplate>
 
             <!-- A side's hero line: portrait with health, weapon, hero power, secrets, mana and deck -->
-            <DataTemplate x:Key="HeroLine" x:DataType="r:MatchSideView">
+            <DataTemplate x:Key="HeroLine" x:DataType="mt:MatchTableSide">
                 <Grid Classes="heroLine" Margin="0,8" ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
                         <ItemsControl ItemsSource="{Binding Secrets}" ItemTemplate="{StaticResource Chip}">
@@ -257,7 +257,7 @@
 
             <!-- An action of the turn: clicking it shows its step. Your actions carry the gold accent, the opponent's the
                  second accent (edge + icon disc); a key card's biggest swing is starred, with why in the tooltip. -->
-            <DataTemplate x:Key="ActionRow" x:DataType="r:MatchActionRow">
+            <DataTemplate x:Key="ActionRow" x:DataType="mt:MatchActionItem">
                 <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,0,3"
                         ToolTip.Tip="{Binding KeyReason}"
                         Command="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).GoFrame}" CommandParameter="{Binding}">
@@ -282,7 +282,7 @@
             <!-- A row of the game's event feed (plan R2): a turn's header (a marker in the turn's colour, its text, a rule; the
                  turn on screen in the text colour; a click goes to its first step), or an action as the turn's action row.
                  Neither takes the focus: the player keeps its keys. -->
-            <DataTemplate x:Key="FeedRow" x:DataType="r:MatchFeedRow">
+            <DataTemplate x:Key="FeedRow" x:DataType="mt:MatchFeedItem">
                 <Panel>
                     <Button Classes="bare feedHeader" Classes.first="{Binding Frame, Converter={StaticResource Truthy}, ConverterParameter=!}" Focusable="False"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Height="26" Padding="2,0" IsVisible="{Binding Header}"
@@ -368,7 +368,7 @@
             <!-- A minion of the Battlegrounds table (our board, Bob's offer, the combat opponent's board): the round art
                  with a rim for its state (styles Border.oval.*), the offer's tier and the step's badge on top, attack and
                  health, keyword glyphs under it. The card the step is about glows; one dying in the step fades under a skull. -->
-            <DataTemplate x:Key="BgBoardMinion" x:DataType="r:MatchBgCardView">
+            <DataTemplate x:Key="BgBoardMinion" x:DataType="mt:MatchBgCardItem">
                 <Panel Classes="bgCell" Classes.dying="{Binding Dying}" Width="70" Height="96" Margin="2,0" ToolTip.Tip="{Binding Tooltip}" Background="Transparent"
                        c:CardPreview.CardId="{Binding CardId}">
                     <Panel Width="64" Height="76" VerticalAlignment="Top" Margin="0,2,0,0">
@@ -411,7 +411,7 @@
             </DataTemplate>
 
             <!-- A card in our Battlegrounds hand: the full card render; the full card shows on hover -->
-            <DataTemplate x:Key="BgHandCard" x:DataType="r:MatchBgCardView">
+            <DataTemplate x:Key="BgHandCard" x:DataType="mt:MatchBgCardItem">
                 <Panel Width="66" Height="100" Margin="1,0" ToolTip.Tip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Border Margin="4,8,4,4" CornerRadius="6" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1">
                         <TextBlock Text="{Binding Name}" Classes="caption" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" Margin="4" VerticalAlignment="Center" />
@@ -421,7 +421,7 @@
             </DataTemplate>
 
             <!-- A Battlegrounds hero power or trinket: a small round card -->
-            <DataTemplate x:Key="BgChip" x:DataType="r:MatchBgCardView">
+            <DataTemplate x:Key="BgChip" x:DataType="mt:MatchBgCardItem">
                 <Panel Width="40" Height="40" Margin="4,0,0,0" ToolTip.Tip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Border CornerRadius="20" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5" ClipToBounds="True"
                             i:CardArt.Portrait="{Binding CardId}" />
@@ -431,7 +431,7 @@
             <!-- A Battlegrounds hero line (as the Constructed one): trinkets, the portrait with health and its hero powers,
                  the hero's name, tavern tier and, in the tavern, our gold. A Tag on the host rims the portrait in the
                  opponent's accent. -->
-            <DataTemplate x:Key="BgHeroLine" x:DataType="r:MatchBgHeroView">
+            <DataTemplate x:Key="BgHeroLine" x:DataType="mt:MatchBgTableHero">
                 <Grid Margin="0,8" ColumnDefinitions="*,Auto,*">
                     <ItemsControl ItemsSource="{Binding Trinkets}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource RowPanel}" HorizontalAlignment="Right"
                                   VerticalAlignment="Center" Margin="0,0,14,0" />
@@ -466,10 +466,10 @@
                                 </StackPanel>
                             </Border>
                             <Border Classes="pill" Background="{StaticResource AccentContainer}" Margin="8,0,0,0"
-                                    IsVisible="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).BattlegroundsStep.Gold, Converter={StaticResource Truthy}}">
+                                    IsVisible="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).BgTable.Gold, Converter={StaticResource Truthy}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{i:Loc Match.Player.Table.Gold}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,5,0" />
-                                    <TextBlock Text="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).BattlegroundsStep.Gold}" FontFamily="{DynamicResource DisplayFont}"
+                                    <TextBlock Text="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).BgTable.Gold}" FontFamily="{DynamicResource DisplayFont}"
                                                FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource OnAccentContainer}" />
                                 </StackPanel>
                             </Border>
@@ -1156,7 +1156,7 @@
                         </Grid.ColumnDefinitions>
                         <!-- The table, the step's arrow over it (it never takes the pointer) -->
                         <Border Name="TableCard" Classes="card table" Padding="18,14" VerticalAlignment="Top">
-                            <Panel DataContext="{Binding Step}" x:DataType="r:MatchStepView">
+                            <Panel DataContext="{Binding Table}" x:DataType="mt:MatchTable">
                                 <StackPanel Classes="ctTable" Classes.attack="{Binding IsAttack}" Classes.mine="{Binding LocalActs}">
                                     <ItemsControl ItemsSource="{Binding Top.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
                                     <ContentControl Content="{Binding Top}" ContentTemplate="{StaticResource HeroLine}" />
@@ -1175,16 +1175,24 @@
                                     <ContentControl Content="{Binding Bottom}" ContentTemplate="{StaticResource HeroLine}" />
                                     <ItemsControl ItemsSource="{Binding Bottom.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
                                 </StackPanel>
-                                <mt:MatchArrowLayer From="{Binding ActorRef}" To="{Binding TargetRef}" IsAttack="{Binding IsAttack}" Local="{Binding LocalActs}" />
+                                <mt:MatchArrowLayer Name="Arrow" From="{Binding ActorRef}" To="{Binding TargetRef}" IsAttack="{Binding IsAttack}" Local="{Binding LocalActs}"
+                                                    Version="{Binding Version}" />
                             </Panel>
                         </Border>
-                        <!-- The game's event feed: every action under its turn's header, the step on screen kept in view. Its column
-                             comes from the styles (Border.feed): at phone width it goes under the table. -->
+                        <!-- The game's event feed: every action under its turn's header, the step on screen kept in view. Only
+                             the rows near the view are built (a whole game is 100-300 rows). Its column comes from the styles
+                             (Border.feed): at phone width it goes under the table. -->
                         <Border Name="FeedCard" Classes="card feed" Padding="16,14" VerticalAlignment="Top">
                             <DockPanel>
                                 <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.Feed}" Icon="&#xF0279;" Size="13" Margin="0,0,0,8" />
                                 <ScrollViewer Name="FeedScroll" Classes="feed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsControl Name="Feed" ItemsSource="{Binding Feed}" ItemTemplate="{StaticResource FeedRow}" AutomationProperties.Name="{i:Loc Match.View.FeedName}" />
+                                    <ItemsControl Name="Feed" ItemsSource="{Binding FeedRows}" ItemTemplate="{StaticResource FeedRow}" AutomationProperties.Name="{i:Loc Match.View.FeedName}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
                                 </ScrollViewer>
                             </DockPanel>
                         </Border>
@@ -1196,7 +1204,7 @@
                      (under the table at phone width) -->
                 <Grid x:Name="BattlegroundsTable" ColumnDefinitions="*,16,300" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowBattlegroundsTable}">
                     <Border x:Name="BattlegroundsCard" Classes="card table" Padding="18,14" VerticalAlignment="Top">
-                        <StackPanel x:Name="BattlegroundsStepCard" DataContext="{Binding BattlegroundsStep}" x:DataType="r:MatchBgStepView">
+                        <StackPanel x:Name="BattlegroundsStepCard" DataContext="{Binding BgTable}" x:DataType="mt:MatchBgTable">
                             <!-- Top: Bob's offer in the tavern, the combat opponent in combat, the hero choice before the first
                                  tavern (no Bob yet); one height, so the step bar stays put -->
                             <Panel MinHeight="168">
@@ -1282,7 +1290,7 @@
                                 <DockPanel>
                                     <c:Ornament DockPanel.Dock="Top" Text="{Binding ActionsTitle}" Icon="{Binding ActionsIcon}" Size="13" Margin="0,0,0,8" />
                                     <ScrollViewer x:Name="BgActionsScroll" MaxHeight="360" VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl x:Name="BgActions" ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
+                                        <ItemsControl x:Name="BgActions" ItemsSource="{Binding ActionRows}" ItemTemplate="{StaticResource ActionRow}" />
                                     </ScrollViewer>
                                 </DockPanel>
                             </Border>

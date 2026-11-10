@@ -8,8 +8,8 @@ using Hearthpulse.UI.Main.Match;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// Plan R2 in the shared view model (Avalonia build): the Constructed game's event feed is built once per game and each
-/// step only moves its marks in place; a feed row goes to its step. The arrow's geometry and the feed's scrolling rule
+/// Plan R2 in the shared view model (Avalonia build): the Constructed game's event feed is built once per game, its rows
+/// stay the same objects and each step only moves their marks; a feed row goes to its step. The arrow's geometry and the feed's scrolling rule
 /// (<c>MatchArrowLayout</c>, <c>MatchFeedLayout</c>) shared by both UIs.
 /// </summary>
 public sealed class MatchFeedTests : IDisposable
@@ -35,42 +35,52 @@ public sealed class MatchFeedTests : IDisposable
     }
 
     [Fact]
-    public void The_feed_is_the_pages_feed_at_every_step_and_changes_only_the_rows_whose_mark_moves()
+    public void The_feed_rows_stay_for_the_game_and_a_step_moves_only_the_marks()
     {
         var model = Model();
         var page = Page();
         model.Show(page);
-        var feed = model.Feed;
-        Assert.NotEmpty(feed);
+        var rows = model.FeedRows;
+        Assert.NotEmpty(rows);
+        var objects = rows.ToList();
+        var raised = new List<(MatchFeedItem Row, string? Name)>();
+        foreach (var row in rows)
+        {
+            row.PropertyChanged += (_, e) => raised.Add((row, e.PropertyName));
+        }
 
         for (var frame = 0; frame <= model.FrameMax; frame++)
         {
-            var before = model.Feed.ToList();
+            var before = rows.Select(r => r.Current).ToList();
+            raised.Clear();
             model.GoFrame.Execute(frame);
 
-            // The same list the view binds, equal to the page's feed for the step: one action and its turn's header marked.
-            Assert.Same(feed, model.Feed);
+            // The list and the rows the view binds are the same objects; what they show is the page's feed for the
+            // step: one action and its turn's header marked, the action's index told to the view (it scrolls to it).
+            Assert.Same(rows, model.FeedRows);
+            Assert.Equal(objects, model.FeedRows, ReferenceEqualityComparer.Instance);
             Assert.Equal(page.Feed(frame), model.Feed);
-            Assert.Equal(frame, Assert.Single(model.Feed, r => r.Current && !r.Header).Frame);
-            Assert.Single(model.Feed, r => r.Current && r.Header);
+            Assert.Equal(page.Feed(frame), rows.Select(r => r.Row));
+            Assert.Equal(frame, Assert.Single(rows, r => r.Current && !r.Header).Frame);
+            Assert.Single(rows, r => r.Current && r.Header);
+            Assert.Equal(objects.FindIndex(r => r.Current && !r.Header), model.FeedCurrentIndex);
 
-            // A row whose mark did not move keeps its instance (its container on screen is not built again).
-            for (var i = 0; i < before.Count; i++)
-            {
-                if (before[i].Current == model.Feed[i].Current)
-                {
-                    Assert.Same(before[i], model.Feed[i]);
-                }
-            }
+            // Only the rows whose mark moved told their bindings, and only about the mark.
+            var moved = objects.Where((r, i) => r.Current != before[i]).ToList();
+            Assert.Equal(moved, raised.Select(r => r.Row), ReferenceEqualityComparer.Instance);
+            Assert.All(raised, r => Assert.Equal(nameof(MatchFeedItem.Current), r.Name));
         }
 
         // Another side at the bottom does not touch the feed.
-        var rows = model.Feed.ToList();
+        raised.Clear();
         model.BottomOpponent = true;
-        Assert.Equal(rows.Select(r => (object)r), model.Feed.Select(r => (object)r), ReferenceEqualityComparer.Instance);
+        Assert.Empty(raised);
+        Assert.Same(rows, model.FeedRows);
 
         model.Clear();
-        Assert.Empty(feed);
+        Assert.Empty(model.FeedRows);
+        Assert.Empty(model.Feed);
+        Assert.Equal(-1, model.FeedCurrentIndex);
     }
 
     [Fact]
@@ -96,6 +106,15 @@ public sealed class MatchFeedTests : IDisposable
         raised.Clear();
         model.GoFrame.Execute(header);
         Assert.DoesNotContain(nameof(MatchViewModel.Feed), raised);
+        Assert.DoesNotContain(nameof(MatchViewModel.FeedCurrentIndex), raised);
+
+        // The rows the view binds go to their steps the same way (a row is the command's parameter).
+        var item = model.FeedRows.Last(r => !r.Header);
+        model.GoFrame.Execute(item);
+        Assert.Equal(item.Frame, model.Frame);
+        Assert.True(item.Current);
+        Assert.Contains(nameof(MatchViewModel.FeedCurrentIndex), raised);
+        Assert.Same(item, model.FeedRows[model.FeedCurrentIndex]);
     }
 
     [Fact]
@@ -104,8 +123,10 @@ public sealed class MatchFeedTests : IDisposable
         var model = Model();
         model.Show(Page());
         Assert.NotEmpty(model.Feed);
+        Assert.NotEmpty(model.FeedRows);
         model.BeginLoading();
         Assert.Empty(model.Feed);
+        Assert.Empty(model.FeedRows);
     }
 
     [Fact]
