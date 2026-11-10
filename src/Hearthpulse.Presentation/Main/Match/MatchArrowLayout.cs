@@ -193,4 +193,10 @@ internal static class MatchFeedLayout
 
         return bottom > viewport - edge ? offset + bottom - (viewport - edge) : null;
     }
+
+    /// <summary>
+    /// The feed's offset for a row that was not built (the lists build only the rows near the view) and had to be
+    /// brought in first: it was out of sight, so it comes to a third of the way down, wherever bringing it in left it.
+    /// </summary>
+    public static double Brought(double offset, double viewport, double top) => Math.Max(0, offset + top - viewport / 3);
 }

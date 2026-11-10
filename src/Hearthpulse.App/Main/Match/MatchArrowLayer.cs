@@ -6,22 +6,31 @@ namespace Hearthpulse.App.Main.Match;
 /// <summary>
 /// The arrow of the Constructed table (plan R2): drawn over the table between the step's actor and its target, found by
 /// their replay ids (<see cref="RefProperty"/> on the cards, hero portraits and chips of the panel beside it). It never
-/// takes the mouse, so the card previews under it work. Geometry: <see cref="MatchArrowLayout"/>; drawn again whenever
-/// the table's layout moves an end.
+/// takes the mouse, so the card previews under it work. Geometry: <see cref="MatchArrowLayout"/>. The arrow is worked
+/// out once after the layout pass that follows a change of the step (<see cref="Version"/> and the ends), of the
+/// layer's size or of its visibility, and drawn from that: a layout pass anywhere else in the window (LayoutUpdated
+/// fires for all of them) costs it nothing. Before, every pass placed both ends and built the geometry again.
 /// </summary>
 public sealed class MatchArrowLayer : FrameworkElement
 {
     public static readonly DependencyProperty FromProperty = DependencyProperty.Register(nameof(From), typeof(int), typeof(MatchArrowLayer),
-        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(0, OnStepChanged));
 
     public static readonly DependencyProperty ToProperty = DependencyProperty.Register(nameof(To), typeof(int), typeof(MatchArrowLayer),
-        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(0, OnStepChanged));
 
     public static readonly DependencyProperty IsAttackProperty = DependencyProperty.Register(nameof(IsAttack), typeof(bool), typeof(MatchArrowLayer),
-        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(false, OnStepChanged));
 
     public static readonly DependencyProperty LocalProperty = DependencyProperty.Register(nameof(Local), typeof(bool), typeof(MatchArrowLayer),
-        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(false, OnStepChanged));
+
+    /// <summary>
+    /// The table's change count (<see cref="MatchTable.Version"/>): a step can move the ends without changing their ids
+    /// (a minion summoned beside the attacker, the other side at the bottom).
+    /// </summary>
+    public static readonly DependencyProperty VersionProperty = DependencyProperty.Register(nameof(Version), typeof(int), typeof(MatchArrowLayer),
+        new FrameworkPropertyMetadata(0, OnStepChanged));
 
     /// <summary>The replay id of a table element an arrow can start or end at (0: none).</summary>
     public static readonly DependencyProperty RefProperty = DependencyProperty.RegisterAttached("Ref", typeof(int), typeof(MatchArrowLayer), new PropertyMetadata(0));
@@ -33,7 +42,11 @@ public sealed class MatchArrowLayer : FrameworkElement
     /// <summary>The step bar: an arrow with both ends on one side bends towards it.</summary>
     public static readonly DependencyProperty MiddleProperty = DependencyProperty.RegisterAttached("Middle", typeof(bool), typeof(MatchArrowLayer), new PropertyMetadata(false));
 
-    private MatchArrow? _drawn;
+    // The arrow worked out after the last layout pass that followed a change, and what OnRender draws.
+    private MatchArrow? _arrow;
+
+    // A change is waiting for its layout pass (LayoutUpdated is listened to only meanwhile).
+    private bool _pending;
 
     // The ends found by the last walk of the table: walked again only when the step's ends change, the layer's size
     // changes, or a kept end no longer carries its id or is hidden (review m4: not on every layout pass).
@@ -45,14 +58,14 @@ public sealed class MatchArrowLayer : FrameworkElement
     public MatchArrowLayer()
     {
         IsHitTestVisible = false;
-        LayoutUpdated += (_, _) =>
-        {
-            if (IsVisible && !Equals(Arrow(), _drawn))
-            {
-                InvalidateVisual();
-            }
-        };
+        IsVisibleChanged += (_, _) => Invalidate();
+        Loaded += (_, _) => Invalidate();
     }
+
+    /// <summary>How many times the geometry was worked out (tests: at most twice a step, never on a layout pass alone).</summary>
+    internal int Computed { get; private set; }
+
+    public int Version { get => (int)GetValue(VersionProperty); set => SetValue(VersionProperty, value); }
 
     public int From { get => (int)GetValue(FromProperty); set => SetValue(FromProperty, value); }
 
@@ -75,9 +88,49 @@ public sealed class MatchArrowLayer : FrameworkElement
 
     public static void SetMiddle(DependencyObject element, bool value) => element.SetValue(MiddleProperty, value);
 
-    /// <summary>The arrow as it would be drawn now, or null (no target, an end not on the table, actor and target the same).</summary>
-    internal MatchArrow? Arrow()
+    private static void OnStepChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((MatchArrowLayer)d).Invalidate();
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
+        base.OnRenderSizeChanged(sizeInfo);
+        Invalidate();
+    }
+
+    /// <summary>
+    /// The step, the size or the visibility changed: the arrow is worked out once the layout that follows has placed
+    /// the cards (a pass is asked for, in case nothing else needs one).
+    /// </summary>
+    private void Invalidate()
+    {
+        if (_pending)
+        {
+            return;
+        }
+
+        _pending = true;
+        LayoutUpdated += OnLayoutUpdated;
+        InvalidateArrange();
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        LayoutUpdated -= OnLayoutUpdated;
+        _pending = false;
+        // Not only while IsVisible: renders and tests lay the view out off screen.
+        var arrow = Compute();
+        if (!Equals(arrow, _arrow))
+        {
+            _arrow = arrow;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>The arrow as drawn, or null (no target, an end not on the table, actor and target the same).</summary>
+    internal MatchArrow? Arrow() => _arrow;
+
+    private MatchArrow? Compute()
+    {
+        Computed++;
         if (From == 0 || To == 0 || From == To || VisualTreeHelper.GetParent(this) is not FrameworkElement parent)
         {
             return null;
@@ -143,8 +196,7 @@ public sealed class MatchArrowLayer : FrameworkElement
 
     protected override void OnRender(DrawingContext drawingContext)
     {
-        _drawn = Arrow();
-        if (_drawn is not { } arrow || TryFindResource(MatchArrowLayout.StrokeBrush(arrow.Local)) is not Brush stroke
+        if (_arrow is not { } arrow || TryFindResource(MatchArrowLayout.StrokeBrush(arrow.Local)) is not Brush stroke
             || TryFindResource(MatchArrowLayout.ShadeBrush) is not Brush shade)
         {
             return;

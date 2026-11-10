@@ -48,7 +48,7 @@ public sealed partial class LocBindingTests
 
             // A mark for each bookmark on the timeline.
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
-            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + model.BookmarkRows.Count + 2, timeline.Children.Count);
+            Assert.Equal(model.TimelineSegments.Count + model.BookmarkRows.Count + 1 + 2 + 2, timeline.Children.Count);
 
             // G opens the list; while it is open the player's keys are the list's.
             Assert.True(Letter(view, PhysicalKey.G).Handled);

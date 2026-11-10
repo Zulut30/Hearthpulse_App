@@ -14,6 +14,19 @@ namespace Hearthpulse.UI.Main.Match;
 public partial class MatchView : UserControl
 {
     private MatchViewModel? _model;
+
+    // The feed is bringing the step's row into its own view: the request must not reach the page's scroll viewer.
+    private bool _feedBringsRow;
+
+    // The step's row could not be built: it is under the window's edge (see KeepCurrentFeedRowInView).
+    private bool _feedRowOutOfWindow;
+
+    // The row given up and whether it is below the built rows (else above them).
+    private int _feedRowGivenUp;
+    private bool _feedRowBelow;
+
+    // The rows of the Battlegrounds event list the view last scrolled for (MatchViewModel.ActionRowsVersion).
+    private int _actionRowsSeen = -1;
     private TopLevel? _window;
 
     public MatchView()
@@ -30,6 +43,19 @@ public partial class MatchView : UserControl
             }
         }, RoutingStrategies.Tunnel);
         DataContextChanged += (_, _) => Watch(DataContext as MatchViewModel);
+        // The feed brings a row that is not built into its own view (ScrollIntoView): the request stops at the feed, or
+        // the page's scroll viewer would follow it and the page would jump under the player.
+        FeedScroll.AddHandler(RequestBringIntoViewEvent, (_, e) => e.Handled |= _feedBringsRow);
+        // The page scrolled or the window changed so that some of the feed is in the window: a step's row that was
+        // under the window's edge may be in reach, and the next step tries again. Nothing is brought in here: the
+        // event comes for every scroll of the page, and the try lays the page out.
+        FeedScroll.EffectiveViewportChanged += (_, e) =>
+        {
+            if (e.EffectiveViewport is { Width: > 0, Height: > 0 })
+            {
+                _feedRowOutOfWindow = false;
+            }
+        };
         // The table's size (a step, the window, phone width) sets the feed's height.
         TableCard.PropertyChanged += (_, e) =>
         {
@@ -234,16 +260,30 @@ public partial class MatchView : UserControl
     {
         if (e.PropertyName == nameof(MatchViewModel.ShowReplay))
         {
+            _feedRowOutOfWindow = false;
             FocusPlayer();
-            Dispatcher.UIThread.Post(KeepCurrentFeedRowInView, DispatcherPriority.Loaded);
+            Dispatcher.UIThread.Post(() => KeepCurrentFeedRowInView(bringIn: true), DispatcherPriority.Loaded);
         }
-        else if (e.PropertyName == nameof(MatchViewModel.Actions) && _model is { ShowBattlegroundsTable: true })
+        else if (e.PropertyName == nameof(MatchViewModel.ActionCurrentIndex) && _model is { ShowBattlegroundsTable: true })
         {
-            Dispatcher.UIThread.Post(KeepCurrentActionInView, DispatcherPriority.Loaded);
+            // In the step's own frame while the rows are the same (a step within the stretch: only the mark moved).
+            // Another stretch's rows are built and placed by the layout first: until then a new row has no bounds and
+            // an old one stands where the last stretch left it.
+            var sameRows = _actionRowsSeen == _model.ActionRowsVersion;
+            _actionRowsSeen = _model.ActionRowsVersion;
+            if (!sameRows || !KeepCurrentActionInView())
+            {
+                Dispatcher.UIThread.Post(() => KeepCurrentActionInView(), DispatcherPriority.Loaded);
+            }
         }
-        else if (e.PropertyName == nameof(MatchViewModel.Feed) && _model is { ShowConstructedTable: true })
+        else if (e.PropertyName == nameof(MatchViewModel.FeedCurrentIndex) && _model is { ShowConstructedTable: true })
         {
-            Dispatcher.UIThread.Post(KeepCurrentFeedRowInView, DispatcherPriority.Loaded);
+            // The rows stay from step to step, so the next one is usually built and placed already: the feed scrolls
+            // in the step's own frame instead of drawing the page a second time.
+            if (!KeepCurrentFeedRowInView(bringIn: false))
+            {
+                Dispatcher.UIThread.Post(() => KeepCurrentFeedRowInView(bringIn: true), DispatcherPriority.Loaded);
+            }
         }
     }
 
@@ -257,33 +297,97 @@ public partial class MatchView : UserControl
     private void SizeFeed()
     {
         var compact = this.FindAncestorOfType<MainView>()?.Classes.Contains("compact") == true;
-        FeedCard.Height = compact ? double.NaN : Math.Max(FeedMinHeight, TableCard.Bounds.Height);
+        var height = compact ? double.NaN : Math.Max(FeedMinHeight, TableCard.Bounds.Height);
+        // A shorter feed may cut the step's row off: it is kept in view only if it was there (the player may have
+        // scrolled the feed away from it), and a taller feed is left alone.
+        var follow = height < FeedCard.Height && StepRowInView();
+        FeedCard.Height = height;
+        if (follow)
+        {
+            Dispatcher.UIThread.Post(() => KeepCurrentFeedRowInView(bringIn: true), DispatcherPriority.Loaded);
+        }
     }
+
+    /// <summary>The step's feed row is built and at least partly inside the feed's view.</summary>
+    private bool StepRowInView() =>
+        _model is { FeedCurrentIndex: >= 0 and var index } && FeedRow(index) is { } row && row.TranslatePoint(default, FeedScroll) is { } at
+        && at.Y < FeedScroll.Viewport.Height && at.Y + row.Bounds.Height > 0;
 
     /// <summary>
     /// The event feed scrolls on its own (not the page) to keep the step's row in view, with its turn's header when it is
-    /// the turn's first action (<see cref="MatchFeedLayout"/>).
+    /// the turn's first action (<see cref="MatchFeedLayout"/>). The row is found by its index: one that is not built
+    /// (far from the view) is brought in by the list first, when <paramref name="bringIn"/> allows a layout pass here.
+    /// False when the row could not be placed yet (the feed is not on screen, or the row is not built).
     /// </summary>
-    private void KeepCurrentFeedRowInView()
+    internal bool KeepCurrentFeedRowInView(bool bringIn = true)
     {
-        var rows = _model?.Feed ?? [];
-        var index = rows.ToList().FindIndex(r => r.Current && !r.Header);
-        if (index < 0 || !FeedScroll.IsEffectivelyVisible || Feed.ContainerFromIndex(index) is not { IsVisible: true } row || row.TranslatePoint(default, FeedScroll) is not { } at)
+        if (_model is not { FeedCurrentIndex: >= 0 and var index } model || index >= model.FeedRows.Count)
         {
-            return;
+            return true;
         }
 
-        var top = at.Y;
-        if (index > 0 && rows[index - 1].Header && Feed.ContainerFromIndex(index - 1) is { IsVisible: true } header && header.TranslatePoint(default, FeedScroll) is { } headerAt)
+        if (!FeedScroll.IsEffectivelyVisible)
         {
-            top = headerAt.Y;
+            return false;
         }
 
-        if (MatchFeedLayout.Offset(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top, at.Y + row.Bounds.Height) is { } offset)
+        var firstIndex = index > 0 && model.FeedRows[index - 1].Header ? index - 1 : index;
+        var brought = false;
+        if (FeedRow(index) is null || FeedRow(firstIndex) is null)
         {
-            FeedScroll.Offset = new Vector(0, offset);
+            // A row under the window's edge is never built (the list builds what is inside the window too): asked
+            // again on every step, bringing it in would lay the page out up to three times for nothing. The feed
+            // waits until the page scrolls or the window changes.
+            // Only a row further the same way is given up: a step back the other way (a jump to an earlier turn while
+            // the feed's end is under the edge) may be in reach.
+            if (!bringIn || (_feedRowOutOfWindow && (_feedRowBelow ? index >= _feedRowGivenUp : index <= _feedRowGivenUp)))
+            {
+                return false;
+            }
+
+            _feedRowBelow = Enumerable.Range(0, index).Any(i => FeedRow(i) is not null);
+
+            brought = true;
+
+            _feedBringsRow = true;
+            try
+            {
+                Feed.ScrollIntoView(index);
+                if (firstIndex != index)
+                {
+                    Feed.ScrollIntoView(firstIndex);
+                }
+            }
+            finally
+            {
+                _feedBringsRow = false;
+            }
+
+            Feed.UpdateLayout();
         }
+
+        if (FeedRow(index) is not { } row || row.TranslatePoint(default, FeedScroll) is not { } at)
+        {
+            _feedRowOutOfWindow = brought;
+            _feedRowGivenUp = index;
+            return false;
+        }
+
+        _feedRowOutOfWindow = false;
+
+        var top = FeedRow(firstIndex) is { } first && first.TranslatePoint(default, FeedScroll) is { } firstAt ? firstAt.Y : at.Y;
+        var offset = brought ? MatchFeedLayout.Brought(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top)
+            : MatchFeedLayout.Offset(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top, at.Y + row.Bounds.Height);
+        if (offset is { } to)
+        {
+            FeedScroll.Offset = new Vector(0, to);
+        }
+
+        return true;
     }
+
+    /// <summary>The built row of a feed index, or null (not built: away from the view).</summary>
+    private Control? FeedRow(int index) => Feed.ContainerFromIndex(index) is { IsVisible: true } row ? row : null;
 
     /// <summary>The Replay tab on screen: the page takes the keyboard focus (unless a control in it already has it).</summary>
     private void FocusPlayer()
@@ -294,13 +398,22 @@ public partial class MatchView : UserControl
         }
     }
 
-    /// <summary>The Battlegrounds list of events scrolls on its own to keep the current row in view (not the page).</summary>
-    private void KeepCurrentActionInView()
+    /// <summary>
+    /// The Battlegrounds list of events scrolls on its own to keep the current row in view (not the page). False when
+    /// the row is not built yet.
+    /// </summary>
+    private bool KeepCurrentActionInView()
     {
-        var index = _model?.Actions.ToList().FindIndex(a => a.Current) ?? -1;
-        if (index < 0 || BgActions.ContainerFromIndex(index) is not { IsVisible: true } row || row.TranslatePoint(default, BgActionsScroll) is not { } at)
+        var index = _model?.ActionCurrentIndex ?? -1;
+        if (index < 0)
         {
-            return;
+            return true;
+        }
+
+        if (BgActions.ContainerFromIndex(index) is not { IsVisible: true, Bounds.Height: > 0 } row || !row.IsArrangeValid
+            || row.TranslatePoint(default, BgActionsScroll) is not { } at)
+        {
+            return false;
         }
 
         var offset = BgActionsScroll.Offset.Y;
@@ -312,5 +425,7 @@ public partial class MatchView : UserControl
         {
             BgActionsScroll.Offset = new Vector(0, offset + at.Y + row.Bounds.Height - BgActionsScroll.Viewport.Height);
         }
+
+        return true;
     }
 }

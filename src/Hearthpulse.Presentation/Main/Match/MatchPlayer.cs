@@ -86,17 +86,9 @@ public sealed partial class MatchViewModel
     private MatchBgStepView? _battlegroundsStep;
     private readonly SyncList<MatchLeaderLine> _leaders = new();
 
-    // The lists of the Battlegrounds step on screen: each step syncs them (see Keep) and the step shown holds them.
-    private readonly SyncList<MatchBgCardView> _bgShop = new();
-    private readonly SyncList<MatchBgCardView> _bgBoard = new();
-    private readonly SyncList<MatchBgCardView> _bgOpponentBoard = new();
-    private readonly SyncList<MatchBgCardView> _bgPartnerBoard = new();
-    private readonly SyncList<MatchBgCardView> _bgHand = new();
-    private readonly SyncList<MatchChoiceView> _bgChoices = new();
-    private readonly SyncList<MatchBgCardView> _heroPowers = new();
-    private readonly SyncList<MatchBgCardView> _heroTrinkets = new();
-    private readonly SyncList<MatchBgCardView> _opponentPowers = new();
-    private readonly SyncList<MatchBgCardView> _opponentTrinkets = new();
+    // The Battlegrounds stretch whose events Actions shows, and those events (a step in the same stretch only moves the mark).
+    private MatchTimelineSegment? _stretch;
+    private List<MatchStepMark> _stretchEvents = [];
 
     public RelayCommand PreviousEvent { get; }
 
@@ -150,7 +142,13 @@ public sealed partial class MatchViewModel
     /// <summary>The step on screen as a fraction of the game: the middle of its slot.</summary>
     public double TimelinePosition { get => _timelinePosition; private set => Set(ref _timelinePosition, value); }
 
-    /// <summary>The Battlegrounds step on screen (format 4).</summary>
+    /// <summary>
+    /// The Battlegrounds table the view binds: the same object, heroes and cards for the whole page, changed in place by
+    /// each step (<see cref="MatchBgTable"/>).
+    /// </summary>
+    public MatchBgTable BgTable { get; } = new();
+
+    /// <summary>The Battlegrounds step on screen (format 4), as Core built it. The view binds <see cref="BgTable"/>.</summary>
     public MatchBgStepView? BattlegroundsStep
     {
         get => _battlegroundsStep;
@@ -158,10 +156,13 @@ public sealed partial class MatchViewModel
         {
             var result = _battlegroundsStep?.ResultKey;
             var combat = _battlegroundsStep?.InCombat;
-            if (!Set(ref _battlegroundsStep, BattlegroundsInPlace(value)))
+            _battlegroundsStep = value;
+            if (!BgTable.Update(value))
             {
                 return;
             }
+
+            Raise();
 
             // The parts made from the step change far less often than the step: a step in the same stretch raises none.
             if (_battlegroundsStep?.ResultKey != result)
@@ -315,6 +316,8 @@ public sealed partial class MatchViewModel
         TimelinePosition = 0;
         BattlegroundsStep = null;
         Leaders = [];
+        _stretch = null;
+        _stretchEvents = [];
         ClearNavigation();
         Raise(nameof(Truncated));
     }
@@ -385,47 +388,22 @@ public sealed partial class MatchViewModel
         BattlegroundsStep = step;
         Step = null;
         Leaders = step?.Leaderboard.Select(Leader).ToList() ?? [];
-        Actions = _page is not null && TimelineCurrent >= 0 && TimelineCurrent < _segments.Count
-            ? StretchActions(_page.Marks, _segments[TimelineCurrent], _frame)
-            : [];
-    }
-
-    /// <summary>
-    /// The step with the lists the view already binds, synced to the step's: the cards, hero powers and trinkets that did
-    /// not change keep their rows. Without a step the lists are emptied.
-    /// </summary>
-    private MatchBgStepView? BattlegroundsInPlace(MatchBgStepView? step) => step is null
-        ? Emptied()
-        : step with
+        if (_page is null || TimelineCurrent < 0 || TimelineCurrent >= _segments.Count)
         {
-            Hero = InPlace(step.Hero, _heroPowers, _heroTrinkets),
-            Opponent = InPlace(step.Opponent, _opponentPowers, _opponentTrinkets),
-            Board = Synced(_bgBoard, step.Board),
-            OpponentBoard = Synced(_bgOpponentBoard, step.OpponentBoard),
-            PartnerBoard = Synced(_bgPartnerBoard, step.PartnerBoard),
-            Shop = Synced(_bgShop, step.Shop),
-            Hand = Synced(_bgHand, step.Hand),
-            Choices = Synced(_bgChoices, step.Choices),
-        };
-
-    private MatchBgStepView? Emptied()
-    {
-        foreach (var list in new[] { _bgShop, _bgBoard, _bgOpponentBoard, _bgPartnerBoard, _bgHand, _heroPowers, _heroTrinkets, _opponentPowers, _opponentTrinkets })
-        {
-            list.Sync([]);
+            _stretch = null;
+            Actions = [];
+            return;
         }
 
-        _bgChoices.Sync([]);
-        return null;
-    }
+        // The stretch's events are picked out of the game's once per stretch, not on every step of it.
+        var stretch = _segments[TimelineCurrent];
+        if (!ReferenceEquals(stretch, _stretch))
+        {
+            _stretch = stretch;
+            _stretchEvents = StretchEvents(_page.Marks, stretch);
+        }
 
-    private static MatchBgHeroView? InPlace(MatchBgHeroView? hero, SyncList<MatchBgCardView> powers, SyncList<MatchBgCardView> trinkets) =>
-        hero is null ? null : hero with { HeroPowers = Synced(powers, hero.HeroPowers), Trinkets = Synced(trinkets, hero.Trinkets) };
-
-    private static SyncList<T> Synced<T>(SyncList<T> list, IReadOnlyList<T> items)
-    {
-        list.Sync(items);
-        return list;
+        Actions = Marked(_stretchEvents, _frame);
     }
 
     /// <summary>A leaderboard row as shown: health and armor apart, the state in the tooltip.</summary>
@@ -444,11 +422,22 @@ public sealed partial class MatchViewModel
     }
 
     /// <summary>"This turn" / "This combat": the events of a stretch, the latest one up to <paramref name="frame"/> marked.</summary>
-    public static IReadOnlyList<MatchActionRow> StretchActions(IReadOnlyList<MatchStepMark> marks, MatchTimelineSegment span, int frame)
+    public static IReadOnlyList<MatchActionRow> StretchActions(IReadOnlyList<MatchStepMark> marks, MatchTimelineSegment span, int frame) =>
+        Marked(StretchEvents(marks, span), frame);
+
+    private static List<MatchStepMark> StretchEvents(IReadOnlyList<MatchStepMark> marks, MatchTimelineSegment span) =>
+        marks.Where(m => m.IsEvent && m.Frame >= span.FirstFrame && m.Frame <= span.LastFrame).OrderBy(m => m.Frame).ToList();
+
+    private static List<MatchActionRow> Marked(List<MatchStepMark> events, int frame)
     {
-        var events = marks.Where(m => m.IsEvent && m.Frame >= span.FirstFrame && m.Frame <= span.LastFrame).OrderBy(m => m.Frame).ToList();
-        var current = events.LastOrDefault(m => m.Frame <= frame)?.Frame;
-        return events.Select(m => new MatchActionRow(m.Frame, IconOf(m.Kind), m.Caption, m.Local, null, m.Frame == current)).ToList();
+        var current = events.FindLast(m => m.Frame <= frame)?.Frame;
+        var rows = new List<MatchActionRow>(events.Count);
+        foreach (var m in events)
+        {
+            rows.Add(new MatchActionRow(m.Frame, IconOf(m.Kind), m.Caption, m.Local, null, m.Frame == current));
+        }
+
+        return rows;
     }
 
     private static string IconOf(MatchStepKind kind) => kind switch

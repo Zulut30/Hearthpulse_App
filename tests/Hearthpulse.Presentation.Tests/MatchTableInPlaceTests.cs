@@ -14,8 +14,9 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The WPF Battlegrounds table stepping through a recorded game: every list on screen has one row per item and nothing
-/// left over, and a row whose item equals the one at its place a step before is still that element. The view model
-/// changes its lists in place (stage 10 of docs/perf-architecture-audit.md); a new list each step rebuilt every row.
+/// left over, and a row whose item is the one at its place a step before is still that element. The table the view
+/// binds (<see cref="MatchBgTable"/>) and its cards are the same objects for the whole page and change in place: a card
+/// that only lost health keeps its row and shows the new number.
 /// </summary>
 public sealed class MatchTableInPlaceTests
 {
@@ -152,15 +153,20 @@ public sealed class MatchTableInPlaceTests
             var table = (FrameworkElement)view.FindName("BattlegroundsTable");
             var shown = new Dictionary<ItemsControl, (List<object> Items, List<DependencyObject> Rows)>();
             var kept = 0;
+            var inPlace = 0;
+            var bgTable = model.BgTable;
             for (var frame = 0; frame <= model.FrameMax; frame++)
             {
                 model.GoFrame.Execute(frame);
                 Settle(window);
                 Assert.True(table.IsVisible);
                 var step = model.BattlegroundsStep!;
+                Assert.Same(bgTable, model.BgTable);
+                Assert.Equal(step.Board, bgTable.Board.Select(c => c.View));
                 var lists = Descendants(table).OfType<ItemsControl>().Where(i => i.IsVisible).ToList();
-                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, step.Board));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, bgTable.Board));
                 Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.Leaders));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.ActionRows));
                 foreach (var list in lists)
                 {
                     var host = Descendants(list).OfType<Panel>().First(p => p.IsItemsHost);
@@ -177,14 +183,28 @@ public sealed class MatchTableInPlaceTests
                                 Assert.Same(before.Rows[i], rows[i]);
                                 kept++;
                             }
+
+                            // A card or an event row is an object that stays: its health or mark changed on it.
+                            if (items[i] is MatchBgCardItem or MatchActionItem && ReferenceEquals(before.Items[i], items[i]))
+                            {
+                                inPlace++;
+                            }
                         }
                     }
 
                     shown[list] = (items, rows);
                 }
+
+                // What the cards show is the step's: the health on a minion's badge among them.
+                foreach (var card in bgTable.Board.Where(c => c.ShowStats))
+                {
+                    var row = Descendants(table).OfType<FrameworkElement>().First(e => e.Name == "Cell" && ReferenceEquals(e.DataContext, card) && e.IsVisible);
+                    Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Name == "Hp" && t.Text == card.Health.ToString(System.Globalization.CultureInfo.CurrentCulture));
+                }
             }
 
             Assert.True(kept > 0, "no row was kept from one step to the next");
+            Assert.True(inPlace > 0, "no card or event row stayed the same object from one step to the next");
         }
         finally
         {

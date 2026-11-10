@@ -78,8 +78,9 @@
                  ones, a divine shield halo; the full card shows on hover. Plan R2: the step's actor glows in a frame of
                  its side's colour (a sword badge when it attacks), an attack target is framed in Negative, a play's
                  target dashed; the health it gained or lost on the step sits over the art; one that died on the step
-                 fades under a skull. Whose step and what kind come from the page's Step (MatchArrowLayer draws the arrow). -->
-            <DataTemplate x:Key="Minion" DataType="{x:Type r:MatchCardView}">
+                 fades under a skull. Whose step and what kind come from the page's Table (MatchArrowLayer draws the arrow).
+                 The card is a MatchCardItem: the same object from step to step, so a step changes its bindings, not its row. -->
+            <DataTemplate x:Key="Minion" DataType="{x:Type mt:MatchCardItem}">
                 <StackPanel Width="86" Margin="2,0" ToolTip="{Binding Tooltip}">
                     <Grid Height="129" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Minion">
                         <Ellipse x:Name="Halo" Margin="-6,-2,-6,10" Fill="{StaticResource Glow}" Visibility="Collapsed" />
@@ -128,7 +129,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding Acting}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="Frame" Property="ToolTip" Value="{i:Loc Match.Mark.Attacker}" />
                         <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
@@ -140,7 +141,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding Targeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="Aim" Property="Visibility" Value="Visible" />
                         <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
@@ -148,7 +149,7 @@
                         <Setter TargetName="Badge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.PlayTarget}" />
                         <Setter TargetName="BadgeGlyph" Property="Text" Value="&#xF0068;" />
                     </MultiDataTrigger>
-                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                    <DataTrigger Binding="{Binding DataContext.Table.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
                         <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource Accent}" />
                         <Setter TargetName="Aim" Property="Stroke" Value="{StaticResource Accent}" />
                         <Setter TargetName="Badge" Property="BorderBrush" Value="{StaticResource Accent}" />
@@ -158,7 +159,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding Targeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
                         <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource Negative}" />
@@ -180,7 +181,7 @@
 
             <!-- A card in hand: the full card render (cost and text as in the game), or a card back with how it got there.
                  A card the log revealed later in the game is face up with an eye mark and the turn it was revealed. -->
-            <DataTemplate x:Key="HandCard" DataType="{x:Type r:MatchCardView}">
+            <DataTemplate x:Key="HandCard" DataType="{x:Type mt:MatchCardItem}">
                 <StackPanel Width="66" Margin="1,0" ToolTip="{Binding Tooltip}">
                     <Grid Height="100">
                         <Grid x:Name="Face" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
@@ -283,7 +284,7 @@
             </DataTemplate>
 
             <!-- A small round card (weapon, hero power, secret); plan R2: a ring when it acts or is aimed at, as a minion's frame -->
-            <DataTemplate x:Key="Chip" DataType="{x:Type r:MatchCardView}">
+            <DataTemplate x:Key="Chip" DataType="{x:Type mt:MatchCardItem}">
                 <Grid Width="40" Height="40" Margin="4,0,0,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}"
                       mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Chip">
                     <Ellipse x:Name="Ring" Margin="-3" StrokeThickness="2" Stroke="{StaticResource Accent2}" Visibility="Collapsed" />
@@ -307,18 +308,18 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding Targeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
                         <Setter TargetName="Ring" Property="StrokeDashArray" Value="3,2" />
                     </MultiDataTrigger>
-                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                    <DataTrigger Binding="{Binding DataContext.Table.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
                         <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Accent}" />
                     </DataTrigger>
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding Targeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
                         <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Negative}" />
@@ -327,7 +328,7 @@
             </DataTemplate>
 
             <!-- A side's hero line: portrait with health, weapon, hero power, secrets, mana and deck -->
-            <DataTemplate x:Key="HeroLine" DataType="{x:Type r:MatchSideView}">
+            <DataTemplate x:Key="HeroLine" DataType="{x:Type mt:MatchTableSide}">
                 <Grid Margin="0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -413,7 +414,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding HeroActing}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="HeroBadge" Property="Visibility" Value="Visible" />
                         <Setter TargetName="HeroBadge" Property="ToolTip" Value="{i:Loc Match.Mark.Attacker}" />
@@ -423,7 +424,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding HeroTargeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="HeroRing" Property="Visibility" Value="Visible" />
                         <Setter TargetName="HeroRing" Property="StrokeThickness" Value="2" />
@@ -433,7 +434,7 @@
                         <Setter TargetName="HeroBadge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.PlayTarget}" />
                         <Setter TargetName="HeroBadgeGlyph" Property="Text" Value="&#xF0068;" />
                     </MultiDataTrigger>
-                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                    <DataTrigger Binding="{Binding DataContext.Table.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
                         <Setter TargetName="HeroRing" Property="Stroke" Value="{StaticResource Accent}" />
                         <Setter TargetName="HeroBadge" Property="BorderBrush" Value="{StaticResource Accent}" />
                         <Setter TargetName="HeroBadgeGlyph" Property="Foreground" Value="{StaticResource Accent}" />
@@ -441,7 +442,7 @@
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                             <Condition Binding="{Binding HeroTargeted}" Value="True" />
-                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Table.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="HeroRing" Property="Visibility" Value="Visible" />
                         <Setter TargetName="HeroRing" Property="StrokeThickness" Value="3" />
@@ -462,7 +463,7 @@
 
             <!-- An action of the turn: clicking it shows its step. Your actions carry the gold accent, the opponent's the
                  second accent (edge + icon disc); a key card's biggest swing is starred, with why in the tooltip. -->
-            <DataTemplate x:Key="ActionRow" DataType="{x:Type r:MatchActionRow}">
+            <DataTemplate x:Key="ActionRow" DataType="{x:Type mt:MatchActionItem}">
                 <Button x:Name="Row" Style="{StaticResource RowButton}" Padding="10,6" Margin="0,0,0,3"
                         Command="{Binding DataContext.GoFrame, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                     <Grid>
@@ -501,7 +502,7 @@
             <!-- A row of the game's event feed (plan R2): a turn's header (a marker in the turn's colour, its text, a rule; the
                  turn on screen in the text colour; a click goes to its first step), or an action as the turn's action row.
                  Neither takes the focus: the player keeps its keys. -->
-            <DataTemplate x:Key="FeedRow" DataType="{x:Type r:MatchFeedRow}">
+            <DataTemplate x:Key="FeedRow" DataType="{x:Type mt:MatchFeedItem}">
                 <Grid>
                     <Button x:Name="HeaderRow" Style="{StaticResource RowButton}" Focusable="False" Padding="2,0" Height="26" Margin="0,10,0,4" HorizontalContentAlignment="Stretch"
                             Command="{Binding DataContext.GoFrame, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
@@ -632,7 +633,7 @@
             <!-- A minion of the Battlegrounds table (our board, Bob's offer, the combat opponent's board): the round art
                  with a rim for its state, the offer's tier and the step's badge on top, attack and health, keyword glyphs
                  under it. The card the step is about glows; one dying in the step fades under a skull. -->
-            <DataTemplate x:Key="BgBoardMinion" DataType="{x:Type r:MatchBgCardView}">
+            <DataTemplate x:Key="BgBoardMinion" DataType="{x:Type mt:MatchBgCardItem}">
                 <Grid x:Name="Cell" Width="70" Height="96" Margin="2,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Grid Width="64" Height="76" VerticalAlignment="Top" Margin="0,2,0,0">
                         <Ellipse x:Name="Halo" Margin="-3,-4" Fill="{StaticResource Glow}" Visibility="Collapsed" />
@@ -722,7 +723,7 @@
             </DataTemplate>
 
             <!-- A card in our Battlegrounds hand: the full card render; the full card shows on hover -->
-            <DataTemplate x:Key="BgHandCard" DataType="{x:Type r:MatchBgCardView}">
+            <DataTemplate x:Key="BgHandCard" DataType="{x:Type mt:MatchBgCardItem}">
                 <Grid Width="66" Height="100" Margin="1,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <ContentControl Template="{StaticResource CardPlaceholder}" Margin="4,8,4,4" />
                     <Image i:CardArt.Card="{Binding CardId}" Stretch="Uniform" />
@@ -730,7 +731,7 @@
             </DataTemplate>
 
             <!-- A Battlegrounds hero power or trinket: a small round card -->
-            <DataTemplate x:Key="BgChip" DataType="{x:Type r:MatchBgCardView}">
+            <DataTemplate x:Key="BgChip" DataType="{x:Type mt:MatchBgCardItem}">
                 <Grid Width="40" Height="40" Margin="4,0,0,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Border CornerRadius="20" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5" i:CardArt.Portrait="{Binding CardId}" />
                 </Grid>
@@ -739,7 +740,7 @@
             <!-- A Battlegrounds hero line (as the Constructed one): trinkets, the portrait with health and its hero powers,
                  the hero's name, tavern tier and, in the tavern, our gold. Tag="Opponent" on the host rims the portrait in
                  the opponent's accent. -->
-            <DataTemplate x:Key="BgHeroLine" DataType="{x:Type r:MatchBgHeroView}">
+            <DataTemplate x:Key="BgHeroLine" DataType="{x:Type mt:MatchBgTableHero}">
                 <Grid Margin="0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -779,10 +780,10 @@
                                 </StackPanel>
                             </Border>
                             <Border Style="{StaticResource Pill}" Background="{StaticResource AccentContainer}" Margin="8,0,0,0"
-                                    Visibility="{Binding DataContext.BattlegroundsStep.Gold, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}">
+                                    Visibility="{Binding DataContext.BgTable.Gold, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{i:Loc Match.Player.Table.Gold}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,5,0" />
-                                    <TextBlock Text="{Binding DataContext.BattlegroundsStep.Gold, RelativeSource={RelativeSource AncestorType=UserControl}}" FontFamily="{StaticResource DisplayFont}"
+                                    <TextBlock Text="{Binding DataContext.BgTable.Gold, RelativeSource={RelativeSource AncestorType=UserControl}}" FontFamily="{StaticResource DisplayFont}"
                                                FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource OnAccentContainer}" />
                                 </StackPanel>
                             </Border>
@@ -1136,7 +1137,7 @@
                             <ColumnDefinition Width="0.5*" MinWidth="260" MaxWidth="320" />
                         </Grid.ColumnDefinitions>
                         <!-- The table, the step's arrow over it (it never takes the mouse) -->
-                        <Border x:Name="TableCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding Step}" SizeChanged="OnTableSized">
+                        <Border x:Name="TableCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding Table}" SizeChanged="OnTableSized">
                             <Grid>
                                 <StackPanel>
                                     <ItemsControl ItemsSource="{Binding Top.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
@@ -1179,17 +1180,34 @@
                                     <ContentControl Content="{Binding Bottom}" ContentTemplate="{StaticResource HeroLine}" />
                                     <ItemsControl ItemsSource="{Binding Bottom.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
                                 </StackPanel>
-                                <mt:MatchArrowLayer From="{Binding ActorRef}" To="{Binding TargetRef}" IsAttack="{Binding IsAttack}" Local="{Binding LocalActs}" />
+                                <mt:MatchArrowLayer x:Name="Arrow" From="{Binding ActorRef}" To="{Binding TargetRef}" IsAttack="{Binding IsAttack}" Local="{Binding LocalActs}"
+                                                    Version="{Binding Version}" />
                             </Grid>
                         </Border>
-                        <!-- The game's event feed: every action under its turn's header, the step on screen kept in view -->
-                        <Border x:Name="FeedCard" Grid.Column="2" Style="{StaticResource Card}" Padding="16,14" MinHeight="420" VerticalAlignment="Top">
+                        <!-- The game's event feed: every action under its turn's header, the step on screen kept in view. Only
+                             the rows near the view are built (a whole game is 100-300 rows of about 20 visuals), so the card's
+                             height is never unbounded: 420 until the table is measured, then the table's. -->
+                        <Border x:Name="FeedCard" Grid.Column="2" Style="{StaticResource Card}" Padding="16,14" MinHeight="420" Height="420" VerticalAlignment="Top">
                             <DockPanel>
                                 <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.Feed}" Icon="&#xF0279;" Size="13" Margin="0,0,0,8" />
-                                <ScrollViewer x:Name="FeedScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                                    <ItemsControl x:Name="Feed" ItemsSource="{Binding Feed}" ItemTemplate="{StaticResource FeedRow}" Focusable="False"
-                                                  AutomationProperties.Name="{i:Loc Match.View.FeedName}" />
-                                </ScrollViewer>
+                                <ItemsControl x:Name="Feed" ItemsSource="{Binding FeedRows}" ItemTemplate="{StaticResource FeedRow}" Focusable="False"
+                                              AutomationProperties.Name="{i:Loc Match.View.FeedName}"
+                                              VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                                              VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="0.5" VirtualizingPanel.CacheLengthUnit="Page">
+                                    <ItemsControl.Template>
+                                        <ControlTemplate TargetType="ItemsControl">
+                                            <ScrollViewer x:Name="FeedScroll" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                          Focusable="False">
+                                                <ItemsPresenter />
+                                            </ScrollViewer>
+                                        </ControlTemplate>
+                                    </ItemsControl.Template>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
                             </DockPanel>
                         </Border>
                     </Grid>
@@ -1203,7 +1221,7 @@
                         <ColumnDefinition Width="16" />
                         <ColumnDefinition Width="300" />
                     </Grid.ColumnDefinitions>
-                    <Border x:Name="BattlegroundsStepCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding BattlegroundsStep}">
+                    <Border x:Name="BattlegroundsStepCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding BgTable}">
                         <StackPanel>
                             <!-- Top: Bob's offer in the tavern, the combat opponent in combat, the hero choice before the first
                                  tavern (no Bob yet); one height, so the step bar stays put -->
@@ -1321,7 +1339,7 @@
                             <DockPanel>
                                 <c:Ornament DockPanel.Dock="Top" Text="{Binding ActionsTitle}" Icon="{Binding ActionsIcon}" Size="13" Margin="0,0,0,8" />
                                 <ScrollViewer x:Name="BgActionsScroll" MaxHeight="360" VerticalScrollBarVisibility="Auto">
-                                    <ItemsControl x:Name="BgActions" ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
+                                    <ItemsControl x:Name="BgActions" ItemsSource="{Binding ActionRows}" ItemTemplate="{StaticResource ActionRow}" />
                                 </ScrollViewer>
                             </DockPanel>
                         </Border>

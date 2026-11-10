@@ -119,9 +119,31 @@ public sealed partial class LocBindingTests
             Assert.Equal(1, model.Frame);
 
             // The timeline is on the bar with the game's stretches.
+            // A child per stretch plus the position line, the diamond, the two tooltip probes and the one control that
+            // draws every tick. A tick's tooltip is on the probe over it, and the next tick's on the other probe.
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
-            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+            Assert.Equal(model.TimelineSegments.Count + 1 + 2 + 2, timeline.Children.Count);
             Assert.True(timeline.Bounds.Width > 0);
+            Assert.True(model.TimelineTicks.Count >= 2);
+            Border? lastProbe = null;
+            foreach (var tick in model.TimelineTicks.Take(3))
+            {
+                var zone = MatchTimelineLayout.Tick(tick, timeline.Bounds.Width);
+                var over = new Point(zone.X + (zone.Width / 2), zone.Y + (zone.Height / 2));
+                Assert.Same(tick, timeline.TickAt(over));
+                var probe = timeline.Hover(timeline.TickAt(over));
+                Assert.NotNull(probe);
+                Assert.NotSame(lastProbe, probe);
+                Assert.Equal(tick.Tooltip, ToolTip.GetTip(probe));
+                Assert.True(probe.IsVisible);
+                window.UpdateLayout();
+                Assert.Equal(zone.X, probe.Bounds.X, 0.6);
+                lastProbe = probe;
+            }
+
+            Assert.Null(timeline.TickAt(new Point(timeline.Bounds.Width / 2, MatchTimelineLayout.SpanTop + 4)));
+            Assert.Null(timeline.Hover(null));
+            Assert.DoesNotContain(timeline.Children.OfType<Border>(), b => b.Width == MatchTimelineLayout.TickZone && b.Height == MatchTimelineLayout.TickHeight && b.IsVisible);
 
             // Off the Replay tab the keys are not the player's.
             model.ShowDecks = true;
@@ -175,8 +197,8 @@ public sealed partial class LocBindingTests
 
     /// <summary>
     /// A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step, every list
-    /// with one row per item and nothing left over, and a row whose item equals the one at its place a step before is
-    /// still that control (the lists change in place; a new list each step built every row again).
+    /// with one row per item and nothing left over, and a row whose item is the one at its place a step before is still
+    /// that control (the table the view binds and its cards are the same objects, changed in place by each step).
     /// </summary>
     private static void RecordedBattlegrounds()
     {
@@ -193,7 +215,7 @@ public sealed partial class LocBindingTests
             var table = view.FindControl<Grid>("BattlegroundsTable")!;
             Assert.True(model.ShowBattlegroundsTable && table.IsVisible);
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
-            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+            Assert.Equal(model.TimelineSegments.Count + 1 + 2 + 2, timeline.Children.Count);
 
             var shown = new Dictionary<ItemsControl, (List<object> Items, List<Control> Rows)>();
             var kept = 0;
@@ -209,8 +231,10 @@ public sealed partial class LocBindingTests
 
                 // Every list on screen: one container per item, each showing its item, none left over.
                 var lists = table.GetVisualDescendants().OfType<ItemsControl>().Where(i => i.IsEffectivelyVisible && i.ItemsPanelRoot is not null).ToList();
-                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, step.Board));
+                Assert.Equal(step.Board, model.BgTable.Board.Select(c => c.View));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.BgTable.Board));
                 Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.Leaders));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.ActionRows));
                 foreach (var list in lists)
                 {
                     var items = list.Items.Cast<object>().ToList();
@@ -267,7 +291,10 @@ public sealed partial class LocBindingTests
             // The table's part of the page, shown on a step built here (the step itself comes from the format 4 file).
             var table = view.FindControl<Grid>("BattlegroundsTable")!;
             table.IsVisible = true;
-            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = step;
+            // The table the view binds (MatchBgTable), showing the step in place as on the page.
+            var shown = new MatchBgTable();
+            shown.Update(step);
+            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = shown;
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
 
@@ -321,7 +348,7 @@ public sealed partial class LocBindingTests
                 Hero = new MatchBgHeroView("TB_BaconShop_HERO_08", "Hagatha", 30, 0, 1),
                 Choices = [heroes],
             };
-            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = choice;
+            shown.Update(choice);
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
             var shownTexts = table.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
