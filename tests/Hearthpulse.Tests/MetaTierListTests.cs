@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Text.Json;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
@@ -11,8 +12,9 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The tier lists of the main window, laid out as on hearthpulse.net: the site's win-rate tiers, the 95 % interval,
-/// the matchup matrix, and the shared view model's tier groups, sorting, filters and heat map (checked on the
-/// Avalonia build; the Windows suite compares both builds).
+/// the matchup matrix, and the shared view model's flat tier list (a tier's head, then its archetypes), sorting,
+/// filters changed in place, the side card built after the list, and the heat map (checked on the Avalonia build; the
+/// Windows suite compares both builds).
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class MetaTierListTests : IDisposable
@@ -97,16 +99,23 @@ public sealed class MetaTierListTests : IDisposable
         Assert.Equal(expected, HearthpulseData.MatchupRank(rank));
 
     [Fact]
-    public void Tier_list_groups_every_tier_and_says_which_are_empty()
+    public void Tier_list_is_one_flat_list_a_head_then_its_archetypes_and_an_empty_tier_says_so()
     {
         var vm = Shown(Meta());
 
-        Assert.Equal(["S", "A", "B", "C", "D"], vm.MetaTierGroups.Select(g => g.Tier));
-        Assert.Equal(["Zoolock"], vm.MetaTierGroups[0].Rows.Select(r => r.EnglishName.Length > 0 ? r.EnglishName : r.Name));
-        Assert.True(vm.MetaTierGroups[1].IsEmpty);
-        Assert.Equal("Tier S", vm.MetaTierGroups[0].Title);
-        Assert.StartsWith("from 53", vm.MetaTierGroups[0].Caption, StringComparison.Ordinal);
-        Assert.StartsWith("below 47", vm.MetaTierGroups[4].Caption, StringComparison.Ordinal);
+        // S to D: every tier's head, then its archetypes; tier A has none, so the next head follows it at once.
+        Assert.Equal(
+            ["head S", "Zoolock", "head A", "head B", "Control Warrior", "head C", "Quest Priest", "head D", "Big Rogue"],
+            vm.MetaTierRows.Select(r => r switch { TierHeadRow h => "head " + h.Tier, MetaArchetypeRow a => a.Name, _ => r.ToString() }));
+        var heads = vm.MetaTierRows.OfType<TierHeadRow>().ToList();
+        Assert.Equal([false, true, false, false, false], heads.Select(h => h.IsEmpty));
+        Assert.Equal("Tier S", heads[0].Title);
+        Assert.StartsWith("from 53", heads[0].Caption, StringComparison.Ordinal);
+        Assert.StartsWith("below 47", heads[4].Caption, StringComparison.Ordinal);
+        Assert.Equal(Loc.T("Main.Meta.TierEmpty"), heads[1].Caption);
+
+        // The two views show the same row objects, so a choice marks the archetype in both.
+        Assert.All(vm.MetaTierRows.OfType<MetaArchetypeRow>(), row => Assert.Contains(vm.MetaArchetypes, r => ReferenceEquals(r, row)));
         Assert.False(vm.MetaLoading);
         Assert.False(vm.MetaEmpty);
         Assert.StartsWith("95% interval", vm.MetaArchetypes[0].WinRateTip, StringComparison.Ordinal);
@@ -150,7 +159,8 @@ public sealed class MetaTierListTests : IDisposable
         vm.SetMetaClass.Execute("PRIEST");
         Assert.Empty(vm.MetaArchetypes);
         Assert.True(vm.MetaEmpty);
-        Assert.All(vm.MetaTierGroups, g => Assert.True(g.IsEmpty));
+        Assert.Equal(5, vm.MetaTierRows.Count);
+        Assert.All(vm.MetaTierRows, r => Assert.True(Assert.IsType<TierHeadRow>(r).IsEmpty));
         Assert.Equal(0, requests);
 
         vm.SetMetaRank.Execute("legend");
@@ -175,6 +185,136 @@ public sealed class MetaTierListTests : IDisposable
         vm.SetMetaSort.Execute("Games");
         Assert.Equal("Big Rogue", vm.SelectedArchetype?.Name);
         Assert.True(vm.SelectedArchetype!.IsSelected);
+    }
+
+    [Fact]
+    public void Sort_class_and_minimum_games_change_the_same_lists_in_place_and_keep_the_rows_that_stay()
+    {
+        var vm = Shown(Meta());
+        var tiers = vm.MetaTierRows;
+        var table = vm.MetaArchetypes;
+        var actions = new List<NotifyCollectionChangedAction>();
+        tiers.CollectionChanged += (_, e) => actions.Add(e.Action);
+        table.CollectionChanged += (_, e) => actions.Add(e.Action);
+        var zoolock = table.Single(r => r.Name == "Zoolock");
+        var headS = tiers[0];
+        Assert.Same(zoolock, vm.SelectedArchetype);
+
+        // Fewer archetypes: Zoolock is still first with the same numbers, so its row is the same object where it stood
+        // (its container stays), and so is the head of its tier; it is still the chosen one.
+        vm.SetMetaMinGames.Execute("1000");
+        Assert.Same(tiers, vm.MetaTierRows);
+        Assert.Same(table, vm.MetaArchetypes);
+        Assert.Same(zoolock, table[0]);
+        Assert.Same(headS, tiers[0]);
+        Assert.Same(zoolock, tiers[1]);
+        Assert.Same(zoolock, vm.SelectedArchetype);
+        Assert.True(zoolock.IsSelected);
+        Assert.Equal(["Zoolock", "Big Rogue"], table.Select(r => r.Name));
+        Assert.Equal(2, table[1].Rank);
+
+        // Another order: the rows that changed place are other rows now, the heads stay; one row is chosen, the same archetype.
+        vm.SetMetaSort.Execute("Popularity");
+        Assert.Equal(["Big Rogue", "Zoolock"], table.Select(r => r.Name));
+        Assert.Same(headS, tiers[0]);
+        Assert.Equal("Zoolock", vm.SelectedArchetype?.Name);
+        Assert.Single(table, r => r.IsSelected);
+        Assert.Same(vm.SelectedArchetype, tiers[1]);
+
+        vm.SetMetaClass.Execute("ROGUE");
+        Assert.Equal(["Big Rogue"], table.Select(r => r.Name));
+        Assert.Equal("Big Rogue", vm.SelectedArchetype?.Name);
+
+        // Never a new list or a reset: the view keeps the visuals of every row that did not change.
+        Assert.NotEmpty(actions);
+        Assert.DoesNotContain(NotifyCollectionChangedAction.Reset, actions);
+    }
+
+    [Fact]
+    public void The_side_card_shows_the_name_and_summary_at_once_and_its_sections_when_the_view_runs_them()
+    {
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var queued = new List<Action>();
+        vm.ArchetypeDetailScheduler = queued.Add;
+        vm.ShowConstructedFormat("FT_STANDARD");
+        vm.SetConstructedMeta(Meta());
+
+        // The first archetype is chosen by itself: its name and summary are there, the sections wait for the view.
+        Assert.Equal("Zoolock", vm.SelectedArchetypeTitle);
+        Assert.Contains("56", vm.ArchetypeSummary, StringComparison.Ordinal);
+        Assert.False(vm.ArchetypeDetailReady);
+        Assert.Null(vm.DetailArchetype);
+        Assert.Empty(vm.Mulligan);
+        Assert.Empty(vm.ArchetypeDecks);
+
+        Run();
+        Assert.True(vm.ArchetypeDetailReady);
+        Assert.Same(vm.SelectedArchetype, vm.DetailArchetype);
+        Assert.Equal(["CS2_065"], vm.Mulligan.Select(m => m.CardId));
+        Assert.Equal(["Zoolock"], vm.ArchetypeDecks.Select(d => d.Name));
+
+        // Another choice (twice before the view got to it): the row, the name and the summary move at once, the previous
+        // archetype's sections stay until the one build that replaces them.
+        var zoolock = vm.SelectedArchetype;
+        vm.SelectArchetype.Execute(vm.MetaArchetypes.Single(r => r.Name == "Control Warrior"));
+        vm.SelectArchetype.Execute(vm.MetaArchetypes.Single(r => r.Name == "Big Rogue"));
+        Assert.Equal("Big Rogue", vm.SelectedArchetypeTitle);
+        Assert.Contains("46", vm.ArchetypeSummary, StringComparison.Ordinal);
+        Assert.Same(zoolock, vm.DetailArchetype);
+        Assert.Equal(["CS2_065"], vm.Mulligan.Select(m => m.CardId));
+        Assert.Single(queued);
+
+        Run();
+        Assert.Equal("Big Rogue", vm.DetailArchetype?.Name);
+        Assert.Equal(["EX1_134"], vm.Mulligan.Select(m => m.CardId));
+        Assert.Empty(vm.ArchetypeDecks);
+        Assert.True(vm.ArchetypeDetailReady);
+
+        void Run()
+        {
+            var jobs = queued.ToList();
+            queued.Clear();
+            jobs.ForEach(job => job());
+        }
+    }
+
+    [Fact]
+    public void Without_a_view_the_side_card_is_built_at_once_and_a_row_reads_its_play_split_in_one_cell()
+    {
+        var vm = Shown(Meta());
+
+        Assert.True(vm.ArchetypeDetailReady);
+        Assert.Same(vm.SelectedArchetype, vm.DetailArchetype);
+        Assert.Equal(["CS2_065"], vm.Mulligan.Select(m => m.CardId));
+
+        // Zoolock has both numbers, the others neither: a dash, and the column shows because one row has them.
+        Assert.Equal(vm.MetaArchetypes[0].First + " · " + vm.MetaArchetypes[0].Coin, vm.MetaArchetypes[0].PlaySplit);
+        Assert.Equal("—", vm.MetaArchetypes[1].PlaySplit);
+        Assert.True(vm.MetaHasPlaySplit);
+
+        // Every row carries the list's flag, and its bars their lengths (of 56 and 44), computed once.
+        Assert.All(vm.MetaArchetypes, r => Assert.True(r.ShowsPlaySplit));
+        Assert.All(vm.MetaArchetypes, r => Assert.Equal((r.BarFraction * 56, r.PopularityFraction * 44), (r.WinBar, r.PopularityBar)));
+        Assert.Equal(44, vm.MetaArchetypes.Max(r => r.PopularityBar));
+
+        // A class without the split: its rows are other rows now, without the cell.
+        vm.SetMetaClass.Execute("ROGUE");
+        Assert.False(vm.MetaHasPlaySplit);
+        Assert.All(vm.MetaArchetypes, r => Assert.False(r.ShowsPlaySplit));
+    }
+
+    [Fact]
+    public void The_render_scene_has_the_states_the_data_copy_rarely_has()
+    {
+        var vm = Shown(MetaTierScene.States());
+
+        // A tier without archetypes, the split by who went first with a row that has none, two archetypes in tier D.
+        Assert.Equal(["A"], vm.MetaTierRows.OfType<TierHeadRow>().Where(h => h.IsEmpty).Select(h => h.Tier));
+        Assert.True(vm.MetaHasPlaySplit);
+        Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit == "—");
+        Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit.Contains(" · ", StringComparison.Ordinal));
+        Assert.Equal(2, vm.MetaArchetypes.Count(r => r.Tier == "D"));
+        Assert.Equal(["S", "B", "C", "D"], vm.MetaArchetypes.Select(r => r.Tier).Distinct());
     }
 
     [Fact]
@@ -226,21 +366,24 @@ public sealed class MetaTierListTests : IDisposable
 
     private static ConstructedMeta Meta(string format = "standard")
     {
-        MetaArchetype Archetype(int id, string name, string heroClass, int games, double winRate, double share) =>
-            new(id, name, name, heroClass, games, (int)(games * winRate), winRate, share, 0, 0, 0, 0, [], []);
+        MetaArchetype Archetype(int id, string name, string heroClass, int games, double winRate, double share, string? keep = null) =>
+            new(id, name, name, heroClass, games, (int)(games * winRate), winRate, share, 0, 0, 0, 0, [],
+                keep is null ? [] : [new MetaMulliganCard(keep, 900, 0.8, 700, winRate + 0.03)]);
 
         var archetypes = new[]
         {
-            Archetype(1, "Zoolock", "WARLOCK", 5000, 0.56, 0.20),
+            // Zoolock alone has the split by who went first, a kept card and a list.
+            Archetype(1, "Zoolock", "WARLOCK", 5000, 0.56, 0.20, "CS2_065") with { FirstGames = 2600, FirstWinRate = 0.58, CoinGames = 2400, CoinWinRate = 0.54 },
             Archetype(2, "Control Warrior", "WARRIOR", 800, 0.50, 0.10),
-            Archetype(3, "Big Rogue", "ROGUE", 6000, 0.46, 0.30),
+            Archetype(3, "Big Rogue", "ROGUE", 6000, 0.46, 0.30, "EX1_134"),
             Archetype(4, "Quest Priest", "PRIEST", 300, 0.48, 0.05),
         };
+        var decks = new[] { new MetaDeck("AAECAf0GAA==", 1, "Zoolock", "WARLOCK", 900, 520, 0.578, new DateTime(2026, 10, 26, 12, 0, 0, DateTimeKind.Utc)) };
         var matchups = new MetaMatchups(
             [new MatchupArchetype("Zoolock", "Zoolock", "WARLOCK", 5000, 0.56, 0.2), new MatchupArchetype("Big Rogue", "Big Rogue", "ROGUE", 6000, 0.46, 0.3)],
             [new MatchupCell("Zoolock", "Big Rogue", 0.64, 210), new MatchupCell("Big Rogue", "Zoolock", 0.36, 210)],
             11000);
-        return new ConstructedMeta(format, "legend", "past_week", new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc), 12100, archetypes, []) { Matchups = matchups };
+        return new ConstructedMeta(format, "legend", "past_week", new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc), 12100, archetypes, decks) { Matchups = matchups };
     }
 }
 

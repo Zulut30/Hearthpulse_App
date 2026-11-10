@@ -42,6 +42,7 @@ internal static partial class OffscreenRenderer
     private static async Task RenderOnlyAsync(Window main, MainView view, AppHost host, string folder)
     {
         if (RenderOnly("mystats")) await RenderMyStatsAsync(main, view, host, folder);
+        if (RenderOnly("metatiers")) await RenderMetaTiersAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
             view.ShowPage("Overview");

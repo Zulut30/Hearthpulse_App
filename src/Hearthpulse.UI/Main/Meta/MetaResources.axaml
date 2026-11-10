@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="using:Hearthpulse.UI.Controls"
                     xmlns:i="using:Hearthpulse.UI.Infrastructure">
     <!-- Shared by the tier-list views (Main/Meta): Constructed meta, matchups, Battlegrounds tiers. Theme tokens only;
          the WPF twins are in Main/Meta/MetaResources.xaml. -->
@@ -7,6 +8,11 @@
     <i:KeyBrush x:Key="KeyBrush" />
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
+
+    <!-- A long list of equal-height rows inside the scrolling page: only the rows near what the page shows are built -->
+    <ItemsPanelTemplate x:Key="PageRows">
+        <c:PageRowsPanel />
+    </ItemsPanelTemplate>
 
     <ItemsPanelTemplate x:Key="ChoiceRow">
         <StackPanel Orientation="Horizontal" />

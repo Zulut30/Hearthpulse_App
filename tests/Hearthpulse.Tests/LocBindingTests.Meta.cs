@@ -38,15 +38,21 @@ public sealed partial class LocBindingTests
             battlegrounds.ShowTab("Trinkets");
             Assert.Equal(["TrinketTierCard"], battlegrounds.GetLogicalDescendants().OfType<Border>().Where(b => b.IsVisible && b.Name is { Length: > 0 } n && n.EndsWith("Card", StringComparison.Ordinal)).Select(b => b.Name));
 
-            var template = Assert.IsAssignableFrom<IDataTemplate>(constructed.Resources["ArchetypeRowTemplate"]);
+            // The row templates are picked by the row's type (a tier's head or an archetype); the archetype's button is
+            // its own plate and takes the "selected" class.
             var row = new MetaArchetypeRow(1, 1, "Зоолок", "Zoolock", "HERO_07", "Zoolock · Warlock · 5,000 games", "S", "56.0%", "", 0.06, 1, 0.6, "20.0%", 1, "5,000", "—", "—");
+            var template = Assert.Single(constructed.DataTemplates, t => t.Match(row));
             var button = Assert.IsType<Button>(template.Build(row));
             button.DataContext = row;
-            var plate = Assert.Single(button.GetLogicalDescendants().OfType<Border>(), b => b.Classes.Contains("archetype"));
-            Assert.DoesNotContain("selected", plate.Classes);
+            Assert.Contains("metaRow", button.Classes);
+            Assert.DoesNotContain("selected", button.Classes);
             row.IsSelected = true;
             Dispatcher.UIThread.RunJobs();
-            Assert.Contains("selected", plate.Classes);
+            Assert.Contains("selected", button.Classes);
+
+            var head = new TierHeadRow("A", "Tier A", "from 51% · 3 archetypes", false);
+            var plate = Assert.IsType<Border>(Assert.Single(constructed.DataTemplates, t => t.Match(head)).Build(head));
+            Assert.Contains("tierRow", plate.Classes);
         }
         finally
         {

@@ -43,7 +43,8 @@ public sealed class MetaXamlLoadTests
         var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
         wpf.ShowConstructedFormat("FT_STANDARD");
         wpf.SetConstructedMeta(meta);
-        Assert.Equal(ava.MetaTierGroups.Select(g => (g.Tier, g.Caption, g.Rows.Count)), wpf.MetaTierGroups.Select(g => (g.Tier, g.Caption, g.Rows.Count)));
+        Assert.Equal(ava.MetaTierRows.Select(RowText), wpf.MetaTierRows.Select(RowText));
+        Assert.Equal(8, wpf.MetaTierRows.Count);
         Assert.Equal(ava.MatchupMatrix.SelectMany(r => r.Cells).Select(c => c.Text), wpf.MatchupMatrix.SelectMany(r => r.Cells).Select(c => c.Text));
 
         Exception? failure = null;
@@ -88,6 +89,48 @@ public sealed class MetaXamlLoadTests
         Assert.Equal(3, rows.Count);
         Assert.All(rows, r => Assert.True(r.ActualHeight > 0));
 
+        // The tier's letter is in the tier's colour, and in the text colour on the chosen row (the first one).
+        TextBlock Letter(Button row) => Descendants<TextBlock>(row).Single(t => t.Text == ((WpfArchetypeRow)row.DataContext).Tier && t.Width == 30);
+        Assert.True(((WpfArchetypeRow)rows[0].DataContext).IsSelected);
+        Assert.Same(app.FindResource("Text"), Letter(rows[0]).Foreground);
+        Assert.Same(app.FindResource("TierD"), Letter(rows[2]).Foreground);
+        Assert.Equal("D", Letter(rows[2]).Text);
+
+        // The side card's sections came by themselves once the dispatcher was idle.
+        var view = Descendants<Hearthpulse.App.Main.Meta.ConstructedMetaView>(root).Single();
+        Assert.True(model.ArchetypeDetailReady);
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)view.FindName("ArchetypeSections")).Visibility);
+
+        // One flat list changed in place: a tier's head is a row of the archetypes' height, and after another sort that
+        // leaves the order as it was, and a minimum of games that drops the last archetype, the list is the same object
+        // and every row that shows what it showed keeps its container.
+        var list = (ItemsControl)view.FindName("MetaTierList");
+        var source = list.ItemsSource;
+        Assert.Same(model.MetaTierRows, source);
+        Assert.Equal(8, list.Items.Count);
+        var containers = Enumerable.Range(0, 8).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)).ToList();
+        Assert.All(containers, Assert.NotNull);
+        Assert.Single(containers.Select(c => c.ActualHeight).Distinct());
+        // 46 and the gap of 3, rounded to whole pixels of the screen (48.57 at 175 %).
+        Assert.InRange(containers[0].ActualHeight, 48.4, 49.6);
+        var items = model.MetaTierRows.ToList();
+
+        model.SetMetaSort.Execute("Tier");
+        Layout(root);
+        Assert.Same(source, list.ItemsSource);
+        Assert.Equal(items, model.MetaTierRows, ReferenceEqualityComparer.Instance);
+        Assert.Equal(containers, Enumerable.Range(0, 8).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
+
+        model.SetMetaMinGames.Execute("5000");
+        Layout(root);
+        Assert.Same(source, list.ItemsSource);
+        Assert.Equal(7, list.Items.Count);
+        Assert.Equal(items.Take(6), model.MetaTierRows.Take(6), ReferenceEqualityComparer.Instance);
+        Assert.Equal(containers.Take(6), Enumerable.Range(0, 6).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
+        Assert.Equal(2, Descendants<Button>(root).Count(b => b.DataContext is WpfArchetypeRow && Shown(b)));
+        model.SetMetaMinGames.Execute("100");
+        Layout(root);
+
         // The table view lists the same rows from the same template.
         model.SetMetaView.Execute("Table");
         Layout(root);
@@ -99,6 +142,8 @@ public sealed class MetaXamlLoadTests
         Assert.Equal(9, cells.Count);
         window.Close();
     }
+
+    private static string RowText(object row) => row.ToString()!;
 
     private static void Layout(FrameworkElement root)
     {

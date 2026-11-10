@@ -19,8 +19,12 @@ namespace Hearthpulse.App.Controls;
 /// </summary>
 public sealed class PageRowsPanel : VirtualizingPanel
 {
-    /// <summary>Rows built past each edge of the page's viewport, so a wheel notch shows rows that already exist.</summary>
-    private const int Spare = 6;
+    /// <summary>
+    /// Rows built past each edge of the page's viewport in the layout pass itself, so a wheel notch shows rows that
+    /// already exist. Two, as in the Avalonia panel (it was six): a row costs several milliseconds of the page's first
+    /// opening, a wheel notch is 48 px, about one row, and the screen of rows above and below follows in the background.
+    /// </summary>
+    private const int Spare = 2;
 
     /// <summary>Time one background turn of the dispatcher spends building rows: input waits for about this long.</summary>
     private const int BuildSliceMs = 12;

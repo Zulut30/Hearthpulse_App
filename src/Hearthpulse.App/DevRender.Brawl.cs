@@ -33,6 +33,7 @@ public partial class App
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("mystats")) await RenderMyStatsAsync(folder);
+        if (RenderOnly("metatiers")) await RenderMetaTiersAsync(folder);
         if (RenderOnly("sourcecapture"))
         {
             _main.ShowPage("Overview");
