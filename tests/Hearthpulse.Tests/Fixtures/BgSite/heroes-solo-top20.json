@@ -1,0 +1,266 @@
+{
+ "ok": true,
+ "fetched_at": "2026-11-09T23:35:11.723995+00:00",
+ "view": {
+  "type": "bg_heroes",
+  "mode": "solo",
+  "heroes": [
+   {
+    "hero": "Thorim, Stormlord",
+    "dbfId": 103477,
+    "id": "BG27_HERO_801",
+    "tier": "S",
+    "pick_rate": "56.04%",
+    "pick_rate_value": 56.04,
+    "avg_placement": 3.794,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "23.00%",
+     "14.43%",
+     "12.63%",
+     "11.48%",
+     "11.31%",
+     "10.59%",
+     "8.88%",
+     "7.69%"
+    ],
+    "best_composition_id": 8,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG27_HERO_801.png?88c1ee",
+    "hero_power": {
+     "dbf": 104628
+    }
+   },
+   {
+    "hero": "Lord Jaraxxus",
+    "dbfId": 59807,
+    "id": "TB_BaconShop_HERO_37",
+    "tier": "A",
+    "pick_rate": "56.80%",
+    "pick_rate_value": 56.8,
+    "avg_placement": 3.97,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "16.19%",
+     "17.96%",
+     "13.84%",
+     "12.53%",
+     "10.99%",
+     "10.10%",
+     "9.41%",
+     "8.98%"
+    ],
+    "best_composition_id": 9,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_37.png?9ff2c3",
+    "hero_power": {
+     "dbf": 59808
+    }
+   },
+   {
+    "hero": "Patchwerk",
+    "dbfId": 59397,
+    "id": "TB_BaconShop_HERO_34",
+    "tier": "A",
+    "pick_rate": "35.16%",
+    "pick_rate_value": 35.16,
+    "avg_placement": 4.024,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "13.36%",
+     "15.26%",
+     "15.04%",
+     "14.98%",
+     "14.29%",
+     "12.40%",
+     "9.71%",
+     "4.96%"
+    ],
+    "best_composition_id": 2,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_34.png?7543ac",
+    "hero_power": {
+     "dbf": 59399
+    }
+   },
+   {
+    "hero": "Queen Wagtoggle",
+    "dbfId": 57924,
+    "id": "TB_BaconShop_HERO_14",
+    "tier": "B",
+    "pick_rate": "12.81%",
+    "pick_rate_value": 12.81,
+    "avg_placement": 4.32,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "9.99%",
+     "12.96%",
+     "14.23%",
+     "15.41%",
+     "17.10%",
+     "12.53%",
+     "11.18%",
+     "6.60%"
+    ],
+    "best_composition_id": 20,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_14.png?872bb2",
+    "hero_power": {
+     "dbf": 59863
+    }
+   },
+   {
+    "hero": "Rakanishu",
+    "dbfId": 64400,
+    "id": "TB_BaconShop_HERO_75",
+    "tier": "B",
+    "pick_rate": "15.22%",
+    "pick_rate_value": 15.22,
+    "avg_placement": 4.327,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "8.84%",
+     "15.89%",
+     "16.39%",
+     "15.24%",
+     "10.86%",
+     "11.36%",
+     "11.86%",
+     "9.56%"
+    ],
+    "best_composition_id": 20,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_75.png?f42253",
+    "hero_power": {
+     "dbf": 122960
+    }
+   },
+   {
+    "hero": "Lich Baz'hial",
+    "dbfId": 58044,
+    "id": "TB_BaconShop_HERO_25",
+    "tier": "C",
+    "pick_rate": "18.12%",
+    "pick_rate_value": 18.12,
+    "avg_placement": 4.442,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "11.00%",
+     "11.87%",
+     "14.09%",
+     "13.84%",
+     "14.71%",
+     "11.74%",
+     "14.09%",
+     "8.65%"
+    ],
+    "best_composition_id": 9,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_25.png?ae9ea1",
+    "hero_power": {
+     "dbf": 60285
+    }
+   },
+   {
+    "hero": "Snake Eyes",
+    "dbfId": 105314,
+    "id": "BG28_HERO_400",
+    "tier": "C",
+    "pick_rate": "52.70%",
+    "pick_rate_value": 52.7,
+    "avg_placement": 4.444,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "13.81%",
+     "13.09%",
+     "11.86%",
+     "11.73%",
+     "11.92%",
+     "13.07%",
+     "12.25%",
+     "12.27%"
+    ],
+    "best_composition_id": 2,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG28_HERO_400.png?f1be68",
+    "hero_power": {
+     "dbf": 105315
+    }
+   },
+   {
+    "hero": "Cap'n Hoggarr",
+    "dbfId": 101130,
+    "id": "BG26_HERO_101",
+    "tier": "D",
+    "pick_rate": "23.32%",
+    "pick_rate_value": 23.32,
+    "avg_placement": 4.576,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "11.22%",
+     "11.88%",
+     "13.21%",
+     "13.02%",
+     "11.60%",
+     "13.21%",
+     "13.21%",
+     "12.64%"
+    ],
+    "best_composition_id": 36,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG26_HERO_101.png?b75995",
+    "hero_power": {
+     "dbf": 101132
+    }
+   },
+   {
+    "hero": "Tess Greymane",
+    "dbfId": 60367,
+    "id": "TB_BaconShop_HERO_50",
+    "tier": "D",
+    "pick_rate": "31.93%",
+    "pick_rate_value": 31.93,
+    "avg_placement": 4.576,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "13.34%",
+     "10.10%",
+     "11.63%",
+     "12.45%",
+     "13.24%",
+     "13.34%",
+     "14.06%",
+     "11.84%"
+    ],
+    "best_composition_id": 20,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_50.png?b1aab6",
+    "hero_power": {
+     "dbf": 63162
+    }
+   }
+  ],
+  "filters": {
+   "mmr_percentile": "TOP_20_PERCENT",
+   "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+  }
+ }
+}
