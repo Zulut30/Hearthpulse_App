@@ -610,7 +610,7 @@
     "C",
     "D"
    ],
-   "count": 15,
+   "count": 16,
    "tiers": {
     "S": [
      {
@@ -1447,6 +1447,63 @@
       "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0894955f2c99d60b9377f1cf719e6fe940b8de98053bd55d7b1db3396e632914.png",
       "ruName": "Золотой молоток",
       "ruText": "В конце вашего хода ваши существа получают +4/+4. (Улучшается за каждое золотое существо, разыгранное вами в этом матче!)"
+     },
+     {
+      "id": "BG30_MagicItem_426t",
+      "dbfId": 115250,
+      "name": "Colorful Compass",
+      "localizedName": "Разноцветный компас · Механизм",
+      "text": "Get 2 random Mechs. At the start of each turn, get 2 more.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "22.7%",
+      "avgPlacement": 3.73,
+      "avgPlacementLabel": "3.73",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "26.67%"
+       },
+       {
+        "place": 2,
+        "rate": "10.00%"
+       },
+       {
+        "place": 3,
+        "rate": "13.33%"
+       },
+       {
+        "place": 4,
+        "rate": "20.00%"
+       },
+       {
+        "place": 5,
+        "rate": "3.33%"
+       },
+       {
+        "place": 6,
+        "rate": "6.67%"
+       },
+       {
+        "place": 7,
+        "rate": "10.00%"
+       },
+       {
+        "place": 8,
+        "rate": "10.00%"
+       }
+      ],
+      "games": 30,
+      "gamesIsMinimum": true,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_426t&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+      "ruName": "Разноцветный компас · Механизм",
+      "ruText": "Вы получаете 2 случайные карты типа «механизм». В начале каждого хода вы получаете еще 2.",
+      "race": "Mech",
+      "raceRu": "Механизм"
      }
     ]
    },
@@ -1455,7 +1512,7 @@
     "A": 3,
     "B": 3,
     "C": 3,
-    "D": 3
+    "D": 4
    }
   },
   "strategies": {

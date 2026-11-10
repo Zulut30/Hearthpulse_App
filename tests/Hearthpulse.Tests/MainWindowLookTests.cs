@@ -131,14 +131,26 @@ public sealed class MainWindowLookTests
         foreach (var path in new[] { "src/Hearthpulse.App/Main/Meta/BattlegroundsTiersView.xaml", "src/Hearthpulse.UI/Main/Meta/BattlegroundsTiersView.axaml" })
         {
             var view = Load(path);
+            // The card is a template (built on the tab's first opening); the rows are templates picked by the row's type.
             var card = view.Descendants().Single(e => Named(e) == "HeroTierCard");
             var header = card.Descendants().First(e => e.Name.LocalName == "Grid");
-            var row = card.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && ((string?)e.Attribute("DataType") ?? (string?)e.Attribute(X + "DataType"))!.Contains("MetaHeroRow"))
+            var row = view.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && DataTypeOf(e).Contains("MetaHeroRow", StringComparison.Ordinal))
                 .Descendants().First(e => e.Name.LocalName == "Grid");
             Assert.Equal(GridColumns(header), GridColumns(row));
-            Assert.Equal(["Name", "Placement", "Top4", "First", "Pick", "Games"],
+            Assert.Equal(["Name", "Placement", "Top4", "First", "Pick"],
                 header.Elements().Where(e => ((string?)e.Attribute("Command"))?.Contains("SetHeroSort") == true).Select(e => (string?)e.Attribute("CommandParameter")));
-            Assert.Contains(card.Descendants(), e => (string?)e.Attribute("ItemsSource") == "{Binding HeroTierGroups}");
+            // One flat list on the row panel; no list of lists.
+            var list = card.Descendants().Single(e => (string?)e.Attribute("ItemsSource") == "{Binding HeroTierRows}");
+            Assert.Equal("{StaticResource PageRows}", (string?)list.Attribute("ItemsPanel"));
+
+            // The trinket and card lists line up with their heads the same way.
+            foreach (var (name, type) in new[] { ("TrinketTierCard", "MetaTrinketRow"), ("CardStatsCard", "MetaCardRow") })
+            {
+                var head = view.Descendants().Single(e => Named(e) == name).Descendants().First(e => e.Name.LocalName == "Grid");
+                var cells = view.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && DataTypeOf(e).Contains(type, StringComparison.Ordinal))
+                    .Descendants().First(e => e.Name.LocalName == "Grid");
+                Assert.Equal(GridColumns(head), GridColumns(cells));
+            }
         }
     }
 

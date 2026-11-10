@@ -2,10 +2,10 @@
 
 The main window's Battlegrounds tabs (Heroes, Trinkets, Cards, Comps) are to show the lists hearthpulse.net shows.
 The site proxies an open service, `https://bg.hs-manacost.ru`, and the app reads that service directly (owner's
-decision, 2026-11-09). This document is the contract of the Core client. **The tabs switch to it in package PC2 of
-TASK-2026-11-09-light-ui-site-stats; until that is merged they still read `BattlegroundsMeta`**, and no host calls
-the client. The in-game advisor and the overlay do not use it at all: they keep `BattlegroundsMeta`
-([bg-meta-sources.md](bg-meta-sources.md)).
+decision, 2026-11-09). This document is the contract of the Core client and of the tabs that show its lists (section
+6). Both hosts load the lists beside the other community stats, at start and every six hours. The in-game advisor
+and the overlay do not use them at all: they keep `BattlegroundsMeta` ([bg-meta-sources.md](bg-meta-sources.md)); of
+that meta the tabs read only the pool's tribes, the stand-in of the Comps tab.
 
 Answers were captured on **2026-11-09 23:06 UTC** with one plain `GET` per address, no sign-in, no cookie; five more
 probes for Duos and MMR slices on 2026-11-09 23:35 UTC and six on 23:58 UTC (section 2). Trimmed copies are the test fixtures in
@@ -48,8 +48,8 @@ Code: `src/Hearthpulse.Core/Battlegrounds/Site/` (`BgSiteClient`, `BgSiteStats`)
 - **Only data whose `source` is on the allow list is read** (section 4). Everything else is cut from the answer before
   it is cached, so it is not kept on the player's disk either.
 - `LoadAsync` and the slice loads run off the caller's thread, also when every cache file is fresh.
-- The source's name in the interface is PC2's: `HearthpulseData.Attribution` ("Hearthpulse data"), subject to the legal
-  report's conditions on naming the origin.
+- The source's name in the interface is `HearthpulseData.Attribution` ("Hearthpulse data"), with the slice and the
+  date of the shown list beside it (section 6); never the pool's attribution line.
 
 ## 2. Addresses
 
@@ -231,11 +231,18 @@ the server (17:01 and 02:45 UTC in the capture), so the same minion's numbers di
 | `games` | int, **a lower bound, not a count** (`gamesIsMinimum`: true; 0 in 3 entries) | `0` | `Games` |
 | `size` | `"LARGE"` / `"SMALL"` | | `TrinketSize` (added member) |
 | `cost` | int | `0` | `Cost` (added member) |
+| `race` | string or null: `"Beast"`, `"Demon"`, `"Dragon"`, `"Elemental"`, `"Mech"`, `"Murloc"`, `"Pirate"`, `"Quilboar"`, `"Undead"` | `"Quilboar"` | `Race` (added member) |
 | `placementDistribution[]{place, rate}`, `avgPlacementLabel`, `typeLabel`, `text`, `ruText`, `race`, `raceRu`, `image`, `imageFallback`, `upstreamImage` | | | not read |
 
 The list's `gamesNote` (verbatim: `games is the minimum integer sample compatible with HSReplay's rounded placement
 distribution`) goes to `BgSiteTierList.GamesNote`: the UI must not present `Games` of a trinket as a sample size.
 `TavernTier` is 0.
+
+**One card id can come several times.** A trinket whose effect depends on a tribe is listed once per tribe, each row
+with its own numbers and tier and the same `id` (2026-11-10: `BG30_MagicItem_426` and `BG30_MagicItem_426t`, ten rows
+each - nine tribes and one row with `race` null). `race` tells the rows apart (`ruName` carries it too: "Разноцветный
+компас · Свинобраз", but the tabs take names from `CardDb`). Heroes, minions and comps had no repeated id or title in
+the same answers.
 
 `/api/bg/tier-lists?list=trinkets&mmr=<slice>&timeRange=LAST_7_DAYS` (`LoadTrinketsAsync`) is the same list object at
 the top level of the answer, with the same entry fields and its own `source` (`hsreplay` in the three slices seen);
@@ -352,7 +359,8 @@ for showing it are in the legal report (`LEGAL-HeartLens-bg-site-stats.md`: L-B1
 
 Records as in the task card's contract, plus these members at the end (nullable, default `null`):
 
-- `BgSiteTierEntry.TrinketSize` (`"LARGE"` / `"SMALL"`), `BgSiteTierEntry.Cost` (int): trinkets only.
+- `BgSiteTierEntry.TrinketSize` (`"LARGE"` / `"SMALL"`), `BgSiteTierEntry.Cost` (int), `BgSiteTierEntry.Race` (the
+  service's tribe name of a trinket's row, see above): trinkets only.
 - `BgSiteStats.CompsFetchedAt` (`DateTime?`, UTC): the `fetchedAt` of `/api/bg-comps`, for the Comps tab's "source,
   slice, date" line; `null` without comps.
 
@@ -392,3 +400,44 @@ Per list:
 
 `BgSiteStats.Updated` is the latest `FetchedAt` of the loaded lists and comps (minion stats: `latest_run.completed_at`).
 A time is when the server fetched the data from its origin, not when the app downloaded the answer.
+
+## 6. The tabs (`MainViewModel.BgSite.cs`, `BattlegroundsTiersView` in both UIs)
+
+`MainViewModel.SetBgSiteStats(BgSiteStats?)` is called by both hosts (`App.LoadBgSiteAsync`, `AppHost.LoadBgSiteAsync`)
+on the UI thread after every `LoadAsync`; the hosts give the view model the slice methods once
+(`BgSiteSlices`, a `BgSiteSliceLoader`) and pass the client `BgSiteClient.CreateHttp()`.
+
+- **One flat list a tab** (`HeroTierRows`, `TrinketTierRows`, `CardTierRows`, `CompTiers`: `SyncList<object>` of a
+  `TierHeadRow` and the tier's rows), in the service's tiers and order. The tier letter is the service's; the
+  advisor's `TierOf` is not used on the tabs, so a tab's letter and the overlay's can differ. A tier that is empty in
+  the service's own list keeps its head, marked empty; a tier only the tavern tier filter emptied is left out.
+- **The line above a list** (`BgTabState.Source`): `Hearthpulse data`, then what the shown list itself names -
+  Solo / Duos (heroes), the MMR slice, the period - then `updated <date>` of its `FetchedAt` (local time). A slice or
+  period the app does not know is left out, never shown as the service's code word. Minions take the slice of
+  `BgSiteStats.Run`; comps have no slice, only `CompsFetchedAt`.
+- **Old numbers.** The cache's old file answers for as long as the service fails or stops giving a list, so the date
+  is always in the line, and numbers fetched more than 14 days ago (`MainViewModel.BgStaleAfter`) are marked
+  "out of date" (`Main.Bg.Stale`).
+- **Slices.** Heroes and trinkets have a picker of `BgSiteClient.HeroSlices(duos)` / `TrinketSlices`; the default
+  slice is the refresh's own list, another one is asked for when picked (the shown rows stay meanwhile, the line says
+  "loading top 5 %..."; for heroes with the mode asked for, "loading Duos, top 20 %..."), and again after each refresh while it stays picked. `null` from a slice method is one neutral
+  empty state ("no data right now"), the picker stays. The percent is one for Solo and Duos; where Duos has no such
+  slice the choice becomes the default one.
+- **Solo / Duos** changes the heroes list only when `HeroesDuos` is there; without it the switch shows on My stats
+  only and Heroes stays solo, with the player's solo games in the "You" column.
+- **Trinkets of a tribe.** A row's tribe is the first part of the line under its name ("Mech · Greater · cost 2"),
+  in the interface's language (`Races`; a name the app does not know is shown as sent). Rows of one trinket stand
+  together inside their tier, at the place of the first of them, in the service's order.
+- **Long names.** A name that does not fit is cut with an ellipsis; its tooltip and its accessible name are the full name.
+- **Not shown:** `Games` of a trinket (a lower bound, not a sample), the list's `Source`, anything of Firestone
+  (Spells is an empty state while `Spells` is `null`).
+- **Comp tips.** `BgSiteComp.Tip` is the comp's text as the site has it: the origin's own writing, not a number.
+  Whether it is shown is the owner's decision (`LEGAL-HeartLens-bg-site-stats.md`, L-M1); until the owner answers it
+  is **off**: the one constant `MainViewModel.CompTipsByDefault` is `false`, and a comp shows its name, difficulty
+  and core cards, with no room left for the tip. Both positions are tested (`BgSiteTabsTests`).
+- **States:** before the first load every tab says "loading"; `LoadAsync` = `null` - "unavailable"; one part `null` -
+  that tab alone says its list is unavailable. Comps: without comps of the service the pool's tribes stand in, when a
+  pool gave any - but only once the service's load is in, so the tab does not open as "Tribes" and turn into "Comps".
+  The hosts start the load beside the community stats, not after them.
+- Tests: `BgSiteTabsTests`, `BgTabsVirtualizationTests` (Avalonia), `BgSiteTabsContractTests` (both view models and
+  the WPF window). Render scenes: `HEARTHPULSE_RENDER_ONLY=bgtabs` (`main-bg-*.png`, both UIs).

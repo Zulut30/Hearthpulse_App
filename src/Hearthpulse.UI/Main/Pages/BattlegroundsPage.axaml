@@ -21,6 +21,13 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border.headFilter.away">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="IsEnabled" Value="False" />
+        </Style>
+    </UserControl.Styles>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
@@ -31,7 +38,10 @@
                     </StackPanel>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>
-                <Border Classes="segmentBar headFilter"
+                <!-- Solo / Duos: on My stats, and on Heroes when the service has a Duos list. Where it does not apply it is
+                     out of sight and out of reach but keeps its room: in the compact layout it is a row of its own above
+                     the tabs, and a row that came and went would move the tabs from under the pointer. -->
+                <Border Classes="segmentBar headFilter" Classes.away="{Binding !ShowBgMode}"
                         ToolTip.Tip="{i:Loc Main.Bg.ModeTip}">
                     <StackPanel Orientation="Horizontal">
                         <RadioButton Classes="segment" Content="{i:Loc Main.Bg.Solo}" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
@@ -41,7 +51,7 @@
             </Grid>
 
             <!-- One tab row: My stats first (as Standard and Wild), then the community tier lists; after the tabs the period
-                 (My stats) or the bracket (the tier lists, only when the stats have a choice); the window switches them -->
+                 (My stats) or the MMR slice (Heroes and Trinkets, whose lists have more than one); the window switches them -->
             <WrapPanel Margin="0,0,0,14">
                 <Border Classes="segmentBar" Margin="0,0,12,8">
                     <WrapPanel>
@@ -66,7 +76,8 @@
                                      ToolTip.Tip="{i:Loc Stats.Period.ThisMonthBgTip}" />
                     </StackPanel>
                 </Border>
-                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
+                <!-- The MMR slices of the open tab's list (heroes: top 50/20/5/1%, in Duos 50/20%; trinkets: the same four);
+                     hidden when there is no choice -->
                 <Panel IsVisible="{Binding HasBracketChoice}">
                     <Border Name="BracketPicker" Classes="segmentBar" Margin="0,0,0,8"
                             ToolTip.Tip="{i:Loc Main.Bg.BracketTip}">

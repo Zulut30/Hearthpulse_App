@@ -144,7 +144,7 @@
   "Settings.Data.OpenFolder": "Открыть папку данных",
   "Settings.Data.OpenFolderTip": "Настройки, база истории и логи",
 
-  "Settings.Sources.Text": "Данные: статистика — Hearthpulse data (api.kolodahearthstone.com), карты и арт — HearthstoneJSON.",
+  "Settings.Sources.Text": "Данные: статистика — Hearthpulse data (api.kolodahearthstone.com; списки вкладок Полей сражений — bg.hs-manacost.ru), карты и арт — HearthstoneJSON.",
 
   "Settings.About.Title": "О программе",
   "Settings.About.Text": "Hearthpulse читает собственные лог-файлы Hearthstone и несколько значений из памяти игры, только для чтения (ваш рейтинг, ранг и расы лобби). Он никогда не показывает скрытую информацию, например руку или колоду соперника.",

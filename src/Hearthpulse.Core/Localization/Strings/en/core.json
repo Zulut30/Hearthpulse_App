@@ -362,8 +362,6 @@
   "Core.Bg.Source.Trinket": "Trinket",
   "Core.Bg.Source.Spell": "Spell",
   "Core.Bg.Source.Discover": "Discover",
-  "Core.BgMeta.PoolPending": "No {0} from the Hearthpulse stats pool yet.",
-  "Core.BgMeta.PoolNotRunning": "No {0} yet: they will come from the Hearthpulse stats pool once it is running.",
   "Core.BgMeta.AllRanks": "all ranks",
   "Core.BgMeta.Top": "top {0:P0}",
   "Core.BgMeta.PoolAttribution": "Community stats: Hearthpulse players who share their games",

@@ -37,6 +37,9 @@ internal static partial class WpfBench
         var api = new HearthpulseApi(http);
         var bgMeta = BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult();
         Memory("+ Battlegrounds meta");
+        using var siteHttp = Hearthpulse.Core.Battlegrounds.Site.BgSiteClient.CreateHttp();
+        var bgSite = new Hearthpulse.Core.Battlegrounds.Site.BgSiteClient(siteHttp).LoadAsync().GetAwaiter().GetResult();
+        Memory("+ Battlegrounds site lists");
         var ctMeta = ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult();
         Memory("+ Constructed meta");
         var catalog = CardPoolCatalog.LoadAsync(api, http).GetAwaiter().GetResult();
@@ -73,6 +76,7 @@ internal static partial class WpfBench
 
         vm.SetCards(cards);
         vm.SetMeta(bgMeta);
+        vm.SetBgSiteStats(bgSite);
         vm.SetConstructedMeta(ctMeta);
         Step("SetCards + SetMeta + SetConstructedMeta");
         var refresh = vm.RefreshAsync();

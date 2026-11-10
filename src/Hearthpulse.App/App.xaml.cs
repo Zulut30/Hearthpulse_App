@@ -13,6 +13,7 @@ using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Battlegrounds.Site;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
@@ -36,6 +37,7 @@ public partial class App : Application
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
+    private BgSiteClient? _bgSite;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
@@ -565,6 +567,9 @@ public partial class App : Application
     {
         // The limits on their own: a slow answer never holds the meta back.
         _usage.RefreshLimitsAsync().Forget("Usage limits");
+        // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
+        // holds the other back as little as a fresh cache does.
+        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
         if (meta is not null)
         {
@@ -580,6 +585,21 @@ public partial class App : Application
         LoadArenaMetaAsync().Forget("Arena stats load");
         LoadBrawlMetaAsync().Forget("Brawl stats load");
         _session.RequestMemoryTrimWhenWindowAway();
+    }
+
+    /// <summary>
+    /// The lists of the main window's Battlegrounds tier tabs, from the open service the site itself reads
+    /// (docs/bg-site-stats.md): loaded off the UI thread, with a client of its own that keeps no cookies and follows no
+    /// redirects. The overlay and the advisor do not read them.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept by the site client in a field of the host and lives as long as the app.")]
+    private async Task<BgSiteStats?> LoadBgSiteAsync()
+    {
+        var site = _bgSite ??= new BgSiteClient(BgSiteClient.CreateHttp());
+        _mainViewModel.BgSiteSlices ??= new BgSiteSliceLoader((duos, mmr) => site.LoadHeroesAsync(duos, mmr), mmr => site.LoadTrinketsAsync(mmr));
+        var stats = await site.LoadAsync();
+        _mainViewModel.SetBgSiteStats(stats);
+        return stats;
     }
 
     /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>

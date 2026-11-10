@@ -113,9 +113,10 @@ never writes `Settings.MetaFormat` (it only names the format loaded at start).
   Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" /
   `TabMetaMatchups` "Matchups" (both UIs, `ShowConstructedTab("Decks"|"Tiers"|"Top"|"Matchups")`).
 - Tier-list views live in `Main/Meta/` of each UI (`ConstructedMetaView`: filters, tiers S-D or one sortable table,
-  archetype card, top decks, matchup heat map; `BattlegroundsTiersView`: heroes/trinkets by tier, comps, cards, your
-  heroes) with `MetaResources`/`MetaStyles`; the shared VM is `Presentation/Main/MainViewModel.Meta.cs` (Constructed)
-  and `.BgTiers.cs` (tier groups, hero sort). Tiers follow hearthpulse.net (`Core/Constructed/MetaTiers.cs`: S from
+  archetype card, top decks, matchup heat map; `BattlegroundsTiersView`: heroes/trinkets by tier, comps, cards - each
+  tab a card built on its first opening, one flat list on `PageRows`) with `MetaResources`/`MetaStyles`; the shared VM
+  is `Presentation/Main/MainViewModel.Meta.cs` (Constructed), `.BgSite.cs` (the Battlegrounds tabs on the site's
+  lists, `docs/bg-site-stats.md` section 6) and `.BgTiers.cs` (hero sort). Constructed tiers follow hearthpulse.net (`Core/Constructed/MetaTiers.cs`: S from
   53 %, A 51, B 49, C 47, D below); the matrix is `ConstructedMeta.Matchups` (`v1/hsguru/matchups`).
 - Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtPeriod`, `SetHistoryFilter`...), placed top
   right of the page header.

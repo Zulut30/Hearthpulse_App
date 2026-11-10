@@ -37,14 +37,11 @@ public sealed partial class MainViewModel : Observable
         LibraryFiles = data.Library;
         LibraryUploads = data.Uploads;
         Loc.Instance.LanguageChanged += OnLanguageChanged;
-        SetBracket = new RelayCommand(p =>
-        {
-            Bracket = Convert.ToInt32(p, CultureInfo.InvariantCulture);
-            RebuildMeta();
-        });
+        SetBracket = new RelayCommand(p => SelectBgSlice(Convert.ToInt32(p, CultureInfo.InvariantCulture)));
         SetBgMode = new RelayCommand(p =>
         {
             BgMode = p as string ?? "Battlegrounds";
+            BgModeChanged();
             RefreshAsync().Forget("History refresh");
         });
         SetHistoryFilter = new RelayCommand(p =>
@@ -55,7 +52,7 @@ public sealed partial class MainViewModel : Observable
         SetCardTier = new RelayCommand(p =>
         {
             CardTier = Convert.ToInt32(p, CultureInfo.InvariantCulture);
-            RebuildMeta();
+            RebuildCardRows();
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
 #if HEARTHPULSE_WPF
@@ -130,13 +127,9 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<RatingPoint> _ratingPoints = Array.Empty<RatingPoint>();
     private bool _hasBgGames;
     private IReadOnlyList<HeroRow> _myHeroes = Array.Empty<HeroRow>();
-    private IReadOnlyList<MetaHeroRow> _heroTiers = Array.Empty<MetaHeroRow>();
-    private IReadOnlyList<MetaCompRow> _compTiers = Array.Empty<MetaCompRow>();
     private IReadOnlyList<DeckRow> _decks = Array.Empty<DeckRow>();
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
-    private int _bracket = 100;
-    private string _metaUpdated = Loc.T("Main.Bg.CommunityLoading");
     private int _historyCount;
 
     public IReadOnlyList<GameRow> Recent
@@ -173,52 +166,20 @@ public sealed partial class MainViewModel : Observable
     public bool HasBgGames { get => _hasBgGames; private set => Set(ref _hasBgGames, value); }
 
     public IReadOnlyList<HeroRow> MyHeroes { get => _myHeroes; private set => Set(ref _myHeroes, value); }
-    public IReadOnlyList<MetaHeroRow> HeroTiers
-    {
-        get => _heroTiers;
-        private set
-        {
-            if (Set(ref _heroTiers, value))
-            {
-                RebuildHeroGroups();
-            }
-        }
-    }
-
-    public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) Raise(nameof(HasCompTiers)); } }
-
     private IReadOnlyList<BracketOption> _bracketOptions = Array.Empty<BracketOption>();
-    private string _compEmptyText = string.Empty;
-    private string _trinketEmptyText = string.Empty;
-    private string _cardEmptyText = string.Empty;
 
-    /// <summary>The MMR brackets the loaded stats have; the picker shows only when there is a choice.</summary>
+    /// <summary>The MMR slices of the open tier tab's list; the picker shows only when there is a choice.</summary>
     public IReadOnlyList<BracketOption> BracketOptions { get => _bracketOptions; private set { if (Set(ref _bracketOptions, value)) Raise(nameof(HasBracketChoice)); } }
 
     public bool HasBracketChoice => _bracketOptions.Count > 1;
 
-    /// <summary>What the empty comp, trinket and card lists say: which source those numbers will come from.</summary>
-    public string CompEmptyText { get => _compEmptyText; private set => Set(ref _compEmptyText, value); }
-
-    public string TrinketEmptyText { get => _trinketEmptyText; private set => Set(ref _trinketEmptyText, value); }
-
-    public string CardEmptyText { get => _cardEmptyText; private set => Set(ref _cardEmptyText, value); }
-
-    private IReadOnlyList<MetaTrinketRow> _trinketTiers = Array.Empty<MetaTrinketRow>();
-    private IReadOnlyList<MetaCardRow> _cardTiers = Array.Empty<MetaCardRow>();
     private int _cardTier = 1;
-
-    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) RebuildTrinketGroups(); } }
-
-    public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set => Set(ref _cardTiers, value); }
 
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
     public int CardTier { get => _cardTier; private set => Set(ref _cardTier, value); }
     public IReadOnlyList<DeckRow> Decks { get => _decks; private set => Set(ref _decks, value); }
     public string BgMode { get => _bgMode; private set => Set(ref _bgMode, value); }
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
-    public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }
-    public string MetaUpdated { get => _metaUpdated; private set => Set(ref _metaUpdated, value); }
     public int HistoryCount { get => _historyCount; private set => Set(ref _historyCount, value); }
 
     public void SetCards(CardDb cards)
@@ -338,6 +299,8 @@ public sealed partial class MainViewModel : Observable
                 Rating: _history.RatingHistory(mode, 200),
                 Distribution: _history.PlacementDistribution(mode),
                 Heroes: _history.HeroStats(cards.BaseHeroId, mode),
+                // The heroes tab shows the solo list when the service has no Duos one: its "You" column needs solo games.
+                SoloHeroes: mode == "Battlegrounds" ? null : _history.HeroStats(cards.BaseHeroId),
                 Session: bgGames);
         }).ConfigureAwait(true);
 
@@ -371,6 +334,7 @@ public sealed partial class MainViewModel : Observable
                 h.NetRating ?? 0,
                 BattlegroundsAdvisor.TierOf(h.AveragePlace)))
             .ToList();
+        SetBgPersonal(mode, data.Heroes, data.SoloHeroes);
 
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();

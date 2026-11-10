@@ -23,7 +23,9 @@ afterwards. The overlay floats over the game, including in full screen.
 Your rating and the lobby tribes are read from game memory on Windows only; on Mac
 those values stay empty.
 
-Community stats: Hearthpulse data (api.kolodahearthstone.com). Russian archetype names: the Hearthpulse archetype
+Community stats: Hearthpulse data (api.kolodahearthstone.com; the Battlegrounds tier tabs read the site's open
+statistics service, bg.hs-manacost.ru: that server sees your IP address and the time of the request, and gets no
+account data, no cookie and nothing about your games). Russian archetype names: the Hearthpulse archetype
 dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON. The Brawl page's article: hs-manacost.ru (its
 "Потасовка" posts and cover pictures, opened in the browser).
 Navigation icons from game-icons.net (CC BY 3.0, https://creativecommons.org/licenses/by/3.0/), drawn in gold:

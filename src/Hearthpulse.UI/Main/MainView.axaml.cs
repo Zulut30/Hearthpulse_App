@@ -553,6 +553,9 @@ public partial class MainView : UserControl
         PageBattlegrounds.BgPeriodBar.IsVisible = mine;
         PageBattlegrounds.BgTiers.IsVisible = !mine;
         PageBattlegrounds.BracketPicker.IsVisible = !mine;
+        // The view model follows the tab: the MMR slices and "Solo / Duos" belong to some tabs only. A tier tab's card
+        // is built here, on its first opening; My stats builds none.
+        _viewModel?.BgTabShown(BattlegroundsTab);
         PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
     }
 

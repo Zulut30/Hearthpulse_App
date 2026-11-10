@@ -67,13 +67,10 @@ public sealed class ReadableTextTests
     }
 
     /// <summary>
-    /// Bound texts dimmed on purpose: the tier list's build line (Text at 0.85, still above 9:1 on its card).
+    /// Bound texts dimmed on purpose (file and binding). None now: the one there was, the Battlegrounds comp's build
+    /// line at 0.85, is a plain text since the tabs show the site's lists.
     /// </summary>
-    private static readonly (string File, string Text)[] DimmedOnPurpose =
-    [
-        ("src/Hearthpulse.App/Main/Meta/BattlegroundsTiersView.xaml", "{Binding Commit}"),
-        ("src/Hearthpulse.UI/Main/Meta/BattlegroundsTiersView.axaml", "{Binding Commit}"),
-    ];
+    private static readonly (string File, string Text)[] DimmedOnPurpose = [];
 
     /// <summary>
     /// Opacity is the other way to drop text below AA: a readable text is not dimmed by its own <c>Opacity</c>, by its

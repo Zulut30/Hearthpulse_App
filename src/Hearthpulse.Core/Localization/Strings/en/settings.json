@@ -144,7 +144,7 @@
   "Settings.Data.OpenFolder": "Open data folder",
   "Settings.Data.OpenFolderTip": "Settings, history database and logs",
 
-  "Settings.Sources.Text": "Data: stats from Hearthpulse data (api.kolodahearthstone.com), cards and art from HearthstoneJSON.",
+  "Settings.Sources.Text": "Data: stats from Hearthpulse data (api.kolodahearthstone.com; the Battlegrounds tab lists from bg.hs-manacost.ru), cards and art from HearthstoneJSON.",
 
   "Settings.About.Title": "About",
   "Settings.About.Text": "Hearthpulse reads Hearthstone's own log files and a few read-only values from game memory (your rating, rank and the lobby's tribes). It never shows hidden information such as your opponent's hand or deck.",

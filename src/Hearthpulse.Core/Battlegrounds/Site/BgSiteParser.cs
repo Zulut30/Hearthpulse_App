@@ -268,7 +268,8 @@ internal static partial class BgSiteParser
         var english = Clean(Str(item, "name"), MaxNameLength) ?? string.Empty;
         return new BgSiteTierEntry(id, Int(item, "dbfId") ?? 0, tier, Clean(Str(item, "ruName"), MaxNameLength) ?? english, english, 0,
             Placement(item, "avgPlacement"), Share(item, "pickRate"), Top4Rate: null, FirstRate: null, Count(item, "games"),
-            Str(item, "size") is "LARGE" or "SMALL" ? Str(item, "size") : null, Count(item, "cost"));
+            Str(item, "size") is "LARGE" or "SMALL" ? Str(item, "size") : null, Count(item, "cost"),
+            Clean(Str(item, "race"), MaxNameLength));
     }
 
     /// <summary>The minion numbers by card id and the run they come from; empty when the source is refused.</summary>

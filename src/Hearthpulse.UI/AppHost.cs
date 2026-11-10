@@ -6,6 +6,7 @@ using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Battlegrounds.Site;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
@@ -38,6 +39,7 @@ public sealed partial class AppHost : IDisposable
     private readonly UpdateTrigger _updateTrigger = new();
     private readonly UpdateLoop _updateLoop = new();
     private readonly AppServices _services;
+    private BgSiteClient? _bgSite;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
     public AppHost(AppSettings settings, bool rendering = false)
@@ -413,6 +415,9 @@ public sealed partial class AppHost : IDisposable
     {
         // The limits on their own: a slow answer never holds the meta back.
         Usage.RefreshLimitsAsync().Forget("Usage limits");
+        // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
+        // holds the other back as little as a fresh cache does.
+        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
@@ -431,6 +436,21 @@ public sealed partial class AppHost : IDisposable
 
         // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.
         await _constructedLoader.ReloadAllAsync();
+    }
+
+    /// <summary>
+    /// The lists of the main window's Battlegrounds tier tabs, from the open service the site itself reads
+    /// (docs/bg-site-stats.md): loaded off the UI thread, with a client of its own that keeps no cookies and follows no
+    /// redirects. The overlay and the advisor do not read them.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept by the site client in a field of the host and lives as long as the app.")]
+    public async Task<BgSiteStats?> LoadBgSiteAsync()
+    {
+        var site = _bgSite ??= new BgSiteClient(BgSiteClient.CreateHttp());
+        Main.BgSiteSlices ??= new BgSiteSliceLoader((duos, mmr) => site.LoadHeroesAsync(duos, mmr), mmr => site.LoadTrinketsAsync(mmr));
+        var stats = await site.LoadAsync();
+        Main.SetBgSiteStats(stats);
+        return stats;
     }
 
     public Task ImportLogsAsync(bool force) => Main.ImportLogsAsync(InstallDirectory, force);

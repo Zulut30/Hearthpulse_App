@@ -40,34 +40,27 @@ public sealed record GameRow(
 
 public sealed record HeroRow(string CardId, string Name, int Games, string AveragePlace, double AverageValue, string Top4, string Wins, string Net, int NetValue, string Tier) : IImmutableView;
 
+/// <summary>
+/// One hero of the Battlegrounds tier list. <see cref="Rank"/> is its place in the service's order (sorting keeps it);
+/// <see cref="Top"/> is the top-4 share, or the top-2 share of a Duos list; a number the service lacks is "—".
+/// </summary>
 public sealed record MetaHeroRow(
     int Rank,
     string CardId,
     string Name,
     string Tier,
     string AveragePlace,
-    double AverageValue,
+    double BarFraction,
+    string Top,
+    string FirstPlace,
     string PickRate,
-    string DataPoints,
-    string Personal,
-    double BarFraction,
-    string Top4 = "",
-    string FirstPlace = "",
-    double Top4Value = 0,
-    double FirstValue = 0,
-    double PickValue = 0,
-    int Games = 0) : IImmutableView;
+    string Personal) : IImmutableView;
 
-public sealed record MetaCompRow(
-    int Rank,
-    string Name,
-    string Tribes,
-    string Power,
-    string Difficulty,
-    string Placement,
-    double BarFraction,
-    string Commit,
-    string KeyCards) : IImmutableView;
+/// <summary>
+/// One comp of the Comps tab, or one tribe of its stand-in list: the name, a line on its right (the difficulty, or the
+/// tribe's placement and games), the core cards with their prefix and the tip; an empty text is not shown.
+/// </summary>
+public sealed record MetaCompRow(string Name, string Side, string Core, string Tip) : IImmutableView;
 
 /// <summary>A deck in "Your decks": a family of versions or a single one (<see cref="Key"/> is the family key).</summary>
 public sealed record DeckRow(
@@ -92,11 +85,25 @@ public sealed record DeckRow(
 
 public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0) : IImmutableView;
 
-/// <summary>One trinket in the community tier list.</summary>
-public sealed record MetaTrinketRow(int Rank, string CardId, string Name, string Tier, string Placement, string PickRate, string DataPoints, double BarFraction) : IImmutableView;
+/// <summary>One trinket of the tier list; <see cref="Detail"/> is its size and cost ("Lesser · cost 2").</summary>
+public sealed record MetaTrinketRow(int Rank, string CardId, string Name, string Detail, string Tier, string Placement, double BarFraction, string PickRate) : IImmutableView;
 
-/// <summary>One minion or tavern spell in the community card list (compare cards of the same tier).</summary>
-public sealed record MetaCardRow(int Rank, string CardId, string Name, string Kind, string Tier, string Placement, string Games, double BarFraction) : IImmutableView;
+/// <summary>
+/// One minion or tavern spell of the card list (compare cards of the same tavern tier). <see cref="Impact"/> is signed
+/// ("+0.55"); <see cref="ImpactSign"/> colours it and is 0 on a thin sample; <see cref="ShowsStats"/> is the list's
+/// own flag (the three stat columns show only when a row of the list has numbers), repeated on every row.
+/// </summary>
+public sealed record MetaCardRow(
+    int Rank,
+    string CardId,
+    string Name,
+    string Detail,
+    string Impact,
+    int ImpactSign,
+    string CombatWinRate,
+    string PlacementSplit,
+    string Popularity,
+    bool ShowsStats) : IImmutableView;
 
-/// <summary>One MMR bracket the community stats have ("All", "Top 50%", "20%"...), for the tier lists' picker.</summary>
+/// <summary>One MMR slice a tier list has ("Top 50%", "20%"...), for the tabs' picker; <see cref="Value"/> is the percent.</summary>
 public sealed record BracketOption(int Value, string Label, bool IsSelected, RelayCommand Select) : IImmutableView;

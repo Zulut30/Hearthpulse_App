@@ -156,21 +156,6 @@ public sealed partial class UxPolishContractTests
             Assert.True((bool)model.ArenaCommunityUnavailable);
             model.SetArenaMeta(new ArenaMeta([], [new ArenaClassStat("MAGE", 0.52, 0.1, 0.05, 1000)]));
             Assert.False((bool)model.ArenaCommunityUnavailable);
-
-            // Battlegrounds: the community data line says "unavailable", in the language shown, until data comes.
-            Assert.Equal(Loc.T("Main.Bg.CommunityLoading"), (string)model.MetaUpdated);
-            model.BattlegroundsMetaUnavailable();
-            Assert.Equal(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
-            Loc.Instance.SetLanguage(Loc.Russian);
-            Assert.Equal(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
-            Loc.Instance.SetLanguage(Loc.English);
-            model.SetMeta(EmptyBgMeta());
-            Assert.NotEqual(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
-
-            // With data in, a failed refresh changes nothing.
-            var before = (string)model.MetaUpdated;
-            model.BattlegroundsMetaUnavailable();
-            Assert.Equal(before, (string)model.MetaUpdated);
         }
         finally
         {
@@ -207,15 +192,6 @@ public sealed partial class UxPolishContractTests
             Assert.Equal(Loc.T(key), Assert.Single(shown).Content);
         }
     });
-
-    private static BattlegroundsMeta EmptyBgMeta() => (BattlegroundsMeta)Activator.CreateInstance(
-        typeof(BattlegroundsMeta), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
-        [
-            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), Array.Empty<(int, int)>(), Array.Empty<MetaComp>(),
-            new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
-            new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc),
-        ],
-        null)!;
 
     /// <summary>Stats of the standard format with no archetype in them (Core builds these from the API; its constructor is internal).</summary>
     private static ConstructedMeta EmptyMeta() => (ConstructedMeta)Activator.CreateInstance(
