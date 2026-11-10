@@ -11,7 +11,19 @@ public partial class BattlegroundsTiersView : UserControl
 {
     private readonly Dictionary<string, Control> _cards = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Below this width of the view the lists' fixed columns leave the name too little room (heroes: 406 of them), and
+    /// the view takes the class "narrow", which drops the secondary columns (the styles of the view).
+    /// </summary>
+    internal const double NarrowWidth = 560;
+
     public BattlegroundsTiersView() => InitializeComponent();
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        Classes.Set("narrow", e.NewSize.Width < NarrowWidth);
+    }
 
     /// <summary>The tabs whose cards exist ("Heroes", "Comps", "Trinkets", "Cards").</summary>
     public IReadOnlyCollection<string> BuiltTabs => _cards.Keys;

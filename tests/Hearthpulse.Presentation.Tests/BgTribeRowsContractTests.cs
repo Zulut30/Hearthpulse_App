@@ -35,9 +35,15 @@ public sealed class BgTribeRowsContractTests
         wpf.SetCards(Cards());
         ava.SetCards(Cards());
 
-        // Tribes and no comps: the tribes are the rows, best average placement first.
+        // Tribes, and the service's load is not in yet: both say "loading" under the usual name.
         wpf.SetMeta(Meta(Tribes));
         ava.SetMeta(Meta(Tribes));
+        AssertSame(wpf, ava);
+        Assert.Equal((Loc.T("Main.Bg.Comps"), false, Loc.T("Main.Bg.CommunityLoading")), (ava.CompTabLabel, ava.CompTab.HasRows, ava.CompTab.EmptyText));
+
+        // The load had no comps: the tribes are the rows, best average placement first.
+        wpf.SetBgSiteStats(null);
+        ava.SetBgSiteStats(null);
         Assert.Equal(3, wpf.CompTiers.Count);
         Assert.Equal([Races.Display("MECHANICAL", "enUS"), Loc.T("Main.Bg.Mixed"), Races.Display("BEAST", "enUS")], wpf.CompTiers.Cast<Hearthpulse.App.Main.MetaCompRow>().Select(r => r.Name));
         AssertSame(wpf, ava);

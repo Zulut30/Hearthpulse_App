@@ -221,7 +221,8 @@ public sealed class BgSiteTabsTests
         Assert.Equal(string.Empty, rows["Мехи"].Core);
         Assert.Equal([Loc.T("Main.Bg.CompDifficulty.Medium"), string.Empty, Loc.T("Main.Bg.CompDifficulty.Hard"), Loc.T("Main.Bg.CompDifficulty.Easy")],
             new[] { "Свинобразы", "Мехи", "Без буквы", "Демоны" }.Select(n => rows[n].Side));
-        Assert.Equal(("Play spells.", string.Empty), (rows["Свинобразы"].Tip, rows["Мехи"].Tip));
+        // The tips are not shown until the owner decides (The_comp_tips_are_shown_or_not_by_one_switch).
+        Assert.Equal((string.Empty, string.Empty), (rows["Свинобразы"].Tip, rows["Мехи"].Tip));
         Assert.Equal((Loc.T("Main.Bg.Comps"), Loc.T("Main.Bg.CompCaptionComps")), (vm.CompTabLabel, vm.CompCaption));
         // The service names no slice for comps: source and date.
         Assert.Equal(Loc.F("Main.Bg.MetaUpdated", HearthpulseData.Attribution, at.ToLocalTime()), vm.CompTab.Source);
@@ -248,19 +249,20 @@ public sealed class BgSiteTabsTests
         var vm = Model();
         vm.SetBgSiteStats(Stats(comps: [new("c1", "Свинобразы", string.Empty, "A", [], ["BG_BEAST"], null, null, "medium", "Play spells.")]));
 
-        // As the site shows them, by default: the switch is the constant, read once.
-        Assert.True(MainViewModel.CompTipsByDefault);
+        // Off until the owner decides on these texts (legal L-M1): the constant is the switch, read once. The comp is
+        // there without its tip: name, difficulty, core cards.
+        Assert.False(MainViewModel.CompTipsByDefault);
         Assert.Equal(MainViewModel.CompTipsByDefault, vm.ShowCompTips);
-        Assert.Equal("Play spells.", vm.CompTiers.OfType<MetaCompRow>().Single().Tip);
-
-        // Off: the tip is gone from the row, the rest of the comp stays (name, difficulty, core cards).
-        vm.ShowCompTips = false;
         var row = vm.CompTiers.OfType<MetaCompRow>().Single();
         Assert.Equal(("Свинобразы", Loc.T("Main.Bg.CompDifficulty.Medium"), Loc.T("Main.Bg.Core") + "Sewer Rat", string.Empty), (row.Name, row.Side, row.Core, row.Tip));
         Assert.DoesNotContain("Play spells.", string.Join("|", vm.CompTiers.Select(r => r.ToString())), StringComparison.Ordinal);
 
+        // On: the tip is on the row, the rest is as it was.
         vm.ShowCompTips = true;
-        Assert.Equal("Play spells.", vm.CompTiers.OfType<MetaCompRow>().Single().Tip);
+        Assert.Equal(row with { Tip = "Play spells." }, vm.CompTiers.OfType<MetaCompRow>().Single());
+
+        vm.ShowCompTips = false;
+        Assert.Equal(row, vm.CompTiers.OfType<MetaCompRow>().Single());
     });
 
     // ---- AC27: Solo / Duos ----------------------------------------------------------------------
@@ -525,7 +527,7 @@ public sealed class BgSiteTabsTests
         Assert.Equal([false, true, false, false], vm.BracketOptions.Select(o => o.IsSelected));
         Assert.Equal(before, list);
         Assert.True(vm.HeroTab.HasRows);
-        Assert.Equal(Loc.F("Main.Bg.SliceLoading", $"{HearthpulseData.Attribution} · {Loc.T("Main.Bg.Solo")} · {Loc.F("Main.Bg.SliceMmr", 0.5)} · {Loc.T("Main.Bg.RangePatch")}", 0.2), vm.HeroTab.Source);
+        Assert.Equal(Loc.F("Main.Bg.SliceLoadingMode", $"{HearthpulseData.Attribution} · {Loc.T("Main.Bg.Solo")} · {Loc.F("Main.Bg.SliceMmr", 0.5)} · {Loc.T("Main.Bg.RangePatch")}", Loc.T("Main.Bg.Solo"), 0.2), vm.HeroTab.Source);
         Assert.NotEqual(line, vm.HeroTab.Source);
 
         // The slice came: its rows, in the same collection, and the line is the slice's own.
@@ -585,7 +587,7 @@ public sealed class BgSiteTabsTests
         vm.SetBracket.Execute(1);
         Assert.Equal(["heroes solo TOP_20_PERCENT", "heroes solo TOP_1_PERCENT"], site.Asked);
         // The line names the slice asked for last.
-        Assert.EndsWith(Loc.F("Main.Bg.SliceLoading", "x", 0.01)[1..], vm.HeroTab.Source, StringComparison.Ordinal);
+        Assert.EndsWith(Loc.F("Main.Bg.SliceLoadingMode", "x", Loc.T("Main.Bg.Solo"), 0.01)[1..], vm.HeroTab.Source, StringComparison.Ordinal);
 
         // The late answer first, then the one that was dropped: only the last choice is on screen.
         site.Answer(top1, request: 1);
@@ -628,6 +630,16 @@ public sealed class BgSiteTabsTests
         Settle(vm);
         Assert.Equal("heroes duos TOP_20_PERCENT", site.Asked[^1]);
         Assert.Equal([false, true], vm.BracketOptions.Select(o => o.IsSelected));
+        // The rows on screen are still solo top 20 %, and the same percent is loading: what loads is named by its mode,
+        // or the line would say that the very slice it describes is loading.
+        Assert.StartsWith($"{HearthpulseData.Attribution} · {Loc.T("Main.Bg.Solo")} · {Loc.F("Main.Bg.SliceMmr", 0.2)}", vm.HeroTab.Source, StringComparison.Ordinal);
+        Assert.EndsWith(Loc.F("Main.Bg.SliceLoadingMode", "x", Loc.T("Main.Mode.Duos"), 0.2)[1..], vm.HeroTab.Source, StringComparison.Ordinal);
+        Assert.Contains(Loc.T("Main.Mode.Duos"), Loc.F("Main.Bg.SliceLoadingMode", "x", Loc.T("Main.Mode.Duos"), 0.2), StringComparison.Ordinal);
+
+        // The Duos slice came: its rows, under its own name.
+        site.Answer(Slice("heroes-duos.json") with { Mmr = "TOP_20_PERCENT" });
+        Assert.StartsWith($"{HearthpulseData.Attribution} · {Loc.T("Main.Mode.Duos")} · {Loc.F("Main.Bg.SliceMmr", 0.2)}", vm.HeroTab.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain("…", vm.HeroTab.Source, StringComparison.Ordinal);
     });
 
     [Fact]
@@ -659,6 +671,86 @@ public sealed class BgSiteTabsTests
 
         // The heroes tab kept its default slice all along: nothing asked for it.
         Assert.DoesNotContain(site.Asked, a => a.StartsWith("heroes", StringComparison.Ordinal));
+    });
+
+    [Fact]
+    public void Lists_that_come_back_after_a_load_without_any_say_loading_for_the_slice_still_chosen() => LocBindingTests.Headless.Run(() =>
+    {
+        var stats = Fixtures();
+        var top20 = Slice("heroes-solo-top20.json");
+        var vm = Model();
+        var site = new FakeSlices();
+        vm.BgSiteSlices = site.Loader;
+        vm.SetBgSiteStats(stats);
+        vm.BgTabShown("Heroes");
+        vm.SetBracket.Execute(20);
+        site.Answer(top20);
+        Assert.True(vm.HeroTab.HasRows);
+
+        // A load that had nothing (no network, no cache): "unavailable", nothing asked.
+        vm.SetBgSiteStats(null);
+        Assert.Equal((false, Loc.T("Main.Bg.CommunityUnavailable")), (vm.HeroTab.HasRows, vm.HeroTab.EmptyText));
+        Assert.Single(site.Asked);
+
+        // The lists are back: the slice still chosen is asked for again, and until it answers the tab has no rows to
+        // keep - it says "loading", not that the list is unavailable.
+        vm.SetBgSiteStats(stats);
+        Assert.Equal(2, site.Asked.Count);
+        Assert.Equal((false, Loc.T("Main.Bg.CommunityLoading")), (vm.HeroTab.HasRows, vm.HeroTab.EmptyText));
+        Assert.Equal([false, true, false, false], vm.BracketOptions.Select(o => o.IsSelected));
+        site.Answer(top20);
+        Assert.True(vm.HeroTab.HasRows);
+        Assert.Equal(top20.Entries.Select(e => e.CardId), vm.HeroTierRows.OfType<MetaHeroRow>().Select(r => r.CardId));
+
+        // A slice that has no data stays "no data" through a refresh: no flicker of "loading" every six hours.
+        vm.SetBracket.Execute(5);
+        site.Answer(null);
+        var none = vm.HeroTab;
+        vm.SetBgSiteStats(stats);
+        Assert.Equal(none, vm.HeroTab);
+        Assert.Equal(Loc.F("Main.Bg.SliceEmpty", 0.05), vm.HeroTab.EmptyText);
+    });
+
+    [Fact]
+    public void A_slice_loader_that_throws_leaves_no_data_not_a_tab_that_loads_for_ever() => LocBindingTests.Headless.Run(() =>
+    {
+        var vm = Model();
+        vm.BgSiteSlices = new BgSiteSliceLoader((_, _) => Task.FromException<BgSiteTierList?>(new InvalidOperationException("slice")), _ => Task.FromResult<BgSiteTierList?>(null));
+        vm.SetBgSiteStats(Fixtures());
+        vm.BgTabShown("Heroes");
+
+        vm.SetBracket.Execute(20);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal((false, Loc.F("Main.Bg.SliceEmpty", 0.2)), (vm.HeroTab.HasRows, vm.HeroTab.EmptyText));
+        vm.SetBracket.Execute(50);
+        Assert.True(vm.HeroTab.HasRows);
+    });
+
+    [Fact]
+    public void The_pools_tribes_do_not_show_on_Comps_before_the_first_load_of_the_services_lists() => LocBindingTests.Headless.Run(() =>
+    {
+        var vm = Model();
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        // The community stats (with the pool's tribes) usually come first: the tab stays "Comps" and says "loading",
+        // so it does not open as "Tribes" and then turn into "Comps" under the player's eyes.
+        vm.SetMeta(Meta(Tribes));
+        Assert.Empty(vm.CompTiers);
+        Assert.Equal((false, Loc.T("Main.Bg.CommunityLoading"), Loc.T("Main.Bg.Comps")), (vm.CompTab.HasRows, vm.CompTab.EmptyText, vm.CompTabLabel));
+        Assert.DoesNotContain(nameof(MainViewModel.CompTabLabel), raised);
+
+        // The service has comps: they show, and "Tribes" was never on screen.
+        vm.SetBgSiteStats(Stats(comps: [new("c1", "Мехи", string.Empty, "S", [], [], null, null, null, null)]));
+        Assert.Equal(["S", "Мехи"], vm.CompTiers.Select(r => r is TierHeadRow h ? h.Tier : ((MetaCompRow)r).Name));
+        Assert.DoesNotContain(nameof(MainViewModel.CompTabLabel), raised);
+
+        // The service has none (or could not be loaded at all): now the tribes stand in.
+        vm.SetBgSiteStats(null);
+        Assert.Equal(3, vm.CompTiers.Count);
+        Assert.Equal(Loc.T("Main.Bg.Tribes"), vm.CompTabLabel);
+        Assert.Contains(nameof(MainViewModel.CompTabLabel), raised);
     });
 
     // ---- AC31: the lists change in place --------------------------------------------------------

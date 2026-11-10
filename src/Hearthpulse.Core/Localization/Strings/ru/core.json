@@ -362,8 +362,6 @@
   "Core.Bg.Source.Trinket": "Безделушка",
   "Core.Bg.Source.Spell": "Заклинание",
   "Core.Bg.Source.Discover": "Раскопка",
-  "Core.BgMeta.PoolPending": "Пока нет данных из пула статистики Hearthpulse: {0}.",
-  "Core.BgMeta.PoolNotRunning": "Пока нет данных ({0}): они появятся, когда заработает пул статистики Hearthpulse.",
   "Core.BgMeta.AllRanks": "все ранги",
   "Core.BgMeta.Top": "топ {0:P0}",
   "Core.BgMeta.PoolAttribution": "Статистика сообщества: игроки Hearthpulse, которые делятся своими играми",

@@ -60,8 +60,8 @@ public sealed partial class MainViewModel
     });
 
     /// <summary>
-    /// The host's community load returned nothing. With nothing loaded yet the page and the stats note say "unavailable"
-    /// (Main.Bg.CommunityUnavailable); with stats already in, nothing changes.
+    /// The host's community load returned nothing. With nothing loaded yet My stats says the community numbers are
+    /// unavailable; with stats already in, nothing changes.
     /// </summary>
     public void BattlegroundsMetaUnavailable()
     {
@@ -71,21 +71,11 @@ public sealed partial class MainViewModel
         }
 
         _bgMetaFailed = true;
-        MetaUpdated = Loc.T("Main.Bg.CommunityUnavailable");
         RebuildBattlegroundsStats();
     }
 
-    /// <summary>Community data came: an "unavailable" line goes back to "loading" until the tier list is built with it.</summary>
-    private void ClearBattlegroundsMetaFailure()
-    {
-        if (_meta is null || !_bgMetaFailed)
-        {
-            return;
-        }
-
-        _bgMetaFailed = false;
-        MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
-    }
+    /// <summary>Community data came: My stats no longer says it is unavailable.</summary>
+    private void ClearBattlegroundsMetaFailure() => _bgMetaFailed &= _meta is null;
 
     private string HeroArrow(string column) => column != _heroSort ? string.Empty : _heroSortAscending ? "▲" : "▼";
 }

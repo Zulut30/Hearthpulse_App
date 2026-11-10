@@ -313,6 +313,7 @@
   "Main.Bg.ListUnavailable": "This list is unavailable right now. Hearthpulse tries again later.",
   "Main.Bg.SpellsEmpty": "There are no tavern spell stats right now.",
   "Main.Bg.SliceLoading": "{0} · loading top {1:P0}…",
+  "Main.Bg.SliceLoadingMode": "{0} · loading {1}, top {2:P0}…",
   "Main.Bg.SliceEmpty": "Top {0:P0}: no data right now. Pick another percentage or check back later.",
   "Main.Bg.Stale": "out of date",
   "Main.Table.Top2": "Top 2",

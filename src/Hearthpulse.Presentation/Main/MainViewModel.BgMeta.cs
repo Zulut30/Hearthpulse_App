@@ -36,12 +36,5 @@ public sealed partial class MainViewModel
     /// lists (MainViewModel.BgSite.cs). Of <see cref="BattlegroundsMeta"/> the tabs read only the pool's tribes, the
     /// stand-in of the Comps tab; My stats and the overlay keep reading it whole.
     /// </summary>
-    private void RebuildMeta()
-    {
-        RebuildBgTabs();
-        if (_meta is { } meta && _cards.Count > 0)
-        {
-            MetaUpdated = Loc.F("Main.Bg.MetaUpdated", BattlegroundsMeta.BracketLabel(meta.WidestBracket), meta.Updated.ToLocalTime());
-        }
-    }
+    private void RebuildMeta() => RebuildBgTabs();
 }

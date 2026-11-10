@@ -89,9 +89,12 @@ public sealed class BgSiteTabsContractTests
         Assert.Equal(Loc.T("Main.Table.Top2"), wpf.HeroTopLabel);
         Assert.Equal([50, 20], wpf.BracketOptions.Select(o => o.Value));
 
-        // The comp tips are one switch in both: on as the site has them, and off leaves the rest of the comp.
-        Assert.True(WpfMain.CompTipsByDefault);
+        // The comp tips are one switch, the same in both UIs, and both follow it: off leaves the rest of the comp.
         Assert.Equal(WpfMain.CompTipsByDefault, AvaMain.CompTipsByDefault);
+        Assert.Equal((WpfMain.CompTipsByDefault, AvaMain.CompTipsByDefault), (wpf.ShowCompTips, ava.ShowCompTips));
+        wpf.ShowCompTips = true;
+        ava.ShowCompTips = true;
+        Same("with tips");
         Assert.Contains("Tip 0", Text(wpf.CompTiers), StringComparison.Ordinal);
         wpf.ShowCompTips = false;
         ava.ShowCompTips = false;

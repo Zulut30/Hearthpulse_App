@@ -130,7 +130,6 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<DeckRow> _decks = Array.Empty<DeckRow>();
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
-    private string _metaUpdated = Loc.T("Main.Bg.CommunityLoading");
     private int _historyCount;
 
     public IReadOnlyList<GameRow> Recent
@@ -181,7 +180,6 @@ public sealed partial class MainViewModel : Observable
     public IReadOnlyList<DeckRow> Decks { get => _decks; private set => Set(ref _decks, value); }
     public string BgMode { get => _bgMode; private set => Set(ref _bgMode, value); }
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
-    public string MetaUpdated { get => _metaUpdated; private set => Set(ref _metaUpdated, value); }
     public int HistoryCount { get => _historyCount; private set => Set(ref _historyCount, value); }
 
     public void SetCards(CardDb cards)

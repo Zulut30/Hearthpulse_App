@@ -415,6 +415,9 @@ public sealed partial class AppHost : IDisposable
     {
         // The limits on their own: a slow answer never holds the meta back.
         Usage.RefreshLimitsAsync().Forget("Usage limits");
+        // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
+        // holds the other back as little as a fresh cache does.
+        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
@@ -429,7 +432,6 @@ public sealed partial class AppHost : IDisposable
 
         LoadArenaMetaAsync().Forget("Arena stats load");
         LoadBrawlMetaAsync().Forget("Brawl stats load");
-        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
         Session.RequestMemoryTrimWhenWindowAway();
 
         // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.

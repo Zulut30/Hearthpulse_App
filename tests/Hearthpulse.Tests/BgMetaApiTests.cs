@@ -187,21 +187,6 @@ public sealed class BgMetaApiTests : IDisposable
         Assert.Contains($"Hearthpulse data · top {0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture)} ·", advice.MetaSource, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Empty_lists_say_where_their_numbers_will_come_from()
-    {
-        var api = new BattlegroundsMeta(new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), [], [],
-            new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(), DateTime.UtcNow);
-        var pooled = new BattlegroundsMeta(new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), [], [],
-            new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(), DateTime.UtcNow)
-        {
-            Source = $"{BattlegroundsMeta.Attribution} + {BattlegroundsMeta.PoolName}",
-        };
-
-        Assert.Equal("No comp stats yet: they will come from the Hearthpulse stats pool once it is running.", api.PoolPending("comp stats"));
-        Assert.Equal("No trinket stats from the Hearthpulse stats pool yet.", pooled.PoolPending("trinket stats"));
-    }
-
     private HearthpulseData Data(FixtureServer server) =>
         new(new HearthpulseApi(new HttpClient(server), HearthpulseApi.DefaultBaseUrl), _cache);
 

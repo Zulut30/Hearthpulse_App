@@ -313,6 +313,7 @@
   "Main.Bg.ListUnavailable": "Этот список сейчас недоступен. Hearthpulse попробует позже.",
   "Main.Bg.SpellsEmpty": "Статистики заклинаний таверны сейчас нет.",
   "Main.Bg.SliceLoading": "{0} · загружается топ {1:P0}…",
+  "Main.Bg.SliceLoadingMode": "{0} · загружается: {1}, топ {2:P0}…",
   "Main.Bg.SliceEmpty": "Топ {0:P0}: данных сейчас нет. Выберите другой процент или загляните позже.",
   "Main.Bg.Stale": "данные устарели",
   "Main.Table.Top2": "Топ-2",

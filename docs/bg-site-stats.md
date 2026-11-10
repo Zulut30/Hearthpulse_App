@@ -412,18 +412,20 @@ on the UI thread after every `LoadAsync`; the hosts give the view model the slic
   "out of date" (`Main.Bg.Stale`).
 - **Slices.** Heroes and trinkets have a picker of `BgSiteClient.HeroSlices(duos)` / `TrinketSlices`; the default
   slice is the refresh's own list, another one is asked for when picked (the shown rows stay meanwhile, the line says
-  "loading top 5 %..."), and again after each refresh while it stays picked. `null` from a slice method is one neutral
+  "loading top 5 %..."; for heroes with the mode asked for, "loading Duos, top 20 %..."), and again after each refresh while it stays picked. `null` from a slice method is one neutral
   empty state ("no data right now"), the picker stays. The percent is one for Solo and Duos; where Duos has no such
   slice the choice becomes the default one.
 - **Solo / Duos** changes the heroes list only when `HeroesDuos` is there; without it the switch shows on My stats
   only and Heroes stays solo, with the player's solo games in the "You" column.
 - **Not shown:** `Games` of a trinket (a lower bound, not a sample), the list's `Source`, anything of Firestone
   (Spells is an empty state while `Spells` is `null`).
-- **Comp tips.** `BgSiteComp.Tip` is the comp's text from the site; whether it is shown is the one constant
-  `MainViewModel.CompTipsByDefault` (`true`, as the site shows them). The legal question on these texts
-  (`LEGAL-HeartLens-bg-site-stats.md`, L-M1) is answered by that line; both positions are tested (`BgSiteTabsTests`).
+- **Comp tips.** `BgSiteComp.Tip` is the comp's text as the site has it: the origin's own writing, not a number.
+  Whether it is shown is the owner's decision (`LEGAL-HeartLens-bg-site-stats.md`, L-M1); until the owner answers it
+  is **off**: the one constant `MainViewModel.CompTipsByDefault` is `false`, and a comp shows its name, difficulty
+  and core cards, with no room left for the tip. Both positions are tested (`BgSiteTabsTests`).
 - **States:** before the first load every tab says "loading"; `LoadAsync` = `null` - "unavailable"; one part `null` -
   that tab alone says its list is unavailable. Comps: without comps of the service the pool's tribes stand in, when a
-  pool gave any.
+  pool gave any - but only once the service's load is in, so the tab does not open as "Tribes" and turn into "Comps".
+  The hosts start the load beside the community stats, not after them.
 - Tests: `BgSiteTabsTests`, `BgTabsVirtualizationTests` (Avalonia), `BgSiteTabsContractTests` (both view models and
   the WPF window). Render scenes: `HEARTHPULSE_RENDER_ONLY=bgtabs` (`main-bg-*.png`, both UIs).

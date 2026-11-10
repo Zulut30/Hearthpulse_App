@@ -50,8 +50,8 @@ internal static partial class OffscreenRenderer
         model.SetHeroSort.Execute("Pick");
         model.SetHeroSort.Execute("Pick");
         await Shot("heroes-top20", "Heroes", () => { model.SetBracket.Execute(20); return Task.Delay(3000); });
-        await Shot("heroes-duos", "Heroes", () => { model.SetBracket.Execute(50); model.SetBgMode.Execute("Duos"); return Task.Delay(1000); });
-        model.SetBgMode.Execute("Battlegrounds");
+        await Shot("heroes-duos", "Heroes", () => { model.SetBracket.Execute(50); ShowBgMode(view, "Duos"); return Task.Delay(1000); });
+        ShowBgMode(view, "Battlegrounds");
         await Shot("comps", "Comps");
         await Shot("trinkets", "Trinkets");
         await Shot("trinkets-top50", "Trinkets", () => { model.SetBracket.Execute(50); return Task.Delay(3000); });
@@ -60,6 +60,17 @@ internal static partial class OffscreenRenderer
         await Shot("cards-t4", "Cards", () => { ShowCardTier(view, 4); return Task.CompletedTask; });
         await Shot("cards-spells", "Cards", () => { ShowCardTier(view, 0); return Task.CompletedTask; });
         ShowCardTier(view, 1);
+
+        // The compact layout at its narrowest: the names keep their room, the secondary columns go.
+        var (width, height) = (main.Width, main.Height);
+        main.Width = 420;
+        main.Height = 1200;
+        await Shot("heroes-compact", "Heroes");
+        await Shot("trinkets-compact", "Trinkets");
+        await Shot("cards-compact", "Cards");
+        await Shot("comps-compact", "Comps");
+        main.Width = width;
+        main.Height = height;
 
         if (stats is not null)
         {
@@ -128,6 +139,17 @@ internal static partial class OffscreenRenderer
 
         ShowCardTier(view, 1);
         view.ShowBattlegroundsTab("Heroes");
+    }
+
+    /// <summary>Picks "Solo" ("Battlegrounds") or "Duos" as a click on its segment would: the segment and the lists.</summary>
+    private static void ShowBgMode(MainView view, string mode)
+    {
+        foreach (var segment in view.GetLogicalDescendants().OfType<RadioButton>().Where(r => r.GroupName == "BgMode"))
+        {
+            segment.IsChecked = (segment.CommandParameter as string) == mode;
+        }
+
+        (view.DataContext as MainViewModel)?.SetBgMode.Execute(mode);
     }
 
     /// <summary>Picks a tavern tier of the card list (0 = spells) as a click on its segment would: the segment and the list.</summary>

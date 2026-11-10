@@ -46,8 +46,8 @@ public partial class App
         _mainViewModel.SetHeroSort.Execute("Pick");
         _mainViewModel.SetHeroSort.Execute("Pick");
         await Shot("heroes-top20", "Heroes", () => { _mainViewModel.SetBracket.Execute(20); return Task.Delay(3000); });
-        await Shot("heroes-duos", "Heroes", () => { _mainViewModel.SetBracket.Execute(50); _mainViewModel.SetBgMode.Execute("Duos"); return Task.Delay(1000); });
-        _mainViewModel.SetBgMode.Execute("Battlegrounds");
+        await Shot("heroes-duos", "Heroes", () => { _mainViewModel.SetBracket.Execute(50); ShowBgMode("Duos"); return Task.Delay(1000); });
+        ShowBgMode("Battlegrounds");
         await Shot("comps", "Comps");
         await Shot("trinkets", "Trinkets");
         await Shot("trinkets-top50", "Trinkets", () => { _mainViewModel.SetBracket.Execute(50); return Task.Delay(3000); });
@@ -118,6 +118,17 @@ public partial class App
 
         ShowCardTier(1);
         _main.ShowBattlegroundsTab("Heroes");
+    }
+
+    /// <summary>Picks "Solo" ("Battlegrounds") or "Duos" as a click on its segment would: the segment and the lists.</summary>
+    private void ShowBgMode(string mode)
+    {
+        foreach (var segment in LogicalDescendants<RadioButton>(_main).Where(r => r.GroupName == "BgMode"))
+        {
+            segment.IsChecked = (segment.CommandParameter as string) == mode;
+        }
+
+        _mainViewModel.SetBgMode.Execute(mode);
     }
 
     /// <summary>Picks a tavern tier of the card list (0 = spells) as a click on its segment would: the segment and the list.</summary>

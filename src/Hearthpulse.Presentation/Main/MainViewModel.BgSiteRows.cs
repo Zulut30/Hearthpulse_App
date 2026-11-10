@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
         HeroTopLabel = Loc.T(slice.Shown is not null && slice.ShownDuos ? "Main.Table.Top2" : "Main.Table.Top4");
         HeroTopTip = Loc.T(slice.Shown is not null && slice.ShownDuos ? "Main.Table.Top2Tip" : "Main.Table.Top4Tip");
         HeroTab = flat.Count > 0 && slice.Shown is { } shown
-            ? Rows(BgSource(shown.FetchedAt, slice.Loading, Loc.T(slice.ShownDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), SliceText(shown.Mmr), RangeText(shown.TimeRange)))
+            ? Rows(BgSource(shown.FetchedAt, slice.Loading, Loc.T(slice.LoadingDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), Loc.T(slice.ShownDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), SliceText(shown.Mmr), RangeText(shown.TimeRange)))
             : Empty(SliceEmptyText(slice));
     }
 
@@ -123,7 +123,7 @@ public sealed partial class MainViewModel
 
         TrinketTierRows.Sync(flat);
         TrinketTab = flat.Count > 0 && slice.Shown is { } shown
-            ? Rows(BgSource(shown.FetchedAt, slice.Loading, SliceText(shown.Mmr), RangeText(shown.TimeRange)))
+            ? Rows(BgSource(shown.FetchedAt, slice.Loading, null, SliceText(shown.Mmr), RangeText(shown.TimeRange)))
             : Empty(SliceEmptyText(slice));
     }
 
@@ -150,7 +150,7 @@ public sealed partial class MainViewModel
         {
             // The minions' own list names no slice: the run of the minion numbers does (docs/bg-site-stats.md).
             var run = spells ? null : _bgSite?.Run;
-            CardTab = Rows(BgSource(list.FetchedAt, null, SliceText(spells ? list.Mmr : run?.MmrPercentile), RangeText(spells ? list.TimeRange : run?.TimeRange)));
+            CardTab = Rows(BgSource(list.FetchedAt, null, null, SliceText(spells ? list.Mmr : run?.MmrPercentile), RangeText(spells ? list.TimeRange : run?.TimeRange)));
         }
         else
         {
@@ -196,8 +196,9 @@ public sealed partial class MainViewModel
     private void RebuildCompRows()
     {
         var comps = _bgSite?.Comps ?? [];
-        // Without comps of the service, the pool's tribes stand in (when a pool gave any), in both UIs.
-        var tribeRows = comps.Count == 0 && _meta is { Tribes.Count: > 0 };
+        // Without comps of the service, the pool's tribes stand in (when a pool gave any), in both UIs - once the
+        // service's load is in: before it the tab says "loading", so it does not open as "Tribes" and turn into "Comps".
+        var tribeRows = _bgSiteLoaded && comps.Count == 0 && _meta is { Tribes.Count: > 0 };
         var flat = new List<object>();
         if (tribeRows)
         {
@@ -232,7 +233,7 @@ public sealed partial class MainViewModel
 
         // The service names no slice for comps; the pool's tribes have no date of the service.
         CompTab = flat.Count > 0
-            ? Rows(BgSource(tribeRows ? null : _bgSite?.CompsFetchedAt, null))
+            ? Rows(BgSource(tribeRows ? null : _bgSite?.CompsFetchedAt, null, null))
             : Empty(WholeEmptyText() ?? Loc.T("Main.Bg.ListUnavailable"));
     }
 

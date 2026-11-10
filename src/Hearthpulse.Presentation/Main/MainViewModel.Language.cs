@@ -37,11 +37,6 @@ public sealed partial class MainViewModel
         RebuildMatch();
         _migration?.Rebuild();
         RebuildConstructedMeta();
-        if (_meta is null || _cards.Count == 0)
-        {
-            MetaUpdated = Loc.T(_bgMetaFailed ? "Main.Bg.CommunityUnavailable" : "Main.Bg.CommunityLoading");
-        }
-
         RebuildLanguagePlatformData();
 
         // The live bar, session line and setup warning come from the last snapshot.

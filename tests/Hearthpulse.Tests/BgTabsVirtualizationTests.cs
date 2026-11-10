@@ -274,6 +274,102 @@ public sealed class BgTabsVirtualizationTests
         }
     });
 
+    [Fact]
+    public void At_the_narrowest_window_the_names_of_heroes_and_trinkets_keep_their_room() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = PageRowsPanelAvaloniaTests.Theme();
+        var (window, view, model) = Open(420);
+        try
+        {
+            model.SetBgSiteStats(Long());
+            Assert.Contains("compact", view.Classes);
+
+            foreach (var (tab, list) in new[] { ("Heroes", "HeroTierList"), ("Trinkets", "TrinketTierList") })
+            {
+                view.ShowBattlegroundsTab(tab);
+                PageRowsPanelAvaloniaTests.Settle(window);
+                var items = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == list);
+                var row = items.ContainerFromIndex(1)!;
+                var name = row.DataContext is MetaHeroRow hero ? hero.Name : ((MetaTrinketRow)row.DataContext!).Name;
+                var text = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == name);
+
+                // The name has room for a word or two and stands inside the row; the rank and the bar are gone, the
+                // art and the number stay.
+                Assert.Contains("narrow", view.PageBattlegrounds.BgTiers.Classes);
+                Assert.True(text.IsEffectivelyVisible);
+                Assert.True(text.Bounds.Width >= 100, $"{tab}: the name is {text.Bounds.Width:0} wide in a list of {items.Bounds.Width:0}");
+                Assert.DoesNotContain(row.GetVisualDescendants().OfType<Control>(), c => c.Classes.Contains("bgNarrowOff") && c.IsEffectivelyVisible);
+                Assert.Contains(row.GetVisualDescendants().OfType<Border>(), b => b.Width is 36 or 54 && b.IsEffectivelyVisible);
+                // Nothing of the row stands outside it.
+                Assert.All(row.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible),
+                    t => Assert.True(t.TranslatePoint(new Point(t.Bounds.Width, 0), row)!.Value.X <= row.Bounds.Width + 0.5, $"{tab}: \"{t.Text}\" ends past the row"));
+                var place = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("bgPlace"));
+                Assert.True(place.IsEffectivelyVisible);
+                Assert.Equal(72, place.Bounds.Width);
+                // The row and its head agree on the columns: the number stands under "Avg placement".
+                var head = view.GetVisualDescendants().OfType<Control>().Single(c => c.Classes.Contains("bgPlace") && c.IsEffectivelyVisible && c.FindAncestorOfType<ItemsControl>() is null);
+                Assert.Equal(head.TranslatePoint(default, view)!.Value.X, place.TranslatePoint(default, view)!.Value.X, 1.0);
+            }
+
+            // Cards: the art, the name and the impact stay; the rank and the combat win rate go with the two columns
+            // compact already drops.
+            view.ShowBattlegroundsTab("Cards");
+            PageRowsPanelAvaloniaTests.Settle(window);
+            var cardRow = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "CardTierList").ContainerFromIndex(1)!;
+            var card = (MetaCardRow)cardRow.DataContext!;
+            var shown = cardRow.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).ToList();
+            Assert.Equal([card.Name, card.Detail, card.Impact], shown.Select(t => t.Text));
+            Assert.True(shown[0].Bounds.Width >= 100, $"Cards: the name is {shown[0].Bounds.Width:0} wide");
+
+            // Wide again: everything is back and the cell has its full width.
+            window.Width = 1280;
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.DoesNotContain("compact", view.Classes);
+            Assert.DoesNotContain("narrow", view.PageBattlegrounds.BgTiers.Classes);
+            view.ShowBattlegroundsTab("Trinkets");
+            PageRowsPanelAvaloniaTests.Settle(window);
+            var wide = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "TrinketTierList").ContainerFromIndex(1)!;
+            Assert.Equal(192, wide.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("bgPlace")).Bounds.Width);
+            Assert.All(wide.GetVisualDescendants().OfType<Control>().Where(c => c.Classes.Contains("bgNarrowOff")), c => Assert.True(c.IsEffectivelyVisible));
+        }
+        finally
+        {
+            Close(window, theme);
+        }
+    });
+
+    [Fact]
+    public void A_comp_without_its_tip_leaves_no_room_for_it() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = PageRowsPanelAvaloniaTests.Theme();
+        var (window, view, model) = Open(1280);
+        try
+        {
+            model.SetBgSiteStats(Long());
+            view.ShowBattlegroundsTab("Comps");
+            PageRowsPanelAvaloniaTests.Settle(window);
+            var list = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "CompTierList");
+            Control Row() => list.GetRealizedContainers().First(c => c.DataContext is MetaCompRow);
+
+            // Tips are off: the row is its name and difficulty, as high as a data row, and the tip's text takes no room.
+            var comp = (MetaCompRow)Row().DataContext!;
+            Assert.Equal(string.Empty, comp.Tip);
+            Assert.Equal(48, Row().Bounds.Height);
+            Assert.DoesNotContain(Row().GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && string.IsNullOrEmpty(t.Text));
+            Assert.Equal(2, Row().GetVisualDescendants().OfType<TextBlock>().Count(t => t.IsEffectivelyVisible));
+
+            // With tips on the same row grows by the tip's line.
+            model.ShowCompTips = true;
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.True(Row().Bounds.Height > 48, $"the row is {Row().Bounds.Height} high with its tip");
+            Assert.Contains(Row().GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == ((MetaCompRow)Row().DataContext!).Tip);
+        }
+        finally
+        {
+            Close(window, theme);
+        }
+    });
+
     /// <summary>The main view on the Battlegrounds page (My stats), in a window of the given width.</summary>
     private static (Window Window, MainView View, MainViewModel Model) Open(double width)
     {

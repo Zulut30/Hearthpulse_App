@@ -33,6 +33,8 @@ public sealed class BgTribeRowsTests
     {
         var vm = Model();
         vm.SetMeta(Meta(Tribes));
+        // The tribes stand in once the service's load is in (here: it had nothing).
+        vm.SetBgSiteStats(null);
 
         Assert.True(vm.CompTab.HasRows);
         var rows = vm.CompTiers.Cast<MetaCompRow>().ToList();
@@ -72,6 +74,7 @@ public sealed class BgTribeRowsTests
 
         // Nothing loaded, and stats with neither comps nor tribes: the tab is "Comps", with nothing in it.
         Assert.Equal(Loc.T("Main.Bg.Comps"), vm.CompTabLabel);
+        vm.SetBgSiteStats(null);
         vm.SetMeta(Meta([]));
         Assert.False(vm.CompTab.HasRows);
         Assert.Equal(Loc.T("Main.Bg.Comps"), vm.CompTabLabel);
@@ -112,6 +115,7 @@ public sealed class BgTribeRowsTests
         app.Styles.Add(theme);
         var window = new Window { Width = 1260, Height = 840 };
         var vm = Model();
+        vm.SetBgSiteStats(null);
         try
         {
             var view = new MainView { DataContext = vm };

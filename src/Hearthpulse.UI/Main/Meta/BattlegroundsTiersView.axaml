@@ -3,6 +3,7 @@
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure">
     <!-- The Battlegrounds tier tabs from the site's service: heroes, comps, trinkets and cards by tavern tier. Each tab
@@ -21,22 +22,22 @@
                     <StackPanel>
                         <StackPanel IsVisible="{Binding HeroTab.HasRows}">
                             <TextBlock Text="{Binding HeroTab.Source}" Classes="caption bgSource" />
-                            <Grid Margin="0,0,0,4" ColumnDefinitions="40,50,*,152,64,Auto,Auto,100">
-                                <TextBlock Text="#" Classes="tableHead" />
+                            <Grid Margin="0,0,0,4" ColumnDefinitions="Auto,50,*,Auto,Auto,Auto,Auto,Auto">
+                                <TextBlock Width="40" Text="#" Classes="tableHead bgNarrowOff" />
                                 <Button Grid.Column="2" Classes="sortHead" Command="{Binding SetHeroSort}" CommandParameter="Name">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{i:Loc Main.Table.Hero}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.Name}" Classes="sortArrow" />
                                     </StackPanel>
                                 </Button>
-                                <Button Grid.Column="3" Classes="sortHead" Command="{Binding SetHeroSort}" CommandParameter="Placement" ToolTip.Tip="{i:Loc Main.Table.AvgPlacementTip}">
+                                <Button Grid.Column="3" Classes="sortHead bgPlace" Command="{Binding SetHeroSort}" CommandParameter="Placement" ToolTip.Tip="{i:Loc Main.Table.AvgPlacementTip}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{i:Loc Main.Table.AvgPlacement}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.Placement}" Classes="sortArrow" />
                                     </StackPanel>
                                 </Button>
                                 <!-- "Top 4", or "Top 2" while a Duos list is shown -->
-                                <Button Grid.Column="4" Classes="sortHead" HorizontalAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Top4" ToolTip.Tip="{Binding HeroTopTip}">
+                                <Button Grid.Column="4" Classes="sortHead bgNarrowOff" HorizontalAlignment="Right" Width="64" HorizontalContentAlignment="Right" Command="{Binding SetHeroSort}" CommandParameter="Top4" ToolTip.Tip="{Binding HeroTopTip}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding HeroTopLabel}" Classes="sortLabel" />
                                         <TextBlock Text="{Binding HeroArrows.Top4}" Classes="sortArrow" />
@@ -54,7 +55,7 @@
                                         <TextBlock Text="{Binding HeroArrows.Pick}" Classes="sortArrow" />
                                     </StackPanel>
                                 </Button>
-                                <TextBlock Grid.Column="7" Text="{i:Loc Main.Table.You}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.YouTip}" />
+                                <TextBlock Grid.Column="7" Width="100" TextAlignment="Right" Text="{i:Loc Main.Table.You}" Classes="tableHead bgNarrowOff" ToolTip.Tip="{i:Loc Main.Table.YouTip}" />
                             </Grid>
                             <ItemsControl Name="HeroTierList" ItemsSource="{Binding HeroTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False" />
                         </StackPanel>
@@ -84,11 +85,11 @@
                     <StackPanel>
                         <StackPanel IsVisible="{Binding TrinketTab.HasRows}">
                             <TextBlock Text="{Binding TrinketTab.Source}" Classes="caption bgSource" />
-                            <Grid Margin="0,0,0,4" ColumnDefinitions="40,64,*,192,80">
-                                <TextBlock Text="#" Classes="tableHead" />
+                            <Grid Margin="0,0,0,4" ColumnDefinitions="Auto,64,*,Auto,Auto">
+                                <TextBlock Width="40" Text="#" Classes="tableHead bgNarrowOff" />
                                 <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{i:Loc Main.Table.Trinket}" Classes="tableHead" />
-                                <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlacement}" Classes="tableHead" ToolTip.Tip="{i:Loc Main.Table.TrinketPlacementTip}" />
-                                <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.PickRate}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.TrinketPickTip}" />
+                                <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlacement}" Classes="tableHead bgPlace long" ToolTip.Tip="{i:Loc Main.Table.TrinketPlacementTip}" />
+                                <TextBlock Grid.Column="4" Width="80" TextAlignment="Right" Text="{i:Loc Main.Table.PickRate}" Classes="tableHead bgNarrowOff" ToolTip.Tip="{i:Loc Main.Table.TrinketPickTip}" />
                             </Grid>
                             <ItemsControl Name="TrinketTierList" ItemsSource="{Binding TrinketTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False" />
                         </StackPanel>
@@ -116,11 +117,11 @@
                         </Border>
                         <StackPanel IsVisible="{Binding CardTab.HasRows}">
                             <TextBlock Text="{Binding CardTab.Source}" Classes="caption bgSource" />
-                            <Grid Margin="0,0,0,4" ColumnDefinitions="40,64,*,Auto,Auto,Auto,Auto">
-                                <TextBlock Text="#" Classes="tableHead" />
+                            <Grid Margin="0,0,0,4" ColumnDefinitions="Auto,64,*,Auto,Auto,Auto,Auto">
+                                <TextBlock Width="40" Text="#" Classes="tableHead bgNarrowOff" />
                                 <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{i:Loc Main.Bg.Impact}" Classes="tableHead bgStat" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.ImpactTip}" />
-                                <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Classes="tableHead bgStat" Classes.on="{Binding CardStatsShown}"
+                                <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{i:Loc Main.Bg.CombatWinRate}" Classes="tableHead bgStat narrowOff" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.CombatWinRateTip}" />
                                 <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{i:Loc Main.Bg.PlacementSplit}" Classes="tableHead bgStat wide" Classes.on="{Binding CardStatsShown}"
                                            ToolTip.Tip="{i:Loc Main.Bg.PlacementSplitTip}" />
@@ -171,6 +172,29 @@
         <Style Selector="m|MainView.compact TextBlock.bgStat.wide">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <!-- The "average place" cell of heroes and trinkets: the number, with the bar after it in the same cell. The
+             cell is as wide as the number's text block (152: 44 + a bar of 100; trinkets 192: 44 + 140), so every row
+             and the head agree. -->
+        <Style Selector=":is(Control).bgPlace">
+            <Setter Property="Width" Value="152" />
+        </Style>
+        <Style Selector=":is(Control).bgPlace.long">
+            <Setter Property="Width" Value="192" />
+        </Style>
+        <!-- A narrow view (the class "narrow", set by the view from its own width: the compact window near its
+             smallest leaves a list about 250 wide). The fixed columns alone would take all of it and the name would
+             get nothing, so what is secondary goes: the rank, the bar after the average place, and on Heroes the top
+             share and the player's own games, on Trinkets the pick rate, on Cards the combat win rate. The art, the
+             name and the list's main number stay. These rules come last: they must win over the ones above. -->
+        <Style Selector="mm|BattlegroundsTiersView.narrow :is(Control).bgNarrowOff">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="mm|BattlegroundsTiersView.narrow TextBlock.bgStat.narrowOff">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="mm|BattlegroundsTiersView.narrow :is(Control).bgPlace">
+            <Setter Property="Width" Value="72" />
+        </Style>
         <!-- The line above a list: source, slice and date of the shown rows, or the slice being loaded -->
         <Style Selector="TextBlock.bgSource">
             <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
@@ -197,32 +221,34 @@
         </DataTemplate>
 
         <!-- One hero, 11 visuals: rank, portrait, name, average place as a number and a bar, the top share, first
-             places, pick rate, the player's own games. Compact drops first places and pick rate (metaWide). -->
+             places, pick rate, the player's own games. Compact drops first places and pick rate (metaWide); a narrow
+             view also the rank, the bar, the top share and the player's own games (bgNarrowOff). -->
         <DataTemplate x:DataType="m:MetaHeroRow">
             <Border Classes="bgRow">
-                <Grid ColumnDefinitions="40,50,*,152,64,Auto,Auto,100">
-                    <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                <Grid ColumnDefinitions="Auto,50,*,Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Width="40" Text="{Binding Rank}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
                     <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
-                    <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" Width="44" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
-                    <Border Grid.Column="3" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
+                    <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" Classes="bgPlace" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
+                    <Border Grid.Column="3" Classes="bgNarrowOff" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
                             Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                             Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=100}" />
-                    <TextBlock Grid.Column="4" Text="{Binding Top}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Width="64" TextAlignment="Right" Text="{Binding Top}" Classes="bgNarrowOff" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="5" Width="56" TextAlignment="Right" Text="{Binding FirstPlace}" Classes="metaWide" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="6" Width="72" TextAlignment="Right" Text="{Binding PickRate}" Classes="caption metaWide" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="7" Text="{Binding Personal}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="7" Width="100" TextAlignment="Right" Text="{Binding Personal}" Classes="bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                 </Grid>
             </Border>
         </DataTemplate>
 
-        <!-- One trinket, 9 visuals: rank, art, name over its size and cost, average place as a number and a bar, pick rate -->
+        <!-- One trinket, 9 visuals: rank, art, name over its size and cost, average place as a number and a bar, pick rate.
+             A narrow view drops the rank, the bar and the pick rate. -->
         <DataTemplate x:DataType="m:MetaTrinketRow">
             <Border Classes="bgRow">
-                <Grid ColumnDefinitions="40,64,*,192,80">
-                    <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                <Grid ColumnDefinitions="Auto,64,*,Auto,Auto">
+                    <TextBlock Width="40" Text="{Binding Rank}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
@@ -230,22 +256,23 @@
                                VerticalAlignment="Top" Margin="0,0,12,0" />
                     <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
-                    <TextBlock Grid.Column="3" Text="{Binding Placement}" Width="44" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
-                    <Border Grid.Column="3" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
+                    <TextBlock Grid.Column="3" Text="{Binding Placement}" Classes="bgPlace long" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
+                    <Border Grid.Column="3" Classes="bgNarrowOff" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
                             Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                             Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=140}" />
-                    <TextBlock Grid.Column="4" Text="{Binding PickRate}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Width="80" TextAlignment="Right" Text="{Binding PickRate}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                 </Grid>
             </Border>
         </DataTemplate>
 
         <!-- One minion or tavern spell, 10 visuals: rank, art, name over its tribes and games, impact with its sign's
              colour, combat win rate, placement with and without the card, popularity. The three stat columns are there
-             only when the list has numbers (ShowsStats, the same on every row). Compact drops the last two columns. -->
+             only when the list has numbers (ShowsStats, the same on every row). Compact drops the last two columns, a
+             narrow view also the rank and the combat win rate. -->
         <DataTemplate x:DataType="m:MetaCardRow">
             <Border Classes="bgRow">
-                <Grid ColumnDefinitions="40,64,*,Auto,Auto,Auto,Auto">
-                    <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                <Grid ColumnDefinitions="Auto,64,*,Auto,Auto,Auto,Auto">
+                    <TextBlock Width="40" Text="{Binding Rank}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
@@ -257,7 +284,7 @@
                                Foreground="{Binding ImpactSign, Converter={StaticResource SignBrush}}"
                                Classes="bgStat" Classes.on="{Binding ShowsStats}" />
                     <TextBlock Grid.Column="4" Width="96" TextAlignment="Right" Text="{Binding CombatWinRate}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
-                               Classes="bgStat" Classes.on="{Binding ShowsStats}" />
+                               Classes="bgStat narrowOff" Classes.on="{Binding ShowsStats}" />
                     <TextBlock Grid.Column="5" Width="112" TextAlignment="Right" Text="{Binding PlacementSplit}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                Classes="bgStat wide" Classes.on="{Binding ShowsStats}" />
                     <TextBlock Grid.Column="6" Width="96" TextAlignment="Right" Text="{Binding Popularity}" Classes="caption metaWide" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />

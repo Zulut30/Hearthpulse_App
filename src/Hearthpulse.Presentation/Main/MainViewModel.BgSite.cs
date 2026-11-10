@@ -41,10 +41,11 @@ public sealed record BgSiteSliceLoader(Func<bool, string, Task<BgSiteTierList?>>
 public sealed partial class MainViewModel
 {
     /// <summary>
-    /// Whether a comp shows the service's tip text (as the site does). The one place that decides it: the legal
-    /// question on these texts (LEGAL-HeartLens-bg-site-stats.md, L-M1) is answered by this line.
+    /// Whether a comp shows the service's tip text. The texts are the origin's own writing, and showing them is the
+    /// owner's decision (LEGAL-HeartLens-bg-site-stats.md, L-M1): off until the owner says otherwise. The one place
+    /// that decides it.
     /// </summary>
-    public const bool CompTipsByDefault = true;
+    public const bool CompTipsByDefault = false;
 
     /// <summary>Numbers the server fetched longer ago than this are marked as out of date in the tab's line.</summary>
     public static readonly TimeSpan BgStaleAfter = TimeSpan.FromDays(14);
@@ -253,9 +254,12 @@ public sealed partial class MainViewModel
         }
         else
         {
-            if (!quiet)
+            // A planned refresh says nothing while rows (or "no data for the slice") are on screen; with nothing on
+            // screen - the lists came back after a load that had none - the tab says it is loading.
+            if (!quiet || (slice.Shown is null && !slice.Missing))
             {
                 slice.Loading = slice.Mmr;
+                slice.LoadingDuos = duos;
                 slice.Missing = false;
             }
 
@@ -267,16 +271,22 @@ public sealed partial class MainViewModel
 
     private static async Task LoadSliceAsync(BgSlice slice, int request, bool duos, Func<Task<BgSiteTierList?>> load, Action rebuild)
     {
-        var list = await load().ConfigureAwait(true);
-        if (request != slice.Request)
+        BgSiteTierList? list = null;
+        try
         {
-            // The player picked something else meanwhile: this answer is dropped.
-            return;
+            list = await load().ConfigureAwait(true);
         }
-
-        // No list is "no data for the slice", whatever the reason: the earlier rows do not stay under another slice's name.
-        slice.Show(list, duos, missing: list is null);
-        rebuild();
+        finally
+        {
+            // An answer to a choice the player has since changed is dropped. No list is "no data for the slice",
+            // whatever the reason (a loader that threw included): the tab does not stay "loading", and the earlier
+            // rows do not stay under another slice's name.
+            if (request == slice.Request)
+            {
+                slice.Show(list, duos, missing: list is null);
+                rebuild();
+            }
+        }
     }
 
     /// <summary>
@@ -364,15 +374,16 @@ public sealed partial class MainViewModel
     /// <summary>
     /// "Hearthpulse data · Solo · top 50 % by MMR · current patch · updated 09 Nov 23:06": the source, then what the
     /// shown list itself says about its slice (a part it does not name is left out), then when the server fetched it.
-    /// While another slice loads, the date gives way to "loading top 5 %…"; numbers older than
+    /// While another slice loads, the date gives way to "loading top 5 %…" - for heroes with the mode asked for
+    /// ("loading Duos, top 20 %…"), which is what changes when the player switches Solo / Duos; numbers older than
     /// <see cref="BgStaleAfter"/> are marked.
     /// </summary>
-    private string BgSource(DateTime? fetched, string? loading, params string?[] parts)
+    private string BgSource(DateTime? fetched, string? loading, string? loadingMode, params string?[] parts)
     {
         var what = Joined([HearthpulseData.Attribution, .. parts]);
         if (loading is not null && SliceShare(loading) is { } share)
         {
-            return Loc.F("Main.Bg.SliceLoading", what, share);
+            return loadingMode is null ? Loc.F("Main.Bg.SliceLoading", what, share) : Loc.F("Main.Bg.SliceLoadingMode", what, loadingMode, share);
         }
 
         if (fetched is not { } at || at == default)
@@ -426,6 +437,9 @@ public sealed partial class MainViewModel
         public bool ShownDuos { get; private set; }
 
         public string? Loading { get; set; }
+
+        /// <summary>The mode of the heroes slice that is loading.</summary>
+        public bool LoadingDuos { get; set; }
 
         public bool Missing { get; set; }
 

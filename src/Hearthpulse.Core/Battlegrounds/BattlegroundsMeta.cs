@@ -188,14 +188,6 @@ public sealed class BattlegroundsMeta
     /// <summary>True when the stats pool is part of these numbers (alone or laid over the API).</summary>
     public bool FromPool => _source != Attribution;
 
-    /// <summary>
-    /// What an empty list of <paramref name="what"/> (comps, trinkets, tavern spells: numbers only the stats pool gives)
-    /// says, so an empty list never looks like a failure or like data.
-    /// </summary>
-    public string PoolPending(string what) => FromPool
-        ? Loc.F("Core.BgMeta.PoolPending", what)
-        : Loc.F("Core.BgMeta.PoolNotRunning", what);
-
     /// <summary>"all ranks" or "top X%", for captions.</summary>
     public static string BracketLabel(int bracket) => bracket >= 100 ? Loc.T("Core.BgMeta.AllRanks") : Loc.F("Core.BgMeta.Top", bracket / 100.0);
 
