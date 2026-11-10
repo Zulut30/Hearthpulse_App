@@ -389,7 +389,8 @@ public sealed class BgSiteStatsTests : IDisposable
         AssertPartsExcept(stats, failing);
         var log = LogSince(mark);
         Assert.Contains($"Battlegrounds site {part}: HTTP 500", log, StringComparison.Ordinal);
-        Assert.Single(log.Split('\n'), l => l.Contains("HTTP 500", StringComparison.Ordinal));
+        // Only this client's lines: other classes run beside this one and can write an "HTTP 500" of their own.
+        Assert.Single(log.Split('\n'), l => l.Contains("Battlegrounds site ", StringComparison.Ordinal) && l.Contains("HTTP 500", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -452,7 +453,7 @@ public sealed class BgSiteStatsTests : IDisposable
     }
 
     [Fact]
-    public async Task A_load_cancelled_before_it_starts_does_not_ask_the_service()
+    public async Task A_load_cancelled_before_it_starts_gives_no_stats_and_does_not_throw()
     {
         var site = FakeSite.Real();
         using var cancel = new CancellationTokenSource();
@@ -1153,6 +1154,233 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Contains("Battlegrounds site heroes-duos-top_20_percent: HTTP 404", log, StringComparison.Ordinal);
     }
 
+    // Q5: the heroes answer alone is not stats
+
+    [Fact]
+    public async Task When_only_the_heroes_address_answers_there_are_no_stats()
+    {
+        // /api/bg/heroes gives card ids for the tier list and nothing to show by itself.
+        var site = FakeSite.Real();
+        site.Fail(TierLists, HttpStatusCode.InternalServerError);
+        site.Fail(Duos, HttpStatusCode.InternalServerError);
+        site.Fail(MinionStats, HttpStatusCode.InternalServerError);
+        site.Fail(Comps, HttpStatusCode.InternalServerError);
+
+        Assert.Null(await Client(site).LoadAsync());
+        Assert.Equal(Refresh, site.Requests.Count);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(null)]
+    public async Task When_only_the_heroes_file_is_cached_and_the_service_is_down_there_are_no_stats(HttpStatusCode? failure)
+    {
+        await Client(FakeSite.Real()).LoadAsync();
+        foreach (var file in Directory.GetFiles(_cache).Where(f => Path.GetFileName(f) != "bgsite-heroes.json"))
+        {
+            File.Delete(file);
+        }
+
+        Assert.Null(await Later(FakeSite.Down(failure)).LoadAsync());
+        Assert.Null(await Client(FakeSite.Down(failure)).LoadAsync());
+    }
+
+    [Fact]
+    public async Task The_heroes_answer_with_its_duos_slice_is_stats()
+    {
+        var site = FakeSite.Real();
+        site.Fail(TierLists, HttpStatusCode.InternalServerError);
+        site.Fail(MinionStats, HttpStatusCode.InternalServerError);
+        site.Fail(Comps, HttpStatusCode.InternalServerError);
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.Heroes);
+        Assert.Equal(8, stats.HeroesDuos!.Entries.Count);
+        Assert.Equal(stats.HeroesDuos.FetchedAt, stats.Updated);
+    }
+
+    // Q6 / m9: a heroes answer that says nothing is a failed load, not another source
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"detail\": \"maintenance\"}")]
+    [InlineData("{\"ok\": false}")]
+    [InlineData("{\"ok\": false, \"view\": {\"blocked\": true, \"heroes\": []}}")]
+    [InlineData("<html>maintenance</html>")]
+    public async Task A_heroes_answer_that_says_nothing_leaves_the_cached_heroes_and_duos(string body)
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        Assert.NotNull(loaded.HeroesDuos);
+
+        var site = FakeSite.Real();
+        site.Answer(Heroes, body);
+        var later = (await Later(site).LoadAsync())!;
+
+        AssertSame(loaded, later);
+        Assert.Equal(loaded.HeroesDuos!.Entries, later.HeroesDuos!.Entries);
+        // The old heroes file opens the old Duos file only: no slice is fetched under it.
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == Duos);
+        Assert.NotNull(await Later(site).LoadHeroesAsync(duos: true, "TOP_50_PERCENT"));
+    }
+
+    [Fact]
+    public async Task A_heroes_answer_with_heroes_and_no_source_drops_the_cached_duos()
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        Assert.NotNull(loaded.HeroesDuos);
+
+        var site = FakeSite.Real();
+        site.Answer(Heroes, Changed("heroes.json", answer =>
+        {
+            answer.Remove("source_id");
+            answer.Remove("site");
+        }));
+        var later = (await Later(site).LoadAsync())!;
+
+        // Heroes without a source is a statement, not a failure: nothing vouches for the slice any more.
+        Assert.Null(later.HeroesDuos);
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == Duos);
+    }
+
+    // m8: the heroes file within its six hours vouches for a slice asked now
+
+    [Fact]
+    public async Task A_fresh_heroes_file_vouches_for_a_slice_asked_now()
+    {
+        var site = FakeSite.Real();
+        site.Answer(SoloTop20, Fixture("heroes-solo-top20.json"));
+        var client = Client(site);
+        await client.LoadAsync();
+        var asked = site.Requests.Count;
+
+        var slice = await client.LoadHeroesAsync(duos: false, "TOP_20_PERCENT");
+
+        Assert.NotNull(slice);
+        Assert.Equal(SoloTop20, Assert.Single(site.Requests.Skip(asked)).Uri.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task A_slice_on_demand_is_not_fetched_when_the_heroes_address_fails()
+    {
+        await Client(FakeSite.Real()).LoadAsync();
+        var site = FakeSite.Real();
+        site.Fail(Heroes, HttpStatusCode.InternalServerError);
+        site.Answer(SoloTop20, Fixture("heroes-solo-top20.json"));
+
+        // No file of this slice yet, and the old heroes file does not vouch for a slice fetched now.
+        Assert.Null(await Later(site).LoadHeroesAsync(duos: false, "TOP_20_PERCENT"));
+        Assert.DoesNotContain(site.Requests, r => r.Uri.PathAndQuery == SoloTop20);
+    }
+
+    // m10: the answer must be the slice that was asked for
+
+    [Theory]
+    [InlineData("solo-instead-of-duos")]
+    [InlineData("another-mmr")]
+    public async Task A_duos_answer_that_is_another_slice_is_not_read(string kind)
+    {
+        var mark = LogMark();
+        var site = FakeSite.Real();
+        site.Answer(Duos, kind == "another-mmr"
+            ? Changed("heroes-duos.json", answer => answer["view"]!["filters"]!["mmr_percentile"] = "TOP_20_PERCENT")
+            : Fixture("heroes-solo-top20.json"));
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.HeroesDuos);
+        Assert.NotNull(stats.Heroes);
+        Assert.False(File.Exists(Path.Combine(_cache, DuosCache)));
+        Assert.Contains("Battlegrounds site heroes-duos-top_50_percent: the answer is another slice (", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_heroes_slice_answered_with_another_mmr_is_no_data()
+    {
+        var site = FakeSite.Real();
+        site.Answer(SoloTop20, Fixture("heroes-solo-top1.json"));
+
+        Assert.Null(await Client(site).LoadHeroesAsync(duos: false, "TOP_20_PERCENT"));
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-heroes-solo-top_20_percent.json")));
+    }
+
+    [Theory]
+    [InlineData("mmr", "TOP_1_PERCENT")]
+    [InlineData("list", "minions")]
+    public async Task A_trinket_slice_answered_with_another_list_or_mmr_is_no_data(string field, string value)
+    {
+        const string address = "/api/bg/tier-lists?list=trinkets&mmr=TOP_50_PERCENT&timeRange=LAST_7_DAYS";
+        var site = FakeSite.Real();
+        site.Answer(address, Changed("trinkets-top50.json", answer => answer[field] = value));
+
+        Assert.Null(await Client(site).LoadTrinketsAsync("TOP_50_PERCENT"));
+        Assert.False(File.Exists(Path.Combine(_cache, "bgsite-trinkets-top_50_percent.json")));
+    }
+
+    // m14: a tier lists answer that lost a list the old file has is a failed load
+
+    [Theory]
+    [InlineData("trinkets", "empty")]
+    [InlineData("trinkets", "missing")]
+    [InlineData("minions", "empty")]
+    [InlineData("heroes", "missing")]
+    public async Task A_tier_lists_answer_without_one_of_the_old_lists_does_not_replace_the_old_file(string list, string how)
+    {
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        var file = Path.Combine(_cache, "bgsite-tier-lists.json");
+        var before = await File.ReadAllBytesAsync(file);
+        var mark = LogMark();
+
+        var site = FakeSite.Real();
+        site.Answer(TierLists, Changed("tier-lists.json", answer =>
+        {
+            var lists = answer["lists"]!.AsObject();
+            if (how == "missing")
+            {
+                lists.Remove(list);
+            }
+            else
+            {
+                lists[list]!["tiers"] = new JsonObject { ["S"] = new JsonArray(), ["A"] = new JsonArray() };
+            }
+        }));
+        var later = (await Later(site).LoadAsync())!;
+
+        AssertSame(loaded, later);
+        Assert.Equal(before, await File.ReadAllBytesAsync(file));
+        Assert.Contains($"Battlegrounds site tier-lists: the answer came without rows of \"{list}\", the old file is kept", LogSince(mark), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_list_cut_by_its_source_is_not_a_lost_list()
+    {
+        // The service marks the trinkets as Firestone's now: that is a refusal, and the rest of the answer is taken.
+        var loaded = (await Client(FakeSite.Real()).LoadAsync())!;
+        var file = Path.Combine(_cache, "bgsite-tier-lists.json");
+        var before = await File.ReadAllBytesAsync(file);
+
+        var site = FakeSite.Real();
+        site.Answer(TierLists, Changed("tier-lists.json", answer => answer["lists"]!["trinkets"]!["source"] = "firestone"));
+        var later = (await Later(site).LoadAsync())!;
+
+        Assert.Null(later.Trinkets);
+        Assert.Equal(loaded.Minions!.Entries, later.Minions!.Entries);
+        Assert.NotEqual(before, await File.ReadAllBytesAsync(file));
+    }
+
+    [Fact]
+    public async Task Without_an_old_file_a_tier_lists_answer_with_some_of_the_lists_is_taken()
+    {
+        var site = FakeSite.Real();
+        site.Answer(TierLists, Changed("tier-lists.json", answer => answer["lists"]!.AsObject().Remove("trinkets")));
+
+        var stats = (await Client(site).LoadAsync())!;
+
+        Assert.Null(stats.Trinkets);
+        Assert.Equal(16, stats.Minions!.Entries.Count);
+        Assert.Equal(12, stats.Heroes!.Entries.Count);
+    }
+
     private BgSiteClient Client(FakeSite site) => new(new HttpClient(site), cacheDirectory: _cache);
 
     /// <summary>A client for which every cache file written so far is too old.</summary>
@@ -1171,6 +1399,7 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(expected.Updated, actual.Updated);
         Assert.NotEqual(default, actual.Updated);
         Assert.Equal(expected.Heroes!.Entries, actual.Heroes!.Entries);
+        Assert.Equal(expected.HeroesDuos?.Entries, actual.HeroesDuos?.Entries);
         Assert.Equal(expected.Minions!.Entries, actual.Minions!.Entries);
         Assert.Equal(expected.Trinkets!.Entries, actual.Trinkets!.Entries);
         Assert.Equal(expected.MinionStats.Count, actual.MinionStats.Count);

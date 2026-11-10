@@ -35,8 +35,12 @@ internal static partial class BgSiteParser
     private static bool NamesFirestone(string? text) =>
         text is not null && (text.Contains("firestone", StringComparison.OrdinalIgnoreCase) || text.Contains("zerotoheroes", StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>The origin of a heroes answer is its <c>source_id</c>; a <c>site</c> it also names must be allowed too.</summary>
-    private static bool HeroesUsable(string? sourceId, string? site) => Allowed(sourceId) && (site is null || Allowed(site));
+    /// <summary>
+    /// The origin of a heroes answer is its <c>source_id</c>; a <c>site</c> it also names must be allowed too, and the
+    /// <c>url</c> it was taken from must not be Firestone's.
+    /// </summary>
+    private static bool HeroesUsable(string? sourceId, string? site, string? url = null) =>
+        Allowed(sourceId) && (site is null || Allowed(site)) && !NamesFirestone(url);
 
     /// <summary>
     /// A heroes slice (<c>?mode=&amp;mmr=</c>) names no source of its own: its origin is vouched for by the answer of the
@@ -50,18 +54,30 @@ internal static partial class BgSiteParser
     /// it names none or one that is not allowed. Heroes slices are read only under it.
     /// </summary>
     internal static string? HeroesSource(JsonElement root) =>
-        root.ValueKind == JsonValueKind.Object && HeroesUsable(Str(root, "source_id"), Str(root, "site")) ? Str(root, "source_id") : null;
+        root.ValueKind == JsonValueKind.Object && HeroesUsable(Str(root, "source_id"), Str(root, "site"), Str(root, "url")) ? Str(root, "source_id") : null;
+
+    /// <summary>The tier lists of the whole answer that have rows the app would show ("heroes", "minions", ...).</summary>
+    internal static IReadOnlyList<string> ListsWithRows(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object && root.TryGetProperty("lists", out var lists) && lists.ValueKind == JsonValueKind.Object
+            ? [.. Enum.GetNames<BgSiteList>().Select(n => n.ToLowerInvariant()).Where(n => lists.TryGetProperty(n, out var list) && ListHasRows(list))]
+            : [];
+
+    private static bool ListHasRows(JsonElement list) =>
+        list.ValueKind == JsonValueKind.Object && Usable(Str(list, "source"), Str(list, "upstreamSource"))
+        && list.TryGetProperty("tiers", out var tiers) && tiers.ValueKind == JsonValueKind.Object
+        && TierLetters.Any(t => tiers.TryGetProperty(t, out var bucket) && bucket.ValueKind == JsonValueKind.Array && bucket.GetArrayLength() > 0);
 
     /// <summary>
     /// The answer of a part as it is cached: lists and comps the app may not show are cut, so their data is not kept on
-    /// disk. Null when the bytes are not a JSON object.
+    /// disk. Null when the bytes are not a JSON object. <paramref name="cut"/> says what was cut by source.
     /// </summary>
-    internal static byte[]? Strip(BgSitePart part, ReadOnlySpan<byte> json)
+    internal static byte[]? Strip(BgSitePart part, ReadOnlySpan<byte> json, out BgSiteCut cut)
     {
+        cut = new BgSiteCut(HeroesRefused: false, Lists: []);
         try
         {
-            // Utf8JsonReader does not take a byte order mark.
-            if (json.StartsWith("﻿"u8))
+            // Utf8JsonReader does not take a byte order mark (EF BB BF).
+            if (json.Length >= 3 && json[0] == 0xEF && json[1] == 0xBB && json[2] == 0xBF)
             {
                 json = json[3..];
             }
@@ -75,15 +91,18 @@ internal static partial class BgSiteParser
             switch (part.Kind)
             {
                 case BgSitePartKind.TierLists when answer["lists"] is JsonObject lists:
+                    var cutLists = new List<string>();
                     foreach (var name in lists.Select(l => l.Key).ToList())
                     {
                         if (!Usable(Text(lists[name], "source"), Text(lists[name], "upstreamSource")))
                         {
                             Diag.Info($"Battlegrounds site {part.Name}: list \"{Clean(name, 32)}\" of source \"{Clean(Text(lists[name], "source"), 80)}\" is not used");
                             lists.Remove(name);
+                            cutLists.Add(name);
                         }
                     }
 
+                    cut = cut with { Lists = cutLists };
                     break;
                 case BgSitePartKind.TrinketList when !Usable(Text(answer, "source"), Text(answer, "upstreamSource")):
                     Diag.Info($"Battlegrounds site {part.Name}: source \"{Clean(Text(answer, "source"), 80)}\" is not used");
@@ -107,7 +126,17 @@ internal static partial class BgSiteParser
                     }
 
                     break;
-                case BgSitePartKind.Heroes when !HeroesUsable(Text(answer, "source_id"), Text(answer, "site")):
+                case BgSitePartKind.Heroes when !HeroesUsable(Text(answer, "source_id"), Text(answer, "site"), Text(answer, "url")):
+                    // A refusal is an answer that says something: it names another source, or it has heroes and names
+                    // none. An answer that says nothing ({}, a maintenance note, ok:false without rows) is a failed load.
+                    cut = cut with
+                    {
+                        HeroesRefused = Text(answer, "source_id") is not null || Text(answer, "site") is not null
+                                        || (answer["view"] is JsonObject shown && shown["heroes"] is JsonArray { Count: > 0 }),
+                    };
+                    Diag.Info($"Battlegrounds site {part.Name}: source \"{Clean(Text(answer, "source_id"), 80)}\" is not used");
+                    answer.Remove("view");
+                    break;
                 case BgSitePartKind.HeroSlice when !SliceSourceOk(Text(answer, "source_id"), Text(answer, "site")):
                     Diag.Info($"Battlegrounds site {part.Name}: source \"{Clean(Text(answer, "source_id"), 80)}\" is not used");
                     answer.Remove("view");
@@ -140,27 +169,31 @@ internal static partial class BgSiteParser
     /// <summary>
     /// True when the (stripped) answer holds at least one record the app would show. An answer without any (an empty
     /// object, a maintenance note, the service's own "blocked", a list refused by source) is a failed load: it must not
-    /// replace a good cache file.
+    /// replace a good cache file. A slice must also be the slice that was asked for, where the answer says which it is:
+    /// the service can ignore a parameter and send its default instead.
     /// </summary>
-    internal static bool HasData(BgSitePartKind kind, JsonElement root)
+    internal static bool HasData(BgSitePart part, JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
             return false;
         }
 
-        switch (kind)
+        switch (part.Kind)
         {
             case BgSitePartKind.TierLists:
                 return root.TryGetProperty("lists", out var lists) && lists.ValueKind == JsonValueKind.Object
                        && lists.EnumerateObject().Any(l => ListHasRows(l.Value));
             case BgSitePartKind.TrinketList:
-                return ListHasRows(root);
+                return ListHasRows(root) && Asked(part, Str(root, "list") is { } list && list != "trinkets" ? list : null, Str(root, "mmr"));
             case BgSitePartKind.Heroes:
-                return !Is(root, "ok", JsonValueKind.False) && HeroesUsable(Str(root, "source_id"), Str(root, "site")) && HasHeroRows(root, typed: false);
+                return !Is(root, "ok", JsonValueKind.False) && HeroesUsable(Str(root, "source_id"), Str(root, "site"), Str(root, "url")) && HasHeroRows(root, typed: false);
             case BgSitePartKind.HeroSlice:
-                // The slice has no source to check, so what it does say must be exact: ok, and a heroes view.
-                return Is(root, "ok", JsonValueKind.True) && SliceSourceOk(Str(root, "source_id"), Str(root, "site")) && HasHeroRows(root, typed: true);
+                // The slice has no source to check, so what it does say must be exact: ok, a heroes view, the mode and slice asked for.
+                return Is(root, "ok", JsonValueKind.True) && SliceSourceOk(Str(root, "source_id"), Str(root, "site")) && HasHeroRows(root, typed: true)
+                       && root.TryGetProperty("view", out var sliced)
+                       && Asked(part, Str(sliced, "mode") is { } mode && mode != part.Mode ? mode : null,
+                           sliced.TryGetProperty("filters", out var filters) ? Str(filters, "mmr_percentile") : null);
             case BgSitePartKind.MinionStats:
                 return root.TryGetProperty("latest_run", out var run) && Allowed(Str(run, "source"))
                        && root.TryGetProperty("minions", out var minions) && minions.ValueKind == JsonValueKind.Array
@@ -173,10 +206,17 @@ internal static partial class BgSiteParser
                 return false;
         }
 
-        static bool ListHasRows(JsonElement list) =>
-            list.ValueKind == JsonValueKind.Object && Usable(Str(list, "source"), Str(list, "upstreamSource"))
-            && list.TryGetProperty("tiers", out var tiers) && tiers.ValueKind == JsonValueKind.Object
-            && TierLetters.Any(t => tiers.TryGetProperty(t, out var bucket) && bucket.ValueKind == JsonValueKind.Array && bucket.GetArrayLength() > 0);
+        // True when the answer is the slice that was asked for: no other list or mode named, and the same MMR slice when it names one.
+        static bool Asked(BgSitePart part, string? other, string? mmr)
+        {
+            if (other is null && (mmr is null || part.Mmr is null || mmr == part.Mmr))
+            {
+                return true;
+            }
+
+            Diag.Info($"Battlegrounds site {part.Name}: the answer is another slice ({Clean(other, 32) ?? "same list"}, {Clean(mmr, 32) ?? "no slice named"}), not used");
+            return false;
+        }
 
         static bool Is(JsonElement item, string name, JsonValueKind kind) => item.TryGetProperty(name, out var value) && value.ValueKind == kind;
 

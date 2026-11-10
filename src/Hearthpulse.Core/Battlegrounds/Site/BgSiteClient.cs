@@ -16,8 +16,17 @@ internal enum BgSitePartKind
     TrinketList,
 }
 
-/// <summary>One address of the service and its cache file (<c>bgsite-&lt;Name&gt;.json</c>).</summary>
-internal sealed record BgSitePart(string Name, string Path, BgSitePartKind Kind);
+/// <summary>
+/// One address of the service and its cache file (<c>bgsite-&lt;Name&gt;.json</c>); for a slice, the mode and MMR slice
+/// that were asked for.
+/// </summary>
+internal sealed record BgSitePart(string Name, string Path, BgSitePartKind Kind, string? Mode = null, string? Mmr = null);
+
+/// <summary>
+/// What was cut from an answer by source. <see cref="HeroesRefused"/>: the heroes answer names another source, or has
+/// heroes and names none. <see cref="Lists"/>: the tier lists that were cut.
+/// </summary>
+internal readonly record struct BgSiteCut(bool HeroesRefused, IReadOnlyList<string> Lists);
 
 /// <summary>
 /// The Battlegrounds lists hearthpulse.net shows, read from the open service the site itself proxies
@@ -114,7 +123,7 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
     private static BgSitePart HeroSlice(bool duos, string mmr)
     {
         var mode = duos ? "duos" : "solo";
-        return new BgSitePart($"heroes-{mode}-{mmr.ToLowerInvariant()}", $"api/bg/heroes?mode={mode}&mmr={mmr}", BgSitePartKind.HeroSlice);
+        return new BgSitePart($"heroes-{mode}-{mmr.ToLowerInvariant()}", $"api/bg/heroes?mode={mode}&mmr={mmr}", BgSitePartKind.HeroSlice, mode, mmr);
     }
 
     private async Task<BgSiteTierList?> HeroesAsync(bool duos, string mmr, CancellationToken cancellationToken)
@@ -146,7 +155,7 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
             return lists is null ? null : BgSiteParser.ParseTierList(lists.RootElement, BgSiteList.Trinkets, heroes: null);
         }
 
-        var part = new BgSitePart($"trinkets-{mmr.ToLowerInvariant()}", $"api/bg/tier-lists?list=trinkets&mmr={mmr}&timeRange=LAST_7_DAYS", BgSitePartKind.TrinketList);
+        var part = new BgSitePart($"trinkets-{mmr.ToLowerInvariant()}", $"api/bg/tier-lists?list=trinkets&mmr={mmr}&timeRange=LAST_7_DAYS", BgSitePartKind.TrinketList, Mmr: mmr);
         using var list = (await PartAsync(part, cancellationToken).ConfigureAwait(false)).Document;
         return list is null ? null : BgSiteParser.ParseList(list.RootElement, BgSiteList.Trinkets, heroes: null, "trinkets");
     }
@@ -166,7 +175,8 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
             return (null, null);
         }
 
-        // The old heroes file after a failed load vouches for the old slice file only, not for a slice fetched now.
+        // The heroes file that stands in after a failed load (older than MaxAge) vouches for the old slice file only,
+        // not for a slice fetched now. A heroes answer fetched now, or its file within MaxAge, vouches for both.
         return answer.Stale
             ? (await ReadCacheAsync(slice, CacheFile(slice)).ConfigureAwait(false), source)
             : ((await PartAsync(slice, cancellationToken).ConfigureAwait(false)).Document, source);
@@ -190,9 +200,16 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
         ];
         try
         {
-            return Array.TrueForAll(answers, a => a is null)
+            if (Array.TrueForAll(answers, a => a is null))
+            {
+                return null;
+            }
+
+            // The heroes answer alone gives card ids and nothing to show: that is "no part could be had" as well.
+            var stats = Build(Root(0), Root(1), Root(2), (await duos.ConfigureAwait(false)).Source, Root(3), Root(4));
+            return stats is { Heroes: null, HeroesDuos: null, Minions: null, Spells: null, Trinkets: null, MinionStats.Count: 0, Comps.Count: 0 }
                 ? null
-                : Build(Root(0), Root(1), Root(2), (await duos.ConfigureAwait(false)).Source, Root(3), Root(4));
+                : stats;
         }
         finally
         {
@@ -227,7 +244,8 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
 
     /// <summary>
     /// What <see cref="PartAsync"/> has for an address. <see cref="Refused"/>: the service answered just now and named
-    /// a source that is not allowed. <see cref="Stale"/>: the load failed, the document, if any, is the old file.
+    /// another source than the allowed one (or heroes with none). <see cref="Stale"/>: the load failed - also on an
+    /// answer without data - and the document, if any, is the old file.
     /// </summary>
     private readonly record struct Answer(JsonDocument? Document, bool Refused, bool Stale);
 
@@ -248,18 +266,25 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
                 return new Answer(fresh, Refused: false, Stale: false);
             }
 
-            if (await FetchAsync(part, cancellationToken).ConfigureAwait(false) is { } body && BgSiteParser.Strip(part, body) is { } kept)
+            if (await FetchAsync(part, cancellationToken).ConfigureAwait(false) is { } body && BgSiteParser.Strip(part, body, out var cut) is { } kept)
             {
+                refused = cut.HeroesRefused;
                 var answer = JsonDocument.Parse(kept);
-                if (BgSiteParser.HasData(part.Kind, answer.RootElement))
+                if (!BgSiteParser.HasData(part, answer.RootElement))
+                {
+                    answer.Dispose();
+                    Diag.Info($"Battlegrounds site {part.Name}: the answer has no data, not kept");
+                }
+                else if (part.Kind == BgSitePartKind.TierLists && await OldListsLostAsync(part, file, answer, cut).ConfigureAwait(false) is { } old)
+                {
+                    answer.Dispose();
+                    return new Answer(old, Refused: false, Stale: true);
+                }
+                else
                 {
                     await HearthpulseData.WriteCacheAsync(file, Encoding.UTF8.GetString(kept), cancellationToken).ConfigureAwait(false);
                     return new Answer(answer, Refused: false, Stale: false);
                 }
-
-                refused = part.Kind == BgSitePartKind.Heroes && BgSiteParser.HeroesSource(answer.RootElement) is null;
-                answer.Dispose();
-                Diag.Info($"Battlegrounds site {part.Name}: the answer has no data, not kept");
             }
         }
         catch (OperationCanceledException)
@@ -275,6 +300,32 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
         return new Answer(await ReadCacheAsync(part, file).ConfigureAwait(false), refused, Stale: true);
     }
 
+    /// <summary>
+    /// The old tier lists file, when the new answer came without the rows of a list that file has (a list that is
+    /// missing or empty, not one cut by source): a partly empty answer is a failed load, the old file stays. Null when
+    /// the answer loses nothing.
+    /// </summary>
+    private static async Task<JsonDocument?> OldListsLostAsync(BgSitePart part, string file, JsonDocument answer, BgSiteCut cut)
+    {
+        if (await ReadCacheAsync(part, file).ConfigureAwait(false) is not { } old)
+        {
+            return null;
+        }
+
+        var lost = BgSiteParser.ListsWithRows(old.RootElement)
+            .Except(BgSiteParser.ListsWithRows(answer.RootElement), StringComparer.Ordinal)
+            .Except(cut.Lists, StringComparer.Ordinal)
+            .ToList();
+        if (lost.Count == 0)
+        {
+            old.Dispose();
+            return null;
+        }
+
+        Diag.Info($"Battlegrounds site {part.Name}: the answer came without rows of \"{string.Join("\", \"", lost)}\", the old file is kept");
+        return old;
+    }
+
     private string CacheFile(BgSitePart part) => Path.Combine(_cacheDirectory, $"bgsite-{part.Name}.json");
 
     /// <summary>The cache file when it is readable and holds data, else null. Never throws.</summary>
@@ -288,7 +339,7 @@ public sealed class BgSiteClient(HttpClient http, string? baseUrl = null, string
             }
 
             var cached = JsonDocument.Parse(await File.ReadAllBytesAsync(file).ConfigureAwait(false));
-            if (BgSiteParser.HasData(part.Kind, cached.RootElement))
+            if (BgSiteParser.HasData(part, cached.RootElement))
             {
                 return cached;
             }

@@ -28,10 +28,20 @@ Code: `src/Hearthpulse.Core/Battlegrounds/Site/` (`BgSiteClient`, `BgSiteStats`)
 - **An answer without data is a failed load**, whatever its status: `{}`, a maintenance note, empty lists, the
   service's own `ok: false` or `view.blocked: true`, or an answer with nothing left after the source check. It is not
   written to the cache, the old file answers, and without an old file the part is missing. A cache file without data
-  is asked for again.
-- Parts load independently: one address failing leaves its part `null` / empty and the others loaded. When no part
-  could be had, from the service or the cache, `LoadAsync` returns `null` (the tabs say "unavailable"), never an empty
-  `BgSiteStats`.
+  is asked for again. This holds for `/api/bg/heroes` like for any address: an answer of it that says nothing is a
+  failed load of the base answer (section 4, rule 6, "failed load"), not a statement about the source.
+- **A partly empty `/api/bg/tier-lists` is a failed load too**: when the answer comes without the rows of a list the
+  old file has (heroes, minions, trinkets: the list is missing or its tiers are empty), the old file is kept whole and
+  answers for this refresh. A list that is cut because the service now names another source for it is not "lost":
+  that answer is taken, without the list. Without an old file a partial answer is taken as it is.
+- **A slice must be the slice that was asked for.** Where the answer names it (`view.mode` and
+  `view.filters.mmr_percentile` of a heroes slice; `list` and `mmr` of a trinket slice), a different mode, list or MMR
+  slice is "no data": the service can ignore a parameter and send its default (it does for `minion-stats`), and that
+  must not be cached and shown under another slice's name.
+- Parts load independently: one address failing leaves its part `null` / empty and the others loaded. When nothing to
+  show could be had, from the service or the cache, `LoadAsync` returns `null` (the tabs say "unavailable"), never an
+  empty `BgSiteStats`. The answer of `/api/bg/heroes` alone is nothing to show: it only gives card ids to the tier
+  list and vouches for the slices.
 - An answer over 8 MB, unreadable JSON, an unknown tier letter or an entry without a card id is dropped with a line in
   the log (`Diag`). Nothing throws: any exception of the request or the body (a broken compressed answer, a disposed
   client) is a failed load like a network error. A cancelled load returns what the cache has and writes no failure.
@@ -294,23 +304,30 @@ forbidden names: the server changes without an app update, so a renamed or new o
    stay, the 27 marked `Firestone` are cut. A comp without a `source` of its own takes the list's, which is not on
    the allow list, so it is cut.
 5. The check is by source, never by list name: the spells list would be read the day the service marks it `hsreplay`.
-6. **Heroes slices** (`/api/bg/heroes?mode=…&mmr=…`: Duos, and the solo MMR slices) - *coordinator's decision,
+6. **Heroes slices** (`/api/bg/heroes?mode=…&mmr=…`: Duos, and the solo MMR slices) - *coordinator's decisions,
    2026-11-10, pending confirmation by legal.* These answers name no source at all, so rule 2 alone would refuse them.
    A slice is read only when both hold:
-   - (a) in the same load, the answer of the same address **without parameters** (`/api/bg/heroes`) named an allowed
-     source: `source_id` `hsreplay_battlegrounds_heroes` (and an allowed `site`). The client asks for that answer
-     first and asks for the slice only after it; the slice's `Source` is that `source_id`.
-   - (b) the slice itself says `ok: true` and `view.type` is `"bg_heroes"` (and is not `view.blocked`). A slice that
-     does name a source of its own must name an allowed one.
+   - (a) the **base answer** - the answer of the same address without parameters, `/api/bg/heroes` - names an allowed
+     source: `source_id` `hsreplay_battlegrounds_heroes` (an allowed `site`, and a `url` that is not Firestone's). The
+     base answer that counts is the one **fetched in this load, or its cache file while that file is in force (not
+     older than the cache term, 6 h)**. The client gets the base answer first and asks for the slice only after it;
+     the slice's `Source` is that `source_id`.
+   - (b) the slice itself says `ok: true` and `view.type` is `"bg_heroes"` (and is not `view.blocked`), and it is the
+     mode and MMR slice that was asked for. A slice that does name a source of its own must name an allowed one.
 
    Why this is not "the address is the source": the slices are other filters of the one dataset the base answer
    describes (same address, same `view.type`, the same heroes, the server's own statement of where that dataset comes
-   from), and the statement is checked on every load, not assumed. If the base answer cannot be had, names no source
-   or names another one, no slice is requested and none is read from the cache: the Duos list and the MMR slices
-   disappear together with the reason to trust them. One exception keeps the tab from emptying on a network error:
-   when the load of the base answer failed and its old file (which named the allowed source) stands in, the old file
-   of a slice may stand in too; no slice is fetched on the strength of an old base answer. When the service answered
-   just now with another or no source, even the cached slice is dropped.
+   from), and the statement is read from the base answer, never assumed. The window in which a change of the source
+   on the server goes unseen is the cache term, the same 6 h every cached list has.
+
+   What happens when the base answer is not a good one:
+
+   | The base answer, `/api/bg/heroes` | Slices |
+   |---|---|
+   | fetched now, or its file within 6 h; names the allowed source | requested (or read from their files within 6 h) and read |
+   | **refusal** - the service answered now and said something else: it names another source, or it has heroes and names none | not requested and not read, **even from the cache** |
+   | **failed load** - no answer (network, time-out, 4xx / 5xx, another host), or an answer that says nothing (`{}`, a maintenance note, unreadable, `ok: false` or `blocked` without another source); the old file (older than 6 h) names the allowed source | **not requested**; the old file of a slice stands in, as the old heroes file does for the solo list |
+   | failed load and no old file | not requested, not read |
 
 What the rule does to the captured answers:
 
@@ -353,6 +370,10 @@ Records as in the task card's contract, plus these members at the end (nullable,
 
 The tabs show the default slices from `LoadAsync`; when the player picks another slice, the tab calls the slice method
 and, on the refresh timer, calls it again for the slice still selected (it answers from its cache file for 6 h).
+**Call a slice method after `LoadAsync` has completed, not beside it**: loads that run at the same time do not share
+requests, so a slice asked for in the same tick would fetch `/api/bg/heroes` (125 KB) or `/api/bg/tier-lists`
+(950 KB) a second time. In order, a refresh with a selected heroes slice and a selected trinket slice is 5 + 1 + 1
+requests.
 
 Per list:
 

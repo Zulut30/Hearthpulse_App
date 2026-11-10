@@ -100,7 +100,7 @@ internal static partial class BgSiteParser
             return null;
         }
 
-        if (slice ? !SliceSourceOk(Str(root, "source_id"), Str(root, "site")) : !HeroesUsable(Str(root, "source_id"), Str(root, "site")))
+        if (slice ? !SliceSourceOk(Str(root, "source_id"), Str(root, "site")) : !HeroesUsable(Str(root, "source_id"), Str(root, "site"), Str(root, "url")))
         {
             Diag.Info($"Battlegrounds site {name}: source \"{Clean(Str(root, "source_id"), 80)}\" is not used");
             return null;

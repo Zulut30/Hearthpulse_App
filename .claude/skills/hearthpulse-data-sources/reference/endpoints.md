@@ -132,8 +132,8 @@ allowed source whose `upstreamSource` / `sourceUrl` names Firestone or zerotoher
 answer is cached: `lists.spells`, `lists.strategies`, the Firestone comps (comps are checked one by one). Not
 requested: `api/bg/library/spell-stats` (Firestone), `api/bg/library/meta`, `api/bg/library/cards`. A new origin is a
 new value in `BgSiteParser.AllowedSources` after a `hearthpulse-legal` check. Heroes slices name no source: one is
-read only when `api/bg/heroes` without parameters named the allowed source in the same load and the slice says
-`ok: true`, `view.type` `bg_heroes` (coordinator's decision 2026-11-10, pending legal; `docs/bg-site-stats.md` §4,
+read only when `api/bg/heroes` without parameters names the allowed source (fetched in this load, or its cache file
+within 6 h) and the slice says `ok: true`, `view.type` `bg_heroes`, and the mode and slice asked for (coordinator's decision 2026-11-10, pending legal; `docs/bg-site-stats.md` §4,
 rule 6). A slice that is not listed, or that the service does not answer for, is `null`, not an error.
 
 ## Hearthpulse stats pool - `PoolClient.Endpoint` (server/pool, off until deployed)
