@@ -1,0 +1,206 @@
+{
+ "ok": true,
+ "fetched_at": "2026-11-09T03:35:03.165907+00:00",
+ "view": {
+  "type": "bg_heroes",
+  "mode": "duos",
+  "heroes": [
+   {
+    "hero": "Patchwerk",
+    "dbfId": 59397,
+    "id": "TB_BaconShop_HERO_34",
+    "tier": "A",
+    "pick_rate": "48.51%",
+    "pick_rate_value": 48.51,
+    "avg_placement": 2.178,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "33.06%",
+     "30.50%",
+     "22.01%",
+     "14.44%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_34.png?7543ac",
+    "hero_power": {
+     "dbf": 59399
+    }
+   },
+   {
+    "hero": "A. F. Kay",
+    "dbfId": 57944,
+    "id": "TB_BaconShop_HERO_16",
+    "tier": "A",
+    "pick_rate": "66.52%",
+    "pick_rate_value": 66.52,
+    "avg_placement": 2.217,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "32.77%",
+     "28.54%",
+     "22.93%",
+     "15.76%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_16.png?40be52",
+    "hero_power": {
+     "dbf": 59891
+    }
+   },
+   {
+    "hero": "Drest'agath",
+    "dbfId": 134502,
+    "id": "BG36_HERO_000",
+    "tier": "B",
+    "pick_rate": "41.19%",
+    "pick_rate_value": 41.19,
+    "avg_placement": 2.336,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "27.05%",
+     "30.25%",
+     "24.76%",
+     "17.94%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG36_HERO_000.png?d17704",
+    "hero_power": {
+     "dbf": 134503
+    }
+   },
+   {
+    "hero": "Vol'jin",
+    "dbfId": 71463,
+    "id": "BG20_HERO_201",
+    "tier": "B",
+    "pick_rate": "18.31%",
+    "pick_rate_value": 18.31,
+    "avg_placement": 2.337,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "29.48%",
+     "26.86%",
+     "24.16%",
+     "19.50%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG20_HERO_201.png?157a22",
+    "hero_power": {
+     "dbf": 71464
+    }
+   },
+   {
+    "hero": "Cap'n Hoggarr",
+    "dbfId": 101130,
+    "id": "BG26_HERO_101",
+    "tier": "C",
+    "pick_rate": "25.71%",
+    "pick_rate_value": 25.71,
+    "avg_placement": 2.39,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "31.42%",
+     "23.29%",
+     "20.15%",
+     "25.14%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BG26_HERO_101.png?b75995",
+    "hero_power": {
+     "dbf": 101132
+    }
+   },
+   {
+    "hero": "Cho",
+    "dbfId": 104981,
+    "id": "BGDUO_HERO_222",
+    "tier": "C",
+    "pick_rate": "25.32%",
+    "pick_rate_value": 25.32,
+    "avg_placement": 2.39,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "27.75%",
+     "25.69%",
+     "26.37%",
+     "20.20%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/BGDUO_HERO_222.png?29d929",
+    "hero_power": {
+     "dbf": 104983
+    }
+   },
+   {
+    "hero": "Ragnaros the Firelord",
+    "dbfId": 57892,
+    "id": "TB_BaconShop_HERO_11",
+    "tier": "D",
+    "pick_rate": "11.64%",
+    "pick_rate_value": 11.64,
+    "avg_placement": 2.435,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "24.54%",
+     "27.78%",
+     "27.31%",
+     "20.37%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_11.png?b7d1b9",
+    "hero_power": {
+     "dbf": 64424
+    }
+   },
+   {
+    "hero": "C'Thun",
+    "dbfId": 58535,
+    "id": "TB_BaconShop_HERO_29",
+    "tier": "D",
+    "pick_rate": "12.52%",
+    "pick_rate_value": 12.52,
+    "avg_placement": 2.436,
+    "adjusted_avg_placement": null,
+    "placement_distribution": [
+     "25.00%",
+     "28.51%",
+     "24.38%",
+     "22.11%"
+    ],
+    "best_composition_id": null,
+    "best_composition": null,
+    "key_minions_top3": [],
+    "anomaly_adjusted": false,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_29.png?c30d35",
+    "hero_power": {
+     "dbf": 66246
+    }
+   }
+  ],
+  "filters": {
+   "mmr_percentile": "TOP_50_PERCENT",
+   "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+  }
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "source_id": "firestone_battlegrounds_spells",
+ "ok": true,
+ "site": "firestone",
+ "category": "battlegrounds",
+ "url": "https://www.firestoneapp.com/battlegrounds/cards?time=past-three&tavernTiers=1,7,2,3,4,5,6&turns=10&type=spell",
+ "fetched_at": "2026-11-09T17:00:14.590542+00:00",
+ "backend": "firestone_api",
+ "view": {
+  "type": "bg_card_stats",
+  "tiers": {},
+  "last_update_date": "2026-11-09T12:10:52.610Z",
+  "total_data_points": 178814,
+  "mmr_bracket": "mmr-100",
+  "time_period": "past-three",
+  "title": "Firestone Battlegrounds spell statistics by tavern tier.",
+  "kind": "bg_card_stats"
+ }
+}

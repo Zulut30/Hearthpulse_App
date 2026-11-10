@@ -1,0 +1,337 @@
+{
+ "source": "HSReplay + Firestone через api.kolodahearthstone.com",
+ "fetchedAt": "2026-11-09T17:00:12.501414+00:00",
+ "count": 5,
+ "comps": [
+  {
+   "key": "hsreplay-76",
+   "source": "HSReplay",
+   "title": "Свинобразы - APM-усиление таверны",
+   "description": "Разыгрывайте заклинания, чтобы поглощать усиленную таверну.",
+   "tier": "S",
+   "difficulty": "Лёгкая",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/76/svinobrazy-apm-usilenie-taverny/",
+   "coreCards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG28_633",
+     "dbfId": 110664,
+     "name": "Felboar",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "hsreplay-95",
+   "source": "HSReplay",
+   "title": "Элементали - Живой азерит",
+   "description": "Усиливайте элементалей в таверне",
+   "tier": "S",
+   "difficulty": "Средняя",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/95/elementali-zhivoi-azerit/",
+   "coreCards": [
+    {
+     "id": "BG35_881",
+     "dbfId": 130294,
+     "name": "Leyline Surfacer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG28_707",
+     "dbfId": 107939,
+     "name": "Living Azerite",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_701",
+     "dbfId": 132883,
+     "name": "Kelp Keeper",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG35_881",
+     "dbfId": 130294,
+     "name": "Leyline Surfacer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG35_883",
+     "dbfId": 130298,
+     "name": "Balinda Stonehearth",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG_LOE_077",
+     "dbfId": 96786,
+     "name": "Brann Bronzebeard",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG28_707",
+     "dbfId": 107939,
+     "name": "Living Azerite",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_701",
+     "dbfId": 132883,
+     "name": "Kelp Keeper",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "hsreplay-3",
+   "source": "HSReplay",
+   "title": "Нежить - APM-нежить",
+   "description": "Раскачивайте атаку нежити с бесконечным золотом",
+   "tier": "S",
+   "difficulty": "Лёгкая",
+   "avgPlacement": "",
+   "whenToCommit": "",
+   "sourceUrl": "https://hsreplay.net/battlegrounds/comps/3/nezhit-apm-nezhit/",
+   "coreCards": [
+    {
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Handless Forsaken",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Snazzy Phantom",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG34_692",
+     "dbfId": 126733,
+     "name": "Forsaken Weaver",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_825",
+     "dbfId": 122520,
+     "name": "Proud Privateer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_823",
+     "dbfId": 122516,
+     "name": "Sky Admiral Rogers",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "BG25_010",
+     "dbfId": 95265,
+     "name": "Handless Forsaken",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG36_515",
+     "dbfId": 133083,
+     "name": "Snazzy Phantom",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG34_692",
+     "dbfId": 126733,
+     "name": "Forsaken Weaver",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_825",
+     "dbfId": 122520,
+     "name": "Proud Privateer",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "BG33_823",
+     "dbfId": 122516,
+     "name": "Sky Admiral Rogers",
+     "count": 1,
+     "role": "CORE"
+    }
+   ]
+  },
+  {
+   "key": "firestone-test-1",
+   "source": "Firestone",
+   "title": "Invented comp 1",
+   "description": "",
+   "tier": "A",
+   "difficulty": "Средняя",
+   "avgPlacement": "4.50",
+   "whenToCommit": "",
+   "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
+   "coreCards": [
+    {
+     "id": "TEST_FS_C11",
+     "dbfId": 910011,
+     "name": "Invented card 1",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [
+    {
+     "id": "TEST_FS_C12",
+     "dbfId": 910012,
+     "name": "Invented card 2",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "TEST_FS_C11",
+     "dbfId": 910011,
+     "name": "Invented card 1",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "TEST_FS_C12",
+     "dbfId": 910012,
+     "name": "Invented card 2",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ]
+  },
+  {
+   "key": "firestone-test-2",
+   "source": "Firestone",
+   "title": "Invented comp 2",
+   "description": "",
+   "tier": "A",
+   "difficulty": "Средняя",
+   "avgPlacement": "4.50",
+   "whenToCommit": "",
+   "sourceUrl": "https://www.firestoneapp.com/battlegrounds/comps",
+   "coreCards": [
+    {
+     "id": "TEST_FS_C21",
+     "dbfId": 910021,
+     "name": "Invented card 1",
+     "count": 1,
+     "role": "CORE"
+    }
+   ],
+   "additionalCards": [
+    {
+     "id": "TEST_FS_C22",
+     "dbfId": 910022,
+     "name": "Invented card 2",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ],
+   "whenToCommitCards": [],
+   "enablerCards": [],
+   "cards": [
+    {
+     "id": "TEST_FS_C21",
+     "dbfId": 910021,
+     "name": "Invented card 1",
+     "count": 1,
+     "role": "CORE"
+    },
+    {
+     "id": "TEST_FS_C22",
+     "dbfId": 910022,
+     "name": "Invented card 2",
+     "count": 1,
+     "role": "ADDON"
+    }
+   ]
+  }
+ ]
+}

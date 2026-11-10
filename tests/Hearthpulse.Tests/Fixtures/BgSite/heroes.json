@@ -1,0 +1,328 @@
+{
+ "source_id": "hsreplay_battlegrounds_heroes",
+ "ok": true,
+ "site": "hsreplay",
+ "category": "battlegrounds",
+ "url": "https://hsreplay.net/battlegrounds/heroes/",
+ "fetched_at": "2026-11-09T17:01:09.578221+00:00",
+ "backend": "hsreplay_json_api",
+ "view": {
+  "type": "bg_heroes",
+  "heroes": [
+   {
+    "hero": "Повелитель кошмаров Ксавий",
+    "dbfId": 132608,
+    "id": "BG36_HERO_105",
+    "placement_distribution": [
+     "17.22%",
+     "13.50%",
+     "12.00%",
+     "11.35%",
+     "11.59%",
+     "11.26%",
+     "12.07%",
+     "11.00%"
+    ],
+    "tier": "A",
+    "pick_rate": "78.10%",
+    "avg_placement": "4.24",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/BG36_HERO_105.png?14876a",
+    "hero_power": {
+     "dbf": 134010
+    }
+   },
+   {
+    "hero": "Менеджер Марин",
+    "dbfId": 113310,
+    "id": "BG30_HERO_304",
+    "placement_distribution": [
+     "16.29%",
+     "13.61%",
+     "12.93%",
+     "12.03%",
+     "11.73%",
+     "11.63%",
+     "11.34%",
+     "10.44%"
+    ],
+    "tier": "A",
+    "pick_rate": "76.83%",
+    "avg_placement": "4.22",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/BG30_HERO_304.png?8c8417",
+    "hero_power": {
+     "dbf": 113311
+    }
+   },
+   {
+    "hero": "Сир Денатрий",
+    "dbfId": 92960,
+    "id": "BG24_HERO_100",
+    "placement_distribution": [
+     "14.69%",
+     "11.98%",
+     "10.46%",
+     "10.59%",
+     "11.53%",
+     "11.97%",
+     "13.83%",
+     "14.94%"
+    ],
+    "tier": "D",
+    "pick_rate": "75.12%",
+    "avg_placement": "4.58",
+    "best_composition_id": 2,
+    "image": "https://hearthstone.wiki.gg/images/BG24_HERO_100.png?ef6ff5",
+    "hero_power": {
+     "dbf": 92961
+    }
+   },
+   {
+    "hero": "Трас'тат, паразит душ",
+    "dbfId": 132578,
+    "id": "BG36_HERO_101",
+    "placement_distribution": [
+     "15.92%",
+     "15.10%",
+     "14.39%",
+     "12.95%",
+     "11.96%",
+     "11.04%",
+     "10.32%",
+     "8.32%"
+    ],
+    "tier": "A",
+    "pick_rate": "71.80%",
+    "avg_placement": "4.06",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/BG36_HERO_101.png?a93223",
+    "hero_power": {
+     "dbf": 132581
+    }
+   },
+   {
+    "hero": "Рено Джексон",
+    "dbfId": 60212,
+    "id": "TB_BaconShop_HERO_41",
+    "placement_distribution": [
+     "16.70%",
+     "13.00%",
+     "11.92%",
+     "11.26%",
+     "11.31%",
+     "11.62%",
+     "11.76%",
+     "12.42%"
+    ],
+    "tier": "B",
+    "pick_rate": "65.24%",
+    "avg_placement": "4.32",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_41.png?27a2cd",
+    "hero_power": {
+     "dbf": 60216
+    }
+   },
+   {
+    "hero": "Мастер Нгуен",
+    "dbfId": 71908,
+    "id": "BG20_HERO_202",
+    "placement_distribution": [
+     "14.67%",
+     "12.01%",
+     "11.76%",
+     "12.18%",
+     "12.49%",
+     "12.27%",
+     "12.41%",
+     "12.21%"
+    ],
+    "tier": "C",
+    "pick_rate": "65.16%",
+    "avg_placement": "4.43",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/BG20_HERO_202.png?bd2bb0",
+    "hero_power": {
+     "dbf": 71909
+    }
+   },
+   {
+    "hero": "Король воргенов Генн",
+    "dbfId": 129684,
+    "id": "BG35_HERO_001",
+    "placement_distribution": [
+     "15.73%",
+     "12.18%",
+     "10.38%",
+     "11.38%",
+     "10.83%",
+     "11.59%",
+     "13.31%",
+     "14.61%"
+    ],
+    "tier": "C",
+    "pick_rate": "62.54%",
+    "avg_placement": "4.50",
+    "best_composition_id": 2,
+    "image": "https://hearthstone.wiki.gg/images/BG35_HERO_001.png?27f509",
+    "hero_power": {
+     "dbf": 129685
+    }
+   },
+   {
+    "hero": "Морхи",
+    "dbfId": 129173,
+    "id": "BG34_HERO_004",
+    "placement_distribution": [
+     "13.25%",
+     "13.09%",
+     "12.20%",
+     "12.36%",
+     "11.64%",
+     "12.96%",
+     "12.18%",
+     "12.32%"
+    ],
+    "tier": "C",
+    "pick_rate": "59.40%",
+    "avg_placement": "4.45",
+    "best_composition_id": 2,
+    "image": "https://hearthstone.wiki.gg/images/BG34_HERO_004.png?adbf7d",
+    "hero_power": {
+     "dbf": 129174
+    }
+   },
+   {
+    "hero": "Сэр Финли Мрргглтон",
+    "dbfId": 60211,
+    "id": "TB_BaconShop_HERO_40",
+    "placement_distribution": [
+     "14.15%",
+     "12.87%",
+     "13.28%",
+     "12.82%",
+     "12.86%",
+     "12.13%",
+     "11.95%",
+     "9.95%"
+    ],
+    "tier": "B",
+    "pick_rate": "55.70%",
+    "avg_placement": "4.31",
+    "best_composition_id": 2,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_40.png?5357e1",
+    "hero_power": {
+     "dbf": 60450
+    }
+   },
+   {
+    "hero": "Сильвана Ветрокрылая",
+    "dbfId": 89293,
+    "id": "BG23_HERO_306",
+    "placement_distribution": [
+     "16.54%",
+     "12.95%",
+     "11.88%",
+     "11.45%",
+     "12.13%",
+     "11.88%",
+     "11.82%",
+     "11.34%"
+    ],
+    "tier": "B",
+    "pick_rate": "53.89%",
+    "avg_placement": "4.29",
+    "best_composition_id": 20,
+    "image": "https://hearthstone.wiki.gg/images/BG23_HERO_306.png?53e875",
+    "hero_power": {
+     "dbf": 89294
+    }
+   },
+   {
+    "hero": "Страж леса Ому",
+    "dbfId": 63604,
+    "id": "TB_BaconShop_HERO_74",
+    "placement_distribution": [
+     "13.83%",
+     "11.07%",
+     "11.22%",
+     "12.03%",
+     "12.24%",
+     "12.35%",
+     "13.39%",
+     "13.86%"
+    ],
+    "tier": "D",
+    "pick_rate": "41.47%",
+    "avg_placement": "4.58",
+    "best_composition_id": 2,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_74.png?aad05d",
+    "hero_power": {
+     "dbf": 63605
+    }
+   },
+   {
+    "hero": "Принц Галливикс",
+    "dbfId": 57891,
+    "id": "TB_BaconShop_HERO_10",
+    "placement_distribution": [
+     "17.71%",
+     "10.81%",
+     "9.39%",
+     "8.77%",
+     "9.64%",
+     "11.68%",
+     "13.44%",
+     "18.55%"
+    ],
+    "tier": "D",
+    "pick_rate": "37.84%",
+    "avg_placement": "4.63",
+    "best_composition_id": 8,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_10.png?fcc91d",
+    "hero_power": {
+     "dbf": 57559
+    }
+   },
+   {
+    "hero": "А.Ф.Ка",
+    "dbfId": 57944,
+    "id": "TB_BaconShop_HERO_16",
+    "placement_distribution": [
+     "16.00%",
+     "13.68%",
+     "14.15%",
+     "13.22%",
+     "12.56%",
+     "11.56%",
+     "11.00%",
+     "7.83%"
+    ],
+    "tier": "A",
+    "pick_rate": "70.23%",
+    "avg_placement": "4.11",
+    "best_composition_id": 56,
+    "image": "https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_16.png?40be52",
+    "hero_power": {
+     "dbf": 59891
+    }
+   }
+  ],
+  "blocked": false,
+  "source": {
+   "backend": "hsreplay_json_api",
+   "status": 200,
+   "url": "https://hsreplay.net/api/v1/battlegrounds/heroes/?BattlegroundsMMRPercentile=TOP_50_PERCENT&BattlegroundsTimeRange=CURRENT_BATTLEGROUNDS_PATCH&format=json",
+   "page_rows": 0,
+   "api_rows": 116,
+   "reconciled_rows_added": 116
+  },
+  "filters": {
+   "mmr_percentile": "TOP_50_PERCENT",
+   "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+  },
+  "title": "HSReplay premium Battlegrounds heroes tier list.",
+  "kind": "bg_heroes"
+ }
+}

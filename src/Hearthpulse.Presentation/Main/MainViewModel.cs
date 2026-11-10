@@ -185,7 +185,7 @@ public sealed partial class MainViewModel : Observable
         }
     }
 
-    public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) OnCompTiersChanged(); } }
+    public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) Raise(nameof(HasCompTiers)); } }
 
     private IReadOnlyList<BracketOption> _bracketOptions = Array.Empty<BracketOption>();
     private string _compEmptyText = string.Empty;
@@ -502,11 +502,5 @@ public sealed partial class MainViewModel : Observable
 
     partial void OnRecentChanged();
 
-    partial void OnCompTiersChanged();
-
     partial void RestoreRatingFromHistory(string mode, IReadOnlyList<RatingPoint> rating);
-
-    partial void RebuildTribeRows(BattlegroundsMeta meta);
-
-    partial void OnCompRowsRebuilt(bool tribeRows);
 }

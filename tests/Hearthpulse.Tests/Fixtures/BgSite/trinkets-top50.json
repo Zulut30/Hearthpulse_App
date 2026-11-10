@@ -1,0 +1,591 @@
+{
+ "list": "trinkets",
+ "label": "Тир-лист аксессуаров",
+ "source": "hsreplay",
+ "upstreamSource": "HSReplay trinkets + Blizzard card images",
+ "fetchedAt": "2026-11-09T17:01:21.013460+00:00",
+ "mmr": "TOP_50_PERCENT",
+ "timeRange": "LAST_7_DAYS",
+ "gamesNote": "games is the minimum integer sample compatible with HSReplay's rounded placement distribution",
+ "generatedAt": "2026-11-09T23:35:21.758Z",
+ "tier": null,
+ "availableTiers": [
+  "S",
+  "A",
+  "B",
+  "C",
+  "D"
+ ],
+ "count": 10,
+ "tiers": {
+  "S": [
+   {
+    "id": "BG36_MagicItem_216",
+    "dbfId": 133404,
+    "name": "Eternal Portrait",
+    "localizedName": "Портрет вечности",
+    "text": "Get a Golden Eternal Knight. After a friendly Undead dies, your Eternal Knights have +4/+2 this game.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 5,
+    "pickRate": "27.7%",
+    "avgPlacement": 3.47,
+    "avgPlacementLabel": "3.47",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "12.38%"
+     },
+     {
+      "place": 2,
+      "rate": "25.95%"
+     },
+     {
+      "place": 3,
+      "rate": "21.20%"
+     },
+     {
+      "place": 4,
+      "rate": "13.53%"
+     },
+     {
+      "place": 5,
+      "rate": "10.40%"
+     },
+     {
+      "place": 6,
+      "rate": "6.72%"
+     },
+     {
+      "place": 7,
+      "rate": "6.17%"
+     },
+     {
+      "place": 8,
+      "rate": "3.64%"
+     }
+    ],
+    "games": 2528,
+    "gamesIsMinimum": true,
+    "tier": "S",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fe501e74c1ff956f9db6699d513d6303ce16d94a0dc22b8092ec3151ca60ef0eb.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_216&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e501e74c1ff956f9db6699d513d6303ce16d94a0dc22b8092ec3151ca60ef0eb.png",
+    "ruName": "Портрет вечности",
+    "ruText": "Вы получаете золотого вечного рыцаря. После того как погибает ваше существо-нежить, ваши вечные рыцари получают +4/+2 до конца матча."
+   },
+   {
+    "id": "BG36_MagicItem_430",
+    "dbfId": 134443,
+    "name": "Sludge Portrait",
+    "localizedName": "Изображение жижи",
+    "text": "Get a Sludge Corrosion. After you discard a spell, get a Sludge Corrosion.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 7,
+    "pickRate": "65.3%",
+    "avgPlacement": 3.49,
+    "avgPlacementLabel": "3.49",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "22.49%"
+     },
+     {
+      "place": 2,
+      "rate": "18.54%"
+     },
+     {
+      "place": 3,
+      "rate": "14.89%"
+     },
+     {
+      "place": 4,
+      "rate": "12.79%"
+     },
+     {
+      "place": 5,
+      "rate": "10.27%"
+     },
+     {
+      "place": 6,
+      "rate": "9.01%"
+     },
+     {
+      "place": 7,
+      "rate": "7.43%"
+     },
+     {
+      "place": 8,
+      "rate": "4.57%"
+     }
+    ],
+    "games": 4050,
+    "gamesIsMinimum": true,
+    "tier": "S",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F971396b762c4278d0e4c89ab815592593a899105e36f0d0365ab2492de95fd5f.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_430&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/971396b762c4278d0e4c89ab815592593a899105e36f0d0365ab2492de95fd5f.png",
+    "ruName": "Изображение жижи",
+    "ruText": "Вы получаете «Разъедающую жижу». После того как вы сбрасываете заклинание, вы получаете «Разъедающую жижу»."
+   }
+  ],
+  "A": [
+   {
+    "id": "BG30_MagicItem_943",
+    "dbfId": 117856,
+    "name": "Surveyor Portrait",
+    "localizedName": "Портрет впередсмотрящего",
+    "text": "Get a Hot-Air Surveyor. Blood Gems played from your hand give an extra +6/+6.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 1,
+    "pickRate": "57.3%",
+    "avgPlacement": 3.86,
+    "avgPlacementLabel": "3.86",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "14.47%"
+     },
+     {
+      "place": 2,
+      "rate": "18.08%"
+     },
+     {
+      "place": 3,
+      "rate": "16.53%"
+     },
+     {
+      "place": 4,
+      "rate": "13.79%"
+     },
+     {
+      "place": 5,
+      "rate": "11.89%"
+     },
+     {
+      "place": 6,
+      "rate": "10.61%"
+     },
+     {
+      "place": 7,
+      "rate": "9.08%"
+     },
+     {
+      "place": 8,
+      "rate": "5.55%"
+     }
+    ],
+    "games": 3800,
+    "gamesIsMinimum": true,
+    "tier": "A",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F18b28775830ea79b4a0c907a390017ddcdf5588232751f18a59293231f6aa825.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_943&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/18b28775830ea79b4a0c907a390017ddcdf5588232751f18a59293231f6aa825.png",
+    "ruName": "Портрет впередсмотрящего",
+    "ruText": "Вы получаете впередсмотрящего. Кровавые самоцветы, разыгранные из руки, дают еще +6/+6."
+   },
+   {
+    "id": "BG30_MagicItem_403",
+    "dbfId": 111488,
+    "name": "Ironforge Anvil",
+    "localizedName": "Стальгорнская наковальня",
+    "text": "Start of Combat: Triple the stats of your minions with no type.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 1,
+    "pickRate": "10.0%",
+    "avgPlacement": 3.91,
+    "avgPlacementLabel": "3.91",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "18.84%"
+     },
+     {
+      "place": 2,
+      "rate": "10.14%"
+     },
+     {
+      "place": 3,
+      "rate": "14.13%"
+     },
+     {
+      "place": 4,
+      "rate": "20.29%"
+     },
+     {
+      "place": 5,
+      "rate": "11.23%"
+     },
+     {
+      "place": 6,
+      "rate": "10.51%"
+     },
+     {
+      "place": 7,
+      "rate": "9.42%"
+     },
+     {
+      "place": 8,
+      "rate": "5.43%"
+     }
+    ],
+    "games": 276,
+    "gamesIsMinimum": true,
+    "tier": "A",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F60600208b4f2aee42c852031610893cf77b0df18e798fb1e619848a01d884355.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_403&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/60600208b4f2aee42c852031610893cf77b0df18e798fb1e619848a01d884355.png",
+    "ruName": "Стальгорнская наковальня",
+    "ruText": "Начало боя: утраивает характеристики ваших существ, не относящихся ни к одному типу."
+   }
+  ],
+  "B": [
+   {
+    "id": "BG30_MagicItem_418",
+    "dbfId": 111607,
+    "name": "Bronzebeard Portrait",
+    "localizedName": "Портрет Бронзоборода",
+    "text": "Get a Brann Bronzebeard and a random Battlecry minion. Your Brann Bronzebeards are both Murlocs and Dragons.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 3,
+    "pickRate": "55.5%",
+    "avgPlacement": 4.17,
+    "avgPlacementLabel": "4.17",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "11.13%"
+     },
+     {
+      "place": 2,
+      "rate": "15.13%"
+     },
+     {
+      "place": 3,
+      "rate": "15.57%"
+     },
+     {
+      "place": 4,
+      "rate": "14.81%"
+     },
+     {
+      "place": 5,
+      "rate": "13.53%"
+     },
+     {
+      "place": 6,
+      "rate": "12.68%"
+     },
+     {
+      "place": 7,
+      "rate": "10.85%"
+     },
+     {
+      "place": 8,
+      "rate": "6.30%"
+     }
+    ],
+    "games": 3667,
+    "gamesIsMinimum": true,
+    "tier": "B",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fdab32f8894db7af7e00c5e60daffeaec86fae53a11cd418e625031cbb53a336d.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_418&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/dab32f8894db7af7e00c5e60daffeaec86fae53a11cd418e625031cbb53a336d.png",
+    "ruName": "Портрет Бронзоборода",
+    "ruText": "Вы получаете Бранна Бронзоборода и случайное существо с «Боевым кличем». Бранны Бронзобороды становятся одновременно мурлоками и драконами."
+   },
+   {
+    "id": "BG30_MagicItem_876",
+    "dbfId": 111207,
+    "name": "Manipulator Portrait",
+    "localizedName": "Портрет манипулятора",
+    "text": "Get a Faceless Manipulator.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 1,
+    "pickRate": "20.4%",
+    "avgPlacement": 4.17,
+    "avgPlacementLabel": "4.17",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "16.62%"
+     },
+     {
+      "place": 2,
+      "rate": "12.94%"
+     },
+     {
+      "place": 3,
+      "rate": "12.52%"
+     },
+     {
+      "place": 4,
+      "rate": "12.48%"
+     },
+     {
+      "place": 5,
+      "rate": "13.05%"
+     },
+     {
+      "place": 6,
+      "rate": "12.77%"
+     },
+     {
+      "place": 7,
+      "rate": "11.98%"
+     },
+     {
+      "place": 8,
+      "rate": "7.64%"
+     }
+    ],
+    "games": 4567,
+    "gamesIsMinimum": true,
+    "tier": "B",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fc6102a76a43a20555a147a77b3ca7c03855159d4792fae19457bfdc2d4efa38e.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_876&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/c6102a76a43a20555a147a77b3ca7c03855159d4792fae19457bfdc2d4efa38e.png",
+    "ruName": "Портрет манипулятора",
+    "ruText": "Вы получаете безликого манипулятора."
+   }
+  ],
+  "C": [
+   {
+    "id": "BG32_MagicItem_200",
+    "dbfId": 120932,
+    "name": "All-Purpose Kibble",
+    "localizedName": "Универсальный корм",
+    "text": "Whenever a friendly Beast attacks, give it +4 Attack and permanently improve this.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 4,
+    "pickRate": "12.3%",
+    "avgPlacement": 4.25,
+    "avgPlacementLabel": "4.25",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "9.07%"
+     },
+     {
+      "place": 2,
+      "rate": "14.49%"
+     },
+     {
+      "place": 3,
+      "rate": "16.79%"
+     },
+     {
+      "place": 4,
+      "rate": "16.02%"
+     },
+     {
+      "place": 5,
+      "rate": "13.81%"
+     },
+     {
+      "place": 6,
+      "rate": "12.18%"
+     },
+     {
+      "place": 7,
+      "rate": "11.28%"
+     },
+     {
+      "place": 8,
+      "rate": "6.36%"
+     }
+    ],
+    "games": 2216,
+    "gamesIsMinimum": true,
+    "tier": "C",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F480327604d4b8394e6e3e66a6cd636d657b6bd4f039bd95ae94d33baf3d135eb.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG32_MagicItem_200&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/480327604d4b8394e6e3e66a6cd636d657b6bd4f039bd95ae94d33baf3d135eb.png",
+    "ruName": "Универсальный корм",
+    "ruText": "Когда ваш зверь атакует, он получает +4 к атаке, а этот эффект навсегда улучшается."
+   },
+   {
+    "id": "BG30_MagicItem_426t",
+    "dbfId": 115250,
+    "name": "Colorful Compass",
+    "localizedName": "Разноцветный компас · Элементаль",
+    "text": "Get 2 random Quilboar. At the start of each turn, get 2 more.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 2,
+    "pickRate": "34.5%",
+    "avgPlacement": 4.25,
+    "avgPlacementLabel": "4.25",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "17.82%"
+     },
+     {
+      "place": 2,
+      "rate": "12.76%"
+     },
+     {
+      "place": 3,
+      "rate": "11.03%"
+     },
+     {
+      "place": 4,
+      "rate": "11.26%"
+     },
+     {
+      "place": 5,
+      "rate": "11.31%"
+     },
+     {
+      "place": 6,
+      "rate": "12.53%"
+     },
+     {
+      "place": 7,
+      "rate": "14.19%"
+     },
+     {
+      "place": 8,
+      "rate": "9.10%"
+     }
+    ],
+    "games": 3989,
+    "gamesIsMinimum": true,
+    "tier": "C",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_426t&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+    "ruName": "Разноцветный компас · Элементаль",
+    "ruText": "Вы получаете 2 случайные карты типа «элементаль». В начале каждого хода вы получаете еще 2.",
+    "race": "Elemental",
+    "raceRu": "Элементаль"
+   }
+  ],
+  "D": [
+   {
+    "id": "BG35_MagicItem_861",
+    "dbfId": 130873,
+    "name": "Baller Portrait",
+    "localizedName": "Портрет метателя",
+    "text": "Get a Temperature Shift. After you play 11 Elementals, repeat this. (11 left!)",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 5,
+    "pickRate": "26.5%",
+    "avgPlacement": 4.35,
+    "avgPlacementLabel": "4.35",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "8.90%"
+     },
+     {
+      "place": 2,
+      "rate": "13.50%"
+     },
+     {
+      "place": 3,
+      "rate": "15.43%"
+     },
+     {
+      "place": 4,
+      "rate": "14.99%"
+     },
+     {
+      "place": 5,
+      "rate": "15.88%"
+     },
+     {
+      "place": 6,
+      "rate": "12.46%"
+     },
+     {
+      "place": 7,
+      "rate": "12.02%"
+     },
+     {
+      "place": 8,
+      "rate": "6.82%"
+     }
+    ],
+    "games": 674,
+    "gamesIsMinimum": true,
+    "tier": "D",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F1a15c132b61d5effa7b1fa6897779b3f6f5aea818f445446863806424d6ef5ca.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_MagicItem_861&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/1a15c132b61d5effa7b1fa6897779b3f6f5aea818f445446863806424d6ef5ca.png",
+    "ruName": "Портрет метателя",
+    "ruText": "Вы получаете «Температурный сдвиг». После того как вы разыгрываете 11 элементалей, вы получаете еще один. (Еще 11!)"
+   },
+   {
+    "id": "BG30_MagicItem_420t",
+    "dbfId": 115230,
+    "name": "Book of Medivh",
+    "localizedName": "Книга Медива",
+    "text": "Discover 2 Tavern spells. At the start of each turn, Discover 2 more.",
+    "size": "LARGE",
+    "typeLabel": "Большой аксессуар",
+    "cost": 2,
+    "pickRate": "13.8%",
+    "avgPlacement": 4.36,
+    "avgPlacementLabel": "4.36",
+    "placementDistribution": [
+     {
+      "place": 1,
+      "rate": "13.74%"
+     },
+     {
+      "place": 2,
+      "rate": "12.26%"
+     },
+     {
+      "place": 3,
+      "rate": "12.50%"
+     },
+     {
+      "place": 4,
+      "rate": "12.78%"
+     },
+     {
+      "place": 5,
+      "rate": "12.74%"
+     },
+     {
+      "place": 6,
+      "rate": "14.20%"
+     },
+     {
+      "place": 7,
+      "rate": "13.79%"
+     },
+     {
+      "place": 8,
+      "rate": "8.00%"
+     }
+    ],
+    "games": 4177,
+    "gamesIsMinimum": true,
+    "tier": "D",
+    "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fcb67c568f0baee2144848b21fbec589463aeeab759b6aa5383b79acc4fdd200c.png",
+    "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_420t&locale=ruRU&size=512x",
+    "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/cb67c568f0baee2144848b21fbec589463aeeab759b6aa5383b79acc4fdd200c.png",
+    "ruName": "Книга Медива",
+    "ruText": "Вы раскапываете 2 заклинания из таверны. В начале каждого хода вы раскапываете еще 2."
+   }
+  ]
+ },
+ "tierCounts": {
+  "S": 2,
+  "A": 2,
+  "B": 2,
+  "C": 2,
+  "D": 2
+ }
+}
