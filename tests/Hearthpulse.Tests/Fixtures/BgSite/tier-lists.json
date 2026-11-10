@@ -1,0 +1,1545 @@
+{
+ "generatedAt": "2026-11-09T23:05:32.126Z",
+ "tier": null,
+ "strategySource": "firestone",
+ "lists": {
+  "heroes": {
+   "list": "heroes",
+   "label": "Тир-лист героев",
+   "source": "hsreplay",
+   "upstreamSource": "HSReplay через api.kolodahearthstone.com",
+   "fetchedAt": "2026-11-09T17:01:09.578221+00:00",
+   "generatedAt": "2026-11-09T23:05:32.125Z",
+   "tier": null,
+   "availableTiers": [
+    "S",
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "count": 12,
+   "tiers": {
+    "S": [],
+    "A": [
+     {
+      "hero": "Повелитель кошмаров Ксавий",
+      "dbfId": 132608,
+      "pickRate": "78.10%",
+      "bestComp": "",
+      "avgPlacement": "4.24",
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9F%D0%BE%D0%B2%D0%B5%D0%BB%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%20%D0%BA%D0%BE%D1%88%D0%BC%D0%B0%D1%80%D0%BE%D0%B2%20%D0%9A%D1%81%D0%B0%D0%B2%D0%B8%D0%B9.png"
+     },
+     {
+      "hero": "Менеджер Марин",
+      "dbfId": 113310,
+      "pickRate": "76.83%",
+      "bestComp": "",
+      "avgPlacement": "4.22",
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9C%D0%B5%D0%BD%D0%B5%D0%B4%D0%B6%D0%B5%D1%80%20%D0%9C%D0%B0%D1%80%D0%B8%D0%BD.png"
+     },
+     {
+      "hero": "Трас'тат, паразит душ",
+      "dbfId": 132578,
+      "pickRate": "71.80%",
+      "bestComp": "",
+      "avgPlacement": "4.06",
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A2%D1%80%D0%B0%D1%81'%D1%82%D0%B0%D1%82%2C%20%D0%BF%D0%B0%D1%80%D0%B0%D0%B7%D0%B8%D1%82%20%D0%B4%D1%83%D1%88.png"
+     }
+    ],
+    "B": [
+     {
+      "hero": "Рено Джексон",
+      "dbfId": 60212,
+      "pickRate": "65.24%",
+      "bestComp": "",
+      "avgPlacement": "4.32",
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A0%D0%B5%D0%BD%D0%BE%20%D0%94%D0%B6%D0%B5%D0%BA%D1%81%D0%BE%D0%BD.png"
+     },
+     {
+      "hero": "Сэр Финли Мрргглтон",
+      "dbfId": 60211,
+      "pickRate": "55.70%",
+      "bestComp": "",
+      "avgPlacement": "4.31",
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A1%D1%8D%D1%80%20%D0%A4%D0%B8%D0%BD%D0%BB%D0%B8%20%D0%9C%D1%80%D1%80%D0%B3%D0%B3%D0%BB%D1%82%D0%BE%D0%BD.png"
+     },
+     {
+      "hero": "Сильвана Ветрокрылая",
+      "dbfId": 89293,
+      "pickRate": "53.89%",
+      "bestComp": "",
+      "avgPlacement": "4.29",
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A1%D0%B8%D0%BB%D1%8C%D0%B2%D0%B0%D0%BD%D0%B0%20%D0%92%D0%B5%D1%82%D1%80%D0%BE%D0%BA%D1%80%D1%8B%D0%BB%D0%B0%D1%8F.png"
+     }
+    ],
+    "C": [
+     {
+      "hero": "Мастер Нгуен",
+      "dbfId": 71908,
+      "pickRate": "65.16%",
+      "bestComp": "",
+      "avgPlacement": "4.43",
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80%20%D0%9D%D0%B3%D1%83%D0%B5%D0%BD.png"
+     },
+     {
+      "hero": "Король воргенов Генн",
+      "dbfId": 129684,
+      "pickRate": "62.54%",
+      "bestComp": "",
+      "avgPlacement": "4.50",
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9A%D0%BE%D1%80%D0%BE%D0%BB%D1%8C%20%D0%B2%D0%BE%D1%80%D0%B3%D0%B5%D0%BD%D0%BE%D0%B2%20%D0%93%D0%B5%D0%BD%D0%BD.png"
+     },
+     {
+      "hero": "Морхи",
+      "dbfId": 129173,
+      "pickRate": "59.40%",
+      "bestComp": "",
+      "avgPlacement": "4.45",
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9C%D0%BE%D1%80%D1%85%D0%B8.png"
+     }
+    ],
+    "D": [
+     {
+      "hero": "Сир Денатрий",
+      "dbfId": 92960,
+      "pickRate": "75.12%",
+      "bestComp": "",
+      "avgPlacement": "4.58",
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A1%D0%B8%D1%80%20%D0%94%D0%B5%D0%BD%D0%B0%D1%82%D1%80%D0%B8%D0%B9.png"
+     },
+     {
+      "hero": "Страж леса Ому",
+      "dbfId": 63604,
+      "pickRate": "41.47%",
+      "bestComp": "",
+      "avgPlacement": "4.58",
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%A1%D1%82%D1%80%D0%B0%D0%B6%20%D0%BB%D0%B5%D1%81%D0%B0%20%D0%9E%D0%BC%D1%83.png"
+     },
+     {
+      "hero": "Принц Галливикс",
+      "dbfId": 57891,
+      "pickRate": "37.84%",
+      "bestComp": "",
+      "avgPlacement": "4.63",
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/heroes_bg/%D0%9F%D1%80%D0%B8%D0%BD%D1%86%20%D0%93%D0%B0%D0%BB%D0%BB%D0%B8%D0%B2%D0%B8%D0%BA%D1%81.png"
+     }
+    ]
+   },
+   "tierCounts": {
+    "S": 0,
+    "A": 3,
+    "B": 3,
+    "C": 3,
+    "D": 3
+   }
+  },
+  "minions": {
+   "list": "minions",
+   "label": "Тир-лист существ",
+   "source": "hsreplay",
+   "upstreamSource": "HSReplay через api.kolodahearthstone.com",
+   "fetchedAt": "2026-11-09T17:01:09.122194+00:00",
+   "generatedAt": "2026-11-09T23:05:32.125Z",
+   "tier": null,
+   "availableTiers": [
+    "S",
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "count": 16,
+   "tiers": {
+    "S": [
+     {
+      "id": "BG36_341",
+      "dbfId": 132929,
+      "name": "Veteran Brigand",
+      "tavernTier": 6,
+      "impact": 0.59,
+      "combatWinrate": "59.74%",
+      "popularity": "6.08%",
+      "games": 36014,
+      "metricValue": 0.59,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_341&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_341&locale=ruRU&size=256x",
+      "ruName": "Опытный бандит",
+      "localizedName": "Опытный бандит",
+      "ruText": "Выберите эффект: применяет 3 |4(кровавый самоцвет,кровавых самоцвета,кровавых самоцветов) ко всем вашим существам или применяет кровавый обстрел 3 |4(раз,раза,раз).",
+      "races": [
+       "QUILBOAR"
+      ]
+     },
+     {
+      "id": "BG36_370",
+      "dbfId": 134423,
+      "name": "Victorious Geomant",
+      "tavernTier": 6,
+      "impact": 0.56,
+      "combatWinrate": "58.96%",
+      "popularity": "6.75%",
+      "games": 40001,
+      "metricValue": 0.56,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_370&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_370&locale=ruRU&size=256x",
+      "ruName": "Победоносный геомант",
+      "localizedName": "Победоносный геомант",
+      "ruText": "Активация (2): вы получаете 6 |4(кровавый самоцвет,кровавых самоцвета,кровавых самоцветов) . Не поместившиеся самоцветы применяются к вашему крайнему левому существу.",
+      "races": [
+       "QUILBOAR"
+      ]
+     },
+     {
+      "id": "BG30_123",
+      "dbfId": 113154,
+      "name": "Fearless Foodie",
+      "tavernTier": 3,
+      "impact": 0.56,
+      "combatWinrate": "54.81%",
+      "popularity": "5.90%",
+      "games": 63955,
+      "metricValue": 0.56,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_123&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_123&locale=ruRU&size=256x",
+      "ruName": "Бесстрашный гурман",
+      "localizedName": "Бесстрашный гурман",
+      "ruText": "Выберите эффект: до конца матча ваши кровавые самоцветы дают еще +1/+1 или вы получаете 4 |4(кровавый самоцвет,кровавых самоцвета,кровавых самоцветов) .",
+      "races": [
+       "QUILBOAR"
+      ]
+     }
+    ],
+    "A": [
+     {
+      "id": "BGS_008",
+      "dbfId": 59687,
+      "name": "Ghastcoiler",
+      "tavernTier": 5,
+      "impact": 0.4,
+      "combatWinrate": "47.66%",
+      "popularity": "2.04%",
+      "games": 14149,
+      "metricValue": 0.4,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BGS_008&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BGS_008&locale=ruRU&size=256x",
+      "ruName": "Гибельный змей",
+      "localizedName": "Гибельный змей",
+      "ruText": "Предсмертный хрип: призывает 2 |4(случайное существо,случайных существ,случайных существ) с «Предсмертным хрипом» .",
+      "races": [
+       "BEAST"
+      ]
+     },
+     {
+      "id": "BG35_602",
+      "dbfId": 130711,
+      "name": "Lurking Leviathan",
+      "tavernTier": 5,
+      "impact": 0.39,
+      "combatWinrate": "49.67%",
+      "popularity": "2.12%",
+      "games": 11859,
+      "metricValue": 0.39,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_602&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_602&locale=ruRU&size=256x",
+      "ruName": "Затаившийся левиафан",
+      "localizedName": "Затаившийся левиафан",
+      "ruText": "Когда вы призываете зверя, он получает +3 к атаке, а эта карта навсегда улучшается.",
+      "races": [
+       "BEAST"
+      ]
+     },
+     {
+      "id": "BG36_332",
+      "dbfId": 132634,
+      "name": "Snare Trapper",
+      "tavernTier": 4,
+      "impact": 0.38,
+      "combatWinrate": "44.38%",
+      "popularity": "4.77%",
+      "games": 45780,
+      "metricValue": 0.38,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_332&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_332&locale=ruRU&size=256x",
+      "ruName": "Мастер ловушек",
+      "localizedName": "Мастер ловушек",
+      "ruText": "Выберите эффект: вы получаете случайного свинобраза, или максимальное количество золота увеличивается на 1.",
+      "races": [
+       "QUILBOAR"
+      ]
+     }
+    ],
+    "B": [
+     {
+      "id": "BGS_131",
+      "dbfId": 65031,
+      "name": "Deadly Spore",
+      "tavernTier": 3,
+      "impact": 0.21,
+      "combatWinrate": "49.16%",
+      "popularity": "1.87%",
+      "games": 3853,
+      "metricValue": 0.21,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BGS_131&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BGS_131&locale=ruRU&size=256x",
+      "ruName": "Смертоносная спора",
+      "localizedName": "Смертоносная спора",
+      "ruText": "Токсичность",
+      "races": [
+       "NONE"
+      ]
+     },
+     {
+      "id": "BG36_352",
+      "dbfId": 132983,
+      "name": "Unbound Tempest",
+      "tavernTier": 6,
+      "impact": 0.21,
+      "combatWinrate": "56.09%",
+      "popularity": "1.83%",
+      "games": 9286,
+      "metricValue": 0.21,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_352&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_352&locale=ruRU&size=256x",
+      "ruName": "Вольная буря",
+      "localizedName": "Вольная буря",
+      "ruText": "После того как вы разыгрываете 3 элементалей, получает характеристики существа с самым высоким здоровьем в таверне. (Еще 3!)",
+      "races": [
+       "ELEMENTAL"
+      ]
+     },
+     {
+      "id": "BG35_883",
+      "dbfId": 130298,
+      "name": "Balinda Stonehearth",
+      "tavernTier": 6,
+      "impact": 0.2,
+      "combatWinrate": "56.96%",
+      "popularity": "7.21%",
+      "games": 44354,
+      "metricValue": 0.2,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_883&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_883&locale=ruRU&size=256x",
+      "ruName": "Балинда Каменный Очаг",
+      "localizedName": "Балинда Каменный Очаг",
+      "ruText": "Ваши заклинания, применяемые к вашим существам, срабатывают дважды.",
+      "races": [
+       "NONE"
+      ]
+     },
+     {
+      "id": "BG33_890t",
+      "dbfId": 122285,
+      "name": "Magicfin Apprentice",
+      "tavernTier": 1,
+      "impact": 0.18,
+      "combatWinrate": "50.64%",
+      "popularity": "3.65%",
+      "games": 20466,
+      "metricValue": 0.18,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG33_890t&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG33_890t&locale=ruRU&size=256x"
+     }
+    ],
+    "C": [
+     {
+      "id": "BG36_733",
+      "dbfId": 133028,
+      "name": "Eredar Escapist",
+      "tavernTier": 6,
+      "impact": 0.02,
+      "combatWinrate": "53.28%",
+      "popularity": "1.92%",
+      "games": 9748,
+      "metricValue": 0.02,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_733&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_733&locale=ruRU&size=256x",
+      "ruName": "Эредар-беглец",
+      "localizedName": "Эредар-беглец",
+      "ruText": "После того как ваш герой получает 5 ед. урона, вы получаете копию «Оскверненных пирожных». (Еще 5!)",
+      "races": [
+       "DEMON"
+      ]
+     },
+     {
+      "id": "BG26_963",
+      "dbfId": 100026,
+      "name": "Electric Synthesizer",
+      "tavernTier": 2,
+      "impact": 0.02,
+      "combatWinrate": "63.72%",
+      "popularity": "1.42%",
+      "games": 14919,
+      "metricValue": 0.02,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG26_963&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG26_963&locale=ruRU&size=256x",
+      "ruName": "Электрический синтезатор",
+      "localizedName": "Электрический синтезатор",
+      "ruText": "Боевой клич и начало боя: другие ваши драконы получают +1/+1.",
+      "races": [
+       "DRAGON"
+      ]
+     },
+     {
+      "id": "BG36_102",
+      "dbfId": 131702,
+      "name": "De-volition-ist",
+      "tavernTier": 5,
+      "impact": 0.02,
+      "combatWinrate": "59.84%",
+      "popularity": "1.14%",
+      "games": 2871,
+      "metricValue": 0.02,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_102&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_102&locale=ruRU&size=256x",
+      "ruName": "Безвольный взрыватель",
+      "localizedName": "Безвольный взрыватель",
+      "ruText": "После того как атакует, наносит урон, равный своей атаке, существу противника с самым высоким здоровьем.",
+      "races": [
+       "ABERRATION"
+      ]
+     }
+    ],
+    "D": [
+     {
+      "id": "BG33_828",
+      "dbfId": 123595,
+      "name": "Ship Master Eudora",
+      "tavernTier": 5,
+      "impact": -0.15,
+      "combatWinrate": "50.60%",
+      "popularity": "1.14%",
+      "games": 7545,
+      "metricValue": -0.15,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG33_828&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG33_828&locale=ruRU&size=256x",
+      "ruName": "Шкипер Юдора",
+      "localizedName": "Шкипер Юдора",
+      "ruText": "Предсмертный хрип: ваши существа получают +8/+8. Золотые существа сохраняют этот бонус навсегда.",
+      "races": [
+       "PIRATE"
+      ]
+     },
+     {
+      "id": "BG36_342",
+      "dbfId": 132921,
+      "name": "Clever Castaway",
+      "tavernTier": 2,
+      "impact": -0.16,
+      "combatWinrate": "46.72%",
+      "popularity": "5.09%",
+      "games": 67286,
+      "metricValue": -0.16,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_342&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_342&locale=ruRU&size=256x",
+      "ruName": "Смышленый изгой",
+      "localizedName": "Смышленый изгой",
+      "ruText": "Активация (2): вы раскапываете заклинание таверны.",
+      "races": [
+       "PIRATE"
+      ]
+     },
+     {
+      "id": "BG36_731",
+      "dbfId": 132899,
+      "name": "Imp-lusionist",
+      "tavernTier": 4,
+      "impact": -0.16,
+      "combatWinrate": "52.26%",
+      "popularity": "2.25%",
+      "games": 21505,
+      "metricValue": -0.16,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_731&locale=ruRU&size=512x",
+      "image256": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_731&locale=ruRU&size=256x",
+      "ruName": "Бес-иллюзионист",
+      "localizedName": "Бес-иллюзионист",
+      "ruText": "Предсмертный хрип: вы получаете «Методичное сумасшествие».",
+      "races": [
+       "DEMON"
+      ]
+     }
+    ]
+   },
+   "tierCounts": {
+    "S": 3,
+    "A": 3,
+    "B": 4,
+    "C": 3,
+    "D": 3
+   }
+  },
+  "spells": {
+   "list": "spells",
+   "label": "Тир-лист заклинаний",
+   "source": "firestone",
+   "upstreamSource": "Firestone через api.kolodahearthstone.com",
+   "fetchedAt": "2026-11-09T17:00:14.590542+00:00",
+   "generatedAt": "2026-11-09T23:05:32.126Z",
+   "tier": null,
+   "availableTiers": [
+    "S",
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "count": 5,
+   "tiers": {
+    "S": [
+     {
+      "id": "TEST_FS_001",
+      "dbfId": 900001,
+      "name": "Invented row 1",
+      "tavernTier": 5,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
+      "tier": "S"
+     }
+    ],
+    "A": [
+     {
+      "id": "TEST_FS_002",
+      "dbfId": 900002,
+      "name": "Invented row 2",
+      "tavernTier": 5,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
+      "tier": "A"
+     }
+    ],
+    "B": [
+     {
+      "id": "TEST_FS_003",
+      "dbfId": 900003,
+      "name": "Invented row 3",
+      "tavernTier": 5,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
+      "tier": "B"
+     }
+    ],
+    "C": [
+     {
+      "id": "TEST_FS_004",
+      "dbfId": 900004,
+      "name": "Invented row 4",
+      "tavernTier": 4,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
+      "tier": "C"
+     }
+    ],
+    "D": [
+     {
+      "id": "TEST_FS_005",
+      "dbfId": 900005,
+      "name": "Invented row 5",
+      "tavernTier": 2,
+      "avgPlacement": 4.5,
+      "avgPlacementOther": 4.5,
+      "impact": 0.1,
+      "totalPlayed": 100,
+      "metricValue": 4.5,
+      "tier": "D"
+     }
+    ]
+   },
+   "tierCounts": {
+    "S": 1,
+    "A": 1,
+    "B": 1,
+    "C": 1,
+    "D": 1
+   }
+  },
+  "trinkets": {
+   "list": "trinkets",
+   "label": "Тир-лист аксессуаров",
+   "source": "hsreplay",
+   "upstreamSource": "HSReplay trinkets + Blizzard card images",
+   "fetchedAt": "2026-11-09T17:01:16.622398+00:00",
+   "mmr": "TOP_1_PERCENT",
+   "timeRange": "LAST_7_DAYS",
+   "gamesNote": "games is the minimum integer sample compatible with HSReplay's rounded placement distribution",
+   "generatedAt": "2026-11-09T23:05:32.126Z",
+   "tier": null,
+   "availableTiers": [
+    "S",
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "count": 15,
+   "tiers": {
+    "S": [
+     {
+      "id": "BG30_MagicItem_545",
+      "dbfId": 112397,
+      "name": "Fridge Magnet",
+      "localizedName": "Магнит на холодильник",
+      "text": "Avenge (3): Get a random Magnetic minion.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 0,
+      "pickRate": "5.5%",
+      "avgPlacement": 2,
+      "avgPlacementLabel": "2.00",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "0.00%"
+       },
+       {
+        "place": 2,
+        "rate": "100.00%"
+       },
+       {
+        "place": 3,
+        "rate": "0.00%"
+       },
+       {
+        "place": 4,
+        "rate": "0.00%"
+       },
+       {
+        "place": 5,
+        "rate": "0.00%"
+       },
+       {
+        "place": 6,
+        "rate": "0.00%"
+       },
+       {
+        "place": 7,
+        "rate": "0.00%"
+       },
+       {
+        "place": 8,
+        "rate": "0.00%"
+       }
+      ],
+      "games": 0,
+      "gamesIsMinimum": true,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F1563769596fad656132e97e84cb164d45eacfadbbeead31628f1c40363d6011d.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_545&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/1563769596fad656132e97e84cb164d45eacfadbbeead31628f1c40363d6011d.png",
+      "ruName": "Магнит на холодильник",
+      "ruText": "Месть (3): вы получаете случайное существо с «Магнетизмом»."
+     },
+     {
+      "id": "BG35_MagicItem_754",
+      "dbfId": 131307,
+      "name": "Dramaloc Sticker",
+      "localizedName": "Наклейка с драмамурлоком",
+      "text": "Start of Combat: Give your Murlocs the Attack of the highest-Attack minion in your hand.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 6,
+      "pickRate": "13.1%",
+      "avgPlacement": 2.5,
+      "avgPlacementLabel": "2.50",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "20.00%"
+       },
+       {
+        "place": 2,
+        "rate": "50.00%"
+       },
+       {
+        "place": 3,
+        "rate": "20.00%"
+       },
+       {
+        "place": 4,
+        "rate": "0.00%"
+       },
+       {
+        "place": 5,
+        "rate": "0.00%"
+       },
+       {
+        "place": 6,
+        "rate": "0.00%"
+       },
+       {
+        "place": 7,
+        "rate": "10.00%"
+       },
+       {
+        "place": 8,
+        "rate": "0.00%"
+       }
+      ],
+      "games": 10,
+      "gamesIsMinimum": true,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F50a3d37a1d99c7e1b17fdf2a9a4a9c81f7613d45b69c29907e9ce96910a7b4c7.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_MagicItem_754&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/50a3d37a1d99c7e1b17fdf2a9a4a9c81f7613d45b69c29907e9ce96910a7b4c7.png",
+      "ruName": "Наклейка с драмамурлоком",
+      "ruText": "Начало боя: ваши мурлоки получают атаку существа с самой высокой атакой в вашей руке."
+     },
+     {
+      "id": "BG32_MagicItem_801t",
+      "dbfId": 120160,
+      "name": "Heart of the Forest",
+      "localizedName": "Сердце леса",
+      "text": "Your Tavern spells give an extra +1/+1. After you cast 5 Tavern spells from hand, improve this. (5 left!)",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 3,
+      "pickRate": "16.0%",
+      "avgPlacement": 2.5,
+      "avgPlacementLabel": "2.50",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "25.00%"
+       },
+       {
+        "place": 2,
+        "rate": "50.00%"
+       },
+       {
+        "place": 3,
+        "rate": "0.00%"
+       },
+       {
+        "place": 4,
+        "rate": "12.50%"
+       },
+       {
+        "place": 5,
+        "rate": "0.00%"
+       },
+       {
+        "place": 6,
+        "rate": "12.50%"
+       },
+       {
+        "place": 7,
+        "rate": "0.00%"
+       },
+       {
+        "place": 8,
+        "rate": "0.00%"
+       }
+      ],
+      "games": 8,
+      "gamesIsMinimum": true,
+      "tier": "S",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fb7c6513cdf5f4ae2a0b1a8d9670a1bd51669212c79ffee3af52ac0ae39f84d49.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG32_MagicItem_801t&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/b7c6513cdf5f4ae2a0b1a8d9670a1bd51669212c79ffee3af52ac0ae39f84d49.png",
+      "ruName": "Сердце леса",
+      "ruText": "Ваши заклинания таверны дают еще +1/+1. После того как вы применяете 5 заклинаний таверны из руки, этот эффект улучшается. (Еще 5!)"
+     }
+    ],
+    "A": [
+     {
+      "id": "BG30_MagicItem_406",
+      "dbfId": 111502,
+      "name": "Butcher's Sickle",
+      "localizedName": "Серп мясника",
+      "text": "Get a Butchering. At the start of each turn, get another.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 1,
+      "pickRate": "29.2%",
+      "avgPlacement": 3.11,
+      "avgPlacementLabel": "3.11",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "25.32%"
+       },
+       {
+        "place": 2,
+        "rate": "21.52%"
+       },
+       {
+        "place": 3,
+        "rate": "13.92%"
+       },
+       {
+        "place": 4,
+        "rate": "15.19%"
+       },
+       {
+        "place": 5,
+        "rate": "11.39%"
+       },
+       {
+        "place": 6,
+        "rate": "7.59%"
+       },
+       {
+        "place": 7,
+        "rate": "2.53%"
+       },
+       {
+        "place": 8,
+        "rate": "2.53%"
+       }
+      ],
+      "games": 79,
+      "gamesIsMinimum": true,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fceb9dcebffa4447a4f1f726c9596d7410498eda12c91b8309374f052052c6d32.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_406&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/ceb9dcebffa4447a4f1f726c9596d7410498eda12c91b8309374f052052c6d32.png",
+      "ruName": "Серп мясника",
+      "ruText": "Вы получаете «Разделку туши». В начале каждого хода вы получаете еще одну."
+     },
+     {
+      "id": "BG36_MagicItem_412t2",
+      "dbfId": 134463,
+      "name": "Kiri's Double Eclipse",
+      "localizedName": "Двойное затмение Кири",
+      "text": "Choose a Greater Trinket that costs (4) or less to buy. Transform this and your Hero Power into a copy of it.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 4,
+      "pickRate": "57.3%",
+      "avgPlacement": 3.12,
+      "avgPlacementLabel": "3.12",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "28.13%"
+       },
+       {
+        "place": 2,
+        "rate": "28.13%"
+       },
+       {
+        "place": 3,
+        "rate": "0.00%"
+       },
+       {
+        "place": 4,
+        "rate": "18.75%"
+       },
+       {
+        "place": 5,
+        "rate": "6.25%"
+       },
+       {
+        "place": 6,
+        "rate": "12.50%"
+       },
+       {
+        "place": 7,
+        "rate": "3.13%"
+       },
+       {
+        "place": 8,
+        "rate": "3.13%"
+       }
+      ],
+      "games": 32,
+      "gamesIsMinimum": true,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F2d7a783d2bd29091dfb30e392c44d4850f62feb270c67a235173243855129831.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_412t2&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/2d7a783d2bd29091dfb30e392c44d4850f62feb270c67a235173243855129831.png",
+      "ruName": "Двойное затмение Кири",
+      "ruText": "Выберите большой аксессуар стоимостью (4) или меньше. Превращает эту карту и вашу силу героя в его копию."
+     },
+     {
+      "id": "BG30_MagicItem_801",
+      "dbfId": 110928,
+      "name": "Sinstone Sticker",
+      "localizedName": "Наклейка с камнем грехов",
+      "text": "The first 2 times you Discover a card each turn, get an extra copy of it. (2 left!)",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 3,
+      "pickRate": "42.6%",
+      "avgPlacement": 3.12,
+      "avgPlacementLabel": "3.12",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "31.20%"
+       },
+       {
+        "place": 2,
+        "rate": "18.40%"
+       },
+       {
+        "place": 3,
+        "rate": "16.00%"
+       },
+       {
+        "place": 4,
+        "rate": "7.20%"
+       },
+       {
+        "place": 5,
+        "rate": "10.40%"
+       },
+       {
+        "place": 6,
+        "rate": "7.20%"
+       },
+       {
+        "place": 7,
+        "rate": "4.80%"
+       },
+       {
+        "place": 8,
+        "rate": "4.80%"
+       }
+      ],
+      "games": 125,
+      "gamesIsMinimum": true,
+      "tier": "A",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F76134f422deb9ec44a1fa69a5f2f6daf5082cd30739695d7caabcb0e02723b9e.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_801&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/76134f422deb9ec44a1fa69a5f2f6daf5082cd30739695d7caabcb0e02723b9e.png",
+      "ruName": "Наклейка с камнем грехов",
+      "ruText": "Когда вы раскапываете карту, вы также получаете ее копию. Срабатывает 2 раза за ход. (Еще 2!)"
+     }
+    ],
+    "B": [
+     {
+      "id": "BG30_MagicItem_993",
+      "dbfId": 113103,
+      "name": "Pagle's Fishing Rod",
+      "localizedName": "Удочка Пэгла",
+      "text": "Get a random Tier 7 minion. At the start of each turn, get another.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 3,
+      "pickRate": "22.9%",
+      "avgPlacement": 3.37,
+      "avgPlacementLabel": "3.37",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "27.30%"
+       },
+       {
+        "place": 2,
+        "rate": "15.56%"
+       },
+       {
+        "place": 3,
+        "rate": "13.65%"
+       },
+       {
+        "place": 4,
+        "rate": "12.38%"
+       },
+       {
+        "place": 5,
+        "rate": "12.70%"
+       },
+       {
+        "place": 6,
+        "rate": "7.62%"
+       },
+       {
+        "place": 7,
+        "rate": "7.62%"
+       },
+       {
+        "place": 8,
+        "rate": "3.17%"
+       }
+      ],
+      "games": 315,
+      "gamesIsMinimum": true,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F2376fe32cd6bbc35000e1a7a888ea885db39019de5fc55435facdc8b8ad58133.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_993&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/2376fe32cd6bbc35000e1a7a888ea885db39019de5fc55435facdc8b8ad58133.png",
+      "ruName": "Удочка Пэгла",
+      "ruText": "Вы получаете случайное существо 7-го уровня. В начале каждого хода вы получаете еще одно."
+     },
+     {
+      "id": "BG32_MagicItem_888",
+      "dbfId": 120705,
+      "name": "Recycling Sticker",
+      "localizedName": "Возобновляемая наклейка",
+      "text": "After you play an Elemental, gain a free Refresh.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 3,
+      "pickRate": "31.1%",
+      "avgPlacement": 3.38,
+      "avgPlacementLabel": "3.38",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "32.35%"
+       },
+       {
+        "place": 2,
+        "rate": "14.71%"
+       },
+       {
+        "place": 3,
+        "rate": "11.76%"
+       },
+       {
+        "place": 4,
+        "rate": "2.94%"
+       },
+       {
+        "place": 5,
+        "rate": "14.71%"
+       },
+       {
+        "place": 6,
+        "rate": "11.76%"
+       },
+       {
+        "place": 7,
+        "rate": "8.82%"
+       },
+       {
+        "place": 8,
+        "rate": "2.94%"
+       }
+      ],
+      "games": 34,
+      "gamesIsMinimum": true,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fa3b93ca096016b5b732f349289c5b764341d0b25f7f3226f4030fcb97cf0fd3c.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG32_MagicItem_888&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/a3b93ca096016b5b732f349289c5b764341d0b25f7f3226f4030fcb97cf0fd3c.png",
+      "ruName": "Возобновляемая наклейка",
+      "ruText": "После того как вы разыгрываете элементаля, следующее обновление становится бесплатным."
+     },
+     {
+      "id": "BG31_MagicItem_903",
+      "dbfId": 120155,
+      "name": "Wisdomball Supply",
+      "localizedName": "Запас сфер мудрости",
+      "text": "Get a Knockoff Wisdomball. At the start of each turn, repeat this.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "37.2%",
+      "avgPlacement": 3.38,
+      "avgPlacementLabel": "3.38",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "27.63%"
+       },
+       {
+        "place": 2,
+        "rate": "17.11%"
+       },
+       {
+        "place": 3,
+        "rate": "11.84%"
+       },
+       {
+        "place": 4,
+        "rate": "12.50%"
+       },
+       {
+        "place": 5,
+        "rate": "11.84%"
+       },
+       {
+        "place": 6,
+        "rate": "7.24%"
+       },
+       {
+        "place": 7,
+        "rate": "6.58%"
+       },
+       {
+        "place": 8,
+        "rate": "5.26%"
+       }
+      ],
+      "games": 152,
+      "gamesIsMinimum": true,
+      "tier": "B",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F8c3778b03fef26a65381fc00f09609ea1f0ffaecb0d4add3bc8366b25f976782.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG31_MagicItem_903&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/8c3778b03fef26a65381fc00f09609ea1f0ffaecb0d4add3bc8366b25f976782.png",
+      "ruName": "Запас сфер мудрости",
+      "ruText": "Вы получаете «Поддельную сферу мудрости». В начале каждого хода эффект повторяется."
+     }
+    ],
+    "C": [
+     {
+      "id": "BG30_MagicItem_420t",
+      "dbfId": 115230,
+      "name": "Book of Medivh",
+      "localizedName": "Книга Медива",
+      "text": "Discover 2 Tavern spells. At the start of each turn, Discover 2 more.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "21.9%",
+      "avgPlacement": 3.51,
+      "avgPlacementLabel": "3.51",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "26.74%"
+       },
+       {
+        "place": 2,
+        "rate": "17.44%"
+       },
+       {
+        "place": 3,
+        "rate": "11.92%"
+       },
+       {
+        "place": 4,
+        "rate": "12.21%"
+       },
+       {
+        "place": 5,
+        "rate": "8.43%"
+       },
+       {
+        "place": 6,
+        "rate": "7.85%"
+       },
+       {
+        "place": 7,
+        "rate": "8.14%"
+       },
+       {
+        "place": 8,
+        "rate": "7.27%"
+       }
+      ],
+      "games": 344,
+      "gamesIsMinimum": true,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2Fcb67c568f0baee2144848b21fbec589463aeeab759b6aa5383b79acc4fdd200c.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_420t&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/cb67c568f0baee2144848b21fbec589463aeeab759b6aa5383b79acc4fdd200c.png",
+      "ruName": "Книга Медива",
+      "ruText": "Вы раскапываете 2 заклинания из таверны. В начале каждого хода вы раскапываете еще 2."
+     },
+     {
+      "id": "BG36_MagicItem_416",
+      "dbfId": 134757,
+      "name": "Evil Experiment",
+      "localizedName": "Злодейский эксперимент",
+      "text": "After your Deity awakens, give it Reborn.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 4,
+      "pickRate": "15.6%",
+      "avgPlacement": 3.51,
+      "avgPlacementLabel": "3.51",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "10.81%"
+       },
+       {
+        "place": 2,
+        "rate": "24.32%"
+       },
+       {
+        "place": 3,
+        "rate": "21.62%"
+       },
+       {
+        "place": 4,
+        "rate": "16.22%"
+       },
+       {
+        "place": 5,
+        "rate": "10.81%"
+       },
+       {
+        "place": 6,
+        "rate": "8.11%"
+       },
+       {
+        "place": 7,
+        "rate": "5.41%"
+       },
+       {
+        "place": 8,
+        "rate": "2.70%"
+       }
+      ],
+      "games": 37,
+      "gamesIsMinimum": true,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F9d20186767e29f0175888376f89686b8e26d50116db4ab653b45b09951db27d5.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_416&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/9d20186767e29f0175888376f89686b8e26d50116db4ab653b45b09951db27d5.png",
+      "ruName": "Злодейский эксперимент",
+      "ruText": "После того как ваше божество пробуждается, оно получает «Перерождение»."
+     },
+     {
+      "id": "BG35_MagicItem_930",
+      "dbfId": 131002,
+      "name": "Warband Whistle",
+      "localizedName": "Боевой свисток",
+      "text": "Gain a free Refresh that contains plain copies of minions in your warband.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "27.5%",
+      "avgPlacement": 3.52,
+      "avgPlacementLabel": "3.52",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "26.13%"
+       },
+       {
+        "place": 2,
+        "rate": "17.42%"
+       },
+       {
+        "place": 3,
+        "rate": "11.45%"
+       },
+       {
+        "place": 4,
+        "rate": "12.42%"
+       },
+       {
+        "place": 5,
+        "rate": "9.52%"
+       },
+       {
+        "place": 6,
+        "rate": "8.39%"
+       },
+       {
+        "place": 7,
+        "rate": "8.87%"
+       },
+       {
+        "place": 8,
+        "rate": "5.81%"
+       }
+      ],
+      "games": 620,
+      "gamesIsMinimum": true,
+      "tier": "C",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F93b3039802ea5c0d79217bdb10c346eb3e636d223105d76390271e2eff8b9535.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG35_MagicItem_930&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/93b3039802ea5c0d79217bdb10c346eb3e636d223105d76390271e2eff8b9535.png",
+      "ruName": "Боевой свисток",
+      "ruText": "Вы получаете бесплатное обновление. После него в таверне появятся простые копии существ из вашей армии."
+     }
+    ],
+    "D": [
+     {
+      "id": "BG30_MagicItem_426t",
+      "dbfId": 115250,
+      "name": "Colorful Compass",
+      "localizedName": "Разноцветный компас · Свинобраз",
+      "text": "Get 2 random Quilboar. At the start of each turn, get 2 more.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "30.0%",
+      "avgPlacement": 3.65,
+      "avgPlacementLabel": "3.65",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "25.98%"
+       },
+       {
+        "place": 2,
+        "rate": "18.90%"
+       },
+       {
+        "place": 3,
+        "rate": "7.09%"
+       },
+       {
+        "place": 4,
+        "rate": "13.39%"
+       },
+       {
+        "place": 5,
+        "rate": "6.30%"
+       },
+       {
+        "place": 6,
+        "rate": "9.45%"
+       },
+       {
+        "place": 7,
+        "rate": "13.39%"
+       },
+       {
+        "place": 8,
+        "rate": "5.51%"
+       }
+      ],
+      "games": 127,
+      "gamesIsMinimum": true,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG30_MagicItem_426t&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0f79303d8a6211ede4f9fc3f0c15642f659c4d7e3385da8c95a7c66bfdfe33c0.png",
+      "ruName": "Разноцветный компас · Свинобраз",
+      "ruText": "Вы получаете 2 случайные карты типа «свинобраз». В начале каждого хода вы получаете еще 2.",
+      "race": "Quilboar",
+      "raceRu": "Свинобраз"
+     },
+     {
+      "id": "BG36_MagicItem_215",
+      "dbfId": 133403,
+      "name": "Dragon's Eye",
+      "localizedName": "Око дракона",
+      "text": "Your Dragons' Battlecries trigger an extra time.",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 4,
+      "pickRate": "24.1%",
+      "avgPlacement": 3.65,
+      "avgPlacementLabel": "3.65",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "15.00%"
+       },
+       {
+        "place": 2,
+        "rate": "18.75%"
+       },
+       {
+        "place": 3,
+        "rate": "16.25%"
+       },
+       {
+        "place": 4,
+        "rate": "17.50%"
+       },
+       {
+        "place": 5,
+        "rate": "15.00%"
+       },
+       {
+        "place": 6,
+        "rate": "7.50%"
+       },
+       {
+        "place": 7,
+        "rate": "6.25%"
+       },
+       {
+        "place": 8,
+        "rate": "3.75%"
+       }
+      ],
+      "games": 80,
+      "gamesIsMinimum": true,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F09431e7ac7284c15c9c4c809de347362c0548e25c16d4c364594841084796538.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_215&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/09431e7ac7284c15c9c4c809de347362c0548e25c16d4c364594841084796538.png",
+      "ruName": "Око дракона",
+      "ruText": "«Боевые кличи» ваших драконов срабатывают еще раз."
+     },
+     {
+      "id": "BG36_MagicItem_302t",
+      "dbfId": 133343,
+      "name": "Gold Mallet",
+      "localizedName": "Золотой молоток",
+      "text": "At the end of your turn, give your minions +4/+4. (Improved by Golden minions you've played this game!)",
+      "size": "LARGE",
+      "typeLabel": "Большой аксессуар",
+      "cost": 2,
+      "pickRate": "6.9%",
+      "avgPlacement": 3.65,
+      "avgPlacementLabel": "3.65",
+      "placementDistribution": [
+       {
+        "place": 1,
+        "rate": "14.81%"
+       },
+       {
+        "place": 2,
+        "rate": "25.93%"
+       },
+       {
+        "place": 3,
+        "rate": "14.81%"
+       },
+       {
+        "place": 4,
+        "rate": "7.41%"
+       },
+       {
+        "place": 5,
+        "rate": "11.11%"
+       },
+       {
+        "place": 6,
+        "rate": "16.67%"
+       },
+       {
+        "place": 7,
+        "rate": "5.56%"
+       },
+       {
+        "place": 8,
+        "rate": "3.70%"
+       }
+      ],
+      "games": 54,
+      "gamesIsMinimum": true,
+      "tier": "D",
+      "image": "https://bg.kolodahearthstone.ru/api/remote-image?src=https%3A%2F%2Fd15f34w2p8l1cc.cloudfront.net%2Fhearthstone%2F0894955f2c99d60b9377f1cf719e6fe940b8de98053bd55d7b1db3396e632914.png",
+      "imageFallback": "https://bg.kolodahearthstone.ru/api/card-art?id=BG36_MagicItem_302t&locale=ruRU&size=512x",
+      "upstreamImage": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0894955f2c99d60b9377f1cf719e6fe940b8de98053bd55d7b1db3396e632914.png",
+      "ruName": "Золотой молоток",
+      "ruText": "В конце вашего хода ваши существа получают +4/+4. (Улучшается за каждое золотое существо, разыгранное вами в этом матче!)"
+     }
+    ]
+   },
+   "tierCounts": {
+    "S": 3,
+    "A": 3,
+    "B": 3,
+    "C": 3,
+    "D": 3
+   }
+  },
+  "strategies": {
+   "list": "strategies",
+   "label": "Тир-лист стратегий",
+   "source": "firestone",
+   "upstreamSource": "Firestone через api.kolodahearthstone.com + фреймы api.kolodahearthstone.com",
+   "fetchedAt": "2026-11-09T17:00:12.501414+00:00",
+   "generatedAt": "2026-11-09T23:05:32.126Z",
+   "tier": null,
+   "availableTiers": [
+    "S",
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "count": 4,
+   "tiers": {
+    "S": [
+     {
+      "key": "test-fs-6",
+      "source": "Firestone",
+      "sourceKey": "firestone",
+      "tier": "S",
+      "title": "Invented row 6",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
+     }
+    ],
+    "A": [
+     {
+      "key": "test-fs-7",
+      "source": "Firestone",
+      "sourceKey": "firestone",
+      "tier": "A",
+      "title": "Invented row 7",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
+     }
+    ],
+    "B": [
+     {
+      "key": "test-fs-8",
+      "source": "Firestone",
+      "sourceKey": "firestone",
+      "tier": "B",
+      "title": "Invented row 8",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
+     }
+    ],
+    "C": [
+     {
+      "key": "test-fs-9",
+      "source": "Firestone",
+      "sourceKey": "firestone",
+      "tier": "C",
+      "title": "Invented row 9",
+      "difficulty": "test",
+      "archetype": "test",
+      "archetypeKey": "test",
+      "avgPlacement": 4.5,
+      "games": 100
+     }
+    ],
+    "D": []
+   },
+   "tierCounts": {
+    "S": 1,
+    "A": 1,
+    "B": 1,
+    "C": 1,
+    "D": 0
+   }
+  }
+ }
+}
