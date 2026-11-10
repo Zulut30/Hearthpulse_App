@@ -303,7 +303,9 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
    - **Event feed** (in place of "This turn"; Battlegrounds keeps its own list): every action of the game
      (`MatchPage.Feed`) under each turn's header ("Turn 7 · You · 1:20", a marker in the turn's colour; the turn on
      screen in the text colour), the same texts as the turn's actions, the step's row marked and a key card's starred.
-     Built once per game (`MatchViewModel.Feed`), each step only moves the marks in place. A row goes to its step, a
+     Built once per game (`MatchViewModel.FeedRows`), each step only moves the marks in place. Only the rows near the
+     feed's view are built (a whole game is 100-300 rows), so a screen reader sees those rows, not the whole game. A row
+     goes to its step, a
      header to its turn's first step; neither takes the focus. The feed is as tall as the table (at least 420) in a
      260-320 column and scrolls on its own to keep the step's row in view (out of sight: a third of the way down; near
      an edge: just 40 off it; a turn's first action brings its header; `MatchFeedLayout`). Avalonia compact: under the
