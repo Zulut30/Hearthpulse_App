@@ -11,7 +11,7 @@ namespace Hearthpulse.Tests;
 /// generator's pool. Fixtures are real answers of 2026-10-23 (Fixtures/CardWiki, gallery and sounds left out); the
 /// catalog is the card pool fixture. Nothing here reaches the network.
 /// </summary>
-public sealed class CardPoolWikiTests
+public sealed partial class CardPoolWikiTests
 {
     private static readonly Lazy<CardPoolCatalog> Catalog = new(() =>
     {
@@ -110,9 +110,11 @@ public sealed class CardPoolWikiTests
         var cache = CacheWith("BE_298");
         var wiki = new WikiPoolSource(new HearthpulseData(new HearthpulseApi(new HttpClient(new NoNetwork())), cache));
         var engine = new CardPoolEngine(Catalog.Value, CardDb.Empty, wiki: wiki);
-        var changed = 0;
-        wiki.Changed += () => changed++;
+        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        wiki.Changed += () => changed.TrySetResult();
 
+        // The first Build asks for the card in the background, so two loads run here; whichever answer is kept first
+        // stays (see the race test), and the same view comes back from then on.
         var before = engine.Build("BE_298", DeathKnight, PoolTrigger.Choice)!;
         await wiki.LoadAsync("BE_298");
         var after = engine.Build("BE_298", DeathKnight, PoolTrigger.Choice)!;
@@ -120,7 +122,9 @@ public sealed class CardPoolWikiTests
         Assert.Equal(CardPoolEngine.TextSource, before.Source);
         Assert.Equal(WikiPools.Source, after.Source);
         Assert.Same(after, engine.Build("BE_298", DeathKnight, PoolTrigger.Choice));
-        Assert.True(changed >= 1);
+        // Changed is raised by the load whose answer was kept, on its own thread: when that is the background one,
+        // it may come a moment after this load has returned.
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(30));
     }
 
     [Fact]

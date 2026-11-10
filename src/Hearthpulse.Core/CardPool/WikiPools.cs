@@ -208,12 +208,15 @@ public sealed class WikiPoolSource(HearthpulseData data)
             return CardWiki.None;
         }
 
-        _known[cardId] = wiki;
-        if (wiki.Pools.Count > 0)
+        // Two loads of one card can be on their way at once (the background one TryGet started and a caller's own):
+        // each parses its own answer. The first one stays: the engine keys its views by this object, so replacing
+        // it with an equal later answer would build the same pool again and raise Changed a second time.
+        var kept = _known.GetOrAdd(cardId, wiki);
+        if (ReferenceEquals(kept, wiki) && wiki.Pools.Count > 0)
         {
             Changed?.Invoke();
         }
 
-        return wiki;
+        return kept;
     }
 }
