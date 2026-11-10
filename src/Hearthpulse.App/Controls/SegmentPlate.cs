@@ -71,11 +71,24 @@ public sealed class SegmentPlate : Border
         // The Border's own fill (transparent, so the whole segment takes the pointer).
         base.OnRender(dc);
 
+        // Where the layout would put a Border of that height, inset and drop: on whole device pixels when the layout
+        // rounds (the app does), so the line is as thick and stands where the theme's own segment draws it.
+        var scale = UseLayoutRounding ? VisualTreeHelper.GetDpi(this) : new DpiScale(1, 1);
+        var thickness = UseLayoutRounding ? Math.Round(LineHeight * scale.DpiScaleY) / scale.DpiScaleY : LineHeight;
+        var top = height + LineDrop - thickness;
+        var left = LineInset;
         var room = width - (2 * LineInset);
+        if (UseLayoutRounding)
+        {
+            top = Math.Round(top * scale.DpiScaleY) / scale.DpiScaleY;
+            left = Math.Round(left * scale.DpiScaleX) / scale.DpiScaleX;
+            room = Math.Round(room * scale.DpiScaleX) / scale.DpiScaleX;
+        }
+
         if (LineBrush is { } line && LineScale > 0 && room > 0)
         {
             var length = room * Math.Min(1, LineScale);
-            var rect = new Rect((width - length) / 2, height - LineHeight + LineDrop, length, LineHeight);
+            var rect = new Rect(left + ((room - length) / 2), top, length, thickness);
             var guides = new GuidelineSet([rect.Left, rect.Right], [rect.Top, rect.Bottom]);
             guides.Freeze();
             dc.PushGuidelineSet(guides);
