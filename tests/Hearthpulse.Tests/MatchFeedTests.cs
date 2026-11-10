@@ -179,6 +179,9 @@ public sealed class MatchFeedTests : IDisposable
         Assert.Equal(80, MatchFeedLayout.Offset(100, 300, 20, 60));
         // Well inside: stays.
         Assert.Null(MatchFeedLayout.Offset(100, 300, 120, 160));
+        // A row that had to be built first was out of sight: a third down, wherever bringing it in left it.
+        Assert.Equal(500 + 250 - 100, MatchFeedLayout.Brought(500, 300, 250));
+        Assert.Equal(0, MatchFeedLayout.Brought(20, 300, 10));
     }
 
     private static double Distance(MatchArrowPoint a, MatchArrowPoint b) => Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));

@@ -258,12 +258,15 @@ public partial class MatchView : UserControl
         }
 
         var firstIndex = index > 0 && model.FeedRows[index - 1].Header ? index - 1 : index;
+        var brought = false;
         if (FeedRow(index) is null || FeedRow(firstIndex) is null)
         {
             if (!bringIn || FeedPanel() is not { } panel)
             {
                 return false;
             }
+
+            brought = true;
 
             _feedBringsRow = true;
             try
@@ -289,9 +292,11 @@ public partial class MatchView : UserControl
 
         var top = first.TransformToAncestor(scroll).Transform(default).Y;
         var bottom = row.TransformToAncestor(scroll).Transform(default).Y + row.ActualHeight;
-        if (MatchFeedLayout.Offset(scroll.VerticalOffset, scroll.ViewportHeight, top, bottom) is { } offset)
+        var offset = brought ? MatchFeedLayout.Brought(scroll.VerticalOffset, scroll.ViewportHeight, top)
+            : MatchFeedLayout.Offset(scroll.VerticalOffset, scroll.ViewportHeight, top, bottom);
+        if (offset is { } to)
         {
-            scroll.ScrollToVerticalOffset(offset);
+            scroll.ScrollToVerticalOffset(to);
         }
 
         return true;

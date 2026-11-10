@@ -297,12 +297,15 @@ public partial class MatchView : UserControl
         }
 
         var firstIndex = index > 0 && model.FeedRows[index - 1].Header ? index - 1 : index;
+        var brought = false;
         if (FeedRow(index) is null || FeedRow(firstIndex) is null)
         {
             if (!bringIn)
             {
                 return false;
             }
+
+            brought = true;
 
             _feedBringsRow = true;
             try
@@ -327,9 +330,11 @@ public partial class MatchView : UserControl
         }
 
         var top = FeedRow(firstIndex) is { } first && first.TranslatePoint(default, FeedScroll) is { } firstAt ? firstAt.Y : at.Y;
-        if (MatchFeedLayout.Offset(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top, at.Y + row.Bounds.Height) is { } offset)
+        var offset = brought ? MatchFeedLayout.Brought(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top)
+            : MatchFeedLayout.Offset(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top, at.Y + row.Bounds.Height);
+        if (offset is { } to)
         {
-            FeedScroll.Offset = new Vector(0, offset);
+            FeedScroll.Offset = new Vector(0, to);
         }
 
         return true;

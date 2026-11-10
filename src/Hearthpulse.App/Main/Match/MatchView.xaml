@@ -1139,8 +1139,9 @@
                         <!-- The table, the step's arrow over it (it never takes the mouse). Typography: the window asks for
                              tabular digits, and any Typography value takes WPF's text off its fast path (a third of a step's
                              layout was the slow one). The table, the feed and the Battlegrounds table go back to the default;
-                             the texts in the display font ask for tabular digits themselves, and the text font's digits are
-                             tabular as they are, so nothing looks different. -->
+                             the texts in the display font (the numbers on cards and heroes, the step's turn) ask for tabular
+                             digits themselves and look as before. Digits in the text font (a card's note, a feed header's
+                             time) are drawn with the font's default widths here: none of them stands in a column. -->
                         <Border x:Name="TableCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding Table}" SizeChanged="OnTableSized"
                                 Typography.NumeralAlignment="Normal">
                             <Grid>
