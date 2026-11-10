@@ -3,6 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
@@ -68,6 +70,17 @@ public sealed class PageRowsPanelAvaloniaTests
             // The 400 px the page now shows are all rows (twenty), with a screen of rows above them; nothing in between.
             Assert.InRange(panel.Children.Count, 40, 55);
             Assert.Null(rows.ContainerFromIndex(40));
+
+            // Back to the middle: the rows built now stand between the first block and the last one. Among the panel's
+            // children every row is in list order whenever it was built, so Tab walks the list, not the building.
+            page.Offset = new Vector(0, HeaderHeight + (40 * RowHeight));
+            Settle(window);
+            Assert.NotNull(rows.ContainerFromIndex(45));
+            var order = panel.Children.Select(rows.IndexFromContainer).ToList();
+            Assert.Equal(order.Order(), order);
+            Assert.Equal(order.Count, order.Distinct().Count());
+            page.Offset = new Vector(0, page.Extent.Height - page.Viewport.Height);
+            Settle(window);
             Assert.Equal(reference.Extent.Height, page.Extent.Height);
 
             // A new list starts over: its rows only, and the height of its rows.
@@ -168,6 +181,133 @@ public sealed class PageRowsPanelAvaloniaTests
         }
     });
 
+    [Fact]
+    public void A_list_given_another_panel_lets_this_one_go_without_an_error() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = Theme();
+        var rows = List(Enumerable.Range(0, 100).Select(i => $"row {i}").ToList(), new PageRowsPanel());
+        Page(rows, out var window);
+        try
+        {
+            Settle(window);
+            var panel = Assert.IsType<PageRowsPanel>(rows.ItemsPanelRoot);
+            Assert.NotEmpty(panel.Children);
+
+            // Another ItemsPanel (or the list's template applied again) takes the panel off the list with rows built.
+            rows.ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel());
+            Settle(window);
+
+            Assert.IsType<StackPanel>(rows.ItemsPanelRoot);
+            Assert.All(Enumerable.Range(0, 100), i => Assert.NotNull(rows.ContainerFromIndex(i)));
+            Assert.Null(panel.GetVisualParent());
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    /// <summary>
+    /// The arrow keys, Home and End in the meta tier list move the focus to the next archetype (over a tier's head, which
+    /// takes no focus), to the first and to the last one. A key builds the row it goes to and scrolls the page to it,
+    /// no more: it used to build every row to the end of the list and leave the focus where it was.
+    /// </summary>
+    [Fact]
+    public void Arrow_keys_Home_and_End_move_the_focus_row_by_row_and_build_only_where_they_go() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = Theme();
+        var db = TestDataFolder.Scratch("hp-page-rows-keys") + ".db";
+        var model = new MainViewModel(new HistoryStore(db), new AppSettings(), TestDataFolder.App);
+        var view = new MainView { DataContext = model };
+        var window = new Window { Width = 1280, Height = 800 };
+        window.Resources["UiFont"] = Avalonia.Media.FontFamily.Default;
+        window.Content = view;
+        try
+        {
+            window.Show();
+            window.Activate();
+            view.ShowPage("Standard");
+            view.ShowConstructedTab("Tiers");
+            model.SetConstructedMeta(Meta(200));
+            Settle(window);
+            var list = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "MetaTierList");
+            var panel = Assert.IsType<PageRowsPanel>(list.ItemsPanelRoot);
+            var page = Assert.IsType<ScrollViewer>(list.FindAncestorOfType<ScrollViewer>());
+            var step = panel.Children[0].Bounds.Height;
+            var heads = Enumerable.Range(0, list.ItemCount).Where(i => model.MetaTierRows[i] is TierHeadRow).ToList();
+            Assert.Equal(0, heads[0]);
+
+            // Down from the first archetype: the second one, nothing built on the way, the page where it was.
+            Assert.True(RowButton(1).Focus(NavigationMethod.Tab));
+            var (built, offset) = (panel.Children.Count, page.Offset.Y);
+            Press(PhysicalKey.ArrowDown);
+            Assert.Equal(2, FocusedRow());
+            Assert.InRange(panel.Children.Count, built, built + 2);
+            Assert.InRange(page.Offset.Y, offset - step, offset + step);
+
+            // Up from it: back to the first; up again there is only the tier's head: the focus stays.
+            Press(PhysicalKey.ArrowUp);
+            Assert.Equal(1, FocusedRow());
+            Press(PhysicalKey.ArrowUp);
+            Assert.Equal(1, FocusedRow());
+            Assert.Equal(offset, page.Offset.Y);
+
+            // Over the next tier's head: from the last archetype of the first tier to the first one of the second.
+            Assert.True(RowButton(heads[1] - 1).Focus(NavigationMethod.Tab));
+            Settle(window);
+            Press(PhysicalKey.ArrowDown);
+            Assert.Equal(heads[1] + 1, FocusedRow());
+            Press(PhysicalKey.ArrowUp);
+            Assert.Equal(heads[1] - 1, FocusedRow());
+
+            // End: the last row, built and in view, and not the whole list on the way to it.
+            built = panel.Children.Count;
+            Press(PhysicalKey.End);
+            Assert.Equal(list.ItemCount - 1, FocusedRow());
+            Assert.InRange(RowButton(list.ItemCount - 1).TranslatePoint(default, page)!.Value.Y, 0, page.Viewport.Height - step + 2);
+            var screen = (int)Math.Ceiling(page.Viewport.Height / step);
+            // What any place on the page costs: the rows it shows and a screen on each side, here all of them new.
+            Assert.True(panel.Children.Count - built <= 3 * screen, $"End built {panel.Children.Count - built} rows, {screen} to a screen");
+            Assert.Null(list.ContainerFromIndex(list.ItemCount - 1 - (4 * screen)));
+
+            // Down at the end: nowhere to go. Home: the first archetype (the head above it takes no focus), in view.
+            Press(PhysicalKey.ArrowDown);
+            Assert.Equal(list.ItemCount - 1, FocusedRow());
+            Press(PhysicalKey.Home);
+            Assert.Equal(1, FocusedRow());
+            Assert.InRange(RowButton(1).TranslatePoint(default, page)!.Value.Y, 0, page.Viewport.Height - step);
+            Assert.True(panel.Children.Count < list.ItemCount, "rows nobody went to stay unbuilt");
+
+            Button RowButton(int index)
+            {
+                list.ScrollIntoView(index);
+                Settle(window);
+                return Assert.IsType<Button>(Assert.IsType<ContentPresenter>(list.ContainerFromIndex(index)).Child);
+            }
+
+            void Press(PhysicalKey key)
+            {
+                window.KeyPressQwerty(key, RawInputModifiers.None);
+                Settle(window);
+            }
+
+            int FocusedRow()
+            {
+                var focused = Assert.IsType<Button>(window.FocusManager!.GetFocusedElement());
+                return model.MetaTierRows.IndexOf(focused.DataContext!);
+            }
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+            TestDataFolder.TryDelete(db);
+        }
+    });
+
     /// <summary>
     /// The meta tier list in a 1280×800 window with 80 archetypes (85 rows with the tiers' heads): fewer than half of the
     /// rows are built, and no more than what the page shows plus a screen above and a screen below; the end of the page
@@ -215,6 +355,21 @@ public sealed class PageRowsPanelAvaloniaTests
             Assert.Equal(model.Mulligan.Select(m => m.CardId), MulliganCards(card));
             Assert.Equal(["CARD_" + model.SelectedArchetype!.Id], MulliganCards(card));
             Assert.Equal(place, (list.TranslatePoint(default, view)!.Value, list.Bounds.Width));
+
+            // The tier's letter is in the tier's colour; on the chosen row it takes the text colour (the tier colours are
+            // too close to the selected plate), as the archetype's name beside it.
+            var chosen = Assert.IsType<Button>(((ContentPresenter)list.ContainerFromIndex(1)!).Child);
+            var beside = Assert.IsType<Button>(((ContentPresenter)list.ContainerFromIndex(2)!).Child);
+            Assert.Contains("selected", chosen.Classes);
+            Assert.DoesNotContain("selected", beside.Classes);
+            Assert.Same(Ink(chosen, null).Foreground, Ink(chosen, "tierInk").Foreground);
+            Assert.NotSame(Ink(beside, null).Foreground, Ink(beside, "tierInk").Foreground);
+            Assert.NotSame(Ink(chosen, "tierInk").Foreground, Ink(beside, "tierInk").Foreground);
+            Assert.NotNull(Ink(beside, "tierInk").Foreground);
+
+            static TextBlock Ink(Button row, string? name) => name is null
+                ? row.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == ((MetaArchetypeRow)row.DataContext!).Name)
+                : row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains(name));
 
             // Rows: every row has the same height, a tier's head as an archetype; fewer than half of the list is built,
             // and no more than the rows the page shows and two screens of them.

@@ -159,6 +159,17 @@
         </Setter>
     </Style>
 
+    <!-- The tier's letter of a row, in the tier's colour. On the chosen row it takes the text colour: the tier colours
+         are too close to the selected plate there (D is about 3:1), and in the table the letter alone names the tier. -->
+    <Style x:Key="TierInk" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- A tier's head as a row of the same flat list: the height, overhang and gap of MetaRow, the tier colour down the
          left edge (BorderBrush from the row's tier). Its letter is TierLetter. -->
     <Style x:Key="TierRow" TargetType="Border">

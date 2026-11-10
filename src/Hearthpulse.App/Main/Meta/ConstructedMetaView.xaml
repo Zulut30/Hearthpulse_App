@@ -38,7 +38,7 @@
                                    VerticalAlignment="Bottom" Margin="0,0,8,0" />
                         <TextBlock Grid.Column="3" Text="{Binding Tier}" Width="30" HorizontalAlignment="Left" TextAlignment="Center" VerticalAlignment="Center"
                                    FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" FontFamily="{StaticResource DisplayFont}"
-                                   Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                   Style="{StaticResource TierInk}" />
                         <TextBlock Grid.Column="4" Text="{Binding WinRate}" Width="56" HorizontalAlignment="Left" VerticalAlignment="Center"
                                    Style="{StaticResource WinRateText}" ToolTip="{Binding WinRateTip}" />
                         <Border Grid.Column="4" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="56,0,0,0"

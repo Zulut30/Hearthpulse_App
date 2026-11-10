@@ -89,6 +89,13 @@ public sealed class MetaXamlLoadTests
         Assert.Equal(3, rows.Count);
         Assert.All(rows, r => Assert.True(r.ActualHeight > 0));
 
+        // The tier's letter is in the tier's colour, and in the text colour on the chosen row (the first one).
+        TextBlock Letter(Button row) => Descendants<TextBlock>(row).Single(t => t.Text == ((WpfArchetypeRow)row.DataContext).Tier && t.Width == 30);
+        Assert.True(((WpfArchetypeRow)rows[0].DataContext).IsSelected);
+        Assert.Same(app.FindResource("Text"), Letter(rows[0]).Foreground);
+        Assert.Same(app.FindResource("TierD"), Letter(rows[2]).Foreground);
+        Assert.Equal("D", Letter(rows[2]).Text);
+
         // The side card's sections came by themselves once the dispatcher was idle.
         var view = Descendants<Hearthpulse.App.Main.Meta.ConstructedMetaView>(root).Single();
         Assert.True(model.ArchetypeDetailReady);

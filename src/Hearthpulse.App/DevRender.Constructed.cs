@@ -12,7 +12,9 @@ public partial class App
     /// <summary>
     /// <c>HEARTHPULSE_RENDER_ONLY=metatiers</c>: the Standard meta tier list as the page opens it (<c>main-meta-tiers</c>:
     /// the flat list of tier heads and archetypes beside the chosen archetype's card) and as one table
-    /// (<c>main-meta-table</c>). The view is set back to tiers.
+    /// (<c>main-meta-table</c>), then on made-up stats (<see cref="Hearthpulse.Core.Constructed.MetaTierScene.States"/>) the states the data copy rarely
+    /// has, an archetype of tier D chosen: <c>main-meta-states</c> and <c>main-meta-states-table</c>. The made-up stats
+    /// stay in the page, so this group goes last or alone.
     /// </summary>
     private async Task RenderMetaTiersAsync(string folder)
     {
@@ -22,6 +24,16 @@ public partial class App
         {
             _mainViewModel.SetMetaView.Execute(view);
             await Task.Delay(2500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, name + ".png"));
+        }
+
+        _mainViewModel.SetConstructedMeta(Hearthpulse.Core.Constructed.MetaTierScene.States());
+        _mainViewModel.SelectArchetype.Execute(_mainViewModel.MetaArchetypes.FirstOrDefault(r => r.Tier == "D"));
+        foreach (var (view, name) in new[] { ("Tiers", "main-meta-states"), ("Table", "main-meta-states-table") })
+        {
+            _mainViewModel.SetMetaView.Execute(view);
+            await Task.Delay(1500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, name + ".png"));
         }

@@ -19,6 +19,11 @@ namespace Hearthpulse.UI.Controls;
 /// nobody scrolls to are never built. Rows must all have the same height: the tallest one built so far sets it.
 /// What the page shows comes from the layout's effective viewport, so the panel needs no reference to the page's
 /// ScrollViewer and follows a move of the list on the page as well as a scroll.
+/// The arrow keys, Home and End move the focus from a row to the next row that can take it (a row that cannot, as a
+/// tier's head, is passed over), building that row and scrolling the page to it; the rows stand among the panel's
+/// children in list order, so Tab follows the list too.
+/// The items are data: a list whose items are controls (each its own row) is not what the panel is for, and a
+/// control replaced in place by a data item would be taken for that item's row.
 /// </summary>
 public sealed class PageRowsPanel : VirtualizingPanel
 {
@@ -27,6 +32,9 @@ public sealed class PageRowsPanel : VirtualizingPanel
 
     /// <summary>Time one background turn of the dispatcher spends building rows: input waits for about this long.</summary>
     private const int BuildSliceMs = 12;
+
+    /// <summary>Rows a key press looks through for one that takes the focus (a list of rows that never do stays unbuilt).</summary>
+    private const int FocusSearch = 16;
 
     /// <summary>The row of every item, by item index; null where it is not built.</summary>
     private readonly List<Control?> _rows = [];
@@ -106,6 +114,15 @@ public sealed class PageRowsPanel : VirtualizingPanel
     protected override void OnItemsControlChanged(ItemsControl? oldValue)
     {
         base.OnItemsControlChanged(oldValue);
+        if (ItemsControl is null)
+        {
+            // Taken off its list (another ItemsPanel, the template applied again): the list has let the rows go and
+            // takes the children away itself; removing them here, without an owner, throws.
+            _rows.Clear();
+            _row = double.NaN;
+            return;
+        }
+
         Clear();
     }
 
@@ -142,7 +159,7 @@ public sealed class PageRowsPanel : VirtualizingPanel
         InvalidateMeasure();
     }
 
-    /// <summary>Keyboard navigation reaches a row that is not built: it is built and the page scrolls to it.</summary>
+    /// <summary>A row that may not be built yet: it is built and the page scrolls to it.</summary>
     protected override Control? ScrollIntoView(int index)
     {
         SyncRows();
@@ -171,6 +188,13 @@ public sealed class PageRowsPanel : VirtualizingPanel
 
     protected override IEnumerable<Control>? GetRealizedContainers() => _rows.OfType<Control>();
 
+    /// <summary>
+    /// What takes the focus after an arrow key, Home or End pressed inside the row <paramref name="from"/>: the part of
+    /// the next row (the first or the last one) that can be focused, the rows that cannot passed over. Only the rows
+    /// looked at are built, and the page scrolls once, to the row found. Null when there is none: the focus stays.
+    /// The list asks again for as long as it is handed something that cannot take the focus, so a row itself is
+    /// never the answer unless it can.
+    /// </summary>
     protected override IInputElement? GetControl(NavigationDirection direction, IInputElement? from, bool wrap)
     {
         SyncRows();
@@ -181,31 +205,88 @@ public sealed class PageRowsPanel : VirtualizingPanel
         }
 
         var current = -1;
-        for (var visual = from as Visual; visual is not null && current < 0; visual = visual.GetVisualParent())
+        for (var visual = from as Visual; visual is not null && current < 0 && !ReferenceEquals(visual, this); visual = visual.GetVisualParent())
         {
             current = visual is Control control ? _rows.IndexOf(control) : -1;
         }
 
-        var target = direction switch
+        var (start, step) = direction switch
         {
-            NavigationDirection.First => 0,
-            NavigationDirection.Last => count - 1,
-            NavigationDirection.Next or NavigationDirection.Down => current + 1,
-            NavigationDirection.Previous or NavigationDirection.Up => current - 1,
-            _ => -1,
+            NavigationDirection.First => (0, 1),
+            NavigationDirection.Last => (count - 1, -1),
+            NavigationDirection.Next or NavigationDirection.Down => (current + 1, 1),
+            NavigationDirection.Previous or NavigationDirection.Up => (current < 0 ? count - 1 : current - 1, -1),
+            _ => (-1, 0),
         };
-        if (wrap && direction is NavigationDirection.Next or NavigationDirection.Down or NavigationDirection.Previous or NavigationDirection.Up)
-        {
-            target = ((target % count) + count) % count;
-        }
-
-        if (target < 0 || target >= count)
+        if (step == 0)
         {
             return null;
         }
 
-        ScrollIntoView(target);
-        return _rows[target];
+        var built = false;
+        IInputElement? found = null;
+        var index = start;
+        for (var looked = 0; looked < Math.Min(count, FocusSearch) && found is null; looked++, index += step)
+        {
+            if (index < 0 || index >= count)
+            {
+                if (!wrap || direction is NavigationDirection.First or NavigationDirection.Last)
+                {
+                    break;
+                }
+
+                index = ((index % count) + count) % count;
+            }
+
+            if (index == current)
+            {
+                break;
+            }
+
+            if (_rows[index] is null)
+            {
+                Realize(index);
+                built = true;
+            }
+
+            found = FocusTarget(_rows[index]);
+        }
+
+        if (built)
+        {
+            InvalidateMeasure();
+        }
+
+        if (found is null)
+        {
+            return null;
+        }
+
+        // The row found is the last one looked at.
+        index -= step;
+        if (!double.IsNaN(_row))
+        {
+            this.BringIntoView(new Rect(0, index * _row, Bounds.Width, _row));
+        }
+
+        return found;
+    }
+
+    /// <summary>The row itself or the first control in it that takes the keyboard focus; null for a row that has none.</summary>
+    private static IInputElement? FocusTarget(Control? row)
+    {
+        if (row is null)
+        {
+            return null;
+        }
+
+        // A row built a moment ago has no content yet: its template (and its content's) is applied by the measure.
+        if (!row.IsMeasureValid)
+        {
+            row.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        }
+
+        return row.GetSelfAndVisualDescendants().OfType<InputElement>().FirstOrDefault(e => e.Focusable && e.IsEffectivelyEnabled && e.IsVisible);
     }
 
     private bool InRange(int start, int length) => start >= 0 && length >= 0 && start <= _rows.Count - length;
@@ -329,7 +410,15 @@ public sealed class PageRowsPanel : VirtualizingPanel
             ? generator.CreateContainer(item, index, recycleKey)
             : (Control)item!;
         generator.PrepareItemContainer(row, item, index);
-        AddInternalChild(row);
+
+        // In list order among the children, whenever it is built: Tab walks the children in their order.
+        var place = 0;
+        for (var before = 0; before < index; before++)
+        {
+            place += _rows[before] is null ? 0 : 1;
+        }
+
+        InsertInternalChild(place, row);
         generator.ItemContainerPrepared(row, item, index);
         _rows[index] = row;
     }

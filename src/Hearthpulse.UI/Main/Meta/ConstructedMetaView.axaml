@@ -39,6 +39,15 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaStyles.axaml" />
+        <!-- The tier's letter of a row, in the tier's colour. On the chosen row it takes the text colour: the tier colours
+             are too close to the selected plate there (D is about 3:1), and in the table the letter alone names the tier.
+             Here, not in MetaStyles: the brush comes from the row through the view's converter. -->
+        <Style Selector="Button.metaRow TextBlock.tierInk" x:DataType="m:MetaArchetypeRow">
+            <Setter Property="Foreground" Value="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+        </Style>
+        <Style Selector="Button.metaRow.selected TextBlock.tierInk">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
     </UserControl.Styles>
     <!-- The rows of the tier list, picked by the row's type in both lists (tiers and table). -->
     <UserControl.DataTemplates>
@@ -58,7 +67,7 @@
                                VerticalAlignment="Bottom" Margin="0,0,8,0" />
                     <TextBlock Grid.Column="3" Text="{Binding Tier}" Width="30" HorizontalAlignment="Left" TextAlignment="Center" VerticalAlignment="Center"
                                FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" FontFamily="{DynamicResource DisplayFont}"
-                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                               Classes="tierInk" />
                     <TextBlock Grid.Column="4" Text="{Binding WinRate}" Width="56" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold"
                                ToolTip.Tip="{Binding WinRateTip}"
                                Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />

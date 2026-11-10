@@ -294,6 +294,20 @@ public sealed class MetaTierListTests : IDisposable
     }
 
     [Fact]
+    public void The_render_scene_has_the_states_the_data_copy_rarely_has()
+    {
+        var vm = Shown(MetaTierScene.States());
+
+        // A tier without archetypes, the split by who went first with a row that has none, two archetypes in tier D.
+        Assert.Equal(["A"], vm.MetaTierRows.OfType<TierHeadRow>().Where(h => h.IsEmpty).Select(h => h.Tier));
+        Assert.True(vm.MetaHasPlaySplit);
+        Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit == "—");
+        Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit.Contains(" · ", StringComparison.Ordinal));
+        Assert.Equal(2, vm.MetaArchetypes.Count(r => r.Tier == "D"));
+        Assert.Equal(["S", "B", "C", "D"], vm.MetaArchetypes.Select(r => r.Tier).Distinct());
+    }
+
+    [Fact]
     public void Heat_map_has_a_row_and_column_per_archetype_and_blank_cells_without_games()
     {
         var vm = Shown(Meta());
