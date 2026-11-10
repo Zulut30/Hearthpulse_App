@@ -52,9 +52,10 @@ public partial class App
         _mainViewModel.BgSiteSlices = slices;
         _mainViewModel.SetBracket.Execute(50);
 
-        await Shot("heroes-sorted", "Heroes", () => { _mainViewModel.SetHeroSort.Execute("Pick"); return Task.CompletedTask; });
-        _mainViewModel.SetHeroSort.Execute("Pick");
-        _mainViewModel.SetHeroSort.Execute("Pick");
+        // By name: the heroes stand in another order inside their tiers than the service's, not only under an arrow.
+        await Shot("heroes-sorted", "Heroes", () => { _mainViewModel.SetHeroSort.Execute("Name"); return Task.CompletedTask; });
+        _mainViewModel.SetHeroSort.Execute("Name");
+        _mainViewModel.SetHeroSort.Execute("Name");
         await Shot("heroes-top20", "Heroes", () => { _mainViewModel.SetBracket.Execute(20); return Task.Delay(3000); });
         await Shot("heroes-duos", "Heroes", () => { _mainViewModel.SetBracket.Execute(50); ShowBgMode("Duos"); return Task.Delay(1000); });
         ShowBgMode("Battlegrounds");

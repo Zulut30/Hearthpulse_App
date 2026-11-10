@@ -105,6 +105,7 @@ public sealed partial class MainViewModel
                     e.CardId,
                     BgName(e),
                     Joined(
+                        TrinketRace(e.Race),
                         e.TrinketSize switch
                         {
                             "SMALL" => Loc.T("Main.Bg.TrinketSmall"),
@@ -118,13 +119,40 @@ public sealed partial class MainViewModel
                     // The service's lower bound of games (GamesNote) is not a sample size: it is shown nowhere.
                     Number(e.PickRate, "P1"))))
                 .ToList();
-            flat = Flat(list, rows, "Main.Bg.TierTrinkets");
+            flat = Flat(list, rows, "Main.Bg.TierTrinkets", SameTrinketTogether);
         }
 
         TrinketTierRows.Sync(flat);
         TrinketTab = flat.Count > 0 && slice.Shown is { } shown
             ? Rows(BgSource(shown.FetchedAt, slice.Loading, null, SliceText(shown.Mmr), RangeText(shown.TimeRange)))
             : Empty(SliceEmptyText(slice));
+    }
+
+    /// <summary>
+    /// The service lists a trinket that depends on a tribe once per tribe, under one card id and so under one name
+    /// and picture: inside a tier those rows stand together, at the place of the first of them and in the service's
+    /// order, instead of being scattered as look-alikes through the tier.
+    /// </summary>
+    private static IEnumerable<(BgSiteTierEntry Entry, MetaTrinketRow Row)> SameTrinketTogether(IReadOnlyList<(BgSiteTierEntry Entry, MetaTrinketRow Row)> rows) =>
+        rows.GroupBy(r => r.Entry.CardId, StringComparer.Ordinal).SelectMany(g => g);
+
+    /// <summary>
+    /// The tribe of a trinket's row in the interface's language: the service says "Mech", "Quilboar"; the app's tribe
+    /// keys are "MECHANICAL", "QUILBOAR". A name the app does not know is shown as it came.
+    /// </summary>
+    private string? TrinketRace(string? race)
+    {
+        if (string.IsNullOrWhiteSpace(race))
+        {
+            return null;
+        }
+
+        var key = race.Trim().ToUpperInvariant() switch
+        {
+            "MECH" => "MECHANICAL",
+            var other => other,
+        };
+        return Races.ById.Values.Contains(key, StringComparer.Ordinal) ? Races.Display(key, _cards.Locale) : race.Trim();
     }
 
     // ---- cards ----------------------------------------------------------------------------------

@@ -22,6 +22,10 @@ public enum BgSiteList
 /// <param name="Games">Trinkets: a lower bound, not a count (<see cref="BgSiteTierList.GamesNote"/>).</param>
 /// <param name="TrinketSize">Trinkets only: "LARGE" or "SMALL".</param>
 /// <param name="Cost">Trinkets only.</param>
+/// <param name="Race">
+/// Trinkets only: the tribe the entry is for, as the service names it ("Mech", "Quilboar"...). The service lists a
+/// trinket that depends on a tribe once per tribe, under one card id, so the id alone does not tell the rows apart.
+/// </param>
 public sealed record BgSiteTierEntry(
     string CardId,
     int DbfId,
@@ -35,7 +39,8 @@ public sealed record BgSiteTierEntry(
     double? FirstRate,
     int? Games,
     string? TrinketSize = null,
-    int? Cost = null);
+    int? Cost = null,
+    string? Race = null);
 
 /// <summary>A tier list as the service sent it.</summary>
 /// <param name="Entries">The service's order: tier S first, inside a tier as sent.</param>

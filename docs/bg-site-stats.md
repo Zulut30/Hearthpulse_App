@@ -231,11 +231,18 @@ the server (17:01 and 02:45 UTC in the capture), so the same minion's numbers di
 | `games` | int, **a lower bound, not a count** (`gamesIsMinimum`: true; 0 in 3 entries) | `0` | `Games` |
 | `size` | `"LARGE"` / `"SMALL"` | | `TrinketSize` (added member) |
 | `cost` | int | `0` | `Cost` (added member) |
+| `race` | string or null: `"Beast"`, `"Demon"`, `"Dragon"`, `"Elemental"`, `"Mech"`, `"Murloc"`, `"Pirate"`, `"Quilboar"`, `"Undead"` | `"Quilboar"` | `Race` (added member) |
 | `placementDistribution[]{place, rate}`, `avgPlacementLabel`, `typeLabel`, `text`, `ruText`, `race`, `raceRu`, `image`, `imageFallback`, `upstreamImage` | | | not read |
 
 The list's `gamesNote` (verbatim: `games is the minimum integer sample compatible with HSReplay's rounded placement
 distribution`) goes to `BgSiteTierList.GamesNote`: the UI must not present `Games` of a trinket as a sample size.
 `TavernTier` is 0.
+
+**One card id can come several times.** A trinket whose effect depends on a tribe is listed once per tribe, each row
+with its own numbers and tier and the same `id` (2026-11-10: `BG30_MagicItem_426` and `BG30_MagicItem_426t`, ten rows
+each - nine tribes and one row with `race` null). `race` tells the rows apart (`ruName` carries it too: "Разноцветный
+компас · Свинобраз", but the tabs take names from `CardDb`). Heroes, minions and comps had no repeated id or title in
+the same answers.
 
 `/api/bg/tier-lists?list=trinkets&mmr=<slice>&timeRange=LAST_7_DAYS` (`LoadTrinketsAsync`) is the same list object at
 the top level of the answer, with the same entry fields and its own `source` (`hsreplay` in the three slices seen);
@@ -352,7 +359,8 @@ for showing it are in the legal report (`LEGAL-HeartLens-bg-site-stats.md`: L-B1
 
 Records as in the task card's contract, plus these members at the end (nullable, default `null`):
 
-- `BgSiteTierEntry.TrinketSize` (`"LARGE"` / `"SMALL"`), `BgSiteTierEntry.Cost` (int): trinkets only.
+- `BgSiteTierEntry.TrinketSize` (`"LARGE"` / `"SMALL"`), `BgSiteTierEntry.Cost` (int), `BgSiteTierEntry.Race` (the
+  service's tribe name of a trinket's row, see above): trinkets only.
 - `BgSiteStats.CompsFetchedAt` (`DateTime?`, UTC): the `fetchedAt` of `/api/bg-comps`, for the Comps tab's "source,
   slice, date" line; `null` without comps.
 
@@ -417,6 +425,10 @@ on the UI thread after every `LoadAsync`; the hosts give the view model the slic
   slice the choice becomes the default one.
 - **Solo / Duos** changes the heroes list only when `HeroesDuos` is there; without it the switch shows on My stats
   only and Heroes stays solo, with the player's solo games in the "You" column.
+- **Trinkets of a tribe.** A row's tribe is the first part of the line under its name ("Mech · Greater · cost 2"),
+  in the interface's language (`Races`; a name the app does not know is shown as sent). Rows of one trinket stand
+  together inside their tier, at the place of the first of them, in the service's order.
+- **Long names.** A name that does not fit is cut with an ellipsis; its tooltip and its accessible name are the full name.
 - **Not shown:** `Games` of a trinket (a lower bound, not a sample), the list's `Source`, anything of Firestone
   (Spells is an empty state while `Spells` is `null`).
 - **Comp tips.** `BgSiteComp.Tip` is the comp's text as the site has it: the origin's own writing, not a number.

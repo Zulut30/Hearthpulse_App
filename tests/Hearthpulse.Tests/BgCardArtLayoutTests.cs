@@ -37,6 +37,12 @@ public sealed class BgCardArtLayoutTests
     {
         var row = Row(path, rowType);
 
+        // The name may be cut with an ellipsis: its tooltip and its accessible name are the whole name.
+        var name = row.Descendants().Single(e => (string?)e.Attribute("Text") == "{Binding Name}");
+        Assert.Equal("{Binding Name}", (string?)(name.Attribute("ToolTip") ?? name.Attribute("ToolTip.Tip")));
+        Assert.Equal("{Binding Name}", (string?)name.Attribute("AutomationProperties.Name"));
+        Assert.Equal("CharacterEllipsis", (string?)name.Attribute("TextTrimming"));
+
         // No tile strip anywhere in the view, and no image laid out inside a frame.
         Assert.DoesNotContain(XDocument.Load(Path.Combine(RepoFiles.Root, path)).Root!.DescendantsAndSelf().Attributes(), a => a.Name.LocalName == "CardArt.Tile");
         Assert.DoesNotContain(row.Descendants(), e => e.Name.LocalName == "Image");

@@ -51,7 +51,7 @@ public sealed class BgSiteStatsTests : IDisposable
 
         Assert.Equal(12, stats.Heroes!.Entries.Count);
         Assert.Equal(16, stats.Minions!.Entries.Count);
-        Assert.Equal(15, stats.Trinkets!.Entries.Count);
+        Assert.Equal(16, stats.Trinkets!.Entries.Count);
     }
 
     [Fact]
@@ -117,6 +117,24 @@ public sealed class BgSiteStatsTests : IDisposable
         Assert.Equal(2.5, trinket.AveragePlacement!.Value, 3);
         Assert.Equal(0.131, trinket.PickRate!.Value, 4);
         Assert.Equal(0, trinket.TavernTier);
+        Assert.Null(trinket.Race);
+    }
+
+    [Fact]
+    public async Task A_trinket_listed_once_per_tribe_keeps_each_row_with_its_tribe()
+    {
+        var trinkets = (await Client(FakeSite.Real()).LoadAsync())!.Trinkets!;
+
+        // One card id, two rows of the service: the tribe is what tells them apart, each with its own numbers.
+        var rows = trinkets.Entries.Where(e => e.CardId == "BG30_MagicItem_426t").ToList();
+        Assert.Equal(["Quilboar", "Mech"], rows.Select(e => e.Race));
+        Assert.All(rows, e => Assert.Equal(("D", "LARGE", 2), (e.Tier, e.TrinketSize, e.Cost)));
+        Assert.NotEqual(rows[0].AveragePlacement, rows[1].AveragePlacement);
+        Assert.NotEqual(rows[0].NameRu, rows[1].NameRu);
+        // The other trinkets, and every entry of the other lists, have none.
+        Assert.All(trinkets.Entries.Where(e => e.CardId != "BG30_MagicItem_426t"), e => Assert.Null(e.Race));
+        var stats = (await Client(FakeSite.Real()).LoadAsync())!;
+        Assert.All(stats.Heroes!.Entries.Concat(stats.Minions!.Entries).Concat(stats.HeroesDuos!.Entries), e => Assert.Null(e.Race));
     }
 
     [Fact]

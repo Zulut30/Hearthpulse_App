@@ -143,6 +143,11 @@ public sealed class BgSiteTabsContractTests
             Assert.Contains(panel.Children.OfType<ContentPresenter>(), row => row.Content is Hearthpulse.App.Main.TierHeadRow);
             Assert.Contains(panel.Children.OfType<ContentPresenter>(), row => row.Content is Hearthpulse.App.Main.MetaHeroRow);
 
+            // A hero's name is whole in its tooltip and for a screen reader, however much of it the row shows.
+            var hero = (Hearthpulse.App.Main.MetaHeroRow)model.HeroTierRows[1];
+            var text = VisualChildren(list.ItemContainerGenerator.ContainerFromIndex(1)).OfType<TextBlock>().Single(t => t.Text == hero.Name);
+            Assert.Equal((hero.Name, hero.Name), ((string)text.ToolTip, System.Windows.Automation.AutomationProperties.GetName(text)));
+
             // A sort that moves nothing keeps every container; turned round, the head stays and the heroes change.
             var head = list.ItemContainerGenerator.ContainerFromIndex(0);
             var first = list.ItemContainerGenerator.ContainerFromIndex(1);

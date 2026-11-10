@@ -5,7 +5,7 @@ sign-in), then cut down. Field notes: `docs/bg-site-stats.md`.
 
 | File | Address | What was cut |
 |---|---|---|
-| `tier-lists.json` | `/api/bg/tier-lists` | Up to 3 entries per tier (4 in minions B: one without `ruName` added); `tierCounts` and `count` recomputed to match; `availableBackgrounds`, `exports`, `background` removed. The Firestone lists (`spells`, `strategies`) keep the service's `source` fields and 1 row per tier, and **those rows are invented** (ids `TEST_FS_…`, made-up names and numbers): they exist to test that the client refuses and cuts them. |
+| `tier-lists.json` | `/api/bg/tier-lists` | Up to 3 entries per tier (4 in minions B: one without `ruName` added); `tierCounts` and `count` recomputed to match; `availableBackgrounds`, `exports`, `background` removed. Trinkets D has a 4th entry, added 2026-11-10 from that day's answer: a second row of `BG30_MagicItem_426t` (the service lists that trinket once per tribe, field `race`), placed last so the two rows are not neighbours. The Firestone lists (`spells`, `strategies`) keep the service's `source` fields and 1 row per tier, and **those rows are invented** (ids `TEST_FS_…`, made-up names and numbers): they exist to test that the client refuses and cuts them. |
 | `heroes.json` | `/api/bg/heroes` | The heroes of the trimmed tier list plus one more; `status` removed; `hero_power` cut to its `dbf`. |
 | `minion-stats.json` | `/api/bg/library/minion-stats` | The minions of the trimmed tier list, two with null numbers, one that is in no tier; `total` is the original 268. |
 | `comps.json` | `/api/bg-comps` | 3 HSReplay comps as sent, and 2 comps marked `Firestone` whose content is **invented** (keys `firestone-test-…`, cards `TEST_FS_…`); `count` recomputed. |

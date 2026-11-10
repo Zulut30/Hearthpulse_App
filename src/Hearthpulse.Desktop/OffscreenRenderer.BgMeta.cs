@@ -56,9 +56,10 @@ internal static partial class OffscreenRenderer
         model.BgSiteSlices = slices;
         model.SetBracket.Execute(50);
 
-        await Shot("heroes-sorted", "Heroes", () => { model.SetHeroSort.Execute("Pick"); return Task.CompletedTask; });
-        model.SetHeroSort.Execute("Pick");
-        model.SetHeroSort.Execute("Pick");
+        // By name: the heroes stand in another order inside their tiers than the service's, not only under an arrow.
+        await Shot("heroes-sorted", "Heroes", () => { model.SetHeroSort.Execute("Name"); return Task.CompletedTask; });
+        model.SetHeroSort.Execute("Name");
+        model.SetHeroSort.Execute("Name");
         await Shot("heroes-top20", "Heroes", () => { model.SetBracket.Execute(20); return Task.Delay(3000); });
         await Shot("heroes-duos", "Heroes", () => { model.SetBracket.Execute(50); ShowBgMode(view, "Duos"); return Task.Delay(1000); });
         ShowBgMode(view, "Battlegrounds");

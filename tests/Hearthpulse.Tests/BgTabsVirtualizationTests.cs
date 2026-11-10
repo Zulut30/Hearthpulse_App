@@ -300,6 +300,9 @@ public sealed class BgTabsVirtualizationTests
                 Assert.True(text.Bounds.Width >= 100, $"{tab}: the name is {text.Bounds.Width:0} wide in a list of {items.Bounds.Width:0}");
                 Assert.DoesNotContain(row.GetVisualDescendants().OfType<Control>(), c => c.Classes.Contains("bgNarrowOff") && c.IsEffectivelyVisible);
                 Assert.Contains(row.GetVisualDescendants().OfType<Border>(), b => b.Width is 36 or 54 && b.IsEffectivelyVisible);
+                // A name cut with an ellipsis is whole in its tooltip and for a screen reader.
+                Assert.Equal(name, ToolTip.GetTip(text));
+                Assert.Equal(name, Avalonia.Automation.AutomationProperties.GetName(text));
                 // Nothing of the row stands outside it.
                 Assert.All(row.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible),
                     t => Assert.True(t.TranslatePoint(new Point(t.Bounds.Width, 0), row)!.Value.X <= row.Bounds.Width + 0.5, $"{tab}: \"{t.Text}\" ends past the row"));
@@ -318,6 +321,7 @@ public sealed class BgTabsVirtualizationTests
             var cardRow = view.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Name == "CardTierList").ContainerFromIndex(1)!;
             var card = (MetaCardRow)cardRow.DataContext!;
             var shown = cardRow.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).ToList();
+            Assert.Equal((card.Name, card.Name), ((string?)ToolTip.GetTip(shown[0]), Avalonia.Automation.AutomationProperties.GetName(shown[0])));
             Assert.Equal([card.Name, card.Detail, card.Impact], shown.Select(t => t.Text));
             Assert.True(shown[0].Bounds.Width >= 100, $"Cards: the name is {shown[0].Bounds.Width:0} wide");
 

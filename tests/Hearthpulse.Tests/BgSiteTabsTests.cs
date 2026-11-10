@@ -38,7 +38,11 @@ public sealed class BgSiteTabsTests
         vm.SetBgSiteStats(stats);
 
         AssertFlat(stats.Heroes!, stats.Heroes!.Entries, vm.HeroTierRows, r => ((MetaHeroRow)r).CardId, r => ((MetaHeroRow)r).Tier, "Main.Bg.TierHeroes");
-        AssertFlat(stats.Trinkets!, stats.Trinkets!.Entries, vm.TrinketTierRows, r => ((MetaTrinketRow)r).CardId, r => ((MetaTrinketRow)r).Tier, "Main.Bg.TierTrinkets");
+        // Trinkets: the same, except that the rows of one trinket (the service lists a tribe trinket once per tribe)
+        // stand together inside their tier, at the place of the first of them.
+        var together = stats.Trinkets!.Entries.GroupBy(e => e.Tier).SelectMany(tier => tier.GroupBy(e => e.CardId).SelectMany(rows => rows)).ToList();
+        Assert.NotEqual(stats.Trinkets.Entries.Select(e => e.CardId), together.Select(e => e.CardId));
+        AssertFlat(stats.Trinkets, together, vm.TrinketTierRows, r => ((MetaTrinketRow)r).CardId, r => ((MetaTrinketRow)r).Tier, "Main.Bg.TierTrinkets");
 
         // The fixture's heroes have no S tier: the service's own empty tier keeps its head, marked empty.
         var s = Assert.IsType<TierHeadRow>(vm.HeroTierRows[0]);
@@ -46,7 +50,7 @@ public sealed class BgSiteTabsTests
 
         // The rank is the entry's place in the service's list, through the tiers.
         Assert.Equal(Enumerable.Range(1, stats.Heroes.Entries.Count), vm.HeroTierRows.OfType<MetaHeroRow>().Select(r => r.Rank));
-        Assert.Equal(Enumerable.Range(1, stats.Trinkets.Entries.Count), vm.TrinketTierRows.OfType<MetaTrinketRow>().Select(r => r.Rank));
+        Assert.Equal(Enumerable.Range(1, stats.Trinkets.Entries.Count), vm.TrinketTierRows.OfType<MetaTrinketRow>().Select(r => r.Rank).Order());
     });
 
     [Fact]
@@ -823,6 +827,54 @@ public sealed class BgSiteTabsTests
         Assert.Same(cards, vm.CardTierRows);
         Assert.Equal(["M2", "M3"], vm.CardTierRows.OfType<MetaCardRow>().Select(r => r.CardId));
         Assert.Equal(head, vm.CardTierRows[0]);
+    });
+
+    [Fact]
+    public void Rows_of_one_trinket_for_different_tribes_stand_together_and_name_their_tribe() => LocBindingTests.Headless.Run(() =>
+    {
+        BgSiteTierEntry Compass(string tier, double place, string? race) => new("COMPASS", 1, tier, "Компас", "Compass", 0, place, 0.2, null, null, 5, "LARGE", 2, race);
+        BgSiteTierEntry Other(string id, string tier, double place) => new(id, 2, tier, id, id, 0, place, 0.1, null, null, 5, "SMALL", 1);
+        var vm = Model();
+        vm.SetBgSiteStats(Stats(trinkets: List(BgSiteList.Trinkets,
+        [
+            Other("T1", "S", 2.0), Compass("S", 2.8, "Undead"), Other("T2", "S", 2.85), Compass("S", 2.9, "Mech"), Other("T3", "S", 2.95),
+            Compass("A", 3.2, "Naga-ish"), Other("T4", "A", 3.3), Compass("A", 3.5, null),
+        ], tiers: ["S", "A"])));
+
+        // Inside a tier the rows of one trinket follow the first of them, in the service's order; the others keep
+        // theirs. The tiers are the service's: a trinket's rows in another tier stay there.
+        var rows = vm.TrinketTierRows.ToList();
+        Assert.Equal(["S", "T1", "COMPASS", "COMPASS", "T2", "T3", "A", "COMPASS", "COMPASS", "T4"], rows.Select(r => r is TierHeadRow h ? h.Tier : ((MetaTrinketRow)r).CardId));
+        var compass = rows.OfType<MetaTrinketRow>().Where(r => r.CardId == "COMPASS").ToList();
+        // The rank is still the row's place in the service's list.
+        Assert.Equal([2, 4, 6, 8], compass.Select(r => r.Rank));
+        Assert.Equal(new[] { 2.8, 2.9, 3.2, 3.5 }.Select(p => p.ToString("0.00", CultureInfo.CurrentCulture)), compass.Select(r => r.Placement));
+
+        // The tribe leads the line under the name, in the interface's language ("Mech" is the app's MECHANICAL); a
+        // tribe the app does not know is shown as sent; a row without one has size and cost only.
+        var rest = $"{Loc.T("Main.Bg.TrinketLarge")} · {Loc.F("Main.Bg.TrinketCost", 2)}";
+        Assert.Equal(
+            [$"{Races.Display("UNDEAD", "enUS")} · {rest}", $"{Races.Display("MECHANICAL", "enUS")} · {rest}", $"Naga-ish · {rest}", rest],
+            compass.Select(r => r.Detail));
+        // No two rows of the list read the same.
+        Assert.Equal(rows.Count, rows.Select(r => r is MetaTrinketRow t ? t.Name + "|" + t.Detail : r.ToString()).Distinct().Count());
+
+        Loc.Instance.SetLanguage(Loc.Russian);
+        try
+        {
+            Assert.StartsWith("Механизм · ", vm.TrinketTierRows.OfType<MetaTrinketRow>().Single(r => r.Rank == 4).Detail, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+
+        // The service's own answer (fixture): the two rows of its tribe trinket, far apart in tier D, stand together.
+        vm.SetBgSiteStats(Fixtures());
+        var d = vm.TrinketTierRows.OfType<MetaTrinketRow>().Where(r => r.Tier == "D").ToList();
+        Assert.Equal(["BG30_MagicItem_426t", "BG30_MagicItem_426t"], d.Take(2).Select(r => r.CardId));
+        Assert.Equal([Races.Display("QUILBOAR", "enUS"), Races.Display("MECHANICAL", "enUS")], d.Take(2).Select(r => r.Detail.Split(" · ")[0]));
+        Assert.Equal(4, d.Count);
     });
 
     [Fact]

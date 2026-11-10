@@ -230,7 +230,7 @@
                     <TextBlock Width="40" Text="{Binding Rank}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
                     <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" Classes="bgPlace" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
                     <Border Grid.Column="3" Classes="bgNarrowOff" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
@@ -253,7 +253,7 @@
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Top" Margin="0,0,12,0" />
                     <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
@@ -277,7 +277,7 @@
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Top" Margin="0,0,12,0" />
                     <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
