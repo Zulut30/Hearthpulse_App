@@ -52,6 +52,18 @@ public sealed record MetaArchetypeRow(
     public string PlaySplit => HasPlaySplit ? First + " · " + Coin : "—";
 
     /// <summary>
+    /// Whether the list shows the play split at all (some row of it has one): the same for every row of a list, kept in
+    /// the row so its cell reads its own row and not, through a search up the tree, the page.
+    /// </summary>
+    public bool ShowsPlaySplit { get; init; }
+
+    /// <summary>The length of the win-rate bar, of the 56 its cell has: computed once here, not by a converter in each row.</summary>
+    public double WinBar => BarFraction * 56;
+
+    /// <summary>The length of the popularity bar, of the 44 its cell has.</summary>
+    public double PopularityBar => PopularityFraction * 44;
+
+    /// <summary>
     /// The same row: what it shows, not whether it is chosen or who listens to it. A list changed in place
     /// (<see cref="SyncList{T}"/>) keeps a row that is equal to the new one, with its container and its choice.
     /// </summary>
@@ -59,7 +71,8 @@ public sealed record MetaArchetypeRow(
         other is not null && Id == other.Id && Rank == other.Rank && Name == other.Name && EnglishName == other.EnglishName && HeroId == other.HeroId
         && Detail == other.Detail && Tier == other.Tier && WinRate == other.WinRate && WinRateTip == other.WinRateTip && Edge.Equals(other.Edge)
         && WinSign == other.WinSign && BarFraction.Equals(other.BarFraction) && Popularity == other.Popularity
-        && PopularityFraction.Equals(other.PopularityFraction) && Games == other.Games && First == other.First && Coin == other.Coin;
+        && PopularityFraction.Equals(other.PopularityFraction) && Games == other.Games && First == other.First && Coin == other.Coin
+        && ShowsPlaySplit == other.ShowsPlaySplit;
 
     public override int GetHashCode() => HashCode.Combine(Id, Rank, Name, Tier, WinRate, Popularity, Games);
 
@@ -481,8 +494,9 @@ public sealed partial class MainViewModel
             shown.TryAdd(row.Id, row);
         }
 
+        var split = archetypes.Exists(a => a.FirstGames > 0 || a.CoinGames > 0);
         var rows = archetypes
-            .Select((a, i) => ArchetypeRow(a, i + 1, topShare, topGames))
+            .Select((a, i) => ArchetypeRow(a, i + 1, topShare, topGames) with { ShowsPlaySplit = split })
             .Select(r => shown.TryGetValue(r.Id, out var old) && old.Equals(r) ? old : r)
             .ToList();
         ShowArchetypeRows(rows);

@@ -85,7 +85,8 @@ public sealed class MainWindowLookTests
             var headSplit = header.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "6");
             var rowSplit = row.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "6");
             Assert.Contains("MetaHasPlaySplit", Shown(headSplit), StringComparison.Ordinal);
-            Assert.Contains("MetaHasPlaySplit", Shown(rowSplit), StringComparison.Ordinal);
+            // The row reads its own copy of the list's flag (ShowsPlaySplit), not the page through a search up the tree.
+            Assert.Contains("ShowsPlaySplit", Shown(rowSplit), StringComparison.Ordinal);
             // One text of a fixed width in the head and in the row, so every row keeps the header's columns and the same height.
             Assert.Equal(("TextBlock", "96"), (headSplit.Name.LocalName, (string?)headSplit.Attribute("Width")));
             Assert.Equal(("TextBlock", "96"), (rowSplit.Name.LocalName, (string?)rowSplit.Attribute("Width")));

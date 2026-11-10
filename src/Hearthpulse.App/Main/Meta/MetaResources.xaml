@@ -181,6 +181,66 @@
         <Setter Property="Background" Value="{StaticResource Surface2}" />
     </Style>
 
+    <!-- The theme's Segment (underline tabs) with the same look and motion in three visuals instead of seven: one plate
+         draws the hover tint, the padding and the line (Controls/SegmentPlate), and the label is a text of its own. For
+         bars of many choices built from data: the meta filters are thirty of them. The label must be a text. -->
+    <Style x:Key="MetaSegment" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingChip}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <c:SegmentPlate x:Name="Plate" Padding="12,6,12,8" Background="Transparent" SnapsToDevicePixels="True"
+                                    HoverBrush="{StaticResource Hover}" LineBrush="{StaticResource Accent}">
+                        <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" VerticalAlignment="Center" />
+                    </c:SegmentPlate>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Plate" Storyboard.TargetProperty="HoverOpacity" To="1" Duration="{StaticResource MotionFast}" EasingFunction="{StaticResource MotionEase}" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Plate" Storyboard.TargetProperty="HoverOpacity" To="0" Duration="{StaticResource MotionSettle}" EasingFunction="{StaticResource MotionEase}" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter Property="Foreground" Value="{StaticResource Text}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Plate" Property="HoverBrush" Value="{StaticResource Pressed}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Plate" Storyboard.TargetProperty="LineScale" To="1" Duration="{StaticResource MotionSettle}" EasingFunction="{StaticResource MotionEase}" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Plate" Storyboard.TargetProperty="LineScale" To="0" Duration="{StaticResource MotionSettle}" EasingFunction="{StaticResource MotionEase}" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A segment bar of choices from the view model (rank, period, class, minimum games) -->
     <ItemsPanelTemplate x:Key="ChoiceRow">
         <StackPanel Orientation="Horizontal" />

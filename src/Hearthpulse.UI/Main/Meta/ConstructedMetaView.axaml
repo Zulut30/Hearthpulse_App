@@ -55,8 +55,9 @@
              games) in one cell, the tier's letter in its colour, win rate and popularity as a number and a bar, the play
              split in one text. The button's presenter draws the plate (Button.metaRow). -->
         <DataTemplate x:DataType="m:MetaArchetypeRow">
-            <Button Classes="bare metaRow" Classes.selected="{Binding IsSelected}" CommandParameter="{Binding}"
-                    Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SelectArchetype}">
+            <!-- No command on the row: the view hears the click of both lists (OnRowClick), which spares each row two
+                 bindings and a search up the tree. -->
+            <Button Classes="bare metaRow" Classes.selected="{Binding IsSelected}">
                 <Grid ColumnDefinitions="30,42,*,44,116,100,Auto">
                     <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
@@ -73,15 +74,15 @@
                                Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
                     <Border Grid.Column="4" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="56,0,0,0"
                             Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
-                            Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                            Width="{Binding WinBar}" />
                     <TextBlock Grid.Column="5" Text="{Binding Popularity}" Width="48" HorizontalAlignment="Left" VerticalAlignment="Center"
                                Classes="caption metaWide" FontSize="{StaticResource FontSizeLabel}" />
                     <Border Grid.Column="5" Classes="metaWide" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="48,0,0,0"
                             Background="{StaticResource Accent}"
-                            Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
+                            Width="{Binding PopularityBar}" />
                     <!-- Shown only when the source splits games by who went first -->
                     <TextBlock Grid.Column="6" Width="96" Text="{Binding PlaySplit}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" VerticalAlignment="Center"
-                               IsVisible="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).MetaHasPlaySplit}" />
+                               IsVisible="{Binding ShowsPlaySplit}" />
                 </Grid>
             </Button>
         </DataTemplate>
@@ -108,7 +109,7 @@
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
         <StackPanel Name="MetaFilters" Margin="0,0,0,12">
             <WrapPanel Margin="0,0,0,8">
-                <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.RankTip}">
+                <Border Name="FilterRanks" Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.RankTip}">
                     <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MetaChoice">
@@ -118,7 +119,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-                <Border Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Main.Ct.PeriodTip}">
+                <Border Name="FilterPeriods" Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Main.Ct.PeriodTip}">
                     <ItemsControl ItemsSource="{Binding MetaPeriods}" ItemsPanel="{StaticResource ChoiceRow}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MetaChoice">
@@ -130,7 +131,7 @@
                 </Border>
             </WrapPanel>
             <WrapPanel>
-                <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.ClassTip}">
+                <Border Name="FilterClasses" Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.ClassTip}">
                     <ItemsControl ItemsSource="{Binding MetaClasses}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MetaChoice">
@@ -155,7 +156,7 @@
 
         <!-- Meta tier list: archetypes on the left, the chosen one's mulligan guide and best lists on the right -->
         <Grid Name="MetaTiersPanel" ColumnDefinitions="3*,16,2*">
-            <Border Classes="card" VerticalAlignment="Top">
+            <Border Name="TierCard" Classes="card" VerticalAlignment="Top">
                 <StackPanel>
                     <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
                         <c:Ornament Text="{Binding ConstructedTitle}" Icon="&#xF11D0;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -213,12 +214,16 @@
                     <!-- Tiers: S to D in one flat list, a tier's head and then its archetypes; an empty tier is its head alone,
                          saying so (as on the site). The list is changed in place, so the rows that stay keep their visuals.
                          Not clipped: a row's plate stands 8 px out of the list on each side, into the card's padding. -->
-                    <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
-                                  IsVisible="{Binding MetaTierView}" />
+                    <!-- Both lists in one holder: the view keeps it hidden while it builds the rest of the tab ahead of the first
+                         click (Prebuild in the code-behind), so the rows are built where the page really shows them. -->
+                    <StackPanel Name="MetaLists">
+                        <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
+                                      IsVisible="{Binding MetaTierView}" />
 
-                    <!-- Table: the archetypes alone, in the chosen order -->
-                    <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
-                                  IsVisible="{Binding MetaTableView}" />
+                        <!-- Table: the archetypes alone, in the chosen order -->
+                        <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
+                                      IsVisible="{Binding MetaTableView}" />
+                    </StackPanel>
 
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
                     <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />

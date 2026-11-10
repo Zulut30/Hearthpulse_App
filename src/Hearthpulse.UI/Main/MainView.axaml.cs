@@ -482,6 +482,12 @@ public partial class MainView : UserControl
         // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
         var deckOpen = _viewModel?.DeckOpen == true;
         PageConstructed.IsVisible = ConstructedShown && !deckOpen;
+        if (PageConstructed.IsVisible)
+        {
+            // The meta tabs' fixed part (filters, card frames) is built ahead of the first click on one of them.
+            PageConstructed.CtMeta.Prebuild();
+        }
+
         PageDeck.IsVisible = ConstructedShown && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
         PageBrawl.IsVisible = NavBrawl.IsChecked == true;

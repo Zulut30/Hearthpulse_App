@@ -17,8 +17,9 @@
                  games) in one cell, the tier's letter in its colour, win rate and popularity as a number and a bar, the
                  play split in one text. No key: both lists (tiers and table) pick it by the row's type. -->
             <DataTemplate DataType="{x:Type m:MetaArchetypeRow}">
-                <Button Style="{StaticResource MetaRow}" CommandParameter="{Binding}"
-                        Command="{Binding DataContext.SelectArchetype, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                <!-- No command on the row: the lists' holder hears the click (OnRowClick), which spares each row two bindings
+                     and a search up the tree. -->
+                <Button Style="{StaticResource MetaRow}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="30" />
@@ -43,15 +44,15 @@
                                    Style="{StaticResource WinRateText}" ToolTip="{Binding WinRateTip}" />
                         <Border Grid.Column="4" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="56,0,0,0"
                                 Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
-                                Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                                Width="{Binding WinBar}" />
                         <TextBlock Grid.Column="5" Text="{Binding Popularity}" Width="48" HorizontalAlignment="Left" VerticalAlignment="Center"
                                    Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                         <Border Grid.Column="5" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="48,0,0,0"
                                 Background="{StaticResource Accent}"
-                                Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
+                                Width="{Binding PopularityBar}" />
                         <!-- Shown only when the source splits games by who went first -->
                         <TextBlock Grid.Column="6" Width="96" Text="{Binding PlaySplit}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" VerticalAlignment="Center"
-                                   Visibility="{Binding DataContext.MetaHasPlaySplit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}" />
+                                   Visibility="{Binding ShowsPlaySplit, Converter={StaticResource Vis}}" />
                     </Grid>
                 </Button>
             </DataTemplate>
@@ -116,21 +117,21 @@
         <StackPanel x:Name="MetaFilters" Margin="0,0,0,12">
             <!-- Plan 2.4: eight rank chips; the periods move below them when the row is too narrow, as in Avalonia -->
             <WrapPanel Margin="0,0,0,2">
-                <Border Margin="0,0,12,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
+                <Border x:Name="FilterRanks" Margin="0,0,12,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
                     <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
                                              Command="{Binding DataContext.SetMetaRank, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-                <Border Margin="0,0,0,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
+                <Border x:Name="FilterPeriods" Margin="0,0,0,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
                     <ItemsControl ItemsSource="{Binding MetaPeriods}" ItemsPanel="{StaticResource ChoiceRow}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaPeriod" IsChecked="{Binding Selected, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MetaPeriod" IsChecked="{Binding Selected, Mode=OneWay}"
                                              Command="{Binding DataContext.SetMetaPeriod, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -142,17 +143,17 @@
                     <ItemsControl ItemsSource="{Binding MetaMinGames}" ItemsPanel="{StaticResource ChoiceRow}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaMinGames" IsChecked="{Binding Selected, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MetaMinGames" IsChecked="{Binding Selected, Mode=OneWay}"
                                              Command="{Binding DataContext.SetMetaMinGames, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.ClassTip}">
+                <Border x:Name="FilterClasses" HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.ClassTip}">
                     <ItemsControl ItemsSource="{Binding MetaClasses}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaClass" IsChecked="{Binding Selected, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MetaClass" IsChecked="{Binding Selected, Mode=OneWay}"
                                              Command="{Binding DataContext.SetMetaClass, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -168,16 +169,16 @@
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="2*" MaxWidth="420" />
             </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+            <Border x:Name="TierCard" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
                         <c:Ornament Text="{Binding ConstructedTitle}" Icon="&#xF11D0;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     ToolTip="{i:Loc Main.Meta.TierTip}" />
                         <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Meta.ViewTip}">
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Meta.ViewTiers}" GroupName="MetaView" IsChecked="{Binding MetaTierView, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{i:Loc Main.Meta.ViewTiers}" GroupName="MetaView" IsChecked="{Binding MetaTierView, Mode=OneWay}"
                                              Command="{Binding SetMetaView}" CommandParameter="Tiers" />
-                                <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Meta.ViewTable}" GroupName="MetaView" IsChecked="{Binding MetaTableView, Mode=OneWay}"
+                                <RadioButton Style="{StaticResource MetaSegment}" Content="{i:Loc Main.Meta.ViewTable}" GroupName="MetaView" IsChecked="{Binding MetaTableView, Mode=OneWay}"
                                              Command="{Binding SetMetaView}" CommandParameter="Table" />
                             </StackPanel>
                         </Border>
@@ -234,12 +235,16 @@
 
                     <!-- Tiers: S to D in one flat list, a tier's head and then its archetypes; an empty tier is its head alone,
                          saying so (as on the site). The list is changed in place, so the rows that stay keep their visuals. -->
-                    <ItemsControl x:Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False"
-                                  Visibility="{Binding MetaTierView, Converter={StaticResource Vis}}" />
+                    <!-- Both lists in one holder: the view keeps it collapsed while it builds the rest of the tab ahead of the
+                         first click (Prebuild in the code-behind), so the rows are built where the page really shows them. -->
+                    <StackPanel x:Name="MetaLists" ButtonBase.Click="OnRowClick">
+                        <ItemsControl x:Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False"
+                                      Visibility="{Binding MetaTierView, Converter={StaticResource Vis}}" />
 
-                    <!-- Table: the archetypes alone, in the chosen order -->
-                    <ItemsControl x:Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" Focusable="False"
-                                  Visibility="{Binding MetaTableView, Converter={StaticResource Vis}}" />
+                        <!-- Table: the archetypes alone, in the chosen order -->
+                        <ItemsControl x:Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" Focusable="False"
+                                      Visibility="{Binding MetaTableView, Converter={StaticResource Vis}}" />
+                    </StackPanel>
 
                     <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}"
                                     Visibility="{Binding MetaLoading, Converter={StaticResource Vis}}" />
@@ -276,7 +281,7 @@
                         <ItemsControl ItemsSource="{Binding MulliganRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                    <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MulliganRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                    <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MulliganRank" IsChecked="{Binding Selected, Mode=OneWay}"
                                                  Command="{Binding DataContext.SetMulliganRank, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

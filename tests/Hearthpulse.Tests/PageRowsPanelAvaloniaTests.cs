@@ -485,7 +485,7 @@ public sealed class PageRowsPanelAvaloniaTests
         return page;
     }
 
-    private static Styles Theme()
+    internal static Styles Theme()
     {
         var theme = new Styles
         {

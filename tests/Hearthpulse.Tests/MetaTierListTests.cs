@@ -291,6 +291,16 @@ public sealed class MetaTierListTests : IDisposable
         Assert.Equal(vm.MetaArchetypes[0].First + " · " + vm.MetaArchetypes[0].Coin, vm.MetaArchetypes[0].PlaySplit);
         Assert.Equal("—", vm.MetaArchetypes[1].PlaySplit);
         Assert.True(vm.MetaHasPlaySplit);
+
+        // Every row carries the list's flag, and its bars their lengths (of 56 and 44), computed once.
+        Assert.All(vm.MetaArchetypes, r => Assert.True(r.ShowsPlaySplit));
+        Assert.All(vm.MetaArchetypes, r => Assert.Equal((r.BarFraction * 56, r.PopularityFraction * 44), (r.WinBar, r.PopularityBar)));
+        Assert.Equal(44, vm.MetaArchetypes.Max(r => r.PopularityBar));
+
+        // A class without the split: its rows are other rows now, without the cell.
+        vm.SetMetaClass.Execute("ROGUE");
+        Assert.False(vm.MetaHasPlaySplit);
+        Assert.All(vm.MetaArchetypes, r => Assert.False(r.ShowsPlaySplit));
     }
 
     [Fact]
