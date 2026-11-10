@@ -250,7 +250,11 @@ public sealed partial class MatchViewModel : Observable
     public string Position => _page is null ? string.Empty
         : TurnAt(Frame) is > 0 and var turn ? Loc.F("Match.Player.Position", Frame + 1, FrameMax + 1, turn) : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
 
-    /// <summary>The events of the step's turn (Constructed) or of its tavern or combat (Battlegrounds), the latest one marked.</summary>
+    /// <summary>
+    /// The events of the step's turn (Constructed) or of its tavern or combat (Battlegrounds), the latest one marked.
+    /// The Battlegrounds view binds <see cref="ActionRows"/>; the Constructed list is read when asked for (tests) and
+    /// raises nothing.
+    /// </summary>
     public IReadOnlyList<MatchActionRow> Actions
     {
         get => _actions ??= _page?.Actions(_frame) ?? [];
@@ -259,6 +263,19 @@ public sealed partial class MatchViewModel : Observable
             if (_actions is not null && _actions.SequenceEqual(value))
             {
                 return;
+            }
+
+            // Other rows (another tavern or combat), not only the mark on another one: the view lays them out before it
+            // can scroll to one.
+            var rows = _actions is null || _actions.Count != value.Count;
+            for (var i = 0; !rows && i < value.Count; i++)
+            {
+                rows = _actions![i].Frame != value[i].Frame || _actions[i].Text != value[i].Text;
+            }
+
+            if (rows)
+            {
+                ActionRowsVersion++;
             }
 
             _actions = value;
@@ -282,11 +299,18 @@ public sealed partial class MatchViewModel : Observable
     /// <summary>The marked row of <see cref="ActionRows"/> (the view keeps it in sight), or -1.</summary>
     public int ActionCurrentIndex => _actionCurrentIndex;
 
+    /// <summary>
+    /// Counts the changes of the rows themselves (another stretch's events), not of the mark: while it stands still the
+    /// rows on screen are laid out and the view can scroll to the marked one at once.
+    /// </summary>
+    public int ActionRowsVersion { get; private set; }
+
     public IReadOnlyList<MatchTurnRow> Turns { get => _turns; private set => Keep(_turns, value); }
 
     /// <summary>
     /// The Constructed game's event feed (plan R2): every action under its turn's header, the step on screen and its
-    /// turn marked (empty for Battlegrounds). The view binds <see cref="FeedRows"/>.
+    /// turn marked (empty for Battlegrounds). A copy made when asked for, for tests and tools: the views bind
+    /// <see cref="FeedRows"/>, and nothing is raised for this one.
     /// </summary>
     public IReadOnlyList<MatchFeedRow> Feed => _feedRows.Select(row => row.Row).ToList();
 
@@ -485,7 +509,6 @@ public sealed partial class MatchViewModel : Observable
                 ActionRows.Clear();
             }
 
-            Raise(nameof(Actions));
             MoveFeed(_frame);
         }
 
@@ -541,7 +564,6 @@ public sealed partial class MatchViewModel : Observable
         // The index first: the view scrolls to it when it changes, and by then the rows are the new game's.
         FeedCurrentIndex = -1;
         FeedRows = items;
-        Raise(nameof(Feed));
     }
 
     /// <summary>
@@ -551,7 +573,6 @@ public sealed partial class MatchViewModel : Observable
     private void MoveFeed(int frame)
     {
         var index = -1;
-        var moved = false;
         for (var i = 0; i < _feedRows.Count; i++)
         {
             var row = _feedRows[i];
@@ -561,16 +582,7 @@ public sealed partial class MatchViewModel : Observable
                 index = i;
             }
 
-            if (row.Current != current)
-            {
-                row.Current = current;
-                moved = true;
-            }
-        }
-
-        if (moved)
-        {
-            Raise(nameof(Feed));
+            row.Current = current;
         }
 
         FeedCurrentIndex = index;

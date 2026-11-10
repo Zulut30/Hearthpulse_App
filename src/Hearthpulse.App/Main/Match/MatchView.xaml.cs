@@ -13,6 +13,9 @@ public partial class MatchView : UserControl
     private MatchViewModel? _model;
     private ScrollViewer? _feedScroll;
 
+    // The rows of the Battlegrounds event list the view last scrolled for (MatchViewModel.ActionRowsVersion).
+    private int _actionRowsSeen = -1;
+
     // The feed is bringing the step's row into its own view: the request must not reach the page's scroll viewer.
     private bool _feedBringsRow;
     private VirtualizingStackPanel? _feedPanel;
@@ -210,9 +213,12 @@ public partial class MatchView : UserControl
         }
         else if (e.PropertyName == nameof(MatchViewModel.ActionCurrentIndex) && _model is { ShowBattlegroundsTable: true })
         {
-            // In the step's own frame when the row is there (a step within the stretch); a new stretch's rows are
-            // built by the layout first.
-            if (!KeepCurrentActionInView())
+            // In the step's own frame while the rows are the same (a step within the stretch: only the mark moved).
+            // Another stretch's rows are built and placed by the layout first: until then a row's place is the old
+            // stretch's, or none.
+            var sameRows = _actionRowsSeen == _model.ActionRowsVersion;
+            _actionRowsSeen = _model.ActionRowsVersion;
+            if (!sameRows || !KeepCurrentActionInView())
             {
                 _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => KeepCurrentActionInView());
             }
@@ -234,9 +240,27 @@ public partial class MatchView : UserControl
     /// <summary>The feed is as tall as the table (at least its 420): its list scrolls instead of stretching the row.</summary>
     private void OnTableSized(object sender, SizeChangedEventArgs e)
     {
-        FeedCard.Height = Math.Max(FeedCard.MinHeight, TableCard.ActualHeight);
-        // A shorter feed may have cut the step's row off.
-        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => KeepCurrentFeedRowInView(bringIn: true));
+        var height = Math.Max(FeedCard.MinHeight, TableCard.ActualHeight);
+        // A shorter feed may cut the step's row off: it is kept in view only if it was there (the player may have
+        // scrolled the feed away from it), and a taller feed is left alone.
+        var follow = height < FeedCard.Height && StepRowInView();
+        FeedCard.Height = height;
+        if (follow)
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => KeepCurrentFeedRowInView(bringIn: true));
+        }
+    }
+
+    /// <summary>The step's feed row is built and at least partly inside the feed's view.</summary>
+    private bool StepRowInView()
+    {
+        if (_model is not { FeedCurrentIndex: >= 0 and var index } || FeedScroll is not { } scroll || FeedRow(index) is not { } row)
+        {
+            return false;
+        }
+
+        var top = row.TransformToAncestor(scroll).Transform(default).Y;
+        return top < scroll.ViewportHeight && top + row.ActualHeight > 0;
     }
 
     /// <summary>

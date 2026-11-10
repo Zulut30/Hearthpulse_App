@@ -317,6 +317,7 @@ public sealed partial class MatchViewModel
         BattlegroundsStep = null;
         Leaders = [];
         _stretch = null;
+        _stretchEvents = [];
         ClearNavigation();
         Raise(nameof(Truncated));
     }

@@ -95,7 +95,7 @@ public sealed class MatchFeedTests : IDisposable
         model.GoFrame.Execute(action);
         Assert.Equal(action.Frame, model.Frame);
         Assert.True(model.Feed.Single(r => r.Frame == action.Frame && !r.Header).Current);
-        Assert.Contains(nameof(MatchViewModel.Feed), raised);
+        Assert.Contains(nameof(MatchViewModel.FeedCurrentIndex), raised);
 
         var header = model.Feed.First(r => r.Header && r.Frame > 0);
         model.GoFrame.Execute(header);
@@ -105,7 +105,6 @@ public sealed class MatchFeedTests : IDisposable
         // The same step again changes nothing: no row and no notification.
         raised.Clear();
         model.GoFrame.Execute(header);
-        Assert.DoesNotContain(nameof(MatchViewModel.Feed), raised);
         Assert.DoesNotContain(nameof(MatchViewModel.FeedCurrentIndex), raised);
 
         // The rows the view binds go to their steps the same way (a row is the command's parameter).

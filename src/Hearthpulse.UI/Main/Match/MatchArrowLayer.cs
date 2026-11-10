@@ -115,6 +115,13 @@ public sealed class MatchArrowLayer : Control
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
+        // Hidden with an ancestor (another tab of the page, another page; the layer's own IsVisible does not change
+        // then): the cards are not laid out, so the change waits for the pass that follows the table's return.
+        if (!IsEffectivelyVisible)
+        {
+            return;
+        }
+
         LayoutUpdated -= OnLayoutUpdated;
         _pending = false;
         var arrow = Compute();

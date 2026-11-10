@@ -275,6 +275,110 @@ public sealed class MatchTableModelTests : IDisposable
         Assert.Empty(changes);
     }
 
+    /// <summary>
+    /// What the views show does not depend on the way to a step: the tables and the feed are changed in place, so the
+    /// state after going back to a step, or jumping to it from anywhere, must be the state a pass from the first step
+    /// leaves there. Checked on a ranked game and a Battlegrounds one, back from the end and over scattered jumps.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_step_reached_backwards_or_by_a_jump_shows_what_a_pass_from_the_start_shows(bool battlegrounds)
+    {
+        var model = Model();
+        MatchPage page;
+        if (battlegrounds)
+        {
+            var name = _store.Save("bg-back", LocBindingTests.LongCombat());
+            page = MatchPage.Load(new GameRecord
+            {
+                Key = "bg-back", StartedAt = new DateTime(2026, 10, 23, 10, 0, 0), EndedAt = new DateTime(2026, 10, 23, 10, 12, 0),
+                Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 5, Turns = 2, Replay = name,
+            }, _store, CardDb.Empty, null);
+            Assert.True(page.HasBattlegroundsSteps);
+        }
+        else
+        {
+            page = Page(MatchTimelineTests.Events);
+        }
+
+        model.Show(page);
+        var forward = new List<string>();
+        for (var frame = 0; frame <= model.FrameMax; frame++)
+        {
+            model.GoFrame.Execute(frame);
+            forward.Add(Shown(model));
+        }
+
+        Assert.True(forward.Distinct().Count() > forward.Count / 2, "the steps of the game look alike");
+        for (var frame = model.FrameMax; frame >= 0; frame--)
+        {
+            model.GoFrame.Execute(frame);
+            Assert.Equal(forward[frame], Shown(model));
+        }
+
+        // Jumps both ways, far and near (a fixed order: 7 and the step count have no common divisor on these games).
+        var steps = model.FrameMax + 1;
+        var stride = steps % 7 == 0 ? 5 : 7;
+        for (var i = 0; i < steps * 2; i++)
+        {
+            var frame = i * stride % steps;
+            model.GoFrame.Execute(frame);
+            Assert.Equal(forward[frame], Shown(model));
+        }
+    }
+
+    /// <summary>Everything the views bind for the step on screen, as text: the table, the cards in each row, the lists and their marks.</summary>
+    private static string Shown(MatchViewModel model)
+    {
+        static string Card(MatchCardItem c) => c.View.ToString();
+        static string Row(string name, IEnumerable<string> items) => $"{name}: [{string.Join(" | ", items)}]";
+        var lines = new List<string> { $"frame {model.Frame}; {model.Position}" };
+        if (model.HasBattlegroundsSteps)
+        {
+            var t = model.BgTable;
+            lines.Add($"{t.HasStep} {t.Index}/{t.Count} turn {t.Turn} {t.Phase} {t.Kind} '{t.Title}' '{t.Action}' '{t.Detail}' gold '{t.Gold}' frozen {t.ShopFrozen} result {t.ResultKey}");
+            lines.Add($"{t.InCombat} {t.BeforeTavern} {t.ShowShop} {t.ChoicesOnTop} {t.ChoicesBelow} {t.ShowEmptyBoard} {t.PartnerFighting}");
+            lines.Add(Row("board", t.Board.Select(c => c.View.ToString())));
+            lines.Add(Row("hand", t.Hand.Select(c => c.View.ToString())));
+            // A row the step hides holds what it showed last: it is not on screen, so it is not compared.
+            lines.Add(Row("shop", t.ShowShop ? t.Shop.Select(c => c.View.ToString()) : []));
+            lines.Add(Row("opponent board", t.InCombat ? t.OpponentBoard.Select(c => c.View.ToString()) : []));
+            lines.Add(Row("partner", t.PartnerFighting ? t.PartnerBoard.Select(c => c.View.ToString()) : []));
+            lines.Add(Row("choices", t.Choices.Select(c => $"{c.Title}/{c.IsHero}/{string.Join(",", c.Cards)}")));
+            foreach (var (name, hero) in new[] { ("hero", t.Hero), ("opponent", t.Opponent) })
+            {
+                lines.Add(hero is null ? $"{name}: none"
+                    : $"{name}: {hero.HeroCardId} {hero.Name} {hero.HealthText} {hero.ArmorText} {hero.Tier} '{hero.HealthTip}' "
+                      + Row("powers", hero.HeroPowers.Select(c => c.View.ToString())) + " " + Row("trinkets", hero.Trinkets.Select(c => c.View.ToString())));
+            }
+
+            lines.Add(Row("leaders", model.Leaders.Select(l => l.ToString())));
+            lines.Add(Row("events", model.ActionRows.Select(r => r.View.ToString())) + $" marked {model.ActionCurrentIndex}");
+            lines.Add($"{model.ActionsTitle} won {model.BattlegroundsWon} lost {model.BattlegroundsLost} over {model.BattlegroundsCombatOver}");
+        }
+        else
+        {
+            var t = model.Table;
+            lines.Add($"{t.HasStep} {t.Index}/{t.Count} '{t.Turn}' '{t.Action}' '{t.Detail}' local {t.LocalActs} {t.ActorRef}->{t.TargetRef} attack {t.IsAttack}");
+            foreach (var (name, s) in new[] { ("top", t.Top), ("bottom", t.Bottom) })
+            {
+                lines.Add($"{name}: {s.Label} {s.IsLocal} {s.HeroCardId} {s.Hero} {s.HealthText} {s.ArmorText} '{s.HealthTip}' {s.Mana} {s.Deck} ref {s.HeroRef} "
+                    + $"{s.HeroActing} {s.HeroTargeted} '{s.HealthChangeText}' {s.DeckCount} {s.HandCount} {s.SecretCount} '{s.DeckTip}' '{s.HandTip}' '{s.SecretTip}' "
+                    + $"weapon {s.Weapon?.View} power {s.HeroPower?.View}");
+                lines.Add(Row(name + " board", s.Board.Select(Card)));
+                lines.Add(Row(name + " hand", s.Hand.Select(Card)));
+                lines.Add(Row(name + " secrets", s.Secrets.Select(Card)));
+            }
+
+            lines.Add(Row("choices", t.Choices.Select(c => $"{c.Title}/{string.Join(",", c.Cards)}")));
+            lines.Add(Row("feed", model.FeedRows.Select(r => r.Row.ToString())) + $" at {model.FeedCurrentIndex}");
+        }
+
+        lines.Add($"timeline {model.TimelineCurrent} {model.TimelinePosition:0.####} jump {model.JumpIndex}");
+        return string.Join("\n", lines);
+    }
+
     // ---- The in-place classes against the records they mirror.
 
     [Fact]

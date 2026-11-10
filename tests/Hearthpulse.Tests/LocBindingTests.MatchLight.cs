@@ -283,4 +283,140 @@ public sealed partial class LocBindingTests
             CloseMatch(model, window, theme, folder);
         }
     });
+
+    /// <summary>
+    /// The Battlegrounds game of <see cref="BattlegroundsReplayTests.Game5th"/> with a long first combat: fourteen more
+    /// attacks, so its list of events is taller than the list's view, and the tavern after it has one event.
+    /// </summary>
+    internal static string LongCombat()
+    {
+        var (state, recorder, tracker) = BattlegroundsReplayTests.Play(BattlegroundsReplayTests.Game5th());
+        var text = recorder.Battlegrounds.Text(new ReplayHeader(), tracker.ReplayData(state)).ReplaceLineEndings("\n");
+        const string attack = "M ATTACK 6 8\n";
+        var at = text.IndexOf(attack, StringComparison.Ordinal);
+        Assert.True(at > 0, "the recorded game has no first attack line");
+        // The header counts the file's event lines: 28 more.
+        var count = System.Text.RegularExpressions.Regex.Match(text, "\"events\":(\\d+)");
+        Assert.True(count.Success, "the recorded game's header has no event count");
+        var events = int.Parse(count.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) + 28;
+        return text.Insert(at, string.Concat(Enumerable.Repeat(attack + "V 8 DAMAGE 1\n", 14)))
+            .Replace(count.Value, FormattableString.Invariant($"\"events\":{events}"), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review M2: a step back across a stretch's border (from a tavern with one event to the last step of the combat
+    /// before it, whose marked event is far down a longer list) shows other rows. The list scrolls to the marked one
+    /// after they are laid out: scrolled at once, it used the last stretch's layout and left the event out of sight.
+    /// </summary>
+    [Fact]
+    public void Match_battlegrounds_events_keep_the_marked_one_in_view_across_a_stretchs_border() => Headless.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"hp-match-light-{Guid.NewGuid():N}");
+        var (view, model, window, theme) = OpenMatch(folder, store =>
+        {
+            var game = MatchTimelineTests.Game(null) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 5 };
+            return MatchPage.Load(game with { Replay = store.Save(game.Key, LongCombat()) }, store, CardDb.Empty, null);
+        });
+        try
+        {
+            window.Height = 1500;
+            Settle(window);
+            Assert.True(model.ShowBattlegroundsTable);
+            var list = view.FindControl<ItemsControl>("BgActions")!;
+            var scroll = view.FindControl<ScrollViewer>("BgActionsScroll")!;
+
+            // The first tavern step after the first combat, then one step back.
+            var tavern = Enumerable.Range(1, model.FrameMax).First(f =>
+            {
+                model.GoFrame.Execute(f - 1);
+                var before = model.BattlegroundsStep!.InCombat;
+                model.GoFrame.Execute(f);
+                return before && !model.BattlegroundsStep!.InCombat;
+            });
+            Settle(window);
+            Assert.True(model.ActionRows.Count <= 3);
+            Assert.Equal(0, scroll.Offset.Y);
+
+            model.Previous.Execute(null);
+            Settle(window);
+            Assert.Equal(tavern - 1, model.Frame);
+            var marked = model.ActionCurrentIndex;
+            Assert.True(marked >= 14, $"the combat's marked event is row {marked}");
+            var row = Assert.IsAssignableFrom<Control>(list.ContainerFromIndex(marked));
+            Assert.Same(model.ActionRows[marked], row.DataContext);
+            Assert.True(scroll.Extent.Height > scroll.Viewport.Height, "the combat's list does not scroll");
+            Assert.True(FullyInFeedView(row, scroll), $"the marked event is out of the list's view (offset {scroll.Offset.Y:0} of {scroll.Extent.Height:0}, view {scroll.Viewport.Height:0})");
+
+            // Within the stretch only the mark moves: the list follows it in the step's own frame.
+            model.GoFrame.Execute(model.ActionRows[1].Frame);
+            Settle(window);
+            Assert.True(FullyInFeedView(Assert.IsAssignableFrom<Control>(list.ContainerFromIndex(model.ActionCurrentIndex)), scroll));
+        }
+        finally
+        {
+            CloseMatch(model, window, theme, folder);
+        }
+    });
+
+    /// <summary>
+    /// QA Q5 / review m1: the table is hidden with an ancestor (another tab of the page), a step changes and the page is
+    /// built again in another language meanwhile. The arrow is not worked out on cards that are not laid out, and when
+    /// the table comes back it joins the step's attacker and target where they stand.
+    /// </summary>
+    [Fact]
+    public void Match_arrow_waits_while_the_table_is_hidden_and_is_right_when_it_comes_back() => Headless.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"hp-match-light-{Guid.NewGuid():N}");
+        var (view, model, window, theme) = OpenLongMatch(folder);
+        try
+        {
+            var layer = view.GetVisualDescendants().OfType<MatchArrowLayer>().Single();
+            Rect End(int id)
+            {
+                var element = view.GetVisualDescendants().OfType<Control>().First(c => MatchArrowLayer.GetRef(c) == id && c.IsEffectivelyVisible);
+                return new Rect(element.TranslatePoint(default, layer)!.Value, element.Bounds.Size);
+            }
+
+            var frame = TwoHits(model);
+            // An opponent's attack first (top to bottom), shown and settled.
+            model.GoFrame.Execute(frame);
+            Settle(window);
+            var shown = layer.Arrow();
+            Assert.True(shown is { Attack: true });
+
+            // The Decks tab hides the table. A step to our own attack (bottom to top) and the page rebuilt, as a change
+            // of the language does: nothing is worked out while the cards are not on screen.
+            model.ShowDecks = true;
+            Settle(window);
+            Assert.False(layer.IsEffectivelyVisible);
+            var computed = layer.Computed;
+            var other = Enumerable.Range(frame + 2, 12).First(f =>
+            {
+                model.GoFrame.Execute(f);
+                return model.Step is { IsAttack: true } step && step.LocalActs != shown!.Local;
+            });
+            Settle(window);
+            Assert.NotNull(view.DataContext);
+            model.GoFrame.Execute(other);
+            Settle(window);
+            Assert.Equal(computed, layer.Computed);
+
+            model.ShowReplay = true;
+            Settle(window);
+            Assert.True(layer.IsEffectivelyVisible);
+            Assert.True(layer.Computed > computed);
+            var arrow = layer.Arrow();
+            Assert.True(arrow is { Attack: true });
+            Assert.Equal(model.Table.LocalActs, arrow!.Local);
+            Assert.NotEqual(shown, arrow);
+            var (from, to) = (End(model.Table.ActorRef), End(model.Table.TargetRef));
+            Assert.InRange(arrow.Start.X, from.Left, from.Right);
+            Assert.InRange(arrow.Start.Y, from.Top, from.Bottom);
+            Assert.InRange(arrow.Tip.X, to.Left, to.Right);
+        }
+        finally
+        {
+            CloseMatch(model, window, theme, folder);
+        }
+    });
 }
