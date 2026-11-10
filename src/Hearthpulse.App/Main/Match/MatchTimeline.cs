@@ -164,8 +164,8 @@ public sealed class MatchTimeline : Panel
     }
 
     /// <summary>
-    /// The tick marks, where their borders stood: 2 by 8, centred in the tick's zone, the zone's left edge on a whole
-    /// pixel as the layout rounding put it.
+    /// The tick marks, where their borders stood (2 by 8, centred in the tick's zone), on whole device pixels at any
+    /// display scale: <see cref="MatchTimelineLayout.TickMark"/>.
     /// </summary>
     protected override void OnRender(DrawingContext dc)
     {
@@ -186,14 +186,10 @@ public sealed class MatchTimeline : Panel
 
             if (brush is not null)
             {
-                var (x, y, _, _) = MatchTimelineLayout.Tick(tick, ActualWidth);
-                dc.DrawRoundedRectangle(brush, null, new Rect(MarkLeft(x, scale), y + MatchTimelineLayout.TickMarkTop, MatchTimelineLayout.TickMarkWidth, MatchTimelineLayout.TickMarkHeight), 1, 1);
+                dc.DrawRoundedRectangle(brush, null, Rect(MatchTimelineLayout.TickMark(tick, ActualWidth, scale, sizesUp: false, UseLayoutRounding)), 1, 1);
             }
         }
     }
-
-    private double MarkLeft(double zoneLeft, double scale) =>
-        (UseLayoutRounding ? Math.Round(zoneLeft * scale, MidpointRounding.AwayFromZero) / scale : zoneLeft) + MatchTimelineLayout.TickMarkLeft;
 
     /// <summary>The tick whose zone holds the point (the nearest one, as a click picks it), or null.</summary>
     internal MatchTimelineTick? TickAt(Point point) =>

@@ -191,8 +191,9 @@ public sealed class MatchTimeline : Panel
     }
 
     /// <summary>
-    /// Draws the tick marks where their borders stood: 2 by 8, centred in the tick's zone, the zone's left edge on a
-    /// whole pixel as the layout rounding put it. One control over the whole panel (a panel cannot draw itself here).
+    /// Draws the tick marks where their borders stood (2 by 8, centred in the tick's zone), on whole device pixels at
+    /// any display scale: <see cref="MatchTimelineLayout.TickMark"/>. One control over the whole panel (a panel cannot
+    /// draw itself here).
     /// </summary>
     private sealed class TickLayer(MatchTimeline owner) : Control
     {
@@ -214,10 +215,8 @@ public sealed class MatchTimeline : Panel
                     brushes[tick.Look] = brush = ThemeBrushes.Get(MatchTimelineLayout.TickBrush(tick.Look));
                 }
 
-                var (x, y, _, _) = MatchTimelineLayout.Tick(tick, width);
-                var left = (owner.UseLayoutRounding ? LayoutHelper.RoundLayoutValue(x, scale) : x) + MatchTimelineLayout.TickMarkLeft;
                 context.DrawRectangle(brush, null,
-                    new RoundedRect(new Rect(left, y + MatchTimelineLayout.TickMarkTop, MatchTimelineLayout.TickMarkWidth, MatchTimelineLayout.TickMarkHeight), 1));
+                    new RoundedRect(MatchTimeline.Rect(MatchTimelineLayout.TickMark(tick, width, scale, sizesUp: true, owner.UseLayoutRounding)), 1));
             }
         }
     }

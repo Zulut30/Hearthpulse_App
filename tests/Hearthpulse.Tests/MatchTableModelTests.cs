@@ -54,6 +54,33 @@ public sealed class MatchTableModelTests : IDisposable
         return [.. events];
     }
 
+    /// <summary>
+    /// A ranked game with what a step leaves "tails" of when the tables change in place: both hands (ours face up, the
+    /// opponent's card backs), Secrets on both sides, a weapon, minions that come, die in the middle of a row and are
+    /// followed by others, a hero power and a spell with a target.
+    /// </summary>
+    internal static readonly string[] RichGame =
+    [
+        "T 1 L 0", "E 1 L PLAY 0 HERO_08 HERO HEALTH=30", "E 2 O PLAY 0 HERO_01 HERO HEALTH=30", "E 6 L PLAY 0 HERO_08bp HERO_POWER",
+        "S BEGIN_MULLIGAN", "S MAIN_READY",
+        "E 10 L HAND 1 CS2_029 SPELL COST=4", "E 11 L HAND 2 CS2_120 MINION", "E 12 L HAND 3 EX1_130 SPELL", "E 13 L HAND 4 CS2_106 WEAPON ATK=3 DURABILITY=2",
+        "E 14 L HAND 5 CS2_121 MINION", "E 15 L HAND 6 CS2_122 MINION",
+        "E 20 O HAND 1 - -", "E 21 O HAND 2 - -", "E 22 O HAND 3 - -",
+        "V L RESOURCES 1", "B", "E 11 L PLAY 1 CS2_120 MINION ATK=2 HEALTH=3", "P 11 -",
+        "T 2 O 30", "V O RESOURCES 2", "B", "E 20 O PLAY 1 CS2_182 MINION ATK=4 HEALTH=5", "P 20 -", "B", "E 21 O SECRET 1 - -", "P 21 -",
+        "T 3 L 60", "V L RESOURCES 3", "B", "E 13 L PLAY 0 CS2_106 WEAPON ATK=3 DURABILITY=2", "P 13 -",
+        "B", "E 12 L SECRET 1 EX1_130 SPELL", "P 12 -",
+        "B", "E 14 L PLAY 2 CS2_121 MINION ATK=2 HEALTH=2", "P 14 -",
+        "B", "E 15 L PLAY 3 CS2_122 MINION ATK=2 HEALTH=2", "P 15 -",
+        "A 11 20", "V 20 DAMAGE 2", "V 11 DAMAGE 4", "E 11 L GRAVEYARD 0 CS2_120 MINION",
+        "T 4 O 90", "V O RESOURCES 4", "E 23 O HAND 2 - -", "B", "E 22 O PLAY 2 CS2_124 MINION ATK=3 HEALTH=1", "P 22 -",
+        "A 20 1", "V 1 DAMAGE 4", "E 21 O GRAVEYARD 0 EX1_610 SPELL",
+        "T 5 L 120", "V L RESOURCES 5", "U 6 22", "V 22 DAMAGE 1", "E 22 O GRAVEYARD 0 CS2_124 MINION",
+        "A 14 20", "V 20 DAMAGE 4", "V 14 DAMAGE 4", "E 14 L GRAVEYARD 0 CS2_121 MINION",
+        "B", "E 10 L PLAY 0 CS2_029 SPELL COST=4", "P 10 20", "V 20 DAMAGE 10", "E 10 L GRAVEYARD 0 CS2_029 SPELL", "E 20 O GRAVEYARD 0 CS2_182 MINION",
+        "R WON",
+    ];
+
     private MatchViewModel Model()
     {
         Directory.CreateDirectory(_folder);
@@ -299,15 +326,32 @@ public sealed class MatchTableModelTests : IDisposable
         }
         else
         {
-            page = Page(MatchTimelineTests.Events);
+            page = Page(RichGame);
         }
 
         model.Show(page);
         var forward = new List<string>();
+        var (hands, backs, secrets, weapons, middles) = (0, 0, 0, 0, 0);
         for (var frame = 0; frame <= model.FrameMax; frame++)
         {
+            var before = model.Table.Bottom.Board.Select(c => c.Ref).ToList();
             model.GoFrame.Execute(frame);
             forward.Add(Shown(model));
+            var (top, bottom) = (model.Table.Top, model.Table.Bottom);
+            hands += bottom.Hand.Count > 1 ? 1 : 0;
+            backs += top.Hand.Any(c => c.CardBack) ? 1 : 0;
+            secrets += top.Secrets.Count + bottom.Secrets.Count > 0 ? 1 : 0;
+            weapons += bottom.Weapon is not null ? 1 : 0;
+            // A minion gone from the head or the middle of our row while others stay: the items after it are reused in place.
+            var after = bottom.Board.Select(c => c.Ref).ToList();
+            middles += after.Count > 0 && before.Count > after.Count && before[0] != after[0] ? 1 : 0;
+        }
+
+        if (!battlegrounds)
+        {
+            // The game has what the test is for.
+            Assert.True(hands > 3 && backs > 3 && secrets > 2 && weapons > 2 && middles > 0,
+                $"hands {hands}, card backs {backs}, Secrets {secrets}, weapon {weapons}, a row shortened from its head {middles}");
         }
 
         Assert.True(forward.Distinct().Count() > forward.Count / 2, "the steps of the game look alike");

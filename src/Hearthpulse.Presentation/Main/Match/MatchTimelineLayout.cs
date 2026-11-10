@@ -106,6 +106,28 @@ internal static class MatchTimelineLayout
     public static (double X, double Y, double Width, double Height) Tick(MatchTimelineTick tick, double width) =>
         ((tick.At * width) - (TickZone / 2), TickTop, TickZone, TickHeight);
 
+    /// <summary>
+    /// Where a tick's mark is drawn, in the panel's units, at a display scale (1 = 96 DPI). The marks were two nested
+    /// borders (the zone, the mark centred in it) and the layout rounded each of them to device pixels: the zone's
+    /// corner, then the mark's sizes, then its offset inside the zone. The same steps here, so a mark keeps whole
+    /// device pixels on all four sides at 125 % and 150 % and stands where it stood. Both layouts round a value half
+    /// way to the even pixel; WPF rounds sizes the same way, Avalonia rounds them up (<paramref name="sizesUp"/>).
+    /// Without layout rounding (<paramref name="rounded"/> false) the mark is where the numbers put it.
+    /// </summary>
+    public static (double X, double Y, double Width, double Height) TickMark(MatchTimelineTick tick, double width, double scale, bool sizesUp, bool rounded = true)
+    {
+        var (x, y, zoneWidth, zoneHeight) = Tick(tick, width);
+        if (!rounded || scale <= 0)
+        {
+            return (x + TickMarkLeft, y + TickMarkTop, TickMarkWidth, TickMarkHeight);
+        }
+
+        double Value(double v) => Math.Round(v * scale) / scale;
+        double Size(double v) => sizesUp ? Math.Ceiling(Math.Round(v * scale, 8)) / scale : Value(v);
+        var (markWidth, markHeight) = (Size(TickMarkWidth), Size(TickMarkHeight));
+        return (Value(x) + Value((Size(zoneWidth) - markWidth) / 2), Value(y) + Value((Size(zoneHeight) - markHeight) / 2), markWidth, markHeight);
+    }
+
     /// <summary>The position line, from the tick row down through the stretches.</summary>
     public static (double X, double Y, double Width, double Height) Line(double position, double width) =>
         ((position * width) - 1, TickTop, 2, SpanTop + SpanHeight - TickTop);

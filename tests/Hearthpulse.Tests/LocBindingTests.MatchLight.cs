@@ -359,17 +359,27 @@ public sealed partial class LocBindingTests
     });
 
     /// <summary>
-    /// QA Q5 / review m1: the table is hidden with an ancestor (another tab of the page), a step changes and the page is
-    /// built again in another language meanwhile. The arrow is not worked out on cards that are not laid out, and when
-    /// the table comes back it joins the step's attacker and target where they stand.
+    /// QA Q5 / review m1: the table is hidden with an ancestor (another tab of the page); meanwhile a step changes and
+    /// the page is shown again in place (<c>Show(page, keepPosition: true)</c>, what the main window's model does with
+    /// the page it builds again after a change of the language: the tables are emptied and every card is a new
+    /// object). The arrow is not worked out on cards that are not laid out, and when the table comes back it joins
+    /// the step's attacker and target where they stand. The language itself is not changed here.
     /// </summary>
     [Fact]
     public void Match_arrow_waits_while_the_table_is_hidden_and_is_right_when_it_comes_back() => Headless.Run(() =>
     {
         var folder = Path.Combine(Path.GetTempPath(), $"hp-match-light-{Guid.NewGuid():N}");
-        var (view, model, window, theme) = OpenLongMatch(folder);
+        MatchPage? page = null;
+        var (view, model, window, theme) = OpenMatch(folder, store =>
+        {
+            var game = MatchTimelineTests.Game(null) with { Turns = 90 };
+            var name = store.Save(game.Key, ReplayFile.Write(new ReplayHeader(), MatchTableModelTests.LongGame()));
+            return page = MatchPage.Load(game with { Replay = name }, store, CardDb.Empty, null);
+        });
         try
         {
+            window.Height = 1500;
+            Settle(window);
             var layer = view.GetVisualDescendants().OfType<MatchArrowLayer>().Single();
             Rect End(int id)
             {
@@ -384,8 +394,8 @@ public sealed partial class LocBindingTests
             var shown = layer.Arrow();
             Assert.True(shown is { Attack: true });
 
-            // The Decks tab hides the table. A step to our own attack (bottom to top) and the page rebuilt, as a change
-            // of the language does: nothing is worked out while the cards are not on screen.
+            // The Decks tab hides the table. A step to our own attack (bottom to top), then the page shown again in
+            // place: nothing is worked out while the cards are not on screen.
             model.ShowDecks = true;
             Settle(window);
             Assert.False(layer.IsEffectivelyVisible);
@@ -396,9 +406,14 @@ public sealed partial class LocBindingTests
                 return model.Step is { IsAttack: true } step && step.LocalActs != shown!.Local;
             });
             Settle(window);
-            Assert.NotNull(view.DataContext);
-            model.GoFrame.Execute(other);
+            Assert.Equal(computed, layer.Computed);
+            var cards = model.Table.Top.Board.Concat(model.Table.Bottom.Board).ToList();
+            model.Show(page!, keepPosition: true);
             Settle(window);
+            Assert.Equal(other, model.Frame);
+            Assert.True(model.ShowDecks);
+            Assert.NotEmpty(cards);
+            Assert.DoesNotContain(model.Table.Top.Board.Concat(model.Table.Bottom.Board), cards.Contains);
             Assert.Equal(computed, layer.Computed);
 
             model.ShowReplay = true;

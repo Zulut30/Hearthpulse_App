@@ -42,13 +42,14 @@ public partial class MatchView : UserControl
         // The feed brings a row that is not built into its own view (ScrollIntoView): the request stops at the feed, or
         // the page's scroll viewer would follow it and the page would jump under the player.
         FeedScroll.AddHandler(RequestBringIntoViewEvent, (_, e) => e.Handled |= _feedBringsRow);
-        // The page scrolled or the window changed: a step's row that was under the window's edge may be in reach now.
-        FeedScroll.EffectiveViewportChanged += (_, _) =>
+        // The page scrolled or the window changed so that some of the feed is in the window: a step's row that was
+        // under the window's edge may be in reach, and the next step tries again. Nothing is brought in here: the
+        // event comes for every scroll of the page, and the try lays the page out.
+        FeedScroll.EffectiveViewportChanged += (_, e) =>
         {
-            if (_feedRowOutOfWindow)
+            if (e.EffectiveViewport is { Width: > 0, Height: > 0 })
             {
                 _feedRowOutOfWindow = false;
-                Dispatcher.UIThread.Post(() => KeepCurrentFeedRowInView(bringIn: true), DispatcherPriority.Loaded);
             }
         };
         // The table's size (a step, the window, phone width) sets the feed's height.

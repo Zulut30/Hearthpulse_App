@@ -183,5 +183,65 @@ public sealed class MatchFeedTests : IDisposable
         Assert.Equal(0, MatchFeedLayout.Brought(20, 300, 10));
     }
 
+    /// <summary>
+    /// Review M4: the timeline draws its tick marks itself. A mark stands where the layout put the two borders it was
+    /// (a zone and the mark centred in it), on whole device pixels at 100, 125 and 150 %: the expected rectangle is
+    /// worked out here step by step as the layouts do it (WPF rounds sizes to the nearest pixel, Avalonia up; both
+    /// round a value half way to the even pixel).
+    /// </summary>
+    [Theory]
+    [InlineData(1.0, false)]
+    [InlineData(1.25, false)]
+    [InlineData(1.5, false)]
+    [InlineData(1.0, true)]
+    [InlineData(1.25, true)]
+    [InlineData(1.5, true)]
+    public void A_timeline_tick_mark_stands_on_device_pixels_where_its_borders_stood(double scale, bool avalonia)
+    {
+        const int count = 100;
+        var halves = 0;
+        foreach (var width in new[] { 900.0, 913.0, 1131.5 })
+        {
+            for (var frame = 0; frame < count; frame++)
+            {
+                var tick = new MatchTimelineTick((frame + 0.5) / count, frame, MatchTimelineLook.Mine, string.Empty);
+                var (x, y, w, h) = MatchTimelineLayout.TickMark(tick, width, scale, sizesUp: avalonia);
+
+                // The old layout: the zone's corner rounded, the sizes rounded, the mark's offset in the zone rounded.
+                double Pixels(double v) => Math.Round(v * scale, MidpointRounding.ToEven);
+                double SizePixels(double v) => avalonia ? Math.Ceiling(v * scale) : Pixels(v);
+                var zoneLeft = (tick.At * width) - (MatchTimelineLayout.TickZone / 2);
+                var left = Pixels(zoneLeft) + Pixels((SizePixels(8) - SizePixels(2)) / scale / 2);
+                var top = Pixels(MatchTimelineLayout.TickTop) + Pixels((SizePixels(10) - SizePixels(8)) / scale / 2);
+                Assert.Equal(left, x * scale, 6);
+                Assert.Equal(top, y * scale, 6);
+                Assert.Equal(SizePixels(2), w * scale, 6);
+                Assert.Equal(SizePixels(8), h * scale, 6);
+
+                // All four edges on whole device pixels: nothing is drawn between two of them.
+                foreach (var edge in new[] { x, y, x + w, y + h })
+                {
+                    Assert.Equal(Math.Round(edge * scale), edge * scale, 6);
+                }
+
+                halves += Math.Abs((zoneLeft * scale) - Math.Floor(zoneLeft * scale) - 0.5) < 1e-9 ? 1 : 0;
+            }
+        }
+
+        // The case the review named is in the set: a zone's edge exactly half way between two pixels (100 steps, 900 wide).
+        Assert.True(scale != 1.0 || halves >= count, $"{halves} marks half way");
+
+        // At 100 % a mark is 3 in from its zone's rounded corner and 1 down, 2 by 8, as before.
+        if (scale == 1.0)
+        {
+            var tick = new MatchTimelineTick(0.305, 30, MatchTimelineLook.Theirs, string.Empty);
+            Assert.Equal((Math.Round((0.305 * 900) - 4, MidpointRounding.ToEven) + 3, 5.0, 2.0, 8.0), MatchTimelineLayout.TickMark(tick, 900, 1, avalonia));
+        }
+
+        // Without layout rounding the mark is where the numbers put it.
+        var plain = new MatchTimelineTick(0.3333, 33, MatchTimelineLook.Mine, string.Empty);
+        Assert.Equal(((0.3333 * 900) - 4 + 3, 5.0, 2.0, 8.0), MatchTimelineLayout.TickMark(plain, 900, scale, avalonia, rounded: false));
+    }
+
     private static double Distance(MatchArrowPoint a, MatchArrowPoint b) => Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
 }
