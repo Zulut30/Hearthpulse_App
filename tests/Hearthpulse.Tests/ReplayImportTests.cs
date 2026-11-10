@@ -192,6 +192,41 @@ public sealed class ReplayImportTests : IDisposable
     }
 
     [Fact]
+    public void A_recorded_opponents_quest_passes_the_filter_with_card_data_and_is_a_card_back_without()
+    {
+        // 10.11 17:28: the opponent plays a quest from hand; the game shows it to both players (SHOW_ENTITY with
+        // QUEST=1, ZONE=SECRET). A real secret beside it is never named.
+        var events = ReplayRecorderTests.Record(
+            out var recorder,
+            [
+                .. ReplayRecorderTests.Card(62, "", "HAND", 2, ""),
+                .. ReplayRecorderTests.Card(64, "", "HAND", 2, ""),
+                .. ReplayRecorderTests.Show(62, "TLC_602", "tag=CARDTYPE value=SPELL", "tag=COST value=1", "tag=ZONE value=SECRET", "tag=QUEST value=1"),
+                ReplayRecorderTests.Tag(64, "SECRET", "1"),
+                ReplayRecorderTests.Zone(64, "SECRET"),
+            ]);
+        var quest = Assert.Single(events, e => e.Contains(" O SECRET ", StringComparison.Ordinal) && e.Contains("TLC_602", StringComparison.Ordinal));
+        Assert.EndsWith(" TLC_602 SPELL COST=1", quest, StringComparison.Ordinal);
+        // Two card backs: the secret, and the quest itself for the moment between its ZONE and QUEST tags (as in the log).
+        Assert.Equal(2, events.Count(e => e.Contains(" O SECRET ", StringComparison.Ordinal) && e.EndsWith(" - -", StringComparison.Ordinal)));
+        ReplayChecks.AssertNothingHidden(events);
+
+        var text = recorder.Text(new ReplayHeader());
+        var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes("""[{"id": "TLC_602", "dbfId": 117716, "type": "SPELL", "mechanics": ["QUEST"]}]""")));
+        static List<string> Events(string replay)
+        {
+            var (header, body) = ReplayFile.Read(replay)!.Value;
+            return body.Take(header.Events).ToList();
+        }
+
+        // With card data the copy is the recording; without it the filter cannot tell a quest from a secret and hides it.
+        Assert.Equal(events, Events(ReplayImport.Sanitize(text, cards, out _)!));
+        var blind = Events(ReplayImport.Sanitize(text, CardDb.Empty, out _)!);
+        Assert.DoesNotContain(blind, e => e.Contains("TLC_602", StringComparison.Ordinal));
+        Assert.Equal(3, blind.Count(e => e.Contains(" O SECRET ", StringComparison.Ordinal) && e.EndsWith(" - -", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void An_old_file_is_stored_as_format_4_with_a_summary_from_its_events()
     {
         var text = "HPR2\n{\"kind\":\"constructed\",\"localRank\":\"Gold 4\",\"events\":17}\n" + string.Join('\n', ConstructedEvents) + "\n";

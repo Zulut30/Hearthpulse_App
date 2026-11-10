@@ -188,10 +188,13 @@ public sealed class MatchReplay
             if (replay.HasPostGame && _opponentOffered is { Count: > 0 } && _opponentFinal is not null)
             {
                 // The Coin is not a mulligan card. It can be in hand before the mulligan starts, as the fifth card and
-                // hidden (the log names it only when it is played): at most four cards are offered.
-                var offered = _opponentOffered.Where(e => !Created(e)).Take(4).ToList();
-                var coin = _opponentOffered.Where(e => !Created(e)).Skip(4).ToHashSet();
-                var final = _opponentFinal.Where(e => !Created(e) && !coin.Contains(e)).ToList();
+                // hidden (the log names it only when it is played): at most four cards are offered. The cards are told
+                // by the hand itself, not by what the log called them later: a card dealt from the deck counts even
+                // when its reveal says "created" (put into the deck by a start-of-game effect, or transformed in hand
+                // before it was first named).
+                var offered = _opponentOffered.Where(e => !Coin(e)).Take(4).ToList();
+                var coin = _opponentOffered.Where(e => !Coin(e)).Skip(4).ToHashSet();
+                var final = _opponentFinal.Where(e => !Coin(e) && !coin.Contains(e)).ToList();
                 string? Of(int entity) => _reveals.TryGetValue(entity, out var r) ? r.CardId : null;
                 replay.OpponentMulligan = new ReplayOpponentMulligan(
                     offered.Where(final.Contains).Select(Of).ToList(),
@@ -213,7 +216,9 @@ public sealed class MatchReplay
             }
         }
 
-        private bool Created(int entity) => _reveals.TryGetValue(entity, out var r) && r.Created;
+        /// <summary>The log named the card as the Coin (GAME_005 or a skin: EDR_COIN1, JAIL_COIN3...).</summary>
+        private bool Coin(int entity) =>
+            _reveals.TryGetValue(entity, out var r) && (r.CardId == "GAME_005" || r.CardId.Contains("_COIN", StringComparison.Ordinal));
 
         private static int GameTurnToPlayer(int turn) => turn <= 0 ? 0 : (turn + 1) / 2;
 

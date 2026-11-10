@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
@@ -11,6 +12,9 @@ public sealed record TurnTiming(int Turn, int PlayerId, DateTime StartedAt, int 
 /// The turn being played and how long the turns took, from Power.log: a turn runs from the game's STEP=MAIN_READY
 /// (TURN and CURRENT_PLAYER have moved just before) to its STEP=MAIN_END; its limit is the current player's TIMEOUT tag
 /// (45, 55 then 75 seconds in current clients, set for the next turn when one ends). The rope shows in the last <see cref="RopeSeconds"/> of the limit.
+/// A player who lets a turn run out without a move is marked away (the enchantment GAME_004 on its hero): the game sets
+/// its TIMEOUT to <see cref="TurnClock.AwayLimit"/> just before that turn's MAIN_END, so its next turn starts with the
+/// rope already burning, and puts the usual limit back at that player's first move of the turn.
 /// </summary>
 /// <param name="LocalActive">The local player's turn is running.</param>
 /// <param name="TurnStartedAt">Log time (local) the running turn started.</param>
@@ -55,6 +59,9 @@ public sealed class TurnClock : IPowerListener
     /// <summary>The turn limit when the player's TIMEOUT tag is missing.</summary>
     public const int DefaultLimit = 75;
 
+    /// <summary>The turn limit of a player the game marked away after a turn that ran out without a move.</summary>
+    public const int AwayLimit = 10;
+
     private const string CurrentPlayer = "CURRENT_PLAYER";
 
     private const string Timeout = "TIMEOUT";
@@ -75,7 +82,18 @@ public sealed class TurnClock : IPowerListener
 
     public void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value)
     {
-        if (tag != GameTag.Step || entity.Id != game.GameEntityId || game.IsBattlegrounds)
+        if (game.IsBattlegrounds)
+        {
+            return;
+        }
+
+        if (tag == Timeout)
+        {
+            Extend(game, entity, value);
+            return;
+        }
+
+        if (tag != GameTag.Step || entity.Id != game.GameEntityId)
         {
             return;
         }
@@ -101,6 +119,25 @@ public sealed class TurnClock : IPowerListener
     }
 
     public void OnGameEnded(GameState game) => Close(_lineTime() ?? game.LastActivity);
+
+    /// <summary>
+    /// A longer TIMEOUT for the player whose turn is running is that turn's limit from now on: the game lifts the away
+    /// limit at the player's first move. A shorter one is for that player's next turn (the away limit comes just
+    /// before the MAIN_END of the turn that ran out) and is read when that turn starts.
+    /// </summary>
+    private void Extend(GameState game, Entity player, string value)
+    {
+        if (_turns.Count == 0 || _turns[^1] is not { Seconds: null } running
+            || game.PlayerByEntity(player.Id)?.PlayerId != running.PlayerId)
+        {
+            return;
+        }
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit) && limit > running.LimitSeconds)
+        {
+            _turns[^1] = running with { LimitSeconds = limit };
+        }
+    }
 
     private void Close(DateTime at)
     {
