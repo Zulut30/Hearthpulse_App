@@ -8,9 +8,12 @@ namespace Hearthpulse.App.Main.Match;
 
 /// <summary>
 /// The whole-game timeline of the match page's player: event ticks over the stretches (turns, or tavern and combats),
-/// the position line and its diamond, the bookmarks under the stretches. Children are plain borders placed by the fractions
-/// of the view model; the panel takes the mouse itself: a click on a tick or a bookmark goes to its step, on a stretch to
-/// its first step, a drag scrubs.
+/// the position line and its diamond, the bookmarks under the stretches. The stretches and bookmarks are plain borders
+/// placed by the fractions of the view model; the ticks (up to 300) are drawn by the panel itself: as two borders each
+/// they were about 600 of the 1 100 visuals the page added when it opened, all arranged again on every step. A tick's
+/// tooltip comes from one of two unseen probes put on the tick under the mouse (two, so the tooltip changes from one
+/// tick to the next as it did between two elements). The panel takes the mouse itself: a click on a tick or a bookmark
+/// goes to its step, on a stretch to its first step, a drag scrubs.
 /// </summary>
 public sealed class MatchTimeline : Panel
 {
@@ -35,7 +38,17 @@ public sealed class MatchTimeline : Panel
     public static readonly DependencyProperty CommandProperty = DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(MatchTimeline));
 
     private readonly List<(MatchTimelineSegment Segment, Border Box, TextBlock Label, TextBlock Glyph, Border Bar)> _spans = [];
-    private readonly List<(MatchTimelineTick Tick, Border Zone)> _ticks = [];
+    private readonly List<MatchTimelineTick> _ticks = [];
+
+    // The tooltip of the tick under the mouse: the probe on it (see the class comment), and which of the two it is.
+    private readonly Border[] _probes =
+    [
+        new() { Width = MatchTimelineLayout.TickZone, Height = MatchTimelineLayout.TickHeight, Background = Brushes.Transparent, Visibility = Visibility.Collapsed },
+        new() { Width = MatchTimelineLayout.TickZone, Height = MatchTimelineLayout.TickHeight, Background = Brushes.Transparent, Visibility = Visibility.Collapsed },
+    ];
+
+    private MatchTimelineTick? _hover;
+    private int _probe;
     private readonly List<(int Frame, Border Zone)> _bookmarks = [];
     private readonly Rectangle _line = new() { Width = 2, IsHitTestVisible = false };
     private readonly Border _diamond = new()
@@ -116,14 +129,9 @@ public sealed class MatchTimeline : Panel
             Children.Add(box);
         }
 
-        foreach (var tick in Ticks ?? [])
-        {
-            var mark = new Border { Width = 2, Height = 8, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            mark.SetResourceReference(Border.BackgroundProperty, MatchTimelineLayout.TickBrush(tick.Look));
-            var zone = new Border { Width = MatchTimelineLayout.TickZone, Height = MatchTimelineLayout.TickHeight, Background = Brushes.Transparent, Child = mark, ToolTip = tick.Tooltip };
-            _ticks.Add((tick, zone));
-            Children.Add(zone);
-        }
+        _ticks.AddRange(Ticks ?? []);
+        Hover(null);
+        InvalidateVisual();
 
         foreach (var bookmark in Bookmarks ?? [])
         {
@@ -148,9 +156,78 @@ public sealed class MatchTimeline : Panel
             Children.Add(zone);
         }
 
+        Children.Add(_probes[0]);
+        Children.Add(_probes[1]);
         Children.Add(_line);
         Children.Add(_diamond);
         Restyle();
+    }
+
+    /// <summary>
+    /// The tick marks, where their borders stood: 2 by 8, centred in the tick's zone, the zone's left edge on a whole
+    /// pixel as the layout rounding put it.
+    /// </summary>
+    protected override void OnRender(DrawingContext dc)
+    {
+        base.OnRender(dc);
+        if (_ticks.Count == 0 || ActualWidth <= 0)
+        {
+            return;
+        }
+
+        var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var brushes = new Dictionary<MatchTimelineLook, Brush?>();
+        foreach (var tick in _ticks)
+        {
+            if (!brushes.TryGetValue(tick.Look, out var brush))
+            {
+                brushes[tick.Look] = brush = TryFindResource(MatchTimelineLayout.TickBrush(tick.Look)) as Brush;
+            }
+
+            if (brush is not null)
+            {
+                var (x, y, _, _) = MatchTimelineLayout.Tick(tick, ActualWidth);
+                dc.DrawRoundedRectangle(brush, null, new Rect(MarkLeft(x, scale), y + MatchTimelineLayout.TickMarkTop, MatchTimelineLayout.TickMarkWidth, MatchTimelineLayout.TickMarkHeight), 1, 1);
+            }
+        }
+    }
+
+    private double MarkLeft(double zoneLeft, double scale) =>
+        (UseLayoutRounding ? Math.Round(zoneLeft * scale, MidpointRounding.AwayFromZero) / scale : zoneLeft) + MatchTimelineLayout.TickMarkLeft;
+
+    /// <summary>The tick whose zone holds the point (the nearest one, as a click picks it), or null.</summary>
+    internal MatchTimelineTick? TickAt(Point point) =>
+        point.Y >= MatchTimelineLayout.TickTop && point.Y < MatchTimelineLayout.TickTop + MatchTimelineLayout.TickHeight
+            ? MatchTimelineLayout.TickNear(_ticks, point.X, ActualWidth)
+            : null;
+
+    /// <summary>Puts a probe with the tick's tooltip on the tick under the mouse (the other probe than last time), or takes it away.</summary>
+    internal Border? Hover(MatchTimelineTick? tick)
+    {
+        if (ReferenceEquals(tick, _hover))
+        {
+            return tick is null ? null : _probes[_probe];
+        }
+
+        _probes[_probe].Visibility = Visibility.Collapsed;
+        _probes[_probe].ToolTip = null;
+        _hover = tick;
+        if (tick is null)
+        {
+            return null;
+        }
+
+        _probe = 1 - _probe;
+        _probes[_probe].ToolTip = tick.Tooltip;
+        _probes[_probe].Visibility = Visibility.Visible;
+        InvalidateArrange();
+        return _probes[_probe];
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        base.OnMouseLeave(e);
+        Hover(null);
     }
 
     /// <summary>Each stretch in its look; the current one in the selected look (as the turn chip on screen used to be).</summary>
@@ -209,9 +286,9 @@ public sealed class MatchTimeline : Panel
             box.Arrange(Rect(MatchTimelineLayout.Span(segment, width)));
         }
 
-        foreach (var (tick, zone) in _ticks)
+        if (_hover is { } hover)
         {
-            zone.Arrange(Rect(MatchTimelineLayout.Tick(tick, width)));
+            _probes[_probe].Arrange(Rect(MatchTimelineLayout.Tick(hover, width)));
         }
 
         foreach (var (frame, zone) in _bookmarks)
@@ -238,6 +315,7 @@ public sealed class MatchTimeline : Panel
         base.OnMouseMove(e);
         if (_pressed is not { } start || !IsMouseCaptured)
         {
+            Hover(TickAt(e.GetPosition(this)));
             return;
         }
 
@@ -276,7 +354,7 @@ public sealed class MatchTimeline : Panel
 
     /// <summary>A click: the nearest tick or bookmark in its row, else the stretch under the pointer, else the slot there.</summary>
     private int FrameUnder(Point point) =>
-        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, ActualWidth, FrameMax,
+        MatchTimelineLayout.FrameUnder(_ticks, _spans.Select(s => s.Segment), point.X, point.Y, ActualWidth, FrameMax,
             _bookmarks.Select(b => b.Frame));
 
     private static Rect Rect((double X, double Y, double Width, double Height) r) => new(r.X, r.Y, r.Width, r.Height);

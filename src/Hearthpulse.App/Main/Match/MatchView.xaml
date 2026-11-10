@@ -1193,7 +1193,7 @@
                                 <ItemsControl x:Name="Feed" ItemsSource="{Binding FeedRows}" ItemTemplate="{StaticResource FeedRow}" Focusable="False"
                                               AutomationProperties.Name="{i:Loc Match.View.FeedName}"
                                               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                                              VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="1" VirtualizingPanel.CacheLengthUnit="Page">
+                                              VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="0.5" VirtualizingPanel.CacheLengthUnit="Page">
                                     <ItemsControl.Template>
                                         <ControlTemplate TargetType="ItemsControl">
                                             <ScrollViewer x:Name="FeedScroll" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"

@@ -119,9 +119,31 @@ public sealed partial class LocBindingTests
             Assert.Equal(1, model.Frame);
 
             // The timeline is on the bar with the game's stretches.
+            // A child per stretch plus the position line, the diamond, the two tooltip probes and the one control that
+            // draws every tick. A tick's tooltip is on the probe over it, and the next tick's on the other probe.
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
-            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+            Assert.Equal(model.TimelineSegments.Count + 1 + 2 + 2, timeline.Children.Count);
             Assert.True(timeline.Bounds.Width > 0);
+            Assert.True(model.TimelineTicks.Count >= 2);
+            Border? lastProbe = null;
+            foreach (var tick in model.TimelineTicks.Take(3))
+            {
+                var zone = MatchTimelineLayout.Tick(tick, timeline.Bounds.Width);
+                var over = new Point(zone.X + (zone.Width / 2), zone.Y + (zone.Height / 2));
+                Assert.Same(tick, timeline.TickAt(over));
+                var probe = timeline.Hover(timeline.TickAt(over));
+                Assert.NotNull(probe);
+                Assert.NotSame(lastProbe, probe);
+                Assert.Equal(tick.Tooltip, ToolTip.GetTip(probe));
+                Assert.True(probe.IsVisible);
+                window.UpdateLayout();
+                Assert.Equal(zone.X, probe.Bounds.X, 0.6);
+                lastProbe = probe;
+            }
+
+            Assert.Null(timeline.TickAt(new Point(timeline.Bounds.Width / 2, MatchTimelineLayout.SpanTop + 4)));
+            Assert.Null(timeline.Hover(null));
+            Assert.DoesNotContain(timeline.Children.OfType<Border>(), b => b.Width == MatchTimelineLayout.TickZone && b.Height == MatchTimelineLayout.TickHeight && b.IsVisible);
 
             // Off the Replay tab the keys are not the player's.
             model.ShowDecks = true;
@@ -193,7 +215,7 @@ public sealed partial class LocBindingTests
             var table = view.FindControl<Grid>("BattlegroundsTable")!;
             Assert.True(model.ShowBattlegroundsTable && table.IsVisible);
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
-            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+            Assert.Equal(model.TimelineSegments.Count + 1 + 2 + 2, timeline.Children.Count);
 
             var shown = new Dictionary<ItemsControl, (List<object> Items, List<Control> Rows)>();
             var kept = 0;

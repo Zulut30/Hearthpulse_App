@@ -18,6 +18,15 @@ internal static class MatchTimelineLayout
 
     public const double TickZone = 8;
 
+    /// <summary>A tick's mark inside its zone: 2 by 8, centred.</summary>
+    public const double TickMarkWidth = 2;
+
+    public const double TickMarkHeight = 8;
+
+    public const double TickMarkLeft = (TickZone - TickMarkWidth) / 2;
+
+    public const double TickMarkTop = (TickHeight - TickMarkHeight) / 2;
+
     /// <summary>The stretch row, under the ticks.</summary>
     public const double SpanTop = 16;
 
@@ -126,9 +135,7 @@ internal static class MatchTimelineLayout
         }
         else if (y < SpanTop)
         {
-            var near = ticks.Where(t => Math.Abs((t.At * width) - x) <= TickZone / 2)
-                .OrderBy(t => Math.Abs((t.At * width) - x)).FirstOrDefault();
-            if (near is not null)
+            if (TickNear(ticks, x, width) is { } near)
             {
                 return near.Frame;
             }
@@ -139,6 +146,13 @@ internal static class MatchTimelineLayout
         }
 
         return MatchViewModel.FrameAt(x / width, frameMax + 1);
+    }
+
+    /// <summary>The nearest tick whose zone holds <paramref name="x"/> (what a click there goes to and whose tooltip shows), or null.</summary>
+    public static MatchTimelineTick? TickNear(IEnumerable<MatchTimelineTick> ticks, double x, double width)
+    {
+        width = Math.Max(1, width);
+        return ticks.Where(t => Math.Abs((t.At * width) - x) <= TickZone / 2).OrderBy(t => Math.Abs((t.At * width) - x)).FirstOrDefault();
     }
 
     /// <summary>A drag's step: the slot under the pointer.</summary>

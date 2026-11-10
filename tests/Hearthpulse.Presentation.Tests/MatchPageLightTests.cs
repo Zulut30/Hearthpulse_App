@@ -97,6 +97,57 @@ public sealed class MatchPageLightTests
         Assert.Equal(pageOffset, page.VerticalOffset);
     });
 
+    /// <summary>
+    /// The Battlegrounds game of <see cref="MatchTableInPlaceTests.Game5th"/> with a long first combat: fourteen more
+    /// attacks, so its list of events is taller than the list's view, and the tavern after it has one event.
+    /// </summary>
+    internal static string LongCombat()
+    {
+        var text = MatchTableInPlaceTests.Game5th.ReplaceLineEndings("\n");
+        const string attack = "M ATTACK 6 8\n";
+        var at = text.IndexOf(attack, StringComparison.Ordinal);
+        Assert.True(at > 0 && text.Contains("\"events\":64", StringComparison.Ordinal));
+        return text.Insert(at, string.Concat(Enumerable.Repeat(attack + "V 8 DAMAGE 1\n", 14))).Replace("\"events\":64", "\"events\":92", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review M2: a step back across a stretch's border (from a tavern with one event to the last step of the combat
+    /// before it, whose marked event is far down a longer list) shows other rows; the list scrolls to the marked one
+    /// after they are laid out.
+    /// </summary>
+    [Fact]
+    public void Wpf_battlegrounds_events_keep_the_marked_one_in_view_across_a_stretchs_border() => OnPage((model, view, window) =>
+    {
+        Assert.True(model.ShowBattlegroundsTable);
+        var list = (ItemsControl)view.FindName("BgActions");
+        var scroll = (ScrollViewer)view.FindName("BgActionsScroll");
+        var tavern = Enumerable.Range(1, model.FrameMax).First(f =>
+        {
+            model.GoFrame.Execute(f - 1);
+            var before = model.BattlegroundsStep!.InCombat;
+            model.GoFrame.Execute(f);
+            return before && !model.BattlegroundsStep!.InCombat;
+        });
+        Settle(window);
+        Assert.True(model.ActionRows.Count <= 3);
+        Assert.Equal(0, scroll.VerticalOffset);
+
+        model.Previous.Execute(null);
+        Settle(window);
+        Assert.Equal(tavern - 1, model.Frame);
+        var marked = model.ActionCurrentIndex;
+        Assert.True(marked >= 14, $"the combat's marked event is row {marked}");
+        var row = Assert.IsAssignableFrom<FrameworkElement>(list.ItemContainerGenerator.ContainerFromIndex(marked));
+        Assert.Same(model.ActionRows[marked], row.DataContext);
+        Assert.True(scroll.ExtentHeight > scroll.ViewportHeight, "the combat's list does not scroll");
+        Assert.True(FullyInView(row, scroll), $"the marked event is out of the list's view (offset {scroll.VerticalOffset:0} of {scroll.ExtentHeight:0})");
+
+        // Within the stretch only the mark moves: the list follows it.
+        model.GoFrame.Execute(model.ActionRows[1].Frame);
+        Settle(window);
+        Assert.True(FullyInView(Assert.IsAssignableFrom<FrameworkElement>(list.ItemContainerGenerator.ContainerFromIndex(model.ActionCurrentIndex)), scroll));
+    }, battlegrounds: true);
+
     [Fact]
     public void Wpf_step_that_changes_a_minions_health_keeps_every_card_and_feed_row() => OnPage((model, view, window) =>
     {
@@ -236,7 +287,7 @@ public sealed class MatchPageLightTests
     private static bool FullyInView(FrameworkElement row, ScrollViewer scroll) => Place(row, scroll) is var (top, bottom) && top >= -0.5 && bottom <= scroll.ViewportHeight + 0.5;
 
     /// <summary>Runs <paramref name="check"/> on an STA thread with the long game's match page shown off screen.</summary>
-    private static void OnPage(Action<MatchViewModel, MatchView, Window> check)
+    private static void OnPage(Action<MatchViewModel, MatchView, Window> check, bool battlegrounds = false)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -255,7 +306,12 @@ public sealed class MatchPageLightTests
                     Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
                     PlayerClass = "MAGE", OpponentClass = "WARRIOR", DeckName = "Test deck", Turns = 90,
                 };
-                game = game with { Replay = store.Save(game.Key, ReplayFile.Write(new ReplayHeader(), LongGame())) };
+                if (battlegrounds)
+                {
+                    game = game with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 5, Turns = 2, Result = string.Empty };
+                }
+
+                game = game with { Replay = store.Save(game.Key, battlegrounds ? LongCombat() : ReplayFile.Write(new ReplayHeader(), LongGame())) };
                 var page = MatchPage.Load(game, store, CardDb.Empty, null);
                 Assert.Null(page.Missing);
                 var model = new MatchViewModel(new WpfMain(history, new AppSettings(), TestApp.Data));
