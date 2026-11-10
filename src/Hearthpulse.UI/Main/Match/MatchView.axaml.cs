@@ -21,6 +21,10 @@ public partial class MatchView : UserControl
     // The step's row could not be built: it is under the window's edge (see KeepCurrentFeedRowInView).
     private bool _feedRowOutOfWindow;
 
+    // The row given up and whether it is below the built rows (else above them).
+    private int _feedRowGivenUp;
+    private bool _feedRowBelow;
+
     // The rows of the Battlegrounds event list the view last scrolled for (MatchViewModel.ActionRowsVersion).
     private int _actionRowsSeen = -1;
     private TopLevel? _window;
@@ -334,10 +338,14 @@ public partial class MatchView : UserControl
             // A row under the window's edge is never built (the list builds what is inside the window too): asked
             // again on every step, bringing it in would lay the page out up to three times for nothing. The feed
             // waits until the page scrolls or the window changes.
-            if (!bringIn || _feedRowOutOfWindow)
+            // Only a row further the same way is given up: a step back the other way (a jump to an earlier turn while
+            // the feed's end is under the edge) may be in reach.
+            if (!bringIn || (_feedRowOutOfWindow && (_feedRowBelow ? index >= _feedRowGivenUp : index <= _feedRowGivenUp)))
             {
                 return false;
             }
+
+            _feedRowBelow = Enumerable.Range(0, index).Any(i => FeedRow(i) is not null);
 
             brought = true;
 
@@ -361,6 +369,7 @@ public partial class MatchView : UserControl
         if (FeedRow(index) is not { } row || row.TranslatePoint(default, FeedScroll) is not { } at)
         {
             _feedRowOutOfWindow = brought;
+            _feedRowGivenUp = index;
             return false;
         }
 

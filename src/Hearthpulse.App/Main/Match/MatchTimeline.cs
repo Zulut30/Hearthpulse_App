@@ -184,9 +184,24 @@ public sealed class MatchTimeline : Panel
                 brushes[tick.Look] = brush = TryFindResource(MatchTimelineLayout.TickBrush(tick.Look)) as Brush;
             }
 
-            if (brush is not null)
+            if (brush is null)
             {
-                dc.DrawRoundedRectangle(brush, null, Rect(MatchTimelineLayout.TickMark(tick, ActualWidth, scale, sizesUp: false, UseLayoutRounding)), 1, 1);
+                continue;
+            }
+
+            // The borders the marks were kept their edges on device pixels by pixel snapping (SnapsToDevicePixels is
+            // inherited here; the panel itself has no layout rounding): the same guidelines for a drawn mark, or at a
+            // fractional place it is smeared over three pixels.
+            var mark = Rect(MatchTimelineLayout.TickMark(tick, ActualWidth, scale, sizesUp: false, UseLayoutRounding));
+            if (SnapsToDevicePixels)
+            {
+                dc.PushGuidelineSet(new GuidelineSet([mark.Left, mark.Right], [mark.Top, mark.Bottom]));
+                dc.DrawRoundedRectangle(brush, null, mark, 1, 1);
+                dc.Pop();
+            }
+            else
+            {
+                dc.DrawRoundedRectangle(brush, null, mark, 1, 1);
             }
         }
     }

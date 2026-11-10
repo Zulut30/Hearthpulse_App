@@ -162,6 +162,18 @@ public sealed partial class LocBindingTests
                 }
 
                 Assert.True(scroll.Offset.Y > 0);
+
+                // Found on the renders: with the feed's end under the window's edge a late step's row is out of
+                // reach and given up; the feed must still follow a jump back to the game's first action, whose row is
+                // at the feed's top, inside the window.
+                model.GoFrame.Execute(model.FrameMax * 2 / 3);
+                Settle(window);
+                Assert.Null(feed.ContainerFromIndex(model.FeedCurrentIndex));
+                model.GoFrame.Execute(model.FeedRows.First(r => !r.Header));
+                Settle(window);
+                var first = feed.ContainerFromIndex(model.FeedCurrentIndex);
+                Assert.True(first is { IsVisible: true } && InFeedView(first, scroll),
+                    $"the feed did not come back to row {model.FeedCurrentIndex}: its offset is {scroll.Offset.Y:0}, the feed's top is at {scroll.TranslatePoint(default, page)?.Y:0} of {page.Viewport.Height:0}");
             }
         }
         finally
